@@ -4,14 +4,17 @@ Dark-Moon uses the official `ghcr.io/anomalyco/opencode:1.18.12` image without a
 
 ## Services
 
-| Service | Responsibility | Docker socket |
+| Service | Responsibility | Raw Docker socket |
 |---|---|---|
 | `opencode` | TUI, agent orchestration, provider requests, compatibility plugin | No |
 | `opencode-bootstrap` | One-shot agent/workflow seeding, migration, provider rendering, and configuration validation | No |
-| `darkmoon-mcp` | Streamable HTTP MCP server and controlled bridge into the toolbox | Yes |
+| `darkmoon-mcp` | Streamable HTTP MCP server and controlled bridge into the toolbox | No; restricted proxy only |
+| `docker-proxy` | Allows container inspection and exec requests; rejects other Docker API sections | Yes, read-only bind |
 | `darkmoon` | Security-tool toolbox | Yes, retained from the existing toolbox architecture |
 
-`opencode` and `darkmoon-mcp` share an internal Compose network. Both also join the egress network because OpenCode must reach configured model providers and the MCP service may run workflows that require external connectivity. The MCP endpoint is not published to the host.
+`opencode`, `darkmoon-mcp`, and `docker-proxy` share the internal `control` network. The proxy publishes no host port and joins no egress network. It enables only the Docker `CONTAINERS`, `EXEC`, and `POST` API controls required by the MCP bridge; unrelated sections such as `INFO`, images, networks, volumes, builds, and swarm remain denied. The proxy version is pinned to `ghcr.io/tecnativa/docker-socket-proxy:0.4.2`, whose release supports Docker exec connection upgrades.
+
+OpenCode and MCP also join the `egress` network because OpenCode must reach configured model providers and MCP workflows may require external connectivity. The MCP endpoint is not published to the host.
 
 ## Clean installation
 
@@ -61,17 +64,28 @@ The plugin also forces one-level delegation:
 - Specialists cannot invoke another subagent.
 - Specialists can still be selected directly.
 
+Production, source-fallback, and standalone MCP configurations use explicit transport scopes documented in `conf/README.md`. Production renders a remote MCP URL; environments that actually contain the MCP process may select local stdio transport.
+
 ## Development and ARM64
 
-`docker-compose-dev.yml` uses the same stock OpenCode, bootstrap, plugin, and MCP sidecar topology. Its only intended difference is building the toolbox image locally. This avoids maintaining a separate embedded-MCP or Docker-socket-enabled OpenCode path on ARM64.
+`docker-compose-dev.yml` uses the same stock OpenCode, bootstrap, plugin, restricted Docker proxy, and MCP sidecar topology. Its only intended difference is building the toolbox image locally. This avoids maintaining a separate embedded-MCP or Docker-socket-enabled OpenCode path on ARM64.
+
+## Reproducibility
+
+- Stock OpenCode is version-pinned to `1.18.12`.
+- Support Python images are pinned by digest.
+- MCP direct inputs are pinned in `mcp/requirements.in`.
+- `mcp/requirements.lock` records the complete dependency environment and is generated with hashes by the lock-verification workflow.
+- GitHub Actions are pinned to immutable commit SHAs and run on `ubuntu-24.04`.
 
 ## Verification scopes
 
 The repository separates verification into distinct workflows:
 
-- Configuration/bootstrap/plugin tests and static shell/Compose validation.
-- A fast synthetic Docker/MCP/provider protocol fixture.
+- Configuration/bootstrap/plugin tests, Compose socket-boundary tests, and static shell/Compose validation.
+- A fast synthetic Docker/MCP/provider fixture that proves allowed exec works through the proxy while an unrelated Docker API section is denied.
 - A clean production-Compose test using the real toolbox image, actual wrapper, workflow discovery, persistence, and service restarts.
 - A path-filtered and scheduled source-build fallback test for `Dockerfile.opencode`.
+- A deterministic MCP dependency-lock verification workflow.
 
 Restart tests prove that fresh OpenCode CLI processes reconnect after restarting the MCP sidecar or OpenCode container. They do not claim preservation of an in-flight request.
