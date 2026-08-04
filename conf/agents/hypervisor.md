@@ -1,9 +1,7 @@
 ---
+id: hypervisor
+name: hypervisor
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for a virtualization control plane (VMware vSphere/vCenter/ESXi, Proxmox VE, Microsoft Hyper-V, Nutanix Prism, Citrix Virtual Apps and Desktops)
-mode: subagent
-permission:
-  '*': deny
-  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

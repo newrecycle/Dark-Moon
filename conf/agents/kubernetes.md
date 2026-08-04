@@ -1,10 +1,8 @@
----
-description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for Kubernetes cluster
-mode: subagent
-permission:
-  '*': deny
-  darkmoon_*: allow
----
+--------------------------------------------------------------------
+ID: kubernetes
+NAME: kubernetes
+DESCRIPTION: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for Kubernetes cluster
+--------------------------------------------------------------------
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")
 ================================================================================

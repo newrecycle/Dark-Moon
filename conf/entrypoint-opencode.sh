@@ -21,7 +21,6 @@ WORKFLOWS_DIR="/opt/darkmoon/mcp/server/src/tools/workflows/"
 OPENCODE_CONFIG_FILE="/root/.config/opencode/opencode.json"
 OPENCODE_AUTH_FILE="/root/.local/share/opencode/auth.json"
 APPLY_SCRIPT="/root/conf/apply-settings.sh"
-WORKSPACE_DIR="${DARKMOON_WORKSPACE:-/workspace}"
 
 #######################################
 # Sanity checks
@@ -34,9 +33,23 @@ WORKSPACE_DIR="${DARKMOON_WORKSPACE:-/workspace}"
 log "Preparing directories"
 mkdir -p \
   "$AGENTS_DIR" \
-  "$WORKSPACE_DIR" \
   "$(dirname "$OPENCODE_CONFIG_FILE")" \
   "$(dirname "$OPENCODE_AUTH_FILE")"
+
+#######################################
+# Apply OpenCode config (ALWAYS)
+#######################################
+log "Applying OpenCode configuration (forced)"
+
+log "Runtime environment variables available:"
+# Redact secret values (anything whose name contains KEY/TOKEN/SECRET/PASSWORD)
+env | grep -E 'OPENROUTER_|OPENCODE_' | sed -E 's/^([^=]*(KEY|TOKEN|SECRET|PASSWORD)[^=]*)=.*/\1=REDACTED/I' || true
+
+[ -x "$APPLY_SCRIPT" ] || fatal "Apply script not executable: $APPLY_SCRIPT"
+
+if ! "$APPLY_SCRIPT"; then
+  fatal "apply-settings failed"
+fi
 
 #######################################
 # Seed agents (VOLUME-SAFE)
@@ -55,17 +68,6 @@ if [ -z "$(ls -A "$AGENTS_DIR" 2>/dev/null)" ]; then
   log "Agents seeded successfully"
 else
   log "Agents dir already populated → skip"
-fi
-
-#######################################
-# Migrate, validate, and apply config (ALWAYS)
-#######################################
-log "Applying OpenCode configuration"
-
-[ -x "$APPLY_SCRIPT" ] || fatal "Apply script not executable: $APPLY_SCRIPT"
-
-if ! "$APPLY_SCRIPT"; then
-  fatal "agent migration or OpenCode configuration failed"
 fi
 
 #######################################
@@ -106,9 +108,9 @@ SESSIONS_DIR="/root/.local/share/opencode/sessions"
 log "Preparing OpenCode sessions directory"
 mkdir -p "$SESSIONS_DIR"
 
-log "Starting real-time Markdown watcher (inotify on $WORKSPACE_DIR)"
+log "Starting real-time Markdown watcher (inotify on /)"
 
-inotifywait -m "$WORKSPACE_DIR" \
+inotifywait -m / \
   -e create -e moved_to -e close_write \
   --format '%w%f' |
 while read -r path; do
@@ -120,7 +122,7 @@ while read -r path; do
   esac
 
   case "$path" in
-    "$WORKSPACE_DIR"/*.md) ;;
+    /*.md) ;;
     *) continue ;;
   esac
 

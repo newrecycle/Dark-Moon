@@ -1,9 +1,7 @@
 ---
+id: messaging-cache
+name: messaging-cache
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for message brokers and caches (Redis/RabbitMQ/Kafka/NATS/MQTT/ActiveMQ/ZooKeeper) covering unauthenticated exposure, management APIs, and RCE-adjacent primitives
-mode: subagent
-permission:
-  '*': deny
-  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

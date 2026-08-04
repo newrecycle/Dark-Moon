@@ -1,9 +1,7 @@
 ---
+id: github
+name: github
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for GitHub / GitHub Enterprise (orgs, repos, PATs, GitHub Apps, Actions workflows, secrets, self-hosted runners, packages, branch protection)
-mode: subagent
-permission:
-  '*': deny
-  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

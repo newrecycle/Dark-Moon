@@ -1,9 +1,7 @@
 ---
+id: python-flask
+name: python-flask
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for python-flask web application
-mode: subagent
-permission:
-  '*': deny
-  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

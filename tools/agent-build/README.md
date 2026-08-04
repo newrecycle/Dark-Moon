@@ -1,7 +1,7 @@
 # Darkmoon agent-build
 
-Tooling that generates schema-valid, spine-compliant Darkmoon sub-agents, wires
-their routing signals into every repo, and gates them against regression. Built for the 2026-08 credential-gated
+Tooling that generates spine-compliant Darkmoon sub-agents, wires them into every
+repo, and gates them against regression. Built for the 2026-08 credential-gated
 agent expansion; use it for every new agent from now on.
 
 ## Why a generator
@@ -18,7 +18,7 @@ every agent is the same shape/length as the reference fleet.
 |---|---|
 | `generate.py` | build `.md` agents from `profiles/*.json` into `out/` (LF-only). `--selfcheck` verifies the spine round-trips. |
 | `validate.py` | conformance gate: banner byte-identity, front-matter, `{{TARGET}}`, do-not-finalize, END marker, no orchestrator-only leakage. |
-| `wire.py <repo>…` | insert each agent's routing signal into `pentest.md` (newline-safe, preserves Front-API CRLF). OpenCode discovers the Markdown file automatically. |
+| `wire.py <repo>…` | insert each agent into `pentest.md` (roster **and** signal matrix — newline-safe, preserves Front-API CRLF) and `apply-settings.sh`. Idempotent. |
 | `mirror.sh` | copy `out/*.md` into all three repos' `conf/agents/`. |
 | `profiles/*.json` | one per agent: id, description, objective (`{{TARGET}}`), strict_constraints, preflight, offensive, priorities, stop_note. |
 
@@ -31,8 +31,6 @@ python3 generate.py <id>          # -> out/<id>.md
 python3 validate.py out/<id>.md   # must PASS
 bash mirror.sh                    # -> conf/agents in all 3 repos
 python3 wire.py ../.. ../../../Dark-Moon-prod ../../../Dark-Moon-Front-API
-# Validate filenames, modes, frontmatter, prompts, and least-privilege MCP access.
-python3 ../../conf/opencode-config.py validate --agents-dir ../../conf/agents
 # 2. rebuild the image (CI), then:
 ../verify-toolbox.sh              # every allow-listed tool alive
 ../check-no-regression.sh         # INC-009/INC-010 + wiring intact

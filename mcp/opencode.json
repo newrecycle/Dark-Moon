@@ -1,17 +1,48 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/big-pickle",
-  "default_agent": "pentest-web",
+
+  // =========================
+  // MCP – Toolbox pentest
+  // =========================
   "mcp": {
     "darkmoon": {
       "type": "local",
-      "command": [
-        ".venv/bin/python3",
-        "-m",
-        "src.server"
-      ],
+      "command": [".venv/bin/python3", "-m", "src.server"],
       "timeout": 36000000,
       "enabled": true
     }
+  },
+
+  // =========================
+  // AUTO-APPROVE TOTAL
+  // =========================
+  "permission": {
+    "*": "allow"
+  },
+
+  // =========================
+  // AGENT PRINCIPAL
+  // =========================
+  "agent": {
+    "fastcmp-pentest": {
+      "mode": "primary",
+      "model": "opencode/big-pickle",
+
+      // Forcer l’usage MCP
+      "mcp": ["darkmoon"],
+
+      // Tools OpenCode autorisés
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "mcp": true
+      },
+
+      // IMPORTANT : prompt externe
+      "prompt_file": ".opencode/agents/fastcmp-pentest.md"
+    }
   }
 }
+
