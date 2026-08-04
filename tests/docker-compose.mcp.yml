@@ -11,11 +11,22 @@ services:
       timeout: 2s
       retries: 20
 
+  docker-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:0.4.2
+    environment:
+      CONTAINERS: "1"
+      EXEC: "1"
+      POST: "1"
+      LOG_LEVEL: warning
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
   darkmoon-mcp:
     build:
       context: ..
       dockerfile: Dockerfile.mcp
     environment:
+      DOCKER_HOST: tcp://docker-proxy:2375
       DOCKER_CONTAINER_NAME: darkmoon
       DARKMOON_MCP_HOST: 0.0.0.0
       DARKMOON_MCP_PORT: "8000"
@@ -25,8 +36,8 @@ services:
     depends_on:
       darkmoon:
         condition: service_healthy
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      docker-proxy:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-m", "src.healthcheck"]
       interval: 2s
