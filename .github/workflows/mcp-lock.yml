@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: mcp-lock-${{ github.ref }}
@@ -20,10 +20,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - name: Check out repository branch
+      - name: Check out repository
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-        with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
@@ -39,20 +37,6 @@ jobs:
             --strip-extras \
             --output-file generated-requirements.lock \
             mcp/requirements.in
-
-      - name: Commit generated lock for this same-repository PR
-        if: >-
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          if ! cmp -s mcp/requirements.lock generated-requirements.lock; then
-            cp generated-requirements.lock mcp/requirements.lock
-            git config user.name github-actions[bot]
-            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-            git add mcp/requirements.lock
-            git commit -m "build(mcp): update hash-locked dependencies"
-            git push origin "HEAD:${{ github.head_ref }}"
-          fi
 
       - name: Upload generated lock
         if: always()
