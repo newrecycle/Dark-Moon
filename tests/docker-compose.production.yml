@@ -8,7 +8,6 @@ services:
       MOCK_EXPECT_MODEL: darkmoon-test-model
       MOCK_EXPECT_TEMPERATURE: "0.2"
       MOCK_EXPECT_TOP_P: "0.9"
-      MOCK_EXPECT_REASONING_EFFORT: medium
     volumes:
       - ./:/tests:ro
       - ${DARKMOON_TEST_CAPTURE_DIR:?set DARKMOON_TEST_CAPTURE_DIR}:/capture:rw
@@ -24,7 +23,7 @@ services:
     command: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
     environment:
       OPENCODE_DISABLE_MODELS_FETCH: "true"
-      OPENCODE_CONFIG_CONTENT: '{"agent":{"pentest":{"temperature":0.2,"top_p":0.9,"options":{"id":"must-not-reach-provider","name":"must-not-reach-provider","primary":true,"secondary":false,"prompt_file":"must-not-reach-provider.md","mcp":["darkmoon"],"tools":{"bash":true},"maxSteps":999,"reasoning_effort":"medium"}}}}'
+      OPENCODE_CONFIG_CONTENT: '{"provider":{"mock":{"models":{"darkmoon-test-model":{"temperature":true,"reasoning":true,"tool_call":true,"variants":{"medium":{"reasoning_effort":"medium"}}}}}},"agent":{"pentest":{"temperature":0.2,"top_p":0.9,"variant":"medium","options":{"id":"must-not-reach-provider","name":"must-not-reach-provider","primary":true,"secondary":false,"prompt_file":"must-not-reach-provider.md","mcp":["darkmoon"],"tools":{"bash":true},"maxSteps":999,"reasoning_effort":"medium"}}}}'
     depends_on:
       mock-provider:
         condition: service_healthy
