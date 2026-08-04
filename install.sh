@@ -23,6 +23,7 @@ RESET="\033[0m"
 # Parse args
 # ─────────────────────────────────────────────────────────────────
 FORCE_RESET=false
+KEEP_DATA=false
 for ARG in "$@"; do
   case "${ARG}" in
     --help|-h)
@@ -30,13 +31,20 @@ for ARG in "$@"; do
       echo ""
       echo "Options:"
       echo "  --init    Force LLM provider reconfiguration (ignores existing .opencode.env)"
+      echo "  --keep    Preserve Docker volumes and bind-mounted runtime data"
       echo "  --help    Show this help"
       echo ""
       echo "Examples:"
-      echo "  ./install.sh           # rebuild, skip provider form if already configured"
-      echo "  ./install.sh --init    # rebuild and reconfigure LLM provider"
+      echo "  ./install.sh           # clean rebuild; reuse provider config when available"
+      echo "  ./install.sh --init    # clean rebuild and reconfigure LLM provider"
+      echo "  ./install.sh --keep    # rebuild without deleting sessions, projects or agent data"
       exit 0 ;;
     --reset|--init) FORCE_RESET=true ;;
+    --keep) KEEP_DATA=true ;;
+    *)
+      echo "Unknown option: ${ARG}" >&2
+      echo "Run ./install.sh --help for usage." >&2
+      exit 2 ;;
   esac
 done
 
@@ -279,18 +287,76 @@ echo -e "${GREEN}✔ ${OPENCODE_ENV_FILE} written${RESET}"
 # ─────────────────────────────────────────────────────────────────
 # Stop stack + purge + rebuild
 # ─────────────────────────────────────────────────────────────────
-echo -e "${BLUE}🛑 Stopping stack (containers + networks + volumes + images)...${RESET}"
-docker compose down --remove-orphans --volumes --rmi all
+find_local_cleanup_image() {
+  local image
 
-echo -e "${BLUE}🧹 Purging bind mounts...${RESET}"
-for path in "${BIND_PATHS[@]}"; do
-  if [ -d "$path" ]; then
-    echo -e "${YELLOW}  - removing ${path}${RESET}"
-    rm -rf "$path"
-  else
+  while IFS= read -r image; do
+    [ -n "${image}" ] || continue
+
+    if docker image inspect "${image}" >/dev/null 2>&1 &&
+       docker run --rm --entrypoint /bin/sh "${image}" -c ':' >/dev/null 2>&1; then
+      printf '%s\n' "${image}"
+      return 0
+    fi
+  done < <(docker compose config --images 2>/dev/null || true)
+
+  return 1
+}
+
+remove_bind_path() {
+  local path="$1"
+  local relative_path="${path#./}"
+  local cleanup_image=""
+
+  if [ ! -e "${path}" ] && [ ! -L "${path}" ]; then
     echo -e "${YELLOW}  - ${path} (absent)${RESET}"
+    return 0
   fi
-done
+
+  echo -e "${YELLOW}  - removing ${path}${RESET}"
+  if rm -rf -- "${path}" 2>/dev/null; then
+    return 0
+  fi
+
+  echo -e "${YELLOW}    host permissions blocked removal; retrying as container root${RESET}"
+  cleanup_image="$(find_local_cleanup_image || true)"
+  cleanup_image="${cleanup_image:-alpine:3.20}"
+
+  if ! docker run --rm \
+      -v "${SCRIPT_DIR}:/darkmoon-root" \
+      --entrypoint /bin/sh \
+      "${cleanup_image}" \
+      -c 'rm -rf -- "/darkmoon-root/$1"' sh "${relative_path}"; then
+    echo -e "${RED}❌ Could not remove ${path}.${RESET}"
+    printf 'Run this command and retry: sudo rm -rf -- %q\n' "${path}" >&2
+    exit 1
+  fi
+
+  if [ -e "${path}" ] || [ -L "${path}" ]; then
+    echo -e "${RED}❌ Cleanup completed without deleting ${path}.${RESET}"
+    printf 'Run this command and retry: sudo rm -rf -- %q\n' "${path}" >&2
+    exit 1
+  fi
+}
+
+if [ "${KEEP_DATA}" = true ]; then
+  echo -e "${BLUE}🛑 Stopping stack while preserving volumes and bind-mounted data...${RESET}"
+  docker compose down --remove-orphans
+  echo -e "${GREEN}✔ Persistent session, project and agent data retained${RESET}"
+else
+  # Keep images available until bind cleanup is complete so a local image can
+  # remove root-owned files without requiring sudo or an extra image pull.
+  echo -e "${BLUE}🛑 Stopping stack (containers + networks + volumes)...${RESET}"
+  docker compose down --remove-orphans --volumes
+
+  echo -e "${BLUE}🧹 Purging bind mounts...${RESET}"
+  for path in "${BIND_PATHS[@]}"; do
+    remove_bind_path "${path}"
+  done
+fi
+
+echo -e "${BLUE}🗑️  Removing previous stack images...${RESET}"
+docker compose down --remove-orphans --rmi all
 
 echo -e "${BLUE}🧽 Purging docker build cache...${RESET}"
 docker builder prune -f
@@ -324,4 +390,8 @@ docker compose $COMPOSE_ARGS build --no-cache
 echo -e "${BLUE}🚀 Recreating containers...${RESET}"
 docker compose $COMPOSE_ARGS up -d --force-recreate
 
-echo -e "${GREEN}✅ Darkmoon stack rebuilt CLEAN${RESET}"
+if [ "${KEEP_DATA}" = true ]; then
+  echo -e "${GREEN}✅ Darkmoon stack rebuilt with persistent data retained${RESET}"
+else
+  echo -e "${GREEN}✅ Darkmoon stack rebuilt CLEAN${RESET}"
+fi
