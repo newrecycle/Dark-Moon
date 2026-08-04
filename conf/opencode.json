@@ -1,16 +1,4 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/big-pickle",
-  "small_model": "opencode/big-pickle",
-  "default_agent": "pentest",
-  "mcp": {
-    "darkmoon": {
-      "type": "local",
-      "command": [
-        "/usr/local/bin/darkmoon-mcp"
-      ],
-      "timeout": 36000000,
-      "enabled": true
-    }
-  }
+  "model": "${OPENCODE_MODEL}"
 }

@@ -1,9 +1,7 @@
 ---
+id: gitops
+name: gitops
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for a GitOps control plane (ArgoCD/FluxCD/Tekton/Crossplane, their controllers, repo and cluster credentials, and the git-to-cluster pivot)
-mode: subagent
-permission:
-  '*': deny
-  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

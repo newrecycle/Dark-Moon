@@ -1,9 +1,7 @@
 ---
+id: storage
+name: storage
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for network and object storage (SMB/Samba, NFS, MinIO, Ceph RGW, OpenStack Swift) including the secret hunt inside the files it opens
-mode: subagent
-permission:
-  '*': deny
-  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

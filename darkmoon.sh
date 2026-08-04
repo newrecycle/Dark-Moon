@@ -1,181 +1,121 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-cd "$SCRIPT_DIR"
-
 SERVICE="opencode"
 APP_BIN="opencode"
-ENV_FILE="${OPENCODE_ENV_FILE:-$SCRIPT_DIR/.opencode.env}"
 
+# ------------------------------------------------------------
+# Détection docker compose (plugin vs legacy)
+# ------------------------------------------------------------
+# Prefer the Compose v2 plugin (`docker compose`): the modern docker-compose.yml
+# uses Compose-Spec features (e.g. the top-level `name:` key) that the legacy
+# Python `docker-compose` v1 rejects ("'name' does not match any of the regexes").
+# Only fall back to the legacy binary when the v2 plugin is genuinely unavailable.
 if docker compose version >/dev/null 2>&1; then
   DC=(docker compose)
 elif command -v docker-compose >/dev/null 2>&1; then
   DC=(docker-compose)
 else
-  echo "Neither Docker Compose v2 nor docker-compose is available." >&2
+  echo "❌ Neither 'docker compose' (v2 plugin) nor 'docker-compose' (legacy) is available." >&2
+  echo "   Install the Docker Compose v2 plugin: https://docs.docker.com/compose/install/" >&2
   exit 1
 fi
 
-# Tests, parallel installations, and operators using `docker compose -p` must
-# address the same project when this wrapper later performs `exec`. Compose file
-# selection alone is insufficient because `-p` changes container discovery.
-if [[ -n "${DARKMOON_COMPOSE_PROJECT:-}" ]]; then
-  DC+=(-p "$DARKMOON_COMPOSE_PROJECT")
-fi
-
-compose_files=()
-if [[ -n "${DARKMOON_COMPOSE_FILES:-}" ]]; then
-  IFS=: read -r -a compose_files <<<"$DARKMOON_COMPOSE_FILES"
-elif [[ -n "${DARKMOON_COMPOSE_FILE:-}" ]]; then
-  compose_files=("$DARKMOON_COMPOSE_FILE")
+# ------------------------------------------------------------
+# TTY detection (pipe-safe)
+# ------------------------------------------------------------
+if [[ -t 0 ]]; then
+  TTY_FLAGS=(-it)
 else
-  case "$(uname -m)" in
-    aarch64|arm64) compose_files=("$SCRIPT_DIR/docker-compose-dev.yml") ;;
-    *) compose_files=("$SCRIPT_DIR/docker-compose.yml") ;;
-  esac
-fi
-for file in "${compose_files[@]}"; do
-  [[ -f "$file" ]] || { echo "Compose file not found: $file" >&2; exit 1; }
-  DC+=(-f "$file")
-done
-
-if [[ -t 0 && -t 1 ]]; then
-  EXEC_TTY=()
-else
-  EXEC_TTY=(-T)
+  TTY_FLAGS=(-T)
 fi
 
-debug_command() {
-  [[ "${DARKMOON_DEBUG:-0}" == "1" ]] || return 0
-  printf '[darkmoon] exec:' >&2
-  printf ' %q' "$@" >&2
-  printf '\n' >&2
-}
-
-read_env_value() {
-  local key=$1 line
-  [[ -f "$ENV_FILE" ]] || return 0
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    line=${line%$'\r'}
-    [[ "$line" == "$key="* ]] || continue
-    printf '%s' "${line#*=}"
-    return 0
-  done < "$ENV_FILE"
-}
-
-preflight_provider_check() {
-  local url mode result
-  url="$(read_env_value ANTHROPIC_BASE_URL)"
-  mode="Anthropic-compatible"
-  if [[ -z "$url" ]]; then
-    url="$(read_env_value OPENCODE_LOCAL_BASE_URL)"
-    mode="Local OpenAI-compatible"
-  fi
-  [[ -z "$url" ]] && return 0
-
-  set +e
-  result="$("${DC[@]}" exec -T darkmoon-mcp python - "$url" <<'PY'
-import socket
-import sys
-from urllib.parse import urlparse
-
-url = sys.argv[1]
-parsed = urlparse(url)
-if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-    print("INVALID|" + url)
-    raise SystemExit(3)
-if parsed.hostname in {"localhost", "127.0.0.1", "::1"}:
-    print("LOOPBACK|" + url)
-    raise SystemExit(3)
-port = parsed.port or (443 if parsed.scheme == "https" else 80)
-try:
-    with socket.create_connection((parsed.hostname, port), timeout=5):
-        pass
-except OSError as exc:
-    print(f"UNREACHABLE|{url}|{exc}")
-    raise SystemExit(3)
-print("OK")
-PY
-)"
-  local status=$?
-  set -e
-  if (( status == 0 )); then
-    return 0
-  fi
-
-  case "$result" in
-    LOOPBACK\|*)
-      cat >&2 <<EOF
-LLM endpoint uses a container-local loopback address:
-  ${result#LOOPBACK|}
-Inside Docker, localhost points to the MCP/OpenCode container, not the host.
-Use host.docker.internal, the host LAN address, or a reachable service name.
-EOF
-      ;;
-    INVALID\|*)
-      echo "Invalid ${mode} URL: ${result#INVALID|}" >&2
-      ;;
-    UNREACHABLE\|*)
-      local rest=${result#UNREACHABLE|}
-      echo "${mode} endpoint is not reachable from the Dark-Moon stack: ${rest%%|*}" >&2
-      echo "Reason: ${rest#*|}" >&2
-      ;;
-    *)
-      echo "Unable to validate ${mode} endpoint: $url" >&2
-      ;;
-  esac
-  exit 3
-}
-
-is_direct_opencode_command() {
-  case "${1:-}" in
-    -h|--help|-v|--version|--mini|completion|acp|mcp|attach|debug|providers|auth|agent|upgrade|uninstall|serve|web|models|stats|export|import|github|pr|session|plugin|plug|db|run)
-      return 0
-      ;;
-    *) return 1 ;;
-  esac
-}
-
+# ------------------------------------------------------------
+# --log mode
+# ------------------------------------------------------------
 if [[ "${1:-}" == "--log" ]]; then
-  [[ $# -ge 2 ]] || { echo "Usage: $0 --log <session_id>" >&2; exit 1; }
-  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" darkmoon-mcp python -m src.mcp_monitoring "$2"
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" darkmoon-mcp \
-    python -m src.mcp_monitoring "$2"
+  if [[ $# -lt 2 ]]; then
+    echo "Usage: $0 --log <session_id>"
+    exit 1
+  fi
+
+  SESSION_ID="$2"
+
+  exec "${DC[@]}" exec "${TTY_FLAGS[@]}" "$SERVICE" \
+    bash -lc 'exec "$1" "$2"' bash "darkmoon-cli" "$SESSION_ID"
 fi
 
+# ------------------------------------------------------------
+# Preflight: fail fast with a clear message if the configured
+# on-prem LLM endpoint is unreachable from INSIDE the container.
+# Without this, `opencode run` hangs silently — no output, no
+# error, no logs — when ANTHROPIC_BASE_URL / OPENCODE_LOCAL_BASE_URL
+# cannot be reached (see issue #28).
+# ------------------------------------------------------------
+preflight_provider_check() {
+  local res
+  res="$("${DC[@]}" exec -T "$SERVICE" bash -c '
+    url="${ANTHROPIC_BASE_URL:-}"; mode="Anthropic (install.sh option 3)"
+    if [ -z "$url" ]; then url="${OPENCODE_LOCAL_BASE_URL:-}"; mode="Local (install.sh option 2)"; fi
+    [ -z "$url" ] && exit 0                         # cloud provider or none -> nothing to probe
+    proto="${url%%://*}"; rest="${url#*://}"; hostport="${rest%%/*}"
+    host="${hostport%%:*}"; port="${hostport##*:}"
+    [ "$host" = "$port" ] && port=""                # no explicit port in URL
+    [ -z "$port" ] && { [ "$proto" = https ] && port=443 || port=80; }
+    # Pure-bash TCP connect (no curl in the image); detects the silent-hang case.
+    if timeout 5 bash -c "exec 3<>/dev/tcp/$host/$port" 2>/dev/null; then exit 0; fi
+    printf "UNREACHABLE|%s|%s" "$mode" "$url"
+    exit 3
+  ' 2>/dev/null)" || true
+
+  case "${res:-}" in
+    UNREACHABLE\|*)
+      local rest="${res#UNREACHABLE|}"
+      local url="${rest#*|}"
+      local mode="${rest%%|*}"
+      {
+        echo ""
+        echo "❌ LLM endpoint not reachable from inside the Darkmoon container:"
+        echo "      ${url}"
+        echo "      (provider: ${mode})"
+        echo ""
+        echo "   The agent cannot run and would otherwise produce no output. Check:"
+        echo "   • Network: the URL must be reachable FROM THE CONTAINER, not just your host."
+        echo "     'localhost' / '127.0.0.1' point to the container itself — use the host LAN IP"
+        echo "     or 'host.docker.internal', and confirm the server is actually running."
+        echo "   • Protocol: option [3] expects an Anthropic Messages API endpoint (/v1/messages)."
+        echo "     If your endpoint is OpenAI-compatible (e.g. blackbox, LiteLLM, Ollama), re-run"
+        echo "     install.sh and choose [2] Local instead."
+        echo ""
+      } >&2
+      exit 3
+      ;;
+  esac
+}
 preflight_provider_check
 
-# OpenCode global logging/plugin flags must precede the selected command. Pull
-# them off before deciding whether the remaining arguments are an explicit
-# top-level command or an implicit `opencode run` invocation.
-GLOBAL_ARGS=()
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --print-logs|--pure)
-      GLOBAL_ARGS+=("$1")
-      shift
-      ;;
-    --log-level)
-      [[ $# -ge 2 ]] || { echo "--log-level requires a value" >&2; exit 2; }
-      GLOBAL_ARGS+=("$1" "$2")
-      shift 2
-      ;;
-    --log-level=*)
-      GLOBAL_ARGS+=("$1")
-      shift
-      ;;
-    *) break ;;
-  esac
-done
-
+# ------------------------------------------------------------
+# Default behaviour
+# ------------------------------------------------------------
 if [[ $# -eq 0 ]]; then
-  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}"
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}"
-elif is_direct_opencode_command "$1"; then
-  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" "$@"
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" "$@"
+  # Mode interactif → TUI
+  exec "${DC[@]}" exec "${TTY_FLAGS[@]}" "$SERVICE" \
+    bash -lc 'exec "$1"' bash "$APP_BIN"
+elif [[ "${1:0:1}" == "-" ]]; then
+  # Le 1er argument est un flag (court ou long : -s, -c, -m,
+  # --help, --version, --session, …). On passe la main directement
+  # à `opencode` SANS la sous-commande `run`. C'est indispensable
+  # pour -s/--session (continuer une session) et -c/--continue :
+  # `opencode run` exigerait en plus un message positionnel et
+  # échouerait avec "You must provide a message or a command".
+  # Pour relancer une session en mode one-shot, mettre le message
+  # en 1er : ./darkmoon.sh "mon prompt" -s <session_id>
+  exec "${DC[@]}" exec "${TTY_FLAGS[@]}" "$SERVICE" \
+    bash -lc 'app="$1"; shift; exec "$app" "$@"' bash "$APP_BIN" "$@"
 else
-  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" run "$@"
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" run "$@"
+  # Arguments positionnels = prompt one-shot. opencode exige la
+  # sous-commande `run`, sinon il interprète la chaîne comme un cwd
+  # et échoue avec "Failed to change directory to /<prompt>".
+  exec "${DC[@]}" exec "${TTY_FLAGS[@]}" "$SERVICE" \
+    bash -lc 'app="$1"; shift; exec "$app" run "$@"' bash "$APP_BIN" "$@"
 fi

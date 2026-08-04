@@ -1,9 +1,7 @@
 ---
+id: drupal
+name: drupal
 description: Fully autonomous pentest sub agent using MCP-backed Darkmoon toolbox for Drupal applications (core, contrib modules, JSON:API, REST, Entity/Field system, Render API, Twig, Views, Drupal Commerce, roles/permissions)
-mode: subagent
-permission:
-  '*': deny
-  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

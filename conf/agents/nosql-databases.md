@@ -1,9 +1,7 @@
 ---
-description: 'Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for NoSQL data stores (MongoDB/Elasticsearch/Neo4j/CouchDB: unauthenticated access, role and index enumeration, server-side scripting, snapshot and file primitives, document extraction)'
-mode: subagent
-permission:
-  '*': deny
-  darkmoon_*: allow
+id: nosql-databases
+name: nosql-databases
+description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for NoSQL data stores (MongoDB/Elasticsearch/Neo4j/CouchDB: unauthenticated access, role and index enumeration, server-side scripting, snapshot and file primitives, document extraction)
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

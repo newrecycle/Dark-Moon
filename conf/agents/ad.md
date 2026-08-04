@@ -1,10 +1,6 @@
 ---
-description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for active directory lab
-mode: subagent
-permission:
-  '*': deny
-  darkmoon_*: allow
----
+id: active-directory
+name: active-directory
 ------------------------------------------------------------------
 NON-BLOCKING EXECUTION (MANDATORY)
 ------------------------------------------------------------------
@@ -45,6 +41,8 @@ Abandoning a dead end is a correct, expected outcome and costs you nothing.
 Freezing the campaign loses every finding that would have come after it.
 NEVER re-run a command that was refused or timed out, unchanged.
 
+description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for active directory lab
+---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")
 ================================================================================

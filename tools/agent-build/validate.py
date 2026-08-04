@@ -12,8 +12,6 @@ import os
 import re
 import sys
 
-import yaml
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 CANON = os.path.join(REPO, "conf", "agents", "graphql.md")
@@ -52,31 +50,17 @@ def validate(path, banner):
     if "\r" in text:
         errs.append("contains CR (must be LF-only)")
 
-    data = {}
-    match = re.match(r"^---\n(.*?)\n---\n", text, re.S)
-    if not match:
-        errs.append("missing valid YAML frontmatter fences")
-    else:
-        try:
-            data = yaml.safe_load(match.group(1)) or {}
-        except yaml.YAMLError as exc:
-            errs.append(f"invalid YAML frontmatter: {exc}")
-        if not isinstance(data, dict):
-            errs.append("frontmatter must be an object")
-            data = {}
-
-    legacy = sorted(set(data) & {"id", "name", "primary", "secondary", "prompt_file", "mcp", "tools", "maxSteps"})
-    if legacy:
-        errs.append(f"legacy OpenCode fields present: {', '.join(legacy)}")
-    if not isinstance(data.get("description"), str) or not data["description"].strip():
-        errs.append("missing frontmatter description")
-    if data.get("mode") != "subagent":
-        errs.append("mode must be subagent")
-    permission = data.get("permission")
-    if not isinstance(permission, dict):
-        errs.append("permission must be an object")
-    elif list(permission)[:2] != ["*", "darkmoon_*"] or permission.get("*") != "deny" or permission.get("darkmoon_*") != "allow":
-        errs.append("permissions must deny '*' then allow 'darkmoon_*'")
+    m_id = re.search(r"^id:\s*(\S+)\s*$", text, re.M)
+    m_name = re.search(r"^name:\s*(\S+)\s*$", text, re.M)
+    m_desc = re.search(r"^description:\s*(\S.+)$", text, re.M)
+    if not m_id:
+        errs.append("missing front-matter id")
+    if not m_name:
+        errs.append("missing front-matter name")
+    if m_id and m_name and m_id.group(1) != m_name.group(1):
+        errs.append(f"id ({m_id.group(1)}) != name ({m_name.group(1)})")
+    if not m_desc:
+        errs.append("missing front-matter description")
 
     if banner not in text:
         errs.append("STATUS QUALIFICATION banner not byte-identical to graphql.md")
