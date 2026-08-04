@@ -27,6 +27,20 @@ services:
       - NET_ADMIN
     restart: unless-stopped
 
+  docker-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:0.4.2
+    container_name: darkmoon-docker-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+      EXEC: "1"
+      POST: "1"
+      LOG_LEVEL: warning
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - control
+
   darkmoon-mcp:
     build:
       context: .
@@ -37,14 +51,16 @@ services:
     depends_on:
       darkmoon:
         condition: service_started
+      docker-proxy:
+        condition: service_started
     environment:
+      DOCKER_HOST: tcp://docker-proxy:2375
       DOCKER_CONTAINER_NAME: darkmoon
       DARKMOON_MCP_HOST: 0.0.0.0
       DARKMOON_MCP_PORT: "8000"
       DARKMOON_MCP_PATH: /mcp
       PYTHONUNBUFFERED: "1"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - ${DARKMOON_REPORTS_DIR:-./reports}:/root/.local/share/opencode/reports:rw
       - ${DARKMOON_SESSIONS_DIR:-./sessions}:/root/.local/share/opencode/sessions:rw
       - ${DARKMOON_WORKFLOWS_DIR:-./workflows}:/opt/darkmoon/mcp/server/src/tools/workflows:rw
