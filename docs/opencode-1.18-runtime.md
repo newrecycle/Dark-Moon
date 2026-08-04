@@ -12,7 +12,7 @@ Dark-Moon uses the official `ghcr.io/anomalyco/opencode:1.18.12` image without a
 | `docker-proxy` | Allows container inspection and exec requests; rejects other Docker API sections | Yes, read-only bind |
 | `darkmoon` | Security-tool toolbox | Yes, retained from the existing toolbox architecture |
 
-`opencode`, `darkmoon-mcp`, and `docker-proxy` share the internal `control` network. The proxy publishes no host port and joins no egress network. It enables only the Docker `CONTAINERS`, `EXEC`, and `POST` API controls required by the MCP bridge; unrelated sections such as `INFO`, images, networks, volumes, builds, and swarm remain denied. The proxy version is pinned to `ghcr.io/tecnativa/docker-socket-proxy:0.4.2`, whose release supports Docker exec connection upgrades.
+`opencode`, `darkmoon-mcp`, and `docker-proxy` share the internal `control` network. The proxy publishes no host port and joins no egress network. It enables only the Docker `CONTAINERS`, `EXEC`, and `POST` API controls required by the MCP bridge; unrelated sections such as `INFO`, images, networks, volumes, builds, and swarm remain denied. The proxy uses the published `tecnativa/docker-socket-proxy:v0.4.2` multi-platform image pinned to index digest `sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476`; that release supports Docker exec connection upgrades.
 
 OpenCode and MCP also join the `egress` network because OpenCode must reach configured model providers and MCP workflows may require external connectivity. The MCP endpoint is not published to the host.
 
