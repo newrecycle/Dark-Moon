@@ -56,6 +56,12 @@ command -v docker >/dev/null 2>&1 || fail "Docker is not installed"
 docker info >/dev/null 2>&1 || fail "Docker daemon is not running"
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is required"
 
+# The bootstrap writes security-sensitive configuration with mode 0600. Run it
+# as the invoking account so those files remain readable and editable on the
+# host instead of becoming root-owned bind-mount artifacts.
+export DARKMOON_UID="${DARKMOON_UID:-$(id -u)}"
+export DARKMOON_GID="${DARKMOON_GID:-$(id -g)}"
+
 printf '%b' "$CYAN"
 cat <<'EOF'
 
@@ -263,7 +269,7 @@ wait_for_stack() {
 }
 
 wait_for_stack || fail "Dark-Moon did not become ready"
-[[ -f "$SCRIPT_DIR/darkmoon-settings/opencode.json" ]] || fail "OpenCode bootstrap did not create opencode.json"
-[[ -f "$SCRIPT_DIR/darkmoon-settings/.darkmoon-bootstrap.json" ]] || fail "OpenCode bootstrap state marker is missing"
+[[ -r "$SCRIPT_DIR/darkmoon-settings/opencode.json" ]] || fail "OpenCode bootstrap did not create a user-readable opencode.json"
+[[ -r "$SCRIPT_DIR/darkmoon-settings/.darkmoon-bootstrap.json" ]] || fail "OpenCode bootstrap state marker is missing or unreadable"
 
 printf '%bDark-Moon installation is ready.%b\n' "$GREEN" "$RESET"
