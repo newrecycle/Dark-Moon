@@ -17,6 +17,13 @@ else
   exit 1
 fi
 
+# Tests, parallel installations, and operators using `docker compose -p` must
+# address the same project when this wrapper later performs `exec`. Compose file
+# selection alone is insufficient because `-p` changes container discovery.
+if [[ -n "${DARKMOON_COMPOSE_PROJECT:-}" ]]; then
+  DC+=(-p "$DARKMOON_COMPOSE_PROJECT")
+fi
+
 compose_files=()
 if [[ -n "${DARKMOON_COMPOSE_FILES:-}" ]]; then
   IFS=: read -r -a compose_files <<<"$DARKMOON_COMPOSE_FILES"
