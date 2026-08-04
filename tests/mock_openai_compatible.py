@@ -54,11 +54,27 @@ def _expectations(body: dict[str, Any]) -> list[str]:
     if expected_model and body.get("model") != expected_model:
         errors.append(f"model={body.get('model')!r}, expected {expected_model!r}")
 
+    def _camel(field: str) -> str:
+        parts = field.split("_")
+        return parts[0] + "".join(p.capitalize() for p in parts[1:])
+
+    def _get_number(field: str):
+        # Prefer generation.<field>, then top-level field; accept camelCase variants
+        gen = body.get("generation") if isinstance(body.get("generation"), dict) else {}
+        candidates = [field, _camel(field)]
+        for c in candidates:
+            if c in gen:
+                return gen.get(c)
+        for c in candidates:
+            if c in body:
+                return body.get(c)
+        return None
+
     for env_name, field in (("MOCK_EXPECT_TEMPERATURE", "temperature"), ("MOCK_EXPECT_TOP_P", "top_p")):
         raw = os.getenv(env_name)
         if raw is None:
             continue
-        actual = body.get(field)
+        actual = _get_number(field)
         try:
             matches = isinstance(actual, (int, float)) and not isinstance(actual, bool) and math.isclose(float(actual), float(raw))
         except (TypeError, ValueError):
