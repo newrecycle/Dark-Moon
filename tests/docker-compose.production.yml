@@ -8,6 +8,7 @@ services:
       MOCK_EXPECT_MODEL: darkmoon-test-model
       MOCK_EXPECT_TEMPERATURE: "0.2"
       MOCK_EXPECT_TOP_P: "0.9"
+      MOCK_EXPECT_REASONING_EFFORT: medium
     volumes:
       - ./tests:/tests:ro
       - ${DARKMOON_TEST_CAPTURE_DIR:?set DARKMOON_TEST_CAPTURE_DIR}:/capture:rw
