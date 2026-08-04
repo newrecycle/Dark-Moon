@@ -76,12 +76,13 @@ services:
       dockerfile: Dockerfile.bootstrap
     image: ascit/darkmoon-opencode-bootstrap:local
     container_name: darkmoon-opencode-bootstrap
-    user: "${DARKMOON_UID:-0}:${DARKMOON_GID:-0}"
     restart: "no"
     network_mode: none
     env_file:
       - ${OPENCODE_ENV_FILE:-./.opencode.env}
     environment:
+      DARKMOON_UID: ${DARKMOON_UID:-0}
+      DARKMOON_GID: ${DARKMOON_GID:-0}
       DARKMOON_MCP_TRANSPORT: remote
       DARKMOON_MCP_URL: http://darkmoon-mcp:8000/mcp
       OPENCODE_CONFIG_DIR: /config
