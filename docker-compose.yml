@@ -29,11 +29,7 @@ services:
 
 
   opencode:
-    build:
-      context: .
-      dockerfile: Dockerfile.opencode
-      network: host
-    image: ascit/opencode-darkmoon:latest
+    image: ghcr.io/anomalyco/opencode:1.18.12
     container_name: opencode
     working_dir: /workspace
     stdin_open: true
@@ -48,6 +44,7 @@ services:
       - ./darkmoon-settings:/root/.config/opencode/:rw
       - ./darkmoon-settings:/root/.local/share/opencode/:rw
       - ./darkmoon-settings/agents:/root/.opencode/agents/:rw
+      - ./conf/plugins:/root/.config/opencode/plugins:ro
       - ./reports:/root/.local/share/opencode/reports/:rw
       - ./sessions:/root/.local/share/opencode/sessions/:rw
       - ./workflows:/opt/darkmoon/mcp/server/src/tools/workflows/:rw
