@@ -2,18 +2,18 @@ name: darkmoon-mcp-test
 
 services:
   darkmoon:
-    image: alpine:3.22
+    image: ubuntu:24.04
     container_name: darkmoon
     command:
-      - sh
+      - bash
       - -c
       - while true; do sleep 3600; done
     healthcheck:
       test:
         - CMD
-        - sh
+        - bash
         - -c
-        - test -r /etc/alpine-release
+        - test -r /etc/os-release && command -v timeout >/dev/null
       interval: 2s
       timeout: 2s
       retries: 20
