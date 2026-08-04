@@ -8,6 +8,7 @@
     "pentest": {
       "temperature": 0.2,
       "top_p": 0.9,
+      "variant": "medium",
       "options": {
         "id": "must-not-reach-provider",
         "name": "must-not-reach-provider",
@@ -44,7 +45,15 @@
       },
       "models": {
         "darkmoon-test-model": {
-          "name": "darkmoon-test-model"
+          "name": "darkmoon-test-model",
+          "temperature": true,
+          "reasoning": true,
+          "tool_call": true,
+          "variants": {
+            "medium": {
+              "reasoning_effort": "medium"
+            }
+          }
         }
       }
     }
