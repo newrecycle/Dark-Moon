@@ -158,6 +158,7 @@ debug_agent="$("${COMPOSE[@]}" exec -T opencode opencode debug agent pentest)"
 grep -Eq '"variant"[[:space:]]*:[[:space:]]*"medium"' <<<"$debug_agent"
 grep -Eq '"reasoning_effort"[[:space:]]*:[[:space:]]*"medium"' <<<"$debug_agent"
 
+export DARKMOON_COMPOSE_PROJECT="$PROJECT"
 export DARKMOON_COMPOSE_FILES="$ROOT/docker-compose.yml:$ROOT/tests/docker-compose.production.yml"
 version="$("$ROOT/darkmoon.sh" --version)"
 grep -q '1.18.12' <<<"$version"
