@@ -18,6 +18,8 @@ DATA_DIR = Path(os.getenv("OPENCODE_DATA_DIR", "/root/.local/share/opencode"))
 AUTH_FILE = Path(os.getenv("OPENCODE_AUTH_FILE", str(DATA_DIR / "auth.json")))
 AGENTS_DIR = Path(os.getenv("OPENCODE_AGENTS_DIR", str(CONFIG_DIR / "agents")))
 CANONICAL_AGENTS_DIR = Path(os.getenv("OPENCODE_DEFAULT_AGENTS_DIR", "/opt/darkmoon/default-agents"))
+WORKFLOWS_DIR = Path(os.getenv("DARKMOON_WORKFLOWS_DIR", "/var/lib/darkmoon/workflows"))
+CANONICAL_WORKFLOWS_DIR = Path(os.getenv("DARKMOON_DEFAULT_WORKFLOWS_DIR", "/opt/darkmoon/default-workflows"))
 STATE_FILE = CONFIG_DIR / ".darkmoon-bootstrap.json"
 
 
@@ -43,6 +45,16 @@ def seed_agents() -> bool:
     if any(AGENTS_DIR.iterdir()):
         return False
     shutil.copytree(CANONICAL_AGENTS_DIR, AGENTS_DIR, dirs_exist_ok=True)
+    return True
+
+
+def seed_workflows() -> bool:
+    if not CANONICAL_WORKFLOWS_DIR.is_dir():
+        fail(f"canonical workflows directory is missing: {CANONICAL_WORKFLOWS_DIR}")
+    WORKFLOWS_DIR.mkdir(parents=True, exist_ok=True)
+    if any(WORKFLOWS_DIR.iterdir()):
+        return False
+    shutil.copytree(CANONICAL_WORKFLOWS_DIR, WORKFLOWS_DIR, dirs_exist_ok=True)
     return True
 
 
@@ -118,7 +130,8 @@ def validate_runtime_config(tool, config: dict[str, object]) -> None:
 def main() -> int:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    seeded = seed_agents()
+    agents_seeded = seed_agents()
+    workflows_seeded = seed_workflows()
     tool = load_config_tool()
 
     tool.migrate_agents(AGENTS_DIR)
@@ -141,13 +154,15 @@ def main() -> int:
         "strategy": strategy,
         "model": config["model"],
         "mcp_transport": config["mcp"]["darkmoon"]["type"],
-        "agents_seeded": seeded,
+        "agents_seeded": agents_seeded,
         "agents": len(list(AGENTS_DIR.glob("*.md"))),
+        "workflows_seeded": workflows_seeded,
+        "workflows": len(list(WORKFLOWS_DIR.glob("*.py"))),
     }
     tool._atomic_json(STATE_FILE, state, mode=0o600)
     print(
         f"[darkmoon-bootstrap] {strategy}; {state['agents']} agents; "
-        f"MCP={state['mcp_transport']}",
+        f"{state['workflows']} workflows; MCP={state['mcp_transport']}",
         file=sys.stderr,
     )
     return 0
