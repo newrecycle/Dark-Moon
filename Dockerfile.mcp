@@ -12,6 +12,7 @@ COPY mcp/requirements.lock ./requirements.lock
 RUN python -m pip install \
       --no-cache-dir \
       --disable-pip-version-check \
+      --require-hashes \
       --requirement requirements.lock
 
 COPY mcp/ ./
