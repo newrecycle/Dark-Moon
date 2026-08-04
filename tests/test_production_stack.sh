@@ -6,8 +6,9 @@ PROJECT="darkmoon-production-${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}"
 PROJECT="$(printf '%s' "$PROJECT" | tr '[:upper:]_' '[:lower:]-' | tr -cd 'a-z0-9-')"
 TEST_ROOT="$(mktemp -d -p "${TMPDIR:-/tmp}" darkmoon-production.XXXXXX)"
 
-export DARKMOON_UID="$(id -u)"
-export DARKMOON_GID="$(id -g)"
+DARKMOON_UID="$(id -u)"
+DARKMOON_GID="$(id -g)"
+export DARKMOON_UID DARKMOON_GID
 export DARKMOON_SETTINGS_DIR="$TEST_ROOT/darkmoon-settings"
 export DARKMOON_REPORTS_DIR="$TEST_ROOT/reports"
 export DARKMOON_SESSIONS_DIR="$TEST_ROOT/sessions"
