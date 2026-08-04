@@ -6,6 +6,8 @@ PROJECT="darkmoon-production-${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}"
 PROJECT="$(printf '%s' "$PROJECT" | tr '[:upper:]_' '[:lower:]-' | tr -cd 'a-z0-9-')"
 TEST_ROOT="$(mktemp -d -p "${TMPDIR:-/tmp}" darkmoon-production.XXXXXX)"
 
+export DARKMOON_UID="$(id -u)"
+export DARKMOON_GID="$(id -g)"
 export DARKMOON_SETTINGS_DIR="$TEST_ROOT/darkmoon-settings"
 export DARKMOON_REPORTS_DIR="$TEST_ROOT/reports"
 export DARKMOON_SESSIONS_DIR="$TEST_ROOT/sessions"
@@ -89,11 +91,6 @@ wait_for_pentest_agent() {
   return 1
 }
 
-config_digest() {
-  "${COMPOSE[@]}" run --rm --no-deps --entrypoint python opencode-bootstrap -c \
-    'import hashlib; print(hashlib.sha256(open("/root/.config/opencode/opencode.json", "rb").read()).hexdigest())'
-}
-
 "${COMPOSE[@]}" config >/dev/null
 "${COMPOSE[@]}" pull darkmoon docker-proxy opencode mock-provider
 "${COMPOSE[@]}" build --pull opencode-bootstrap darkmoon-mcp
@@ -102,17 +99,14 @@ config_digest() {
 wait_for_opencode
 wait_for_mcp
 
-# Configuration files are intentionally root-owned mode 0600. Validate their
-# contents and permissions from the bootstrap image instead of weakening them
-# so the unprivileged GitHub runner can read them directly.
-"${COMPOSE[@]}" run --rm --no-deps --entrypoint python opencode-bootstrap \
-  - /root/.config/opencode/opencode.json /root/.config/opencode/.darkmoon-bootstrap.json <<'PY'
+python3 - "$DARKMOON_SETTINGS_DIR/opencode.json" "$DARKMOON_SETTINGS_DIR/.darkmoon-bootstrap.json" "$DARKMOON_UID" "$DARKMOON_GID" <<'PY'
 import json
 import stat
 import sys
 from pathlib import Path
 
-config_path, state_path = map(Path, sys.argv[1:])
+config_path, state_path = map(Path, sys.argv[1:3])
+expected_uid, expected_gid = map(int, sys.argv[3:5])
 config = json.loads(config_path.read_text())
 state = json.loads(state_path.read_text())
 assert config["model"] == "mock/darkmoon-test-model", config
@@ -125,10 +119,14 @@ assert state["model"] == config["model"], state
 assert state["mcp_transport"] == "remote", state
 assert state["agents"] >= 50, state
 assert state["workflows"] > 0, state
-assert stat.S_IMODE(config_path.stat().st_mode) == 0o600, oct(config_path.stat().st_mode)
-assert stat.S_IMODE(state_path.stat().st_mode) == 0o600, oct(state_path.stat().st_mode)
+for path in (config_path, state_path):
+    info = path.stat()
+    assert stat.S_IMODE(info.st_mode) == 0o600, (path, oct(info.st_mode))
+    assert info.st_uid == expected_uid, (path, info.st_uid, expected_uid)
+    assert info.st_gid == expected_gid, (path, info.st_gid, expected_gid)
 PY
 
+test -r "$DARKMOON_SETTINGS_DIR/opencode.json"
 test -f "$DARKMOON_SETTINGS_DIR/agents/pentest.md"
 test -f "$DARKMOON_SETTINGS_DIR/agents/aws.md"
 agents="$("${COMPOSE[@]}" exec -T opencode opencode agent list)"
@@ -184,7 +182,7 @@ for dir in "$DARKMOON_REPORTS_DIR" "$DARKMOON_SESSIONS_DIR" "$DARKMOON_WORKSPACE
   mkdir -p "$dir"
   printf 'persistent\n' > "$dir/persistence-marker"
 done
-config_before="$(config_digest)"
+config_before="$(sha256sum "$DARKMOON_SETTINGS_DIR/opencode.json" | cut -d' ' -f1)"
 
 "${COMPOSE[@]}" restart darkmoon-mcp
 wait_for_mcp
@@ -194,7 +192,7 @@ wait_for_pentest_agent
 for dir in "$DARKMOON_REPORTS_DIR" "$DARKMOON_SESSIONS_DIR" "$DARKMOON_WORKSPACE_DIR"; do
   grep -q persistent "$dir/persistence-marker"
 done
-test "$config_before" = "$(config_digest)"
+test "$config_before" = "$(sha256sum "$DARKMOON_SETTINGS_DIR/opencode.json" | cut -d' ' -f1)"
 
 "$ROOT/darkmoon.sh" \
   --agent pentest --model mock/darkmoon-test-model \
@@ -206,4 +204,4 @@ python3 "$ROOT/tests/assert_issue36_capture.py" \
   --expect-temperature 0.2 \
   --expect-top-p 0.9
 
-echo "PASS: clean production bootstrap, provider rendering, wrapper, real toolbox MCP, persistence, and fresh CLI startup after service restarts"
+echo "PASS: clean production bootstrap, provider rendering, wrapper, real toolbox MCP, user-owned persistence, and fresh CLI startup after service restarts"
