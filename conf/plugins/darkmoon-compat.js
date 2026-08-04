@@ -20,13 +20,26 @@ function stripKeys(value, keys) {
   }
 }
 
+function selectedModel(config) {
+  return typeof config?.model === "string" && config.model.includes("/")
+    ? config.model
+    : undefined
+}
+
 /**
  * Dark-Moon compatibility layer for stock OpenCode 1.18.12.
  *
  * Dark-Moon policy stays outside the OpenCode source tree. Legacy agent
  * metadata is removed from normalized agent configuration, while valid agent
- * fields such as tools, permission, steps, and maxSteps remain available to
- * OpenCode. The chat.params hook is the final provider-request boundary.
+ * fields such as tools, permission, steps, maxSteps, model, and variant remain
+ * available to OpenCode. The chat.params hook is the final provider-request
+ * boundary.
+ *
+ * OpenCode 1.18.12 applies an agent's configured variant only when that agent
+ * also has a matching configured model. Dark-Moon historically selected one
+ * model globally and placed only `variant` in agent frontmatter. Bind those
+ * variant-bearing agents to the selected root model so reasoning variants are
+ * not silently discarded. Explicit per-agent models are always preserved.
  */
 export const DarkMoonCompatibility = async ({ client }) => {
   try {
@@ -55,11 +68,21 @@ export const DarkMoonCompatibility = async ({ client }) => {
         enabled: true,
       }
 
+      const model = selectedModel(config)
       if (config.agent && typeof config.agent === "object") {
         for (const agent of Object.values(config.agent)) {
           if (!agent || typeof agent !== "object") continue
           stripKeys(agent, LEGACY_AGENT_KEYS)
           stripKeys(agent.options, FORBIDDEN_PROVIDER_KEYS)
+
+          if (
+            model &&
+            !agent.model &&
+            typeof agent.variant === "string" &&
+            agent.variant.trim()
+          ) {
+            agent.model = model
+          }
         }
       }
     },
