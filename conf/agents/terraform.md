@@ -1,7 +1,9 @@
 ---
-id: terraform
-name: terraform
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for a Terraform/Terragrunt Infrastructure-as-Code estate (HCL source, remote state backends, plans, provider credentials)
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

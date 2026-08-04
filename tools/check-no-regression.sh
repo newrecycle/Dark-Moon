@@ -43,14 +43,12 @@ if [ -f "$LIVEPUSH" ]; then
   if [ "$(grep -c '_is_reference = True' "$LIVEPUSH")" -ge 1 ]; then ok "finalize regenerates report from DB (_is_reference = True)"; else bad "_is_reference no longer forced True — report can be non-deterministic"; fi
 fi
 
-# ---- INC-010a: every new agent wired at BOTH load-bearing places (roster + signal)
+# ---- INC-010a: every new agent has a routing signal; OpenCode discovers its file
 if [ -f "$PENTEST" ]; then
-  echo "[wiring] roster + signal-matrix presence"
-  roster_block="$(awk '/SUBAGENT PROMPT = RAW AGENT FILE/{f=1} f&&/1\) PROMPT CONSTRUCTION/{f=0} f' "$PENTEST")"
+  echo "[wiring] filename discovery + signal-matrix presence"
   for a in $NEW_AGENTS; do
-    in_roster=0; echo "$roster_block" | grep -qE "^[[:space:]]*$a[[:space:]]*$" && in_roster=1
     in_signal=0; grep -qE "^SIGNAL: $a plane present" "$PENTEST" && in_signal=1
-    if [ "$in_roster" -eq 1 ] && [ "$in_signal" -eq 1 ]; then ok "$a: roster + signal"; else bad "$a: roster=$in_roster signal=$in_signal (need both)"; fi
+    if [ -f "$AGENTS_DIR/$a.md" ] && [ "$in_signal" -eq 1 ]; then ok "$a: file + signal"; else bad "$a: file/signal missing"; fi
   done
   # new planes must NOT be added to the headless-browser web-agent list
   if grep -A4 'Web agents that ALWAYS trigger headless-browser' "$PENTEST" | grep -qE '\baws\b|\bazure\b|\bterraform\b'; then
@@ -58,13 +56,12 @@ if [ -f "$PENTEST" ]; then
   else ok "no cloud/infra agent in the headless-browser trigger list"; fi
 fi
 
-# ---- registration in apply-settings.sh + the .md file exists + is LF
-echo "[files] agent .md present, LF, registered"
+# ---- filename registration + the .md file exists + is LF
+echo "[files] agent .md present and LF"
 for a in $NEW_AGENTS; do
   md="$AGENTS_DIR/$a.md"
   [ -f "$md" ] && ok "$a.md present" || bad "$a.md MISSING"
   [ -f "$md" ] && { [ "$(grep -c $'\r' "$md")" -eq 0 ] && ok "$a.md is LF" || bad "$a.md has CRLF"; }
-  grep -q "\"$a\":" "$APPLY" && ok "$a registered in apply-settings.sh" || bad "$a NOT in apply-settings.sh"
 done
 
 # ---- pentest.md newline style unchanged for this edition
@@ -76,21 +73,40 @@ if [ -f "$PENTEST" ]; then
   esac
 fi
 
-# ---- apply-settings.sh renders valid JSON with all agents
+# ---- apply-settings.sh renders valid JSON and validates all Markdown agents
 if [ -f "$APPLY" ]; then
   echo "[config] apply-settings.sh renders valid opencode.json"
   sb="$(mktemp -d)"
-  sed "s#/root/.config/opencode#$sb/config#g; s#/root/.local/share/opencode#$sb/share#g" "$APPLY" > "$sb/a.sh"
   mkdir -p "$sb/config" "$sb/share"
-  if OPENROUTER_PROVIDER=anthropic OPENROUTER_API_KEY=x OPENCODE_MODEL=anthropic/x bash "$sb/a.sh" >/dev/null 2>&1; then
-    if python3 - "$sb/config/opencode.json" "$NEW_AGENTS" <<'PY'
+  cp -a "$AGENTS_DIR" "$sb/agents"
+  if OPENCODE_CONFIG_DIR="$sb/config" \
+     OPENCODE_AUTH_DIR="$sb/share" \
+     OPENCODE_AGENTS_DIR="$sb/agents" \
+     OPENCODE_DEFAULT_AGENTS_DIR="$AGENTS_DIR" \
+     OPENCODE_CONFIG_TOOL="$REPO/conf/opencode-config.py" \
+     OPENROUTER_PROVIDER=anthropic OPENROUTER_API_KEY=x OPENCODE_MODEL=anthropic/x \
+     bash "$APPLY" >/dev/null 2>&1; then
+    if python3 - "$sb/config/opencode.json" <<'PY'
 import json,sys
-d=json.load(open(sys.argv[1])); agents=d.get("agent",{})
-missing=[a for a in sys.argv[2].split() if a not in agents]
-print("MISSING:"+",".join(missing) if missing else "ALLPRESENT:%d"%len(agents))
-sys.exit(1 if missing else 0)
+d=json.load(open(sys.argv[1]))
+bad={"primary","secondary","prompt_file","id","mcp"}
+def leaks(value, path=()):
+    out=[]
+    if isinstance(value,dict):
+        for key,nested in value.items():
+            if key in bad and path != ():
+                out.append(".".join(path+(key,)))
+            out.extend(leaks(nested,path+(key,)))
+    elif isinstance(value,list):
+        for i,nested in enumerate(value): out.extend(leaks(nested,path+(str(i),)))
+    return out
+found=leaks(d)
+assert d.get("default_agent") == "pentest"
+assert d.get("mcp",{}).get("darkmoon",{}).get("enabled") is True
+assert not found, found
+print("VALID: no legacy agent metadata; global darkmoon MCP enabled")
 PY
-    then ok "opencode.json valid, all new agents present"; else bad "opencode.json missing new agents"; fi
+    then ok "opencode.json valid and free of legacy agent metadata"; else bad "opencode.json failed compatibility checks"; fi
   else bad "apply-settings.sh failed to render opencode.json"; fi
   rm -rf "$sb"
 fi

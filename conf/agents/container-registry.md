@@ -1,7 +1,9 @@
 ---
-id: container-registry
-name: container-registry
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for OCI/Docker container registries (Harbor, Docker Registry v2, GHCR, GitLab Registry, Quay, JFrog Artifactory, Nexus, ECR/ACR/GAR)
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

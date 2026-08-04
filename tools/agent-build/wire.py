@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 """
-Wire the new credential-gated sub-agents into a repo's pentest.md and
-apply-settings.sh. Newline-safe (preserves CRLF where the file uses it),
-idempotent (re-running does nothing if the agents are already wired).
+Wire credential-gated sub-agent signals into a repo's pentest.md.
 
-Every functional agent must be wired at the SAME places the working agents are,
-per the INC-010a lesson: adding a SIGNAL block alone is NOT enough — the agent
-MUST appear in the SPAWN-PROTOCOL roster ("SUBAGENT PROMPT = RAW AGENT FILE"),
-or the orchestrator has no dispatchable name for it.
+OpenCode automatically derives each agent identifier from its Markdown filename
+and publishes all loaded subagents in the task tool definition. This script only
+maintains Dark-Moon's routing signal matrix. It is newline-safe and idempotent.
 
 These new planes are CREDENTIAL-GATED / POSITIVE-ARTIFACT ONLY (like kubernetes
 and active-directory): never auto-dispatched on inference, only on a concrete
@@ -38,9 +35,7 @@ NEW_AGENTS = [
     ("messaging-cache", "a reachable broker/cache port (Redis 6379, RabbitMQ 5672/15672, Kafka 9092, MQTT 1883, ActiveMQ 8161, ZooKeeper 2181)"),
 ]
 
-ROSTER_ANCHOR = "    nest\n    any future agent"
 SIGNAL_ANCHOR = "PHASE 3 — REACTIVE FEEDBACK LOOP (CORE MECHANISM)"
-APPLY_ANCHOR = '"prompt_file": "/root/.opencode/agents/pentest.md"'
 
 
 def detect_nl(raw_bytes):
@@ -59,10 +54,6 @@ def write(path, text, nl):
     data = text.replace("\n", nl).encode("utf-8")
     with open(path, "wb") as fh:
         fh.write(data)
-
-
-def roster_block():
-    return "\n".join(f"    {aid}" for aid, _ in NEW_AGENTS)
 
 
 def signal_section():
@@ -104,11 +95,7 @@ def signal_section():
 def wire_pentest(path):
     text, nl = read(path)
     changed = False
-    # 1) roster
-    if "\n    aws\n" not in text and ROSTER_ANCHOR in text:
-        text = text.replace(ROSTER_ANCHOR, roster_block() + "\n" + ROSTER_ANCHOR, 1)
-        changed = True
-    # 2) signal section — insert before the ==== fence that precedes PHASE 3
+    # Insert before the ==== fence that precedes PHASE 3.
     if "PHASE 2b — CREDENTIAL-GATED PLANES" not in text and SIGNAL_ANCHOR in text:
         idx = text.index(SIGNAL_ANCHOR)
         # back up to the start of the ==== fence line just above PHASE 3
@@ -123,42 +110,14 @@ def wire_pentest(path):
     return changed
 
 
-def apply_block(aid):
-    return (
-        f'    "{aid}": {{\n'
-        f'      "model": "$FINAL_MODEL",\n'
-        f'      "mcp": ["darkmoon"],\n'
-        f'      "secondary": true,\n'
-        f'      "prompt_file": "/root/.opencode/agents/{aid}.md"\n'
-        f'    }},\n'
-    )
-
-
-def wire_apply(path):
-    text, nl = read(path)
-    if '"aws": {' in text:
-        return False
-    if APPLY_ANCHOR not in text:
-        return False
-    idx = text.index(APPLY_ANCHOR)
-    # find the closing "    },\n" of the pentest block right after the anchor
-    close = text.index("\n    },\n", idx) + len("\n    },\n")
-    blocks = "\n" + "".join(apply_block(aid) for aid, _ in NEW_AGENTS)
-    text = text[:close] + blocks + text[close:]
-    write(path, text, nl)
-    return True
-
-
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return 1
     for repo in sys.argv[1:]:
         pm = os.path.join(repo, "conf", "agents", "pentest.md")
-        ap = os.path.join(repo, "conf", "apply-settings.sh")
         c1 = wire_pentest(pm) if os.path.exists(pm) else None
-        c2 = wire_apply(ap) if os.path.exists(ap) else None
-        print(f"{os.path.basename(repo):24} pentest.md wired={c1}  apply-settings wired={c2}")
+        print(f"{os.path.basename(repo):24} pentest.md signals wired={c1}")
     return 0
 
 

@@ -1,7 +1,9 @@
 ---
-id: ruby-on-rails
-name: ruby-on-rails
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for ruby on rails application
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")
