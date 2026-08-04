@@ -75,13 +75,15 @@ wait_for_mcp() {
 
 compose config >/dev/null
 compose down -v --remove-orphans >/dev/null 2>&1 || true
-compose pull darkmoon mock-provider opencode
+compose pull darkmoon docker-proxy mock-provider opencode
 compose build --pull darkmoon-mcp
 compose up -d
 wait_for_opencode
 
 compose exec -T darkmoon-mcp python - <<'PY'
 import asyncio
+import docker
+from docker.errors import APIError
 from fastmcp import Client
 
 async def main() -> None:
@@ -99,6 +101,14 @@ async def main() -> None:
         assert "EXIT CODE: 0" in execution.data, execution.data
         assert "STDOUT:" in execution.data, execution.data
         assert "Ubuntu" in execution.data, execution.data
+
+    docker_client = docker.from_env()
+    try:
+        docker_client.info()
+    except APIError as exc:
+        assert exc.status_code == 403, exc
+    else:
+        raise AssertionError("Docker proxy unexpectedly allowed the INFO API")
 
 asyncio.run(main())
 PY
@@ -142,10 +152,10 @@ wait_for_mcp
 run_opencode darkmoon-mcp-after-restart
 assert_capture --minimum-requests 4
 
-logs="$(compose logs --no-color opencode darkmoon-mcp)"
+logs="$(compose logs --no-color opencode darkmoon-mcp docker-proxy)"
 if grep -Eqi 'failed to load plugin|failed to connect.*darkmoon|unsupported top-level parameters|generation parameter mismatch|configuration failed' <<<"$logs"; then
   echo "$logs" >&2
   exit 1
 fi
 
-echo "PASS: stock OpenCode, compatibility plugin, protocol MCP, Docker execution, provider boundary, and fresh CLI startup after restarts"
+echo "PASS: stock OpenCode, restricted Docker proxy, compatibility plugin, protocol MCP, provider boundary, and fresh CLI startup after restarts"
