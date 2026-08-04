@@ -1,7 +1,8 @@
 {
-  "repository": "https://github.com/ASCIT31/opencode.git",
-  "commit": "b0e41ff2c4069bafdaac9c11327659b1bf911f87",
-  "version": "1.17.13",
+  "repository": "https://github.com/anomalyco/opencode.git",
+  "commit": "0dd6950d1b06958fbcdcadf0ad56258257ab7fdb",
+  "version": "1.18.12",
+  "models_dev_snapshot": "pending vendored api.json",
   "openai_compatible_adapter": "@ai-sdk/openai-compatible@2.0.41",
   "agent_schema_source": "packages/core/src/v1/config/agent.ts",
   "markdown_agent_loader_source": "packages/opencode/src/config/agent.ts",
