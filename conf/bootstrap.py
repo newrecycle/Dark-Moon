@@ -27,6 +27,53 @@ def fail(message: str) -> "NoReturn":
     raise SystemExit(f"darkmoon-bootstrap: {message}")
 
 
+def parse_identity(name: str, default: int) -> int:
+    raw = os.getenv(name, str(default)).strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        fail(f"{name} must be a non-negative integer")
+    if value < 0:
+        fail(f"{name} must be a non-negative integer")
+    return value
+
+
+def chown_tree(path: Path, uid: int, gid: int) -> None:
+    """Change ownership without following symlinks outside managed mounts."""
+    os.chown(path, uid, gid, follow_symlinks=False)
+    for root, directories, files in os.walk(path, followlinks=False):
+        root_path = Path(root)
+        for name in [*directories, *files]:
+            os.chown(root_path / name, uid, gid, follow_symlinks=False)
+
+
+def prepare_managed_paths() -> tuple[int, int]:
+    """Create/chown managed mounts as root, then permanently drop privileges."""
+    uid = parse_identity("DARKMOON_UID", os.getuid())
+    gid = parse_identity("DARKMOON_GID", os.getgid())
+    managed = (CONFIG_DIR, DATA_DIR, WORKFLOWS_DIR)
+
+    for path in managed:
+        path.mkdir(parents=True, exist_ok=True)
+
+    if os.geteuid() == 0:
+        for path in managed:
+            chown_tree(path, uid, gid)
+        # Clear supplementary root groups before changing the primary identity.
+        os.setgroups([])
+        os.setgid(gid)
+        os.setuid(uid)
+    elif os.geteuid() != uid or os.getegid() != gid:
+        fail(
+            "bootstrap is not root and its process identity does not match "
+            f"DARKMOON_UID:DARKMOON_GID ({uid}:{gid})"
+        )
+
+    if os.geteuid() != uid or os.getegid() != gid:
+        fail("failed to drop bootstrap privileges")
+    return uid, gid
+
+
 def load_config_tool():
     if not TOOL_PATH.is_file():
         fail(f"configuration normalizer is missing: {TOOL_PATH}")
@@ -128,8 +175,7 @@ def validate_runtime_config(tool, config: dict[str, object]) -> None:
 
 
 def main() -> int:
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    target_uid, target_gid = prepare_managed_paths()
     agents_seeded = seed_agents()
     workflows_seeded = seed_workflows()
     tool = load_config_tool()
@@ -154,6 +200,8 @@ def main() -> int:
         "strategy": strategy,
         "model": config["model"],
         "mcp_transport": config["mcp"]["darkmoon"]["type"],
+        "uid": target_uid,
+        "gid": target_gid,
         "agents_seeded": agents_seeded,
         "agents": len(list(AGENTS_DIR.glob("*.md"))),
         "workflows_seeded": workflows_seeded,
@@ -162,7 +210,8 @@ def main() -> int:
     tool._atomic_json(STATE_FILE, state, mode=0o600)
     print(
         f"[darkmoon-bootstrap] {strategy}; {state['agents']} agents; "
-        f"{state['workflows']} workflows; MCP={state['mcp_transport']}",
+        f"{state['workflows']} workflows; MCP={state['mcp_transport']}; "
+        f"owner={target_uid}:{target_gid}",
         file=sys.stderr,
     )
     return 0
