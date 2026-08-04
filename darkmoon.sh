@@ -46,6 +46,13 @@ else
   EXEC_TTY=(-T)
 fi
 
+debug_command() {
+  [[ "${DARKMOON_DEBUG:-0}" == "1" ]] || return 0
+  printf '[darkmoon] exec:' >&2
+  printf ' %q' "$@" >&2
+  printf '\n' >&2
+}
+
 read_env_value() {
   local key=$1 line
   [[ -f "$ENV_FILE" ]] || return 0
@@ -121,18 +128,54 @@ EOF
   exit 3
 }
 
+is_direct_opencode_command() {
+  case "${1:-}" in
+    -h|--help|-v|--version|--mini|completion|acp|mcp|attach|debug|providers|auth|agent|upgrade|uninstall|serve|web|models|stats|export|import|github|pr|session|plugin|plug|db|run)
+      return 0
+      ;;
+    *) return 1 ;;
+  esac
+}
+
 if [[ "${1:-}" == "--log" ]]; then
   [[ $# -ge 2 ]] || { echo "Usage: $0 --log <session_id>" >&2; exit 1; }
+  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" darkmoon-mcp python -m src.mcp_monitoring "$2"
   exec "${DC[@]}" exec "${EXEC_TTY[@]}" darkmoon-mcp \
     python -m src.mcp_monitoring "$2"
 fi
 
 preflight_provider_check
 
+# OpenCode global logging/plugin flags must precede the selected command. Pull
+# them off before deciding whether the remaining arguments are an explicit
+# top-level command or an implicit `opencode run` invocation.
+GLOBAL_ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --print-logs|--pure)
+      GLOBAL_ARGS+=("$1")
+      shift
+      ;;
+    --log-level)
+      [[ $# -ge 2 ]] || { echo "--log-level requires a value" >&2; exit 2; }
+      GLOBAL_ARGS+=("$1" "$2")
+      shift 2
+      ;;
+    --log-level=*)
+      GLOBAL_ARGS+=("$1")
+      shift
+      ;;
+    *) break ;;
+  esac
+done
+
 if [[ $# -eq 0 ]]; then
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN"
-elif [[ "${1:0:1}" == "-" ]]; then
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "$@"
+  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}"
+  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}"
+elif is_direct_opencode_command "$1"; then
+  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" "$@"
+  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" "$@"
 else
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" run "$@"
+  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" run "$@"
+  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" run "$@"
 fi
