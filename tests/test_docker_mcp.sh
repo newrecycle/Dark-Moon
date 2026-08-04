@@ -41,7 +41,14 @@ cleanup() {
   fi
   compose down -v --remove-orphans >/dev/null 2>&1 || true
   case "$TEST_ROOT" in
-    "${TMPDIR:-/tmp}"/darkmoon-mcp.*) rm -rf -- "$TEST_ROOT" ;;
+    "${TMPDIR:-/tmp}"/darkmoon-mcp.*)
+      # OpenCode runs as root and creates root-owned logs in the bind mount.
+      # Remove test artifacts through a disposable root container, then remove
+      # the now-empty directory as the runner user.
+      docker run --rm -v "$TEST_ROOT:/cleanup" alpine:3.22 \
+        sh -c 'rm -rf /cleanup/* /cleanup/.[!.]* /cleanup/..?*' >/dev/null 2>&1 || true
+      rmdir "$TEST_ROOT" >/dev/null 2>&1 || true
+      ;;
     *) echo "refusing to remove unexpected test path: $TEST_ROOT" >&2 ;;
   esac
   exit "$status"
@@ -80,7 +87,7 @@ compose up -d
 wait_for_opencode
 
 # Exercise the real FastMCP HTTP transport and verify that it can execute a
-# Docker-backed tool against the test toolbox container.
+# Docker-backed command against the test toolbox container.
 compose exec -T darkmoon-mcp python - <<'PY'
 import asyncio
 from fastmcp import Client
@@ -92,15 +99,18 @@ async def main() -> None:
         tools = await client.list_tools()
         names = {tool.name for tool in tools}
         assert "get_session" in names
-        assert "check_tool" in names
+        assert "execute_command" in names
 
         session = await client.call_tool("get_session", {})
         assert isinstance(session.data, dict)
         assert session.data.get("session_id")
 
-        shell = await client.call_tool("check_tool", {"tool_name": "sh"})
-        assert isinstance(shell.data, dict)
-        assert shell.data.get("available") is True
+        execution = await client.call_tool(
+            "execute_command",
+            {"command": "cat /etc/alpine-release", "timeout": 10},
+        )
+        assert isinstance(execution.data, str)
+        assert "3.22" in execution.data
 
 
 asyncio.run(main())
