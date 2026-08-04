@@ -17,6 +17,7 @@ class ComposeSecurityTests(unittest.TestCase):
         services = compose["services"]
         proxy = services["docker-proxy"]
         mcp = services["darkmoon-mcp"]
+        bootstrap = services["opencode-bootstrap"]
         opencode = services["opencode"]
 
         self.assertEqual(proxy["image"], PROXY_IMAGE)
@@ -32,6 +33,21 @@ class ComposeSecurityTests(unittest.TestCase):
         self.assertEqual(mcp["depends_on"]["docker-proxy"]["condition"], "service_started")
         self.assertFalse(any(SOCKET in volume for volume in mcp.get("volumes", [])))
         self.assertFalse(any(SOCKET in volume for volume in opencode.get("volumes", [])))
+
+        # Bootstrap starts as root only to initialize Docker-created bind mounts.
+        # conf/bootstrap.py must receive a target identity, use neutral writable
+        # paths, and drop privileges before provider secrets are rendered.
+        self.assertNotIn("user", bootstrap)
+        self.assertEqual(bootstrap["network_mode"], "none")
+        self.assertEqual(bootstrap["environment"]["DARKMOON_UID"], "${DARKMOON_UID:-0}")
+        self.assertEqual(bootstrap["environment"]["DARKMOON_GID"], "${DARKMOON_GID:-0}")
+        self.assertEqual(bootstrap["environment"]["OPENCODE_CONFIG_DIR"], "/config")
+        self.assertEqual(bootstrap["environment"]["OPENCODE_DATA_DIR"], "/data")
+        self.assertEqual(bootstrap["environment"]["OPENCODE_AGENTS_DIR"], "/config/agents")
+        self.assertEqual(bootstrap["environment"]["DARKMOON_WORKFLOWS_DIR"], "/workflows")
+        self.assertTrue(any(str(volume).endswith(":/config:rw") for volume in bootstrap["volumes"]))
+        self.assertTrue(any(str(volume).endswith(":/data:rw") for volume in bootstrap["volumes"]))
+        self.assertTrue(any(str(volume).endswith(":/workflows:rw") for volume in bootstrap["volumes"]))
 
         socket_consumers = {
             name
