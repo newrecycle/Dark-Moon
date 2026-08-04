@@ -108,6 +108,13 @@ grep -q 'pentest (primary)' <<<"$agents"
 grep -q 'aws (subagent)' <<<"$agents"
 wait_for_mcp
 
+# Prove reasoning/variant options survive configuration normalization and the
+# compatibility plugin. The generic OpenAI-compatible adapter serializes only
+# provider-supported fields, so raw HTTP assertions cover model/temperature/top_p.
+debug_agent="$(timeout 60 "${COMPOSE[@]}" exec -T opencode opencode debug agent pentest)"
+grep -Eq '"variant"[[:space:]]*:[[:space:]]*"medium"' <<<"$debug_agent"
+grep -Eq '"reasoning_effort"[[:space:]]*:[[:space:]]*"medium"' <<<"$debug_agent"
+
 run_opencode() {
   local title=$1
   timeout 180 "${COMPOSE[@]}" exec -T opencode \
@@ -121,8 +128,7 @@ assert_capture() {
     "$DARKMOON_TEST_CAPTURE_DIR/requests.jsonl" "$@" \
     --expect-model darkmoon-test-model \
     --expect-temperature 0.2 \
-    --expect-top-p 0.9 \
-    --expect-reasoning-effort medium
+    --expect-top-p 0.9
 }
 
 run_opencode darkmoon-mcp-before-restart
