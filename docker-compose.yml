@@ -76,6 +76,7 @@ services:
       dockerfile: Dockerfile.bootstrap
     image: ascit/darkmoon-opencode-bootstrap:local
     container_name: darkmoon-opencode-bootstrap
+    user: "${DARKMOON_UID:-0}:${DARKMOON_GID:-0}"
     restart: "no"
     network_mode: none
     env_file:
@@ -83,14 +84,14 @@ services:
     environment:
       DARKMOON_MCP_TRANSPORT: remote
       DARKMOON_MCP_URL: http://darkmoon-mcp:8000/mcp
-      OPENCODE_CONFIG_DIR: /root/.config/opencode
-      OPENCODE_DATA_DIR: /root/.local/share/opencode
-      OPENCODE_AGENTS_DIR: /root/.config/opencode/agents
-      DARKMOON_WORKFLOWS_DIR: /var/lib/darkmoon/workflows
+      OPENCODE_CONFIG_DIR: /config
+      OPENCODE_DATA_DIR: /data
+      OPENCODE_AGENTS_DIR: /config/agents
+      DARKMOON_WORKFLOWS_DIR: /workflows
     volumes:
-      - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}:/root/.config/opencode:rw
-      - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}/data:/root/.local/share/opencode:rw
-      - ${DARKMOON_WORKFLOWS_DIR:-./workflows}:/var/lib/darkmoon/workflows:rw
+      - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}:/config:rw
+      - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}/data:/data:rw
+      - ${DARKMOON_WORKFLOWS_DIR:-./workflows}:/workflows:rw
 
   opencode:
     image: ghcr.io/anomalyco/opencode:1.18.12
