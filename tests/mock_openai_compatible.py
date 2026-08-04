@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tiny keyless OpenAI-compatible server for issue #36 regression tests."""
+"""Tiny keyless OpenAI-compatible server for provider-boundary regressions."""
 
 from __future__ import annotations
 
@@ -12,7 +12,11 @@ import time
 from typing import Any
 
 
-FORBIDDEN_TOP_LEVEL = {"primary", "secondary", "prompt_file", "id", "mcp"}
+# `tools` is intentionally absent: it is a legitimate OpenAI-compatible request
+# field populated from OpenCode's tool registry. The plugin removes an agent's
+# provider-option `tools` value before request construction, not the final tool
+# definitions OpenCode sends to the model.
+FORBIDDEN_TOP_LEVEL = {"primary", "secondary", "prompt_file", "id", "name", "mcp", "maxSteps"}
 
 
 class CaptureState:
