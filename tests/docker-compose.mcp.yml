@@ -4,16 +4,9 @@ services:
   darkmoon:
     image: ubuntu:24.04
     container_name: darkmoon
-    command:
-      - bash
-      - -c
-      - while true; do sleep 3600; done
+    command: ["bash", "-c", "while true; do sleep 3600; done"]
     healthcheck:
-      test:
-        - CMD
-        - bash
-        - -c
-        - test -r /etc/os-release && command -v timeout >/dev/null
+      test: ["CMD", "bash", "-c", "test -r /etc/os-release && command -v timeout >/dev/null"]
       interval: 2s
       timeout: 2s
       retries: 20
@@ -35,33 +28,27 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test:
-        - CMD
-        - python
-        - -c
-        - import socket; s=socket.create_connection(('127.0.0.1', 8000), 2); s.close()
+      test: ["CMD", "python", "-m", "src.healthcheck"]
       interval: 2s
-      timeout: 3s
+      timeout: 10s
       start_period: 5s
       retries: 30
 
   mock-provider:
     image: python:3.13-slim
     working_dir: /tests
-    command:
-      - python3
-      - /tests/mock_openai_compatible.py
+    command: ["python3", "/tests/mock_openai_compatible.py"]
     environment:
       MOCK_PROVIDER_CAPTURE: /capture/requests.jsonl
+      MOCK_EXPECT_MODEL: darkmoon-test-model
+      MOCK_EXPECT_TEMPERATURE: "0.2"
+      MOCK_EXPECT_TOP_P: "0.9"
+      MOCK_EXPECT_REASONING_EFFORT: medium
     volumes:
       - ./:/tests:ro
       - ${DARKMOON_TEST_CAPTURE_DIR:?set DARKMOON_TEST_CAPTURE_DIR}:/capture:rw
     healthcheck:
-      test:
-        - CMD
-        - python3
-        - -c
-        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -69,12 +56,7 @@ services:
   opencode:
     image: ghcr.io/anomalyco/opencode:1.18.12
     working_dir: /workspace
-    command:
-      - serve
-      - --hostname
-      - 0.0.0.0
-      - --port
-      - "4096"
+    command: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
     environment:
       DARKMOON_MCP_URL: http://darkmoon-mcp:8000/mcp
       OPENCODE_DISABLE_AUTOUPDATE: "true"
