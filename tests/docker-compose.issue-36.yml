@@ -1,0 +1,57 @@
+services:
+  mock-provider:
+    image: python:3.13-slim
+    working_dir: /tests
+    command:
+      - python3
+      - /tests/mock_openai_compatible.py
+    environment:
+      MOCK_PROVIDER_CAPTURE: /capture/requests.jsonl
+    volumes:
+      - ./:/tests:ro
+      - ${ISSUE36_CAPTURE_DIR:?set ISSUE36_CAPTURE_DIR}:/capture:rw
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  opencode:
+    build:
+      context: ..
+      dockerfile: Dockerfile.opencode
+    working_dir: /workspace
+    command:
+      - bash
+      - -lc
+      - while true; do sleep 3600; done
+    environment:
+      OPENCODE_LOCAL_MODE: "true"
+      OPENCODE_LOCAL_PROVIDER_ID: mock
+      OPENCODE_LOCAL_PROVIDER_NAME: Issue 36 mock
+      OPENCODE_LOCAL_BASE_URL: http://mock-provider:8000/v1
+      OPENCODE_LOCAL_MODEL: darkmoon-test-model
+      OPENCODE_LOCAL_API_KEY: not-a-real-key
+      OPENCODE_DISABLE_MODELS_FETCH: "true"
+      OPENCODE_DISABLE_AUTOUPDATE: "true"
+      TERM: xterm-256color
+      LANG: C.UTF-8
+    depends_on:
+      mock-provider:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - issue36_config:/root/.config/opencode
+      - issue36_data:/root/.local/share/opencode
+      - issue36_agents:/root/.opencode/agents
+      - issue36_workspace:/workspace
+
+volumes:
+  issue36_config:
+  issue36_data:
+  issue36_agents:
+  issue36_workspace:

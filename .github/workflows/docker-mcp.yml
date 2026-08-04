@@ -1,0 +1,142 @@
+name: Docker and MCP compatibility
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-mcp-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "24"
+
+jobs:
+  configuration-and-plugin:
+    name: Configuration, bootstrap, plugin, and wrapper
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check PyYAML==6.0.3
+
+      - name: Run configuration, bootstrap, security, and reproducibility regressions
+        run: >-
+          python -m unittest -v
+          tests.test_opencode_config
+          tests.test_production_bootstrap
+          tests.test_compose_security
+          tests.test_reproducibility
+
+      - name: Compile Python entrypoints
+        run: |
+          python -m py_compile \
+            conf/bootstrap.py \
+            mcp/src/http_server.py \
+            mcp/src/healthcheck.py \
+            mcp/src/mcp_monitoring.py \
+            tests/mock_openai_compatible.py \
+            tests/assert_issue36_capture.py \
+            tests/test_compose_security.py \
+            tests/test_reproducibility.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Test compatibility plugin
+        run: node --test tests/test_darkmoon_compat.mjs
+
+      - name: Test wrapper command routing
+        run: bash tests/test_darkmoon_wrapper.sh
+
+      - name: Check changed shell scripts
+        run: |
+          shellcheck -x \
+            install.sh \
+            darkmoon.sh \
+            tests/test_darkmoon_wrapper.sh \
+            tests/test_docker_mcp.sh \
+            tests/test_production_stack.sh
+
+      - name: Validate Compose topologies
+        run: |
+          cat > .opencode.env <<'EOF'
+          OPENCODE_LOCAL_MODE=true
+          OPENCODE_LOCAL_PROVIDER_ID=mock
+          OPENCODE_LOCAL_PROVIDER_NAME=Compose validation
+          OPENCODE_LOCAL_BASE_URL=http://mock-provider:8000/v1
+          OPENCODE_LOCAL_MODEL=darkmoon-test-model
+          EOF
+          chmod 600 .opencode.env
+          docker compose -f docker-compose.yml config >/dev/null
+          docker compose -f docker-compose-dev.yml config >/dev/null
+          export DARKMOON_TEST_CAPTURE_DIR="$RUNNER_TEMP/compose-capture"
+          mkdir -p "$DARKMOON_TEST_CAPTURE_DIR"
+          docker compose -f docker-compose.yml -f tests/docker-compose.production.yml config >/dev/null
+
+      - name: Run repository invariant gate
+        run: bash tools/check-no-regression.sh
+
+  protocol-integration:
+    name: Stock OpenCode protocol fixture
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Show Docker environment
+        run: |
+          docker version
+          docker compose version
+
+      - name: Test protocol MCP, provider boundary, and fresh CLI restart
+        env:
+          DARKMOON_TEST_ARTIFACT_DIR: ${{ runner.temp }}/darkmoon-artifacts/protocol
+        run: bash tests/test_docker_mcp.sh
+
+      - name: Upload protocol diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: protocol-integration-diagnostics
+          path: ${{ runner.temp }}/darkmoon-artifacts/protocol
+          if-no-files-found: ignore
+
+  production-clean-install:
+    name: Production clean install and wrapper
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Test production bootstrap, real toolbox, wrapper, and persistence
+        env:
+          DARKMOON_TEST_ARTIFACT_DIR: ${{ runner.temp }}/darkmoon-artifacts/production
+          DARKMOON_TEST_XTRACE: "1"
+        run: bash tests/test_production_stack.sh
+
+      - name: Upload production diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: production-stack-diagnostics
+          path: ${{ runner.temp }}/darkmoon-artifacts/production
+          if-no-files-found: ignore

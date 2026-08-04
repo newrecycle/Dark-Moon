@@ -1,7 +1,9 @@
 ---
-id: vpn-remote-access
-name: vpn-remote-access
-description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for remote-access infrastructure (OpenVPN/WireGuard/IPsec/SSL-VPN portals plus RDP/VNC/WinRM/SSH bastions/Apache Guacamole: key material, tunnel establishment, internal reachability)
+description: 'Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for remote-access infrastructure (OpenVPN/WireGuard/IPsec/SSL-VPN portals plus RDP/VNC/WinRM/SSH bastions/Apache Guacamole: key material, tunnel establishment, internal reachability)'
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

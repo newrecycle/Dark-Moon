@@ -1,7 +1,9 @@
 ---
-id: golang
-name: golang
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for Go (Gin / Echo / Fiber / Beego / net-http) web applications
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

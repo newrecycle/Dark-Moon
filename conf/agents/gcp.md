@@ -1,7 +1,9 @@
 ---
-id: gcp
-name: gcp
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for a Google Cloud Platform environment (IAM/service-accounts/impersonation/GCS/GCE/Functions/Run/GKE/SecretManager/BigQuery/CloudSQL/metadata)
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

@@ -1,7 +1,9 @@
 ---
-id: headless-browser
-name: headless-browser
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for web application navigation with headless browser
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

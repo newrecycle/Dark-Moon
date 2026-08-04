@@ -1,7 +1,9 @@
 ---
-id: springboot
-name: springboot
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for java spring boot application
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")
