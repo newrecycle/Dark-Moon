@@ -1,0 +1,45 @@
+name: OpenCode source fallback
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 8 * * 1"
+  pull_request:
+    paths:
+      - Dockerfile.opencode
+      - conf/agents/**
+      - conf/apply-settings.sh
+      - conf/entrypoint-opencode.sh
+      - conf/opencode-config.py
+      - tests/docker-compose.issue-36.yml
+      - tests/test_issue36_docker.sh
+      - tests/run_issue36_source.py
+      - .github/workflows/source-fallback.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-fallback-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Build and test the audited source fallback
+        env:
+          DARKMOON_TEST_ARTIFACT_DIR: ${{ runner.temp }}/source-fallback
+        run: bash tests/test_issue36_docker.sh
+
+      - name: Upload source fallback diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: source-fallback-diagnostics
+          path: ${{ runner.temp }}/source-fallback
+          if-no-files-found: ignore

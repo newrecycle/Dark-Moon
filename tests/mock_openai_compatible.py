@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Tiny keyless OpenAI-compatible server for issue #36 regression tests."""
+"""Tiny keyless OpenAI-compatible server for provider-boundary regressions."""
 
 from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import math
 import os
 from pathlib import Path
 import threading
 import time
 from typing import Any
 
-
-FORBIDDEN_TOP_LEVEL = {"primary", "secondary", "prompt_file", "id", "mcp"}
+FORBIDDEN_TOP_LEVEL = {"primary", "secondary", "prompt_file", "id", "name", "mcp", "maxSteps"}
 
 
 class CaptureState:
@@ -48,9 +48,35 @@ def _tool_names(body: dict[str, Any]) -> set[str]:
     }
 
 
+def _expectations(body: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    expected_model = os.getenv("MOCK_EXPECT_MODEL")
+    if expected_model and body.get("model") != expected_model:
+        errors.append(f"model={body.get('model')!r}, expected {expected_model!r}")
+
+    for env_name, field in (("MOCK_EXPECT_TEMPERATURE", "temperature"), ("MOCK_EXPECT_TOP_P", "top_p")):
+        raw = os.getenv(env_name)
+        if raw is None:
+            continue
+        actual = body.get(field)
+        try:
+            matches = isinstance(actual, (int, float)) and not isinstance(actual, bool) and math.isclose(float(actual), float(raw))
+        except (TypeError, ValueError):
+            matches = False
+        if not matches:
+            errors.append(f"{field}={actual!r}, expected {raw}")
+
+    expected_reasoning = os.getenv("MOCK_EXPECT_REASONING_EFFORT")
+    if expected_reasoning and body.get("reasoning_effort") != expected_reasoning:
+        errors.append(
+            f"reasoning_effort={body.get('reasoning_effort')!r}, expected {expected_reasoning!r}"
+        )
+    return errors
+
+
 def make_handler(state: CaptureState) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
-        server_version = "DarkMoonMockOpenAI/1.0"
+        server_version = "DarkMoonMockOpenAI/1.1"
 
         def log_message(self, _format: str, *_args: object) -> None:
             return
@@ -63,7 +89,7 @@ def make_handler(state: CaptureState) -> type[BaseHTTPRequestHandler]:
             self.end_headers()
             self.wfile.write(data)
 
-        def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+        def do_GET(self) -> None:  # noqa: N802
             if self.path == "/health":
                 self._json(200, {"ok": True})
             elif self.path == "/requests":
@@ -72,7 +98,7 @@ def make_handler(state: CaptureState) -> type[BaseHTTPRequestHandler]:
             else:
                 self._json(404, {"error": "not found"})
 
-        def do_POST(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+        def do_POST(self) -> None:  # noqa: N802
             length = int(self.headers.get("Content-Length", "0"))
             try:
                 body = json.loads(self.rfile.read(length))
@@ -87,6 +113,10 @@ def make_handler(state: CaptureState) -> type[BaseHTTPRequestHandler]:
             leaked = sorted(FORBIDDEN_TOP_LEVEL & set(body))
             if leaked:
                 self._json(400, {"error": f"unsupported top-level parameters: {', '.join(leaked)}"})
+                return
+            mismatches = _expectations(body)
+            if mismatches:
+                self._json(400, {"error": "generation parameter mismatch", "details": mismatches})
                 return
             if not self.path.endswith("/chat/completions"):
                 self._json(404, {"error": "not found"})
