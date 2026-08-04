@@ -1,32 +1,27 @@
 name: darkmoon-stack
 
-volumes:
-  darkmoon_opencode:
+networks:
+  control:
+    internal: true
+  egress:
 
 services:
-
   darkmoon:
     image: ascit/darkmoon:latest
     container_name: darkmoon
     user: "0:0"
-    network_mode: "host"
-
+    network_mode: host
     environment:
-      - DM_MODE=default
-
+      DM_MODE: default
     ports:
       - "9222:9222"
-
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ~/.kube:/root/.kube:ro
-
+      - ${HOME}/.kube:/root/.kube:ro
     cap_add:
       - NET_RAW
       - NET_ADMIN
-
     restart: unless-stopped
-
 
   darkmoon-mcp:
     build:
@@ -35,35 +30,49 @@ services:
     image: ascit/darkmoon-mcp:local
     container_name: darkmoon-mcp
     restart: unless-stopped
-
     depends_on:
       darkmoon:
         condition: service_started
-
     environment:
       DOCKER_CONTAINER_NAME: darkmoon
       DARKMOON_MCP_HOST: 0.0.0.0
       DARKMOON_MCP_PORT: "8000"
       DARKMOON_MCP_PATH: /mcp
       PYTHONUNBUFFERED: "1"
-
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./reports:/root/.local/share/opencode/reports/:rw
-      - ./sessions:/root/.local/share/opencode/sessions/:rw
-      - ./workflows:/opt/darkmoon/mcp/server/src/tools/workflows/:rw
-
+      - ${DARKMOON_REPORTS_DIR:-./reports}:/root/.local/share/opencode/reports:rw
+      - ${DARKMOON_SESSIONS_DIR:-./sessions}:/root/.local/share/opencode/sessions:rw
+      - ${DARKMOON_WORKFLOWS_DIR:-./workflows}:/opt/darkmoon/mcp/server/src/tools/workflows:rw
     healthcheck:
-      test:
-        - CMD
-        - python
-        - -c
-        - import os,socket; s=socket.create_connection(('127.0.0.1', int(os.getenv('DARKMOON_MCP_PORT', '8000'))), 2); s.close()
-      interval: 5s
-      timeout: 3s
+      test: ["CMD", "python", "-m", "src.healthcheck"]
+      interval: 10s
+      timeout: 10s
       start_period: 10s
-      retries: 20
+      retries: 12
+    networks:
+      - control
+      - egress
 
+  opencode-bootstrap:
+    build:
+      context: .
+      dockerfile: Dockerfile.bootstrap
+    image: ascit/darkmoon-opencode-bootstrap:local
+    container_name: darkmoon-opencode-bootstrap
+    restart: "no"
+    network_mode: none
+    env_file:
+      - ${OPENCODE_ENV_FILE:-./.opencode.env}
+    environment:
+      DARKMOON_MCP_TRANSPORT: remote
+      DARKMOON_MCP_URL: http://darkmoon-mcp:8000/mcp
+      OPENCODE_CONFIG_DIR: /root/.config/opencode
+      OPENCODE_DATA_DIR: /root/.local/share/opencode
+      OPENCODE_AGENTS_DIR: /root/.config/opencode/agents
+    volumes:
+      - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}:/root/.config/opencode:rw
+      - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}/data:/root/.local/share/opencode:rw
 
   opencode:
     image: ghcr.io/anomalyco/opencode:1.18.12
@@ -72,24 +81,25 @@ services:
     stdin_open: true
     tty: true
     restart: unless-stopped
-
     depends_on:
+      opencode-bootstrap:
+        condition: service_completed_successfully
       darkmoon-mcp:
         condition: service_healthy
-
     env_file:
-      - ./.opencode.env
-
-    volumes:
-      - ./darkmoon-settings:/root/.config/opencode/:rw
-      - ./darkmoon-settings:/root/.local/share/opencode/:rw
-      - ./darkmoon-settings/agents:/root/.opencode/agents/:rw
-      - ./conf/plugins:/root/.config/opencode/plugins:ro
-      - ./reports:/root/.local/share/opencode/reports/:rw
-      - ./sessions:/root/.local/share/opencode/sessions/:rw
-      - ./workspace:/workspace:rw
-
+      - ${OPENCODE_ENV_FILE:-./.opencode.env}
     environment:
-      - DARKMOON_MCP_URL=http://darkmoon-mcp:8000/mcp
-      - TERM=xterm-256color
-      - LANG=C.UTF-8
+      DARKMOON_MCP_URL: http://darkmoon-mcp:8000/mcp
+      OPENCODE_DISABLE_AUTOUPDATE: "true"
+      TERM: xterm-256color
+      LANG: C.UTF-8
+    volumes:
+      - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}:/root/.config/opencode:rw
+      - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}/data:/root/.local/share/opencode:rw
+      - ./conf/plugins:/root/.config/opencode/plugins:ro
+      - ${DARKMOON_REPORTS_DIR:-./reports}:/root/.local/share/opencode/reports:rw
+      - ${DARKMOON_SESSIONS_DIR:-./sessions}:/root/.local/share/opencode/sessions:rw
+      - ${DARKMOON_WORKSPACE_DIR:-./workspace}:/workspace:rw
+    networks:
+      - control
+      - egress
