@@ -152,11 +152,19 @@ async def main():
 asyncio.run(main())
 PY
 
-# Confirm reasoning/variant controls survive normalized agent configuration. The
-# generic adapter only serializes provider-supported HTTP fields.
-debug_agent="$("${COMPOSE[@]}" exec -T opencode opencode debug agent pentest)"
-grep -Eq '"variant"[[:space:]]*:[[:space:]]*"medium"' <<<"$debug_agent"
-grep -Eq '"reasoning_effort"[[:space:]]*:[[:space:]]*"medium"' <<<"$debug_agent"
+# Confirm reasoning/variant controls survive normalized agent configuration by
+# inspecting the supported merged-config debug output in stock OpenCode 1.18.12.
+"${COMPOSE[@]}" exec -T opencode opencode debug config > "$TEST_ROOT/debug-config.json"
+python3 - "$TEST_ROOT/debug-config.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+config = json.loads(Path(sys.argv[1]).read_text())
+pentest = config["agent"]["pentest"]
+assert pentest["variant"] == "medium", pentest
+assert pentest["options"]["reasoning_effort"] == "medium", pentest
+PY
 
 export DARKMOON_COMPOSE_PROJECT="$PROJECT"
 export DARKMOON_COMPOSE_FILES="$ROOT/docker-compose.yml:$ROOT/tests/docker-compose.production.yml"
