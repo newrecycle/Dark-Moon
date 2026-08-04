@@ -3,3 +3,6 @@ docker==7.2.0
 pydantic==2.13.4
 python-dotenv==1.2.2
 cryptography==50.0.0
+# FastMCP permits newer Cyclopts releases. Keep the version exercised by the
+# committed hash lock until it is intentionally upgraded and retested.
+cyclopts==4.22.4
