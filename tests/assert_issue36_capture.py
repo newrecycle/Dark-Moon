@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 
-FORBIDDEN = {"primary", "secondary", "prompt_file", "id", "mcp"}
+FORBIDDEN = {"primary", "secondary", "prompt_file", "id", "name", "mcp", "maxSteps"}
 
 
 def main() -> int:
