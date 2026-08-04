@@ -152,20 +152,6 @@ async def main():
 asyncio.run(main())
 PY
 
-# Confirm reasoning/variant controls survive normalized agent configuration by
-# inspecting the supported merged-config debug output in stock OpenCode 1.18.12.
-"${COMPOSE[@]}" exec -T opencode opencode debug config > "$TEST_ROOT/debug-config.json"
-python3 - "$TEST_ROOT/debug-config.json" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-config = json.loads(Path(sys.argv[1]).read_text())
-pentest = config["agent"]["pentest"]
-assert pentest["variant"] == "medium", pentest
-assert pentest["options"]["reasoning_effort"] == "medium", pentest
-PY
-
 export DARKMOON_COMPOSE_PROJECT="$PROJECT"
 export DARKMOON_COMPOSE_FILES="$ROOT/docker-compose.yml:$ROOT/tests/docker-compose.production.yml"
 version="$("$ROOT/darkmoon.sh" --version)"
@@ -179,7 +165,8 @@ python3 "$ROOT/tests/assert_issue36_capture.py" \
   "$DARKMOON_TEST_CAPTURE_DIR/requests.jsonl" \
   --expect-model darkmoon-test-model \
   --expect-temperature 0.2 \
-  --expect-top-p 0.9
+  --expect-top-p 0.9 \
+  --expect-reasoning-effort medium
 
 set +e
 monitor_output="$(timeout 3 "$ROOT/darkmoon.sh" --log test-session 2>&1)"
@@ -212,6 +199,7 @@ python3 "$ROOT/tests/assert_issue36_capture.py" \
   "$DARKMOON_TEST_CAPTURE_DIR/requests.jsonl" --minimum-requests 4 \
   --expect-model darkmoon-test-model \
   --expect-temperature 0.2 \
-  --expect-top-p 0.9
+  --expect-top-p 0.9 \
+  --expect-reasoning-effort medium
 
 echo "PASS: clean production bootstrap, provider rendering, wrapper, real toolbox MCP, user-owned persistence, and fresh CLI startup after service restarts"
