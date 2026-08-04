@@ -28,6 +28,43 @@ services:
     restart: unless-stopped
 
 
+  darkmoon-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    image: ascit/darkmoon-mcp:local
+    container_name: darkmoon-mcp
+    restart: unless-stopped
+
+    depends_on:
+      darkmoon:
+        condition: service_started
+
+    environment:
+      DOCKER_CONTAINER_NAME: darkmoon
+      DARKMOON_MCP_HOST: 0.0.0.0
+      DARKMOON_MCP_PORT: "8000"
+      DARKMOON_MCP_PATH: /mcp
+      PYTHONUNBUFFERED: "1"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./reports:/root/.local/share/opencode/reports/:rw
+      - ./sessions:/root/.local/share/opencode/sessions/:rw
+      - ./workflows:/opt/darkmoon/mcp/server/src/tools/workflows/:rw
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import os,socket; s=socket.create_connection(('127.0.0.1', int(os.getenv('DARKMOON_MCP_PORT', '8000'))), 2); s.close()
+      interval: 5s
+      timeout: 3s
+      start_period: 10s
+      retries: 20
+
+
   opencode:
     image: ghcr.io/anomalyco/opencode:1.18.12
     container_name: opencode
@@ -36,20 +73,23 @@ services:
     tty: true
     restart: unless-stopped
 
+    depends_on:
+      darkmoon-mcp:
+        condition: service_healthy
+
     env_file:
       - ./.opencode.env
 
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - ./darkmoon-settings:/root/.config/opencode/:rw
       - ./darkmoon-settings:/root/.local/share/opencode/:rw
       - ./darkmoon-settings/agents:/root/.opencode/agents/:rw
       - ./conf/plugins:/root/.config/opencode/plugins:ro
       - ./reports:/root/.local/share/opencode/reports/:rw
       - ./sessions:/root/.local/share/opencode/sessions/:rw
-      - ./workflows:/opt/darkmoon/mcp/server/src/tools/workflows/:rw
       - ./workspace:/workspace:rw
 
     environment:
+      - DARKMOON_MCP_URL=http://darkmoon-mcp:8000/mcp
       - TERM=xterm-256color
       - LANG=C.UTF-8
