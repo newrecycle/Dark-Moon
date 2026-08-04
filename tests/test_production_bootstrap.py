@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+
+REPO = Path(__file__).resolve().parents[1]
+BOOTSTRAP = REPO / "conf" / "bootstrap.py"
+CONFIG_TOOL = REPO / "conf" / "opencode-config.py"
+CANONICAL = REPO / "conf" / "agents"
+
+
+class ProductionBootstrapTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.config = self.root / "config"
+        self.data = self.root / "data"
+        self.agents = self.config / "agents"
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def env(self, **overrides: str) -> dict[str, str]:
+        env = {
+            "PATH": os.environ.get("PATH", ""),
+            "OPENCODE_CONFIG_TOOL": str(CONFIG_TOOL),
+            "OPENCODE_CONFIG_DIR": str(self.config),
+            "OPENCODE_DATA_DIR": str(self.data),
+            "OPENCODE_AGENTS_DIR": str(self.agents),
+            "OPENCODE_DEFAULT_AGENTS_DIR": str(CANONICAL),
+            "OPENCODE_LOCAL_MODE": "true",
+            "OPENCODE_LOCAL_PROVIDER_ID": "mock",
+            "OPENCODE_LOCAL_PROVIDER_NAME": "Bootstrap mock",
+            "OPENCODE_LOCAL_BASE_URL": "http://mock-provider:8000/v1",
+            "OPENCODE_LOCAL_MODEL": "darkmoon-test-model",
+            "OPENCODE_LOCAL_API_KEY": "not-a-real-key",
+            "DARKMOON_MCP_TRANSPORT": "remote",
+            "DARKMOON_MCP_URL": "http://darkmoon-mcp:8000/mcp",
+        }
+        env.update(overrides)
+        return env
+
+    def run_bootstrap(self, **overrides: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, str(BOOTSTRAP)],
+            env=self.env(**overrides),
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+
+    def test_clean_bootstrap_seeds_agents_provider_and_remote_mcp(self) -> None:
+        self.run_bootstrap()
+        config_path = self.config / "opencode.json"
+        state_path = self.config / ".darkmoon-bootstrap.json"
+        config = json.loads(config_path.read_text())
+        state = json.loads(state_path.read_text())
+        self.assertEqual(config["model"], "mock/darkmoon-test-model")
+        self.assertEqual(config["default_agent"], "pentest")
+        self.assertEqual(config["subagent_depth"], 1)
+        self.assertEqual(config["mcp"]["darkmoon"]["type"], "remote")
+        self.assertEqual(config["mcp"]["darkmoon"]["url"], "http://darkmoon-mcp:8000/mcp")
+        self.assertTrue((self.agents / "pentest.md").is_file())
+        self.assertGreaterEqual(state["agents"], 50)
+        self.assertEqual(config_path.stat().st_mode & 0o777, 0o600)
+
+    def test_bootstrap_is_idempotent_and_preserves_existing_prompt_customization(self) -> None:
+        self.run_bootstrap()
+        pentest = self.agents / "pentest.md"
+        pentest.write_text(pentest.read_text() + "\nCUSTOM-PERSISTED-INSTRUCTION\n", encoding="utf-8")
+        before = hashlib.sha256(pentest.read_bytes()).hexdigest()
+        self.run_bootstrap()
+        after = hashlib.sha256(pentest.read_bytes()).hexdigest()
+        self.assertEqual(before, after)
+        self.assertIn("CUSTOM-PERSISTED-INSTRUCTION", pentest.read_text())
+
+    def test_local_transport_remains_available_for_source_fallback(self) -> None:
+        self.run_bootstrap(
+            DARKMOON_MCP_TRANSPORT="local",
+            DARKMOON_MCP_COMMAND='["/usr/local/bin/darkmoon-mcp"]',
+        )
+        config = json.loads((self.config / "opencode.json").read_text())
+        self.assertEqual(config["mcp"]["darkmoon"]["type"], "local")
+        self.assertEqual(config["mcp"]["darkmoon"]["command"], ["/usr/local/bin/darkmoon-mcp"])
+
+    def test_invalid_remote_url_fails_closed(self) -> None:
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.run_bootstrap(DARKMOON_MCP_URL="file:///tmp/not-http")
+
+
+if __name__ == "__main__":
+    unittest.main()
