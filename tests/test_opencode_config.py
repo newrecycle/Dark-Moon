@@ -339,15 +339,31 @@ CUSTOM CANONICAL SUFFIX
         self.assertFalse(set(example) & CONFIG.LEGACY_AGENT_FIELDS)
         self.assertTrue(prompt)
 
-    def test_compose_builds_locally_and_uses_workspace(self) -> None:
+    def test_compose_uses_official_opencode_and_mcp_sidecar(self) -> None:
         import yaml
 
-        for name in ("docker-compose.yml", "docker-compose-dev.yml"):
-            compose = yaml.safe_load((REPO / name).read_text(encoding="utf-8"))
-            opencode = compose["services"]["opencode"]
-            self.assertEqual(opencode["working_dir"], "/workspace")
-            self.assertTrue(any(str(volume).endswith(":/workspace:rw") for volume in opencode["volumes"]))
-            self.assertEqual(opencode["build"]["dockerfile"], "Dockerfile.opencode")
+        production = yaml.safe_load((REPO / "docker-compose.yml").read_text(encoding="utf-8"))
+        services = production["services"]
+        opencode = services["opencode"]
+        mcp = services["darkmoon-mcp"]
+
+        self.assertEqual(opencode["image"], "ghcr.io/anomalyco/opencode:1.18.12")
+        self.assertNotIn("build", opencode)
+        self.assertEqual(opencode["working_dir"], "/workspace")
+        self.assertTrue(any(str(volume).endswith(":/workspace:rw") for volume in opencode["volumes"]))
+        self.assertFalse(any(str(volume).startswith("/var/run/docker.sock:") for volume in opencode["volumes"]))
+        self.assertIn("DARKMOON_MCP_URL=http://darkmoon-mcp:8000/mcp", opencode["environment"])
+        self.assertEqual(opencode["depends_on"]["darkmoon-mcp"]["condition"], "service_healthy")
+
+        self.assertEqual(mcp["build"]["dockerfile"], "Dockerfile.mcp")
+        self.assertTrue(any(str(volume).startswith("/var/run/docker.sock:") for volume in mcp["volumes"]))
+        self.assertEqual(mcp["environment"]["DOCKER_CONTAINER_NAME"], "darkmoon")
+
+        development = yaml.safe_load((REPO / "docker-compose-dev.yml").read_text(encoding="utf-8"))
+        dev_opencode = development["services"]["opencode"]
+        self.assertEqual(dev_opencode["build"]["dockerfile"], "Dockerfile.opencode")
+        self.assertEqual(dev_opencode["working_dir"], "/workspace")
+        self.assertTrue(any(str(volume).endswith(":/workspace:rw") for volume in dev_opencode["volumes"]))
 
 
 if __name__ == "__main__":
