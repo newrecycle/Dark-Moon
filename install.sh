@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BIND_PATHS=(
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}"
+
+GENERATED_BIND_PATHS=(
   "./data"
   "./darkmoon-settings"
   "./workflows"
+  "./reports"
+  "./sessions"
+  "./workspace"
 )
 
 OPENCODE_ENV_FILE=".opencode.env"
@@ -19,47 +25,57 @@ MAGENTA="\033[1;35m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
+usage() {
+  cat <<'USAGE'
+Usage: ./install.sh [OPTIONS]
+
+Options:
+  --init    Force LLM provider reconfiguration (ignores existing .opencode.env)
+  --keep    Preserve Docker volumes and all bind-mounted runtime data
+  --help    Show this help
+
+Examples:
+  ./install.sh           # clean rebuild; reuse provider config when available
+  ./install.sh --init    # clean rebuild and reconfigure LLM provider
+  ./install.sh --keep    # rebuild without deleting sessions, projects or agent data
+USAGE
+}
+
 # ─────────────────────────────────────────────────────────────────
-# Parse args
+# Parse args before any Docker or destructive operation
 # ─────────────────────────────────────────────────────────────────
 FORCE_RESET=false
 KEEP_DATA=false
 for ARG in "$@"; do
   case "${ARG}" in
     --help|-h)
-      echo "Usage: ./install.sh [OPTIONS]"
-      echo ""
-      echo "Options:"
-      echo "  --init    Force LLM provider reconfiguration (ignores existing .opencode.env)"
-      echo "  --keep    Preserve Docker volumes and bind-mounted runtime data"
-      echo "  --help    Show this help"
-      echo ""
-      echo "Examples:"
-      echo "  ./install.sh           # clean rebuild; reuse provider config when available"
-      echo "  ./install.sh --init    # clean rebuild and reconfigure LLM provider"
-      echo "  ./install.sh --keep    # rebuild without deleting sessions, projects or agent data"
-      exit 0 ;;
-    --reset|--init) FORCE_RESET=true ;;
-    --keep) KEEP_DATA=true ;;
+      usage
+      exit 0
+      ;;
+    --reset|--init)
+      FORCE_RESET=true
+      ;;
+    --keep)
+      KEEP_DATA=true
+      ;;
     *)
       echo "Unknown option: ${ARG}" >&2
       echo "Run ./install.sh --help for usage." >&2
-      exit 2 ;;
+      exit 2
+      ;;
   esac
 done
 
-SCRIPT_DIR="$(pwd)"
-
 echo -e "${CYAN}"
-cat << "EOF"
+cat <<'EOF_BANNER'
 
-  ____             _                                
- |  _ \  __ _ _ __| | ___ __ ___   ___   ___  _ __  
- | | | |/ _` | '__| |/ / '_ ` _ \ / _ \ / _ \| '_ \ 
+  ____             _
+ |  _ \  __ _ _ __| | ___ __ ___   ___   ___  _ __
+ | | | |/ _` | '__| |/ / '_ ` _ \ / _ \ / _ \| '_ \
  | |_| | (_| | |  |   <| | | | | | (_) | (_) | | | |
  |____/ \__,_|_|  |_|\_\_| |_| |_|\___/ \___/|_| |_|
 
-EOF
+EOF_BANNER
 echo -e "${RESET}"
 
 echo -e "${BLUE}🔎 Checking prerequisites...${RESET}"
@@ -88,42 +104,102 @@ fi
 echo -e "${GREEN}✔ Docker and Docker Compose detected${RESET}"
 
 # ─────────────────────────────────────────────────────────────────
-# Save .opencode.env BEFORE purge (unless --init)
+# Select one Compose configuration and use it for the entire run
 # ─────────────────────────────────────────────────────────────────
-SAVED_OPENCODE_ENV=""
-if [ "${FORCE_RESET}" = false ] && [ -f "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}" ]; then
-  SAVED_OPENCODE_ENV="$(cat "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}")"
+ARCH="$(uname -m)"
+COMPOSE_FILE="docker-compose.yml"
+if [ "${ARCH}" = "aarch64" ] || [ "${ARCH}" = "arm64" ]; then
+  COMPOSE_FILE="docker-compose-dev.yml"
+  echo -e "${YELLOW}ARM64 architecture detected. Using ${COMPOSE_FILE}.${RESET}"
 fi
 
+COMPOSE_ARGS=(-f "${COMPOSE_FILE}")
+if [ "${COMPOSE_FILE}" = "docker-compose.yml" ] &&
+   docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q 'nvidia'; then
+  COMPOSE_ARGS+=(-f docker-compose.gpu.yml)
+  echo -e "${GREEN}GPU runtime detected. Enabling GPU passthrough for the toolbox.${RESET}"
+else
+  echo -e "${YELLOW}No applicable GPU runtime detected. The toolbox will run hashcat on CPU.${RESET}"
+fi
+
+compose() {
+  docker compose "${COMPOSE_ARGS[@]}" "$@"
+}
+
+# Capture the selected stack image names before teardown. The same list is used
+# for local-only root cleanup and for image removal after bind cleanup succeeds.
+STACK_IMAGES=()
+while IFS= read -r image; do
+  [ -n "${image}" ] && STACK_IMAGES+=("${image}")
+done < <(compose config --images 2>/dev/null | awk 'NF && !seen[$0]++')
+
 # ─────────────────────────────────────────────────────────────────
-# Detect if provider already configured
+# Save .opencode.env before a clean rebuild unless --init was requested
 # ─────────────────────────────────────────────────────────────────
+SAVED_OPENCODE_ENV=""
+if [ "${FORCE_RESET}" = false ] && [ -f "${OPENCODE_ENV_FILE}" ]; then
+  SAVED_OPENCODE_ENV="$(cat "${OPENCODE_ENV_FILE}")"
+fi
+
+env_value() {
+  local key="$1"
+  local file="$2"
+  awk -v prefix="${key}=" 'index($0, prefix) == 1 { sub(/^[^=]*=/, ""); sub(/\r$/, ""); print; exit }' "${file}"
+}
+
 SKIP_PROVIDER_FORM=false
 if [ -n "${SAVED_OPENCODE_ENV}" ]; then
-  set +u
-  eval "$(echo "${SAVED_OPENCODE_ENV}" | sed 's/:[[:space:]]\+/=/g' | sed 's/\r//' | grep -E '^[A-Z_]+=.+')" 2>/dev/null || true
-  set -u
+  OPENROUTER_PROVIDER="$(env_value OPENROUTER_PROVIDER "${OPENCODE_ENV_FILE}")"
+  OPENROUTER_API_KEY="$(env_value OPENROUTER_API_KEY "${OPENCODE_ENV_FILE}")"
+  OPENCODE_MODEL="$(env_value OPENCODE_MODEL "${OPENCODE_ENV_FILE}")"
+  OPENCODE_LOCAL_MODE="$(env_value OPENCODE_LOCAL_MODE "${OPENCODE_ENV_FILE}")"
+  OPENCODE_LOCAL_PROVIDER_ID="$(env_value OPENCODE_LOCAL_PROVIDER_ID "${OPENCODE_ENV_FILE}")"
+  OPENCODE_LOCAL_BASE_URL="$(env_value OPENCODE_LOCAL_BASE_URL "${OPENCODE_ENV_FILE}")"
+  OPENCODE_LOCAL_MODEL="$(env_value OPENCODE_LOCAL_MODEL "${OPENCODE_ENV_FILE}")"
+  ANTHROPIC_BASE_URL="$(env_value ANTHROPIC_BASE_URL "${OPENCODE_ENV_FILE}")"
+  ANTHROPIC_MODEL="$(env_value ANTHROPIC_MODEL "${OPENCODE_ENV_FILE}")"
 
-  if [ -n "${OPENROUTER_PROVIDER:-}" ] && \
-     [ -n "${OPENROUTER_API_KEY:-}" ] && \
-     [ -n "${OPENCODE_MODEL:-}" ]; then
+  if [ -n "${OPENROUTER_PROVIDER}" ] &&
+     [ -n "${OPENROUTER_API_KEY}" ] &&
+     [ -n "${OPENCODE_MODEL}" ]; then
     SKIP_PROVIDER_FORM=true
-  elif [ "${OPENCODE_LOCAL_MODE:-}" = "true" ] && \
-       [ -n "${OPENCODE_LOCAL_PROVIDER_ID:-}" ] && \
-       [ -n "${OPENCODE_LOCAL_BASE_URL:-}" ] && \
-       [ -n "${OPENCODE_LOCAL_MODEL:-}" ]; then
+  elif [ "${OPENCODE_LOCAL_MODE}" = "true" ] &&
+       [ -n "${OPENCODE_LOCAL_PROVIDER_ID}" ] &&
+       [ -n "${OPENCODE_LOCAL_BASE_URL}" ] &&
+       [ -n "${OPENCODE_LOCAL_MODEL}" ]; then
     SKIP_PROVIDER_FORM=true
-  elif [ -n "${ANTHROPIC_BASE_URL:-}" ] && [ -n "${ANTHROPIC_MODEL:-}" ]; then
+  elif [ -n "${ANTHROPIC_BASE_URL}" ] && [ -n "${ANTHROPIC_MODEL}" ]; then
     SKIP_PROVIDER_FORM=true
   fi
 fi
 
+prompt_nonempty() {
+  local prompt="$1"
+  local value=""
+  while [ -z "${value}" ]; do
+    read -r -p "$(echo -e "${YELLOW}${prompt}: ${RESET}")" value
+    [ -n "${value}" ] || echo -e "${RED}  Value cannot be empty.${RESET}" >&2
+  done
+  printf '%s' "${value}"
+}
+
+prompt_secret_required() {
+  local prompt="$1"
+  local value=""
+  while [ -z "${value}" ]; do
+    read -r -s -p "$(echo -e "${YELLOW}${prompt}: ${RESET}")" value
+    echo "" >&2
+    [ -n "${value}" ] || echo -e "${RED}  Value cannot be empty.${RESET}" >&2
+  done
+  printf '%s' "${value}"
+}
+
 # ─────────────────────────────────────────────────────────────────
-# LLM Provider configuration
+# LLM provider configuration
 # ─────────────────────────────────────────────────────────────────
 if [ "${SKIP_PROVIDER_FORM}" = true ]; then
   echo -e "${GREEN}✔ LLM provider already configured — skipping${RESET}"
-  printf '%s\n' "${SAVED_OPENCODE_ENV}" > "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}"
+  printf '%s\n' "${SAVED_OPENCODE_ENV}" > "${OPENCODE_ENV_FILE}"
 else
   echo ""
   echo -e "${BOLD}${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -132,8 +208,7 @@ else
   echo ""
   echo -e "  ${CYAN}[1]${RESET} ${BOLD}Cloud provider${RESET}  (Anthropic, OpenRouter, OpenAI, etc.)"
   echo -e "  ${CYAN}[2]${RESET} ${BOLD}Local model${RESET}     (Ollama, llama.cpp / llama-server)"
-  echo -e "  ${CYAN}[3]${RESET} ${BOLD}On-prem Anthropic-compatible${RESET}  (custom ANTHROPIC_BASE_URL)"
-  echo ""
+  echo -e "  ${CYAN}[3]${RESET} ${BOLD}On-prem Anthropic-compatible${RESET}"
 
   while true; do
     read -r -p "$(echo -e "${YELLOW}Your choice [1/2/3]: ${RESET}")" PROVIDER_TYPE
@@ -145,86 +220,34 @@ else
     esac
   done
 
-  # ── Cloud ────────────────────────────────────────────────────────
   if [ "${PROVIDER_TYPE}" = "cloud" ]; then
-    echo ""
-    echo -e "${CYAN}Available cloud providers (examples):${RESET}"
-    echo -e "  ${YELLOW}anthropic${RESET}   → claude-opus-4-6, claude-sonnet-4-5"
-    echo -e "  ${YELLOW}openai${RESET}      → gpt-4o, o3"
-    echo -e "  ${YELLOW}openrouter${RESET}  → any model via openrouter.ai"
-    echo ""
-
-    read -r -p "$(echo -e "${YELLOW}Provider name (e.g. anthropic): ${RESET}")" CLOUD_PROVIDER
-    while [ -z "${CLOUD_PROVIDER}" ]; do
-      echo -e "${RED}  Provider name cannot be empty.${RESET}"
-      read -r -p "$(echo -e "${YELLOW}Provider name: ${RESET}")" CLOUD_PROVIDER
-    done
-
-    read -r -p "$(echo -e "${YELLOW}Model name    (e.g. claude-opus-4-6): ${RESET}")" CLOUD_MODEL
-    while [ -z "${CLOUD_MODEL}" ]; do
-      echo -e "${RED}  Model name cannot be empty.${RESET}"
-      read -r -p "$(echo -e "${YELLOW}Model name: ${RESET}")" CLOUD_MODEL
-    done
-
-    read -r -s -p "$(echo -e "${YELLOW}API key: ${RESET}")" CLOUD_API_KEY
-    echo ""
-    while [ -z "${CLOUD_API_KEY}" ]; do
-      echo -e "${RED}  API key cannot be empty.${RESET}"
-      read -r -s -p "$(echo -e "${YELLOW}API key: ${RESET}")" CLOUD_API_KEY
-      echo ""
-    done
-
-    cat > "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}" <<EOF
+    CLOUD_PROVIDER="$(prompt_nonempty 'Provider name (e.g. anthropic)')"
+    CLOUD_MODEL="$(prompt_nonempty 'Model name (e.g. claude-opus-4-6)')"
+    CLOUD_API_KEY="$(prompt_secret_required 'API key')"
+    cat > "${OPENCODE_ENV_FILE}" <<EOF_ENV
 # Darkmoon — LLM cloud provider config
 # Generated by install.sh on $(date '+%Y-%m-%d %H:%M:%S')
 OPENROUTER_PROVIDER=${CLOUD_PROVIDER}
 OPENCODE_MODEL=${CLOUD_MODEL}
 OPENROUTER_API_KEY=${CLOUD_API_KEY}
-EOF
-
-  # ── On-prem Anthropic-compatible ──────────────────────────────────
+EOF_ENV
   elif [ "${PROVIDER_TYPE}" = "anthropic" ]; then
+    CUSTOM_ANTHROPIC_BASE_URL="$(prompt_nonempty 'Base URL')"
+    CUSTOM_ANTHROPIC_MODEL="$(prompt_nonempty 'Model name')"
+    read -r -s -p "$(echo -e "${YELLOW}API key (optional): ${RESET}")" CUSTOM_ANTHROPIC_API_KEY
     echo ""
-    echo -e "${CYAN}On-prem / custom Anthropic-compatible endpoint${RESET}"
-    echo -e "${CYAN}(opencode talks to it via ANTHROPIC_BASE_URL + ANTHROPIC_API_KEY)${RESET}"
-    echo ""
-
-    read -r -p "$(echo -e "${YELLOW}Base URL (e.g. https://llm.corp.tld/my-model/v1): ${RESET}")" ANTHROPIC_BASE_URL
-    while [ -z "${ANTHROPIC_BASE_URL}" ]; do
-      echo -e "${RED}  Base URL cannot be empty.${RESET}"
-      read -r -p "$(echo -e "${YELLOW}Base URL: ${RESET}")" ANTHROPIC_BASE_URL
-    done
-
-    read -r -p "$(echo -e "${YELLOW}Model name (e.g. claude-opus-4-6): ${RESET}")" ANTHROPIC_MODEL
-    while [ -z "${ANTHROPIC_MODEL}" ]; do
-      echo -e "${RED}  Model name cannot be empty.${RESET}"
-      read -r -p "$(echo -e "${YELLOW}Model name: ${RESET}")" ANTHROPIC_MODEL
-    done
-
-    # API key is OPTIONAL — leave empty if the endpoint needs none.
-    read -r -s -p "$(echo -e "${YELLOW}API key (optional — leave empty if none): ${RESET}")" ANTHROPIC_API_KEY
-    echo ""
-
-    cat > "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}" <<EOF
+    cat > "${OPENCODE_ENV_FILE}" <<EOF_ENV
 # Darkmoon — on-prem Anthropic-compatible LLM config
 # Generated by install.sh on $(date '+%Y-%m-%d %H:%M:%S')
-ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
-ANTHROPIC_MODEL=${ANTHROPIC_MODEL}
-EOF
-    # opencode's Anthropic provider needs a key string to register the model.
-    # Use the provided key, or a harmless placeholder for keyless on-prem endpoints
-    # (the endpoint ignores it; a key-checking endpoint gets the real key the user typed).
-    printf 'ANTHROPIC_API_KEY=%s\n' "${ANTHROPIC_API_KEY:-darkmoon-local}" >> "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}"
-
-  # ── Local ─────────────────────────────────────────────────────────
+ANTHROPIC_BASE_URL=${CUSTOM_ANTHROPIC_BASE_URL}
+ANTHROPIC_MODEL=${CUSTOM_ANTHROPIC_MODEL}
+ANTHROPIC_API_KEY=${CUSTOM_ANTHROPIC_API_KEY:-darkmoon-local}
+EOF_ENV
   else
-    echo ""
     echo -e "${CYAN}Local provider options:${RESET}"
-    echo -e "  ${YELLOW}[1]${RESET} Ollama       (default: http://localhost:11434/v1)"
-    echo -e "  ${YELLOW}[2]${RESET} llama.cpp    (llama-server, default: http://localhost:8080/v1)"
-    echo -e "  ${YELLOW}[3]${RESET} Custom URL   (any OpenAI-compatible endpoint)"
-    echo ""
-
+    echo -e "  ${YELLOW}[1]${RESET} Ollama"
+    echo -e "  ${YELLOW}[2]${RESET} llama.cpp"
+    echo -e "  ${YELLOW}[3]${RESET} Custom URL"
     while true; do
       read -r -p "$(echo -e "${YELLOW}Local engine [1/2/3]: ${RESET}")" LOCAL_ENGINE
       case "${LOCAL_ENGINE}" in
@@ -232,17 +255,20 @@ EOF
           LOCAL_PROVIDER_ID="ollama"
           LOCAL_PROVIDER_NAME="Ollama (local)"
           DEFAULT_BASE_URL="http://localhost:11434/v1"
-          break ;;
+          break
+          ;;
         2|llama*|llamacpp)
           LOCAL_PROVIDER_ID="llama.cpp"
           LOCAL_PROVIDER_NAME="llama-server (local)"
           DEFAULT_BASE_URL="http://localhost:8080/v1"
-          break ;;
+          break
+          ;;
         3|custom|Custom)
           LOCAL_PROVIDER_ID="local"
           LOCAL_PROVIDER_NAME="Local model"
           DEFAULT_BASE_URL=""
-          break ;;
+          break
+          ;;
         *) echo -e "${RED}  Please enter 1, 2 or 3.${RESET}" ;;
       esac
     done
@@ -250,22 +276,13 @@ EOF
     read -r -p "$(echo -e "${YELLOW}Base URL [${DEFAULT_BASE_URL}]: ${RESET}")" LOCAL_BASE_URL
     LOCAL_BASE_URL="${LOCAL_BASE_URL:-${DEFAULT_BASE_URL}}"
     while [ -z "${LOCAL_BASE_URL}" ]; do
-      echo -e "${RED}  Base URL cannot be empty.${RESET}"
-      read -r -p "$(echo -e "${YELLOW}Base URL: ${RESET}")" LOCAL_BASE_URL
+      LOCAL_BASE_URL="$(prompt_nonempty 'Base URL')"
     done
-
-    read -r -p "$(echo -e "${YELLOW}Model name (e.g. qwen2.5-coder:7b): ${RESET}")" LOCAL_MODEL
-    while [ -z "${LOCAL_MODEL}" ]; do
-      echo -e "${RED}  Model name cannot be empty.${RESET}"
-      read -r -p "$(echo -e "${YELLOW}Model name: ${RESET}")" LOCAL_MODEL
-    done
-
-    # Optional API key for authenticated OpenAI-compatible endpoints (e.g. proxies).
-    # Leave empty for engines that need no auth (Ollama, local llama.cpp, ...).
-    read -r -s -p "$(echo -e "${YELLOW}API key (optional — leave empty if your endpoint needs none): ${RESET}")" LOCAL_API_KEY
+    LOCAL_MODEL="$(prompt_nonempty 'Model name')"
+    read -r -s -p "$(echo -e "${YELLOW}API key (optional): ${RESET}")" LOCAL_API_KEY
     echo ""
 
-    cat > "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}" <<EOF
+    cat > "${OPENCODE_ENV_FILE}" <<EOF_ENV
 # Darkmoon — LLM local provider config
 # Generated by install.sh on $(date '+%Y-%m-%d %H:%M:%S')
 OPENCODE_LOCAL_MODE=true
@@ -273,33 +290,30 @@ OPENCODE_LOCAL_PROVIDER_ID=${LOCAL_PROVIDER_ID}
 OPENCODE_LOCAL_PROVIDER_NAME=${LOCAL_PROVIDER_NAME}
 OPENCODE_LOCAL_BASE_URL=${LOCAL_BASE_URL}
 OPENCODE_LOCAL_MODEL=${LOCAL_MODEL}
-EOF
-    if [ -n "${LOCAL_API_KEY:-}" ]; then
-      printf 'OPENCODE_LOCAL_API_KEY=%s\n' "${LOCAL_API_KEY}" >> "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}"
+EOF_ENV
+    if [ -n "${LOCAL_API_KEY}" ]; then
+      printf 'OPENCODE_LOCAL_API_KEY=%s\n' "${LOCAL_API_KEY}" >> "${OPENCODE_ENV_FILE}"
     fi
+  fi
+fi
 
-  fi # end PROVIDER_TYPE
-fi # end SKIP_PROVIDER_FORM
-
-chmod 644 "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}"
+chmod 600 "${OPENCODE_ENV_FILE}"
 echo -e "${GREEN}✔ ${OPENCODE_ENV_FILE} written${RESET}"
 
 # ─────────────────────────────────────────────────────────────────
-# Stop stack + purge + rebuild
+# Root-owned bind cleanup, using selected stack images only
 # ─────────────────────────────────────────────────────────────────
 find_local_cleanup_image() {
   local image
-
-  while IFS= read -r image; do
-    [ -n "${image}" ] || continue
-
+  for image in "${STACK_IMAGES[@]}"; do
     if docker image inspect "${image}" >/dev/null 2>&1 &&
-       docker run --rm --entrypoint /bin/sh "${image}" -c ':' >/dev/null 2>&1; then
+       docker run --rm --pull=never --user 0:0 \
+         --entrypoint /bin/sh "${image}" \
+         -c 'command -v rm >/dev/null 2>&1' >/dev/null 2>&1; then
       printf '%s\n' "${image}"
       return 0
     fi
-  done < <(docker compose config --images 2>/dev/null || true)
-
+  done
   return 1
 }
 
@@ -307,6 +321,14 @@ remove_bind_path() {
   local path="$1"
   local relative_path="${path#./}"
   local cleanup_image=""
+
+  case "${relative_path}" in
+    data|darkmoon-settings|workflows|reports|sessions|workspace) ;;
+    *)
+      echo -e "${RED}❌ Refusing unsafe cleanup path: ${path}${RESET}" >&2
+      exit 1
+      ;;
+  esac
 
   if [ ! -e "${path}" ] && [ ! -L "${path}" ]; then
     echo -e "${YELLOW}  - ${path} (absent)${RESET}"
@@ -319,76 +341,62 @@ remove_bind_path() {
   fi
 
   echo -e "${YELLOW}    host permissions blocked removal; retrying as container root${RESET}"
-  cleanup_image="$(find_local_cleanup_image || true)"
-  cleanup_image="${cleanup_image:-alpine:3.20}"
+  if ! cleanup_image="$(find_local_cleanup_image)"; then
+    echo -e "${RED}❌ No local stack image can run /bin/sh and rm as root.${RESET}" >&2
+    printf 'Run this command and retry: sudo rm -rf -- %q\n' "${SCRIPT_DIR}/${relative_path}" >&2
+    exit 1
+  fi
 
-  if ! docker run --rm \
+  if ! docker run --rm --pull=never --user 0:0 \
       -v "${SCRIPT_DIR}:/darkmoon-root" \
       --entrypoint /bin/sh \
       "${cleanup_image}" \
       -c 'rm -rf -- "/darkmoon-root/$1"' sh "${relative_path}"; then
-    echo -e "${RED}❌ Could not remove ${path}.${RESET}"
-    printf 'Run this command and retry: sudo rm -rf -- %q\n' "${path}" >&2
+    echo -e "${RED}❌ Could not remove ${path} with local image ${cleanup_image}.${RESET}" >&2
+    printf 'Run this command and retry: sudo rm -rf -- %q\n' "${SCRIPT_DIR}/${relative_path}" >&2
     exit 1
   fi
 
   if [ -e "${path}" ] || [ -L "${path}" ]; then
-    echo -e "${RED}❌ Cleanup completed without deleting ${path}.${RESET}"
-    printf 'Run this command and retry: sudo rm -rf -- %q\n' "${path}" >&2
+    echo -e "${RED}❌ Cleanup completed without deleting ${path}.${RESET}" >&2
+    printf 'Run this command and retry: sudo rm -rf -- %q\n' "${SCRIPT_DIR}/${relative_path}" >&2
     exit 1
   fi
 }
 
+# ─────────────────────────────────────────────────────────────────
+# Stop stack, optionally purge persistent state, then remove images
+# ─────────────────────────────────────────────────────────────────
 if [ "${KEEP_DATA}" = true ]; then
   echo -e "${BLUE}🛑 Stopping stack while preserving volumes and bind-mounted data...${RESET}"
-  docker compose down --remove-orphans
-  echo -e "${GREEN}✔ Persistent session, project and agent data retained${RESET}"
+  compose down --remove-orphans
+  echo -e "${GREEN}✔ Persistent sessions, projects, reports, workflows and agent data retained${RESET}"
 else
-  # Keep images available until bind cleanup is complete so a local image can
-  # remove root-owned files without requiring sudo or an extra image pull.
-  echo -e "${BLUE}🛑 Stopping stack (containers + networks + volumes)...${RESET}"
-  docker compose down --remove-orphans --volumes
+  echo -e "${BLUE}🛑 Stopping stack and removing named volumes...${RESET}"
+  compose down --remove-orphans --volumes
 
-  echo -e "${BLUE}🧹 Purging bind mounts...${RESET}"
-  for path in "${BIND_PATHS[@]}"; do
+  echo -e "${BLUE}🧹 Purging generated bind mounts...${RESET}"
+  for path in "${GENERATED_BIND_PATHS[@]}"; do
     remove_bind_path "${path}"
   done
 fi
 
 echo -e "${BLUE}🗑️  Removing previous stack images...${RESET}"
-docker compose down --remove-orphans --rmi all
+for image in "${STACK_IMAGES[@]}"; do
+  if docker image inspect "${image}" >/dev/null 2>&1; then
+    docker image rm "${image}" >/dev/null ||
+      echo -e "${YELLOW}  - could not remove shared image ${image}; continuing${RESET}"
+  fi
+done
 
 echo -e "${BLUE}🧽 Purging docker build cache...${RESET}"
 docker builder prune -f
 
-COMPOSE_FILE="docker-compose.yml"
-ARCH="$(uname -m)"
-if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-    echo -e "${YELLOW}ARM64 architecture detected. Using docker-compose-dev.yml to build images locally...${RESET}"
-    COMPOSE_FILE="docker-compose-dev.yml"
-fi
-
-# GPU passthrough is opt-in at install time. hashcat is the one tool it changes
-# (offline cracking: hours on CPU threads, seconds on a GPU); network brute-forcers
-# are bound by the target, not by local compute, so they gain nothing. `gpus: all`
-# is kept in an overlay because it makes the container refuse to start on a host
-# without a GPU runtime, which would break every CPU-only install.
-COMPOSE_ARGS="-f $COMPOSE_FILE"
-if docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q nvidia \
-   || docker run --rm --gpus all ubuntu:22.04 true >/dev/null 2>&1; then
-    echo -e "${GREEN}GPU runtime detected. Enabling GPU passthrough for the toolbox.${RESET}"
-    COMPOSE_ARGS="$COMPOSE_ARGS -f docker-compose.gpu.yml"
-else
-    echo -e "${YELLOW}No GPU runtime detected. The toolbox will run hashcat on CPU.${RESET}"
-    echo -e "${YELLOW}To enable it later, install the NVIDIA container toolkit and re-run:${RESET}"
-    echo -e "${YELLOW}  docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d${RESET}"
-fi
-
 echo -e "${BLUE}🔨 Rebuilding images (no cache)...${RESET}"
-docker compose $COMPOSE_ARGS build --no-cache
+compose build --no-cache
 
 echo -e "${BLUE}🚀 Recreating containers...${RESET}"
-docker compose $COMPOSE_ARGS up -d --force-recreate
+compose up -d --force-recreate
 
 if [ "${KEEP_DATA}" = true ]; then
   echo -e "${GREEN}✅ Darkmoon stack rebuilt with persistent data retained${RESET}"
