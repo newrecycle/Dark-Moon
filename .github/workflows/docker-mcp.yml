@@ -19,7 +19,7 @@ env:
 
 jobs:
   configuration-and-plugin:
-    name: Configuration, bootstrap, and plugin
+    name: Configuration, bootstrap, plugin, and wrapper
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -62,11 +62,15 @@ jobs:
       - name: Test compatibility plugin
         run: node --test tests/test_darkmoon_compat.mjs
 
+      - name: Test wrapper command routing
+        run: bash tests/test_darkmoon_wrapper.sh
+
       - name: Check changed shell scripts
         run: |
           shellcheck -x \
             install.sh \
             darkmoon.sh \
+            tests/test_darkmoon_wrapper.sh \
             tests/test_docker_mcp.sh \
             tests/test_production_stack.sh
 
@@ -126,6 +130,7 @@ jobs:
       - name: Test production bootstrap, real toolbox, wrapper, and persistence
         env:
           DARKMOON_TEST_ARTIFACT_DIR: ${{ runner.temp }}/darkmoon-artifacts/production
+          DARKMOON_TEST_XTRACE: "1"
         run: bash tests/test_production_stack.sh
 
       - name: Upload production diagnostics
