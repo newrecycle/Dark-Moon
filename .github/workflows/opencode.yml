@@ -32,5 +32,5 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.OPENCODE_GITHUB_TOKEN }}
         with:
-          model: opencode/qwen3.6-plus-free
+          model: opencode/laguna-s-2.1-free
           use_github_token: true
