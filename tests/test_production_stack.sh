@@ -143,7 +143,7 @@ asyncio.run(main())
 PY
 
 export DARKMOON_COMPOSE_FILES="$ROOT/docker-compose.yml:$ROOT/tests/docker-compose.production.yml"
-version="$($ROOT/darkmoon.sh --version)"
+version="$("$ROOT/darkmoon.sh" --version)"
 grep -q '1.18.12' <<<"$version"
 
 "$ROOT/darkmoon.sh" \
