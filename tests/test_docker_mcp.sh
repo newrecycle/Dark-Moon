@@ -107,10 +107,12 @@ async def main() -> None:
 
         execution = await client.call_tool(
             "execute_command",
-            {"command": "cat /etc/alpine-release", "timeout": 10},
+            {"command": "cat /etc/os-release", "timeout": 10},
         )
-        assert isinstance(execution.data, str)
-        assert "3.22" in execution.data
+        assert isinstance(execution.data, str), repr(execution.data)
+        assert "EXIT CODE: 0" in execution.data, execution.data
+        assert "STDOUT:" in execution.data, execution.data
+        assert "Ubuntu" in execution.data, execution.data
 
 
 asyncio.run(main())
