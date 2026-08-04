@@ -1,0 +1,61 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "mock/darkmoon-test-model",
+  "small_model": "mock/darkmoon-test-model",
+  "default_agent": "build",
+  "subagent_depth": 9,
+  "agent": {
+    "pentest": {
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "variant": "medium",
+      "options": {
+        "id": "must-not-reach-provider",
+        "name": "must-not-reach-provider",
+        "primary": true,
+        "secondary": false,
+        "prompt_file": "must-not-reach-provider.md",
+        "mcp": [
+          "darkmoon"
+        ],
+        "tools": {
+          "bash": true
+        },
+        "maxSteps": 999,
+        "reasoning_effort": "medium"
+      }
+    }
+  },
+  "mcp": {
+    "darkmoon": {
+      "type": "local",
+      "command": [
+        "/definitely/missing/darkmoon-mcp"
+      ],
+      "enabled": true
+    }
+  },
+  "provider": {
+    "mock": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Dark-Moon Docker mock",
+      "options": {
+        "baseURL": "http://mock-provider:8000/v1",
+        "apiKey": "not-a-real-key"
+      },
+      "models": {
+        "darkmoon-test-model": {
+          "name": "darkmoon-test-model",
+          "temperature": true,
+          "reasoning": true,
+          "tool_call": true,
+          "variants": {
+            "medium": {
+              "reasoning_effort": "medium"
+            }
+          }
+        }
+      }
+    }
+  }
+}

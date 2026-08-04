@@ -1,0 +1,71 @@
+{
+  "repository": "https://github.com/anomalyco/opencode.git",
+  "commit": "0dd6950d1b06958fbcdcadf0ad56258257ab7fdb",
+  "version": "1.18.12",
+  "models_dev_snapshot": "pending vendored api.json",
+  "openai_compatible_adapter": "@ai-sdk/openai-compatible@2.0.41",
+  "agent_schema_source": "packages/core/src/v1/config/agent.ts",
+  "markdown_agent_loader_source": "packages/opencode/src/config/agent.ts",
+  "request_merge_source": "packages/opencode/src/session/llm/request.ts",
+  "adapter_request_body_source": "node_modules/@ai-sdk/openai-compatible/src/chat/openai-compatible-chat-language-model.ts",
+  "schema_declared_agent_fields": [
+    "model",
+    "variant",
+    "temperature",
+    "top_p",
+    "prompt",
+    "tools",
+    "disable",
+    "description",
+    "mode",
+    "hidden",
+    "options",
+    "color",
+    "steps",
+    "maxSteps",
+    "permission"
+  ],
+  "schema_unknown_field_behavior": "unknown fields are copied into agent.options",
+  "supported_agent_fields": [
+    "model",
+    "variant",
+    "temperature",
+    "top_p",
+    "prompt",
+    "disable",
+    "description",
+    "mode",
+    "hidden",
+    "options",
+    "color",
+    "steps",
+    "permission"
+  ],
+  "deprecated_agent_fields": {
+    "tools": "permission",
+    "maxSteps": "steps"
+  },
+  "darkmoon_markdown_fields": [
+    "model",
+    "variant",
+    "temperature",
+    "top_p",
+    "disable",
+    "description",
+    "mode",
+    "hidden",
+    "options",
+    "color",
+    "steps",
+    "permission"
+  ],
+  "legacy_migrations": {
+    "primary": "mode: primary",
+    "secondary": "mode: subagent",
+    "prompt_file": "Markdown body (or prompt: {file:path} in JSON configuration)",
+    "id": "Markdown filename",
+    "name": "Markdown filename",
+    "mcp": "global mcp registration plus per-agent darkmoon_* permission"
+  },
+  "mcp_tool_prefix": "darkmoon_*"
+}

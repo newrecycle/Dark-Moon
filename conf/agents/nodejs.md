@@ -1,7 +1,9 @@
 ---
-id: nodejs
-name: nodejs
 description: Autonomous pentest sub-agent using Darkmoon MCP for Node.js (Express / Angular / SPA) applications
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

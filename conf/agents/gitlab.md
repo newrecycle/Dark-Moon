@@ -1,7 +1,9 @@
 ---
-id: gitlab
-name: gitlab
-description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for GitLab (SaaS/self-managed): groups/projects, permissions, CI/CD variables, pipelines, runners, artifacts, registry, deploy & access tokens, webhooks, K8s agent
+description: 'Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for GitLab (SaaS/self-managed): groups/projects, permissions, CI/CD variables, pipelines, runners, artifacts, registry, deploy & access tokens, webhooks, K8s agent'
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

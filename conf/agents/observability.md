@@ -1,7 +1,9 @@
 ---
-id: observability
-name: observability
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for an observability and monitoring stack (Grafana/Prometheus/Alertmanager/Splunk/Kibana-Elastic-Logstash-Fleet/Zabbix/Wazuh)
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

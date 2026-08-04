@@ -1,7 +1,9 @@
 ---
-id: moodle
-name: moodle
 description: Fully autonomous pentest sub agent using MCP-backed Darkmoon toolbox for Moodle LMS applications (core, plugins, Web Services API, quiz/grade/enrollment logic, scheduled tasks, roles/capabilities)
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

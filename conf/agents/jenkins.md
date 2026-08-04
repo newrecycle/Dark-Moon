@@ -1,7 +1,9 @@
 ---
-id: jenkins
-name: jenkins
-description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for Jenkins controllers & agents: script console, credentials store, jobs/pipelines, plugins, nodes, API tokens, unauthenticated access
+description: 'Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for Jenkins controllers & agents: script console, credentials store, jobs/pipelines, plugins, nodes, API tokens, unauthenticated access'
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")

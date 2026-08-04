@@ -1,0 +1,20 @@
+FROM python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    OPENCODE_CONFIG_TOOL=/opt/darkmoon/opencode-config.py \
+    OPENCODE_DEFAULT_AGENTS_DIR=/opt/darkmoon/default-agents \
+    DARKMOON_DEFAULT_WORKFLOWS_DIR=/opt/darkmoon/default-workflows \
+    DARKMOON_MCP_TRANSPORT=remote \
+    DARKMOON_MCP_URL=http://darkmoon-mcp:8000/mcp
+
+WORKDIR /opt/darkmoon
+
+RUN python -m pip install --no-cache-dir --disable-pip-version-check PyYAML==6.0.3
+
+COPY conf/opencode-config.py /opt/darkmoon/opencode-config.py
+COPY conf/bootstrap.py /opt/darkmoon/bootstrap.py
+COPY conf/agents/ /opt/darkmoon/default-agents/
+COPY mcp/src/tools/workflows/ /opt/darkmoon/default-workflows/
+
+ENTRYPOINT ["python", "/opt/darkmoon/bootstrap.py"]

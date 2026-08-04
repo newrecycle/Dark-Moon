@@ -1,7 +1,9 @@
 ---
-id: docker
-name: docker
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for an exposed Docker Engine API (unix socket or unauthenticated TCP 2375/2376), images, containers and container-to-host escape
+mode: subagent
+permission:
+  '*': deny
+  darkmoon_*: allow
 ---
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")
