@@ -27,8 +27,9 @@ cp "$ROOT/tests/opencode.docker-test.json" "$DARKMOON_TEST_CONFIG_DIR/opencode.j
 cp -R "$ROOT/conf/agents" "$DARKMOON_TEST_CONFIG_DIR/agents"
 cp -R "$ROOT/conf/plugins" "$DARKMOON_TEST_CONFIG_DIR/plugins"
 
+COMPOSE=(docker compose -p "$PROJECT" -f "$COMPOSE_FILE")
 compose() {
-  docker compose -p "$PROJECT" -f "$COMPOSE_FILE" "$@"
+  "${COMPOSE[@]}" "$@"
 }
 
 cleanup() {
@@ -69,7 +70,7 @@ wait_for_opencode() {
 wait_for_mcp() {
   local attempt output
   for attempt in $(seq 1 60); do
-    if output="$(timeout 30 compose exec -T opencode opencode mcp list 2>&1)" \
+    if output="$(timeout 30 "${COMPOSE[@]}" exec -T opencode opencode mcp list 2>&1)" \
       && grep -Eqi 'darkmoon.*connected' <<<"$output"; then
       printf '%s\n' "$output"
       return 0
@@ -118,14 +119,14 @@ async def main() -> None:
 asyncio.run(main())
 PY
 
-agents="$(timeout 60 compose exec -T opencode opencode agent list)"
+agents="$(timeout 60 "${COMPOSE[@]}" exec -T opencode opencode agent list)"
 grep -q 'pentest (primary)' <<<"$agents"
 grep -q 'aws (subagent)' <<<"$agents"
 wait_for_mcp
 
 run_opencode() {
   local title=$1
-  timeout 180 compose exec -T opencode \
+  timeout 180 "${COMPOSE[@]}" exec -T opencode \
     opencode run --agent pentest --model mock/darkmoon-test-model \
     --title "$title" --format json \
     'Call darkmoon_get_session exactly once, then report its session id.'
