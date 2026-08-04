@@ -23,6 +23,7 @@ class ProductionBootstrapTests(unittest.TestCase):
         self.config = self.root / "config"
         self.data = self.root / "data"
         self.agents = self.config / "agents"
+        self.workflows = self.root / "workflows"
 
     def tearDown(self) -> None:
         self.temp.cleanup()
@@ -35,6 +36,8 @@ class ProductionBootstrapTests(unittest.TestCase):
             "OPENCODE_DATA_DIR": str(self.data),
             "OPENCODE_AGENTS_DIR": str(self.agents),
             "OPENCODE_DEFAULT_AGENTS_DIR": str(CANONICAL),
+            "DARKMOON_WORKFLOWS_DIR": str(self.workflows),
+            "DARKMOON_DEFAULT_WORKFLOWS_DIR": str(REPO / "mcp" / "src" / "tools" / "workflows"),
             "OPENCODE_LOCAL_MODE": "true",
             "OPENCODE_LOCAL_PROVIDER_ID": "mock",
             "OPENCODE_LOCAL_PROVIDER_NAME": "Bootstrap mock",
@@ -56,7 +59,7 @@ class ProductionBootstrapTests(unittest.TestCase):
             check=True,
         )
 
-    def test_clean_bootstrap_seeds_agents_provider_and_remote_mcp(self) -> None:
+    def test_clean_bootstrap_seeds_agents_provider_remote_mcp_and_workflows(self) -> None:
         self.run_bootstrap()
         config_path = self.config / "opencode.json"
         state_path = self.config / ".darkmoon-bootstrap.json"
@@ -69,6 +72,8 @@ class ProductionBootstrapTests(unittest.TestCase):
         self.assertEqual(config["mcp"]["darkmoon"]["url"], "http://darkmoon-mcp:8000/mcp")
         self.assertTrue((self.agents / "pentest.md").is_file())
         self.assertGreaterEqual(state["agents"], 50)
+        self.assertGreater(state["workflows"], 0)
+        self.assertTrue(any(self.workflows.glob("*.py")))
         self.assertEqual(config_path.stat().st_mode & 0o777, 0o600)
 
     def test_bootstrap_is_idempotent_and_preserves_existing_prompt_customization(self) -> None:
