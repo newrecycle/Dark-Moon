@@ -115,6 +115,7 @@ assert config["mcp"]["darkmoon"]["url"] == "http://darkmoon-mcp:8000/mcp"
 assert state["model"] == config["model"]
 assert state["mcp_transport"] == "remote"
 assert state["agents"] >= 50
+assert state["workflows"] > 0
 assert stat.S_IMODE(config_path.stat().st_mode) == 0o600
 PY
 
@@ -142,6 +143,12 @@ async def main():
 asyncio.run(main())
 PY
 
+# Confirm reasoning/variant controls survive normalized agent configuration. The
+# generic adapter only serializes provider-supported HTTP fields.
+debug_agent="$("${COMPOSE[@]}" exec -T opencode opencode debug agent pentest)"
+grep -Eq '"variant"[[:space:]]*:[[:space:]]*"medium"' <<<"$debug_agent"
+grep -Eq '"reasoning_effort"[[:space:]]*:[[:space:]]*"medium"' <<<"$debug_agent"
+
 export DARKMOON_COMPOSE_FILES="$ROOT/docker-compose.yml:$ROOT/tests/docker-compose.production.yml"
 version="$("$ROOT/darkmoon.sh" --version)"
 grep -q '1.18.12' <<<"$version"
@@ -154,8 +161,7 @@ python3 "$ROOT/tests/assert_issue36_capture.py" \
   "$DARKMOON_TEST_CAPTURE_DIR/requests.jsonl" \
   --expect-model darkmoon-test-model \
   --expect-temperature 0.2 \
-  --expect-top-p 0.9 \
-  --expect-reasoning-effort medium
+  --expect-top-p 0.9
 
 set +e
 monitor_output="$(timeout 3 "$ROOT/darkmoon.sh" --log test-session 2>&1)"
@@ -188,7 +194,6 @@ python3 "$ROOT/tests/assert_issue36_capture.py" \
   "$DARKMOON_TEST_CAPTURE_DIR/requests.jsonl" --minimum-requests 4 \
   --expect-model darkmoon-test-model \
   --expect-temperature 0.2 \
-  --expect-top-p 0.9 \
-  --expect-reasoning-effort medium
+  --expect-top-p 0.9
 
 echo "PASS: clean production bootstrap, provider rendering, wrapper, real toolbox MCP, persistence, and fresh CLI startup after service restarts"
