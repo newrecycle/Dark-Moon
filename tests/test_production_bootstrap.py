@@ -31,6 +31,8 @@ class ProductionBootstrapTests(unittest.TestCase):
     def env(self, **overrides: str) -> dict[str, str]:
         env = {
             "PATH": os.environ.get("PATH", ""),
+            "DARKMOON_UID": str(os.getuid()),
+            "DARKMOON_GID": str(os.getgid()),
             "OPENCODE_CONFIG_TOOL": str(CONFIG_TOOL),
             "OPENCODE_CONFIG_DIR": str(self.config),
             "OPENCODE_DATA_DIR": str(self.data),
@@ -73,8 +75,13 @@ class ProductionBootstrapTests(unittest.TestCase):
         self.assertTrue((self.agents / "pentest.md").is_file())
         self.assertGreaterEqual(state["agents"], 50)
         self.assertGreater(state["workflows"], 0)
+        self.assertEqual(state["uid"], os.getuid())
+        self.assertEqual(state["gid"], os.getgid())
         self.assertTrue(any(self.workflows.glob("*.py")))
         self.assertEqual(config_path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(state_path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(config_path.stat().st_uid, os.getuid())
+        self.assertEqual(config_path.stat().st_gid, os.getgid())
 
     def test_bootstrap_is_idempotent_and_preserves_existing_prompt_customization(self) -> None:
         self.run_bootstrap()
@@ -98,6 +105,16 @@ class ProductionBootstrapTests(unittest.TestCase):
     def test_invalid_remote_url_fails_closed(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError):
             self.run_bootstrap(DARKMOON_MCP_URL="file:///tmp/not-http")
+
+    def test_nonroot_identity_mismatch_fails_closed(self) -> None:
+        if os.geteuid() == 0:
+            self.skipTest("root can intentionally switch to another target identity")
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.run_bootstrap(DARKMOON_UID=str(os.getuid() + 1))
+
+    def test_invalid_identity_fails_closed(self) -> None:
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.run_bootstrap(DARKMOON_UID="not-an-integer")
 
 
 if __name__ == "__main__":
