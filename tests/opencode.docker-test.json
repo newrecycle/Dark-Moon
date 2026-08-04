@@ -6,6 +6,8 @@
   "subagent_depth": 9,
   "agent": {
     "pentest": {
+      "temperature": 0.2,
+      "top_p": 0.9,
       "options": {
         "id": "must-not-reach-provider",
         "name": "must-not-reach-provider",
@@ -18,7 +20,8 @@
         "tools": {
           "bash": true
         },
-        "maxSteps": 999
+        "maxSteps": 999,
+        "reasoning_effort": "medium"
       }
     }
   },
