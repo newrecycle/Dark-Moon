@@ -8,7 +8,7 @@ import yaml
 
 REPO = Path(__file__).resolve().parents[1]
 SOCKET = "/var/run/docker.sock"
-PROXY_IMAGE = "ghcr.io/tecnativa/docker-socket-proxy:0.4.2"
+PROXY_IMAGE = "tecnativa/docker-socket-proxy:v0.4.2@sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476"
 
 
 class ComposeSecurityTests(unittest.TestCase):
