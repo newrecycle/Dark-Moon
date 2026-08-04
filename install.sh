@@ -76,8 +76,7 @@ load_provider_env() {
     value=${value%$'\r'}
     case "$key" in
       OPENROUTER_PROVIDER|OPENROUTER_API_KEY|OPENCODE_MODEL|OPENCODE_LOCAL_MODE|OPENCODE_LOCAL_PROVIDER_ID|OPENCODE_LOCAL_PROVIDER_NAME|OPENCODE_LOCAL_BASE_URL|OPENCODE_LOCAL_MODEL|OPENCODE_LOCAL_API_KEY|ANTHROPIC_BASE_URL|ANTHROPIC_MODEL|ANTHROPIC_API_KEY)
-        printf -v "$key" '%s' "$value"
-        export "$key"
+        declare -gx "$key=$value"
         ;;
     esac
   done < "$file"
@@ -248,8 +247,8 @@ log "Starting Dark-Moon"
 "${COMPOSE[@]}" up -d --force-recreate
 
 wait_for_stack() {
-  local attempt agents mcp
-  for attempt in $(seq 1 90); do
+  local agents mcp
+  for _ in $(seq 1 90); do
     if agents="$("${COMPOSE[@]}" exec -T opencode opencode agent list 2>/dev/null)" \
       && grep -q 'pentest (primary)' <<<"$agents" \
       && mcp="$("${COMPOSE[@]}" exec -T opencode opencode mcp list 2>/dev/null)" \
