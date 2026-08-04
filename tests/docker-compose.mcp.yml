@@ -1,0 +1,92 @@
+name: darkmoon-mcp-test
+
+services:
+  darkmoon:
+    image: alpine:3.22
+    container_name: darkmoon
+    command:
+      - sh
+      - -c
+      - while true; do sleep 3600; done
+    healthcheck:
+      test:
+        - CMD
+        - sh
+        - -c
+        - test -r /etc/alpine-release
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  darkmoon-mcp:
+    build:
+      context: ..
+      dockerfile: Dockerfile.mcp
+    environment:
+      DOCKER_CONTAINER_NAME: darkmoon
+      DARKMOON_MCP_HOST: 0.0.0.0
+      DARKMOON_MCP_PORT: "8000"
+      DARKMOON_MCP_PATH: /mcp
+      DARKMOON_PRIVACY: "0"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      darkmoon:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import socket; s=socket.create_connection(('127.0.0.1', 8000), 2); s.close()
+      interval: 2s
+      timeout: 3s
+      start_period: 5s
+      retries: 30
+
+  mock-provider:
+    image: python:3.13-slim
+    working_dir: /tests
+    command:
+      - python3
+      - /tests/mock_openai_compatible.py
+    environment:
+      MOCK_PROVIDER_CAPTURE: /capture/requests.jsonl
+    volumes:
+      - ./:/tests:ro
+      - ${DARKMOON_TEST_CAPTURE_DIR:?set DARKMOON_TEST_CAPTURE_DIR}:/capture:rw
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  opencode:
+    image: ghcr.io/anomalyco/opencode:1.18.12
+    working_dir: /workspace
+    command:
+      - serve
+      - --hostname
+      - 0.0.0.0
+      - --port
+      - "4096"
+    environment:
+      DARKMOON_MCP_URL: http://darkmoon-mcp:8000/mcp
+      OPENCODE_DISABLE_AUTOUPDATE: "true"
+      OPENCODE_DISABLE_MODELS_FETCH: "true"
+      TERM: xterm-256color
+      LANG: C.UTF-8
+    depends_on:
+      darkmoon-mcp:
+        condition: service_healthy
+      mock-provider:
+        condition: service_healthy
+    volumes:
+      - ${DARKMOON_TEST_CONFIG_DIR:?set DARKMOON_TEST_CONFIG_DIR}:/root/.config/opencode:rw
+      - ${DARKMOON_TEST_DATA_DIR:?set DARKMOON_TEST_DATA_DIR}:/root/.local/share/opencode:rw
+      - ${DARKMOON_TEST_WORKSPACE_DIR:?set DARKMOON_TEST_WORKSPACE_DIR}:/workspace:rw
