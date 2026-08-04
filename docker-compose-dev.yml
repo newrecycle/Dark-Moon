@@ -74,9 +74,11 @@ services:
       OPENCODE_CONFIG_DIR: /root/.config/opencode
       OPENCODE_DATA_DIR: /root/.local/share/opencode
       OPENCODE_AGENTS_DIR: /root/.config/opencode/agents
+      DARKMOON_WORKFLOWS_DIR: /var/lib/darkmoon/workflows
     volumes:
       - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}:/root/.config/opencode:rw
       - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}/data:/root/.local/share/opencode:rw
+      - ${DARKMOON_WORKFLOWS_DIR:-./workflows}:/var/lib/darkmoon/workflows:rw
 
   opencode:
     image: ghcr.io/anomalyco/opencode:1.18.12
