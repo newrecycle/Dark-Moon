@@ -33,7 +33,9 @@ OPENCODE_LOCAL_MODE=true
 OPENCODE_LOCAL_PROVIDER_ID=mock
 OPENCODE_LOCAL_PROVIDER_NAME=Production stack mock
 OPENCODE_LOCAL_BASE_URL=http://mock-provider:8000/v1
-OPENCODE_LOCAL_MODEL=mock/darkmoon-test-model
+# Provider configuration stores the provider-relative model ID. The wrapper
+# invocations below use the fully qualified OpenCode ID: mock/darkmoon-test-model.
+OPENCODE_LOCAL_MODEL=darkmoon-test-model
 OPENCODE_LOCAL_API_KEY=not-a-real-key
 EOF
 chmod 600 "$OPENCODE_ENV_FILE"

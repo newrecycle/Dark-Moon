@@ -65,12 +65,16 @@ jobs:
       - name: Test wrapper command routing
         run: bash tests/test_darkmoon_wrapper.sh
 
+      - name: Test installer cleanup and keep modes
+        run: bash tests/test_install_cleanup.sh
+
       - name: Check changed shell scripts
         run: |
           shellcheck -x \
             install.sh \
             darkmoon.sh \
             tests/test_darkmoon_wrapper.sh \
+            tests/test_install_cleanup.sh \
             tests/test_docker_mcp.sh \
             tests/test_production_stack.sh
 
