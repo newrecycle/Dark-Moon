@@ -43,7 +43,7 @@ USAGE
 
 # ─────────────────────────────────────────────────────────────────
 # Parse args before any Docker or destructive operation
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 FORCE_RESET=false
 KEEP_DATA=false
 for ARG in "$@"; do
@@ -103,7 +103,7 @@ fi
 
 echo -e "${GREEN}✔ Docker and Docker Compose detected${RESET}"
 
-# ─────────────────────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 # Select one Compose configuration and use it for the entire run
 # ─────────────────────────────────────────────────────────────────
 ARCH="$(uname -m)"
@@ -133,7 +133,7 @@ while IFS= read -r image; do
   [ -n "${image}" ] && STACK_IMAGES+=("${image}")
 done < <(compose config --images 2>/dev/null | awk 'NF && !seen[$0]++')
 
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 # Save .opencode.env before a clean rebuild unless --init was requested
 # ─────────────────────────────────────────────────────────────────
 SAVED_OPENCODE_ENV=""
@@ -196,7 +196,7 @@ prompt_secret_required() {
 
 # ─────────────────────────────────────────────────────────────────
 # LLM provider configuration
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 if [ "${SKIP_PROVIDER_FORM}" = true ]; then
   echo -e "${GREEN}✔ LLM provider already configured — skipping${RESET}"
   printf '%s\n' "${SAVED_OPENCODE_ENV}" > "${OPENCODE_ENV_FILE}"
@@ -257,7 +257,7 @@ EOF_ENV
           DEFAULT_BASE_URL="http://localhost:11434/v1"
           break
           ;;
-        2|llama*|llamacpp)
+        2|llama*)
           LOCAL_PROVIDER_ID="llama.cpp"
           LOCAL_PROVIDER_NAME="llama-server (local)"
           DEFAULT_BASE_URL="http://localhost:8080/v1"
@@ -300,7 +300,7 @@ fi
 chmod 600 "${OPENCODE_ENV_FILE}"
 echo -e "${GREEN}✔ ${OPENCODE_ENV_FILE} written${RESET}"
 
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 # Root-owned bind cleanup, using selected stack images only
 # ─────────────────────────────────────────────────────────────────
 find_local_cleanup_image() {
@@ -364,9 +364,9 @@ remove_bind_path() {
   fi
 }
 
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 # Stop stack, optionally purge persistent state, then remove images
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 if [ "${KEEP_DATA}" = true ]; then
   echo -e "${BLUE}🛑 Stopping stack while preserving volumes and bind-mounted data...${RESET}"
   compose down --remove-orphans
