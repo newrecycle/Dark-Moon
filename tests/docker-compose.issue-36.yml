@@ -47,7 +47,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - issue36_config:/root/.config/opencode
       - issue36_data:/root/.local/share/opencode
-      - issue36_agents:/root/.opencode/agents
+      - issue36_agents:/root/.config/opencode/agents
       - issue36_workspace:/workspace
 
 volumes:

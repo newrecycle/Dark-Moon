@@ -43,7 +43,7 @@ wait_for_opencode
 
 docker compose -p "$PROJECT" -f "$COMPOSE_FILE" exec -T opencode \
   python3 /root/conf/opencode-config.py validate \
-  --agents-dir /root/.opencode/agents \
+  --agents-dir /root/.config/opencode/agents \
   --config-file /root/.config/opencode/opencode.json
 
 test "$(docker compose -p "$PROJECT" -f "$COMPOSE_FILE" exec -T opencode pwd | tr -d '\r')" = "/workspace"

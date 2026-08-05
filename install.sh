@@ -5,16 +5,6 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
 GENERATED_BIND_PATHS=(
-  "./data"
-  "./darkmoon-settings"
-  "./workflows"
-  "./reports"
-  "./sessions"
-  "./workspace"
-)
-
-OPENCODE_ENV_FILE=".opencode.env"
-PERSISTENT_PATHS=(
   data
   darkmoon-settings
   workflows
@@ -22,6 +12,8 @@ PERSISTENT_PATHS=(
   sessions
   workspace
 )
+
+OPENCODE_ENV_FILE=".opencode.env"
 
 CYAN="\033[1;36m"
 BLUE="\033[1;34m"
@@ -84,124 +76,6 @@ cat <<'EOF_BANNER'
 
 EOF_BANNER
 echo -e "${RESET}"
-
-provider_is_complete() {
-  if [[ -n "${OPENROUTER_PROVIDER:-}" && -n "${OPENROUTER_API_KEY:-}" && -n "${OPENCODE_MODEL:-}" ]]; then
-    return 0
-  fi
-  if [[ "${OPENCODE_LOCAL_MODE:-}" == "true" && -n "${OPENCODE_LOCAL_PROVIDER_ID:-}" && -n "${OPENCODE_LOCAL_BASE_URL:-}" && -n "${OPENCODE_LOCAL_MODEL:-}" ]]; then
-    return 0
-  fi
-  if [[ -n "${ANTHROPIC_BASE_URL:-}" && -n "${ANTHROPIC_MODEL:-}" && -n "${ANTHROPIC_API_KEY:-}" ]]; then
-    return 0
-  fi
-  return 1
-}
-
-write_cloud_provider() {
-  local provider model key
-  read -r -p "Provider name (for example nvidia or openrouter): " provider
-  [[ -n "$provider" ]] || fail "Provider name cannot be empty"
-  read -r -p "Model name: " model
-  [[ -n "$model" ]] || fail "Model name cannot be empty"
-  read -r -s -p "API key: " key; echo
-  [[ -n "$key" ]] || fail "API key cannot be empty"
-  cat > "$OPENCODE_ENV_FILE" <<EOF
-# Dark-Moon cloud provider configuration
-OPENROUTER_PROVIDER=${provider}
-OPENCODE_MODEL=${model}
-OPENROUTER_API_KEY=${key}
-EOF
-}
-
-write_anthropic_provider() {
-  local url model key
-  read -r -p "Anthropic-compatible base URL: " url
-  [[ -n "$url" ]] || fail "Base URL cannot be empty"
-  read -r -p "Model name: " model
-  [[ -n "$model" ]] || fail "Model name cannot be empty"
-  read -r -s -p "API key (leave empty only for a keyless endpoint): " key; echo
-  cat > "$OPENCODE_ENV_FILE" <<EOF
-# Dark-Moon Anthropic-compatible provider configuration
-ANTHROPIC_BASE_URL=${url}
-ANTHROPIC_MODEL=${model}
-ANTHROPIC_API_KEY=${key:-darkmoon-local}
-EOF
-}
-
-write_local_provider() {
-  local choice provider name default_url url model key
-  cat <<'EOF'
-Local provider:
-  1) Ollama
-  2) llama.cpp / llama-server
-  3) Custom OpenAI-compatible endpoint
-EOF
-  read -r -p "Choice [1/2/3]: " choice
-  case "$choice" in
-    1) provider=ollama; name="Ollama (local)"; default_url=http://host.docker.internal:11434/v1 ;;
-    2) provider=llama.cpp; name="llama-server (local)"; default_url=http://host.docker.internal:8080/v1 ;;
-    3) provider=local; name="Local model"; default_url= ;;
-    *) fail "Choose 1, 2, or 3" ;;
-  esac
-  read -r -p "Base URL [${default_url}]: " url
-  url=${url:-$default_url}
-  [[ -n "$url" ]] || fail "Base URL cannot be empty"
-  read -r -p "Model name: " model
-  [[ -n "$model" ]] || fail "Model name cannot be empty"
-  read -r -s -p "API key (optional): " key; echo
-  cat > "$OPENCODE_ENV_FILE" <<EOF
-# Dark-Moon local OpenAI-compatible provider configuration
-OPENCODE_LOCAL_MODE=true
-OPENCODE_LOCAL_PROVIDER_ID=${provider}
-OPENCODE_LOCAL_PROVIDER_NAME=${name}
-OPENCODE_LOCAL_BASE_URL=${url}
-OPENCODE_LOCAL_MODEL=${model}
-EOF
-  [[ -z "$key" ]] || printf 'OPENCODE_LOCAL_API_KEY=%s\n' "$key" >> "$OPENCODE_ENV_FILE"
-}
-
-if [[ -f "$OPENCODE_ENV_FILE" && "$FORCE_PROVIDER" == false ]]; then
-  load_provider_env "$OPENCODE_ENV_FILE"
-fi
-
-if provider_is_complete && [[ "$FORCE_PROVIDER" == false ]]; then
-  printf '%bProvider configuration found; keeping %s.%b\n' "$GREEN" "$OPENCODE_ENV_FILE" "$RESET"
-else
-  printf '%b%s%b\n' "$BOLD$MAGENTA" "LLM PROVIDER CONFIGURATION" "$RESET"
-  cat <<'EOF'
-  1) Cloud provider
-  2) Local OpenAI-compatible provider
-  3) On-prem Anthropic-compatible provider
-EOF
-  read -r -p "Choice [1/2/3]: " provider_type
-  case "$provider_type" in
-    1) write_cloud_provider ;;
-    2) write_local_provider ;;
-    3) write_anthropic_provider ;;
-    *) fail "Choose 1, 2, or 3" ;;
-  esac
-fi
-chmod 600 "$OPENCODE_ENV_FILE"
-
-case "$(uname -m)" in
-  aarch64|arm64)
-    COMPOSE_FILE="$SCRIPT_DIR/docker-compose-dev.yml"
-    printf '%bARM64 detected: building the toolbox locally with the same MCP/plugin topology.%b\n' "$YELLOW" "$RESET"
-    ;;
-  *) COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml" ;;
-esac
-
-COMPOSE=(docker compose -f "$COMPOSE_FILE")
-if docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q 'nvidia' \
-  || docker run --rm --gpus all ubuntu:22.04 true >/dev/null 2>&1; then
-  COMPOSE+=(-f "$SCRIPT_DIR/docker-compose.gpu.yml")
-  printf '%bGPU runtime detected; enabling toolbox GPU passthrough.%b\n' "$GREEN" "$RESET"
-else
-  printf '%bNo GPU runtime detected; toolbox will use CPU.%b\n' "$YELLOW" "$RESET"
-fi
-
-echo -e "${GREEN}✔ Docker and Docker Compose detected${RESET}"
 
 # ─────────────────────────────────────────────────────────────────
 # Select one Compose configuration and use it for the entire run
@@ -271,11 +145,7 @@ if [ -n "${SAVED_OPENCODE_ENV}" ]; then
   elif [ -n "${ANTHROPIC_BASE_URL}" ] && [ -n "${ANTHROPIC_MODEL}" ]; then
     SKIP_PROVIDER_FORM=true
   fi
-  if [[ -e "$target" ]]; then
-    printf '%bRemoving %s%b\n' "$YELLOW" "$target" "$RESET"
-    rm -rf --one-file-system -- "$target"
-  fi
-}
+fi
 
 prompt_nonempty() {
   local prompt="$1"
@@ -323,9 +193,6 @@ else
       *) echo -e "${RED}  Please enter 1, 2 or 3.${RESET}" ;;
     esac
   done
-else
-  printf '%bPreserving bind mounts and named volumes (--keep).%b\n' "$GREEN" "$RESET"
-fi
 
   if [ "${PROVIDER_TYPE}" = "cloud" ]; then
     CLOUD_PROVIDER="$(prompt_nonempty 'Provider name (e.g. anthropic)')"
@@ -364,7 +231,7 @@ EOF_ENV
           DEFAULT_BASE_URL="http://localhost:11434/v1"
           break
           ;;
-        2|llama*|llamacpp)
+        2|llama*)
           LOCAL_PROVIDER_ID="llama.cpp"
           LOCAL_PROVIDER_NAME="llama-server (local)"
           DEFAULT_BASE_URL="http://localhost:8080/v1"
