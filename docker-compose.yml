@@ -92,6 +92,9 @@ services:
     volumes:
       - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}:/config:rw
       - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}/data:/data:rw
+      - ${DARKMOON_REPORTS_DIR:-./reports}:/data/reports:rw
+      - ${DARKMOON_SESSIONS_DIR:-./sessions}:/data/sessions:rw
+      - ${DARKMOON_WORKSPACE_DIR:-./workspace}:/data/workspace:rw
       - ${DARKMOON_WORKFLOWS_DIR:-./workflows}:/workflows:rw
 
   opencode:

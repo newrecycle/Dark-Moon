@@ -50,6 +50,11 @@ class ComposeSecurityTests(unittest.TestCase):
         self.assertTrue(any(str(volume).endswith(":/data:rw") for volume in bootstrap["volumes"]))
         self.assertTrue(any(str(volume).endswith(":/workflows:rw") for volume in bootstrap["volumes"]))
 
+        bootstrap_volumes = set(bootstrap["volumes"])
+        self.assertIn("${DARKMOON_REPORTS_DIR:-./reports}:/data/reports:rw", bootstrap_volumes)
+        self.assertIn("${DARKMOON_SESSIONS_DIR:-./sessions}:/data/sessions:rw", bootstrap_volumes)
+        self.assertIn("${DARKMOON_WORKSPACE_DIR:-./workspace}:/data/workspace:rw", bootstrap_volumes)
+
         socket_consumers = {
             name
             for name, service in services.items()
