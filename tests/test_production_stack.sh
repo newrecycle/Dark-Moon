@@ -332,10 +332,11 @@ python3 "$ROOT/tests/assert_issue36_capture.py" \
   --expect-reasoning-effort medium
 
 stage "Verify session monitor startup"
-set +e
-monitor_output="$(DARKMOON_DEBUG=1 timeout 3 "$ROOT/darkmoon.sh" --log test-session 2>&1)"
-monitor_status=$?
-set -e
+if monitor_output="$(DARKMOON_DEBUG=1 timeout 3 "$ROOT/darkmoon.sh" --log test-session 2>&1)"; then
+  monitor_status=0
+else
+  monitor_status=$?
+fi
 printf '%s\n' "$monitor_output" | tee "$TEST_ROOT/wrapper-monitor.stdout"
 [[ $monitor_status -eq 124 || $monitor_status -eq 143 ]]
 grep -q 'streaming MCP output session=test-session' <<<"$monitor_output"
