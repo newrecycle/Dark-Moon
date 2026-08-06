@@ -295,6 +295,47 @@ EOF_ENV
       printf 'OPENCODE_LOCAL_API_KEY=%s\n' "${LOCAL_API_KEY}" >> "${OPENCODE_ENV_FILE}"
     fi
   fi
+
+  # ─────────────────────────────────────────────────────────────
+  # Model routing — handled by the darkmoon-compat plugin at
+  # OpenCode startup (no external proxy). Lets you dispatch
+  # subagents to cheaper/faster models per tier.
+  # ─────────────────────────────────────────────────────────────
+  echo ""
+  echo -e "${BOLD}${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "  🌙  MODEL ROUTING (darkmoon-compat plugin)"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+  echo -e "  Subagents (dispatched workers) can run on different"
+  echo -e "  models than the primary agent. The orchestrator picks"
+  echo -e "  a ${BOLD}dispatch tier${RESET} per subagent (fast / balanced / deep)"
+  echo -e "  and the plugin routes the request to the model you map"
+  echo -e "  to that tier. Leave blank to keep the primary model."
+  SMALL_MODEL=""
+  read -r -p "$(echo -e "${YELLOW}Default subagent model [blank=same]: ${RESET}")" SMALL_MODEL
+  if [ -n "${SMALL_MODEL}" ]; then
+    printf 'DARKMOON_SMALL_MODEL=%s\n' "${SMALL_MODEL}" >> "${OPENCODE_ENV_FILE}"
+    echo -e "${GREEN}✔ Subagents will use: ${SMALL_MODEL}${RESET}"
+  fi
+  FAST_MODEL=""
+  read -r -p "$(echo -e "${YELLOW}fast-tier model [blank=default subagent]: ${RESET}")" FAST_MODEL
+  if [ -n "${FAST_MODEL}" ]; then
+    printf 'DARKMOON_MODEL_FAST=%s\n' "${FAST_MODEL}" >> "${OPENCODE_ENV_FILE}"
+    echo -e "${GREEN}✔ fast-tier → ${FAST_MODEL}${RESET}"
+  fi
+  DEEP_MODEL=""
+  read -r -p "$(echo -e "${YELLOW}deep-tier model [blank=primary]: ${RESET}")" DEEP_MODEL
+  if [ -n "${DEEP_MODEL}" ]; then
+    printf 'DARKMOON_MODEL_DEEP=%s\n' "${DEEP_MODEL}" >> "${OPENCODE_ENV_FILE}"
+    echo -e "${GREEN}✔ deep-tier → ${DEEP_MODEL}${RESET}"
+  fi
+  DISCOVER_CHOICE=""
+  read -r -p "$(echo -e "${YELLOW}Auto-discover models from the provider API at startup? [y/N]: ${RESET}")" DISCOVER_CHOICE
+  case "${DISCOVER_CHOICE}" in
+    y|Y|yes|Yes|YES)
+      printf 'DARKMOON_DISCOVER_MODELS=1\n' >> "${OPENCODE_ENV_FILE}"
+      echo -e "${GREEN}✔ Model discovery enabled${RESET}"
+      ;;
+  esac
 fi
 
 chmod 600 "${OPENCODE_ENV_FILE}"

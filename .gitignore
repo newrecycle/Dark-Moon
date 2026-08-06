@@ -6,3 +6,4 @@ workflows/
 workspace/
 .opencode.env
 *.env
+session-ses*.*
