@@ -14,7 +14,7 @@ fatal() {
 #######################################
 # Paths
 #######################################
-AGENTS_DIR="/root/.opencode/agents"
+AGENTS_DIR="/root/.config/opencode/agents"
 DEFAULT_AGENTS="/opt/darkmoon/default-agents"
 DEFAULT_WORKFLOWS="/opt/darkmoon/default-workflows"
 WORKFLOWS_DIR="/opt/darkmoon/mcp/server/src/tools/workflows/"
