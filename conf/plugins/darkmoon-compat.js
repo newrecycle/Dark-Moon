@@ -81,8 +81,6 @@ const KNOWN_BASE_URLS = {
   xai: "https://api.x.ai/v1",
 }
 
-const TIER_PATTERN = /(?:TIER_CHOICE|MODEL_TIER)\s*[:=]\s*(fast|balanced|deep)/i
-
 /**
  * Dark-Moon compatibility and model-routing plugin for stock OpenCode 1.18.12.
  *
@@ -99,18 +97,18 @@ const TIER_PATTERN = /(?:TIER_CHOICE|MODEL_TIER)\s*[:=]\s*(fast|balanced|deep)/i
  *     bound to the selected root model so reasoning variants are not
  *     silently discarded. Explicit per-agent models are always preserved.
  *  4. Model routing without an external proxy:
- *       • DARKMOON_SMALL_MODEL  — distinct model for subagent dispatch
- *         (config.small_model). Without it small_model mirrors the root
- *         model, which is the stock OpenCode behavior.
+ *       • DARKMOON_SMALL_MODEL  — distinct model for subagent dispatch.
+ *         In 1.18.12, task-dispatched subagents stream with small=false and
+ *         resolve their model from agent.<name>.model (NOT small_model).
+ *         So the small model is written to config.agent[].model for every
+ *         agent except the primary, plus the built-in subagents
+ *         (explore/general/researcher/debugger/documenter) which OpenCode
+ *         injects at runtime and are absent from the generated config.
+ *         config.small_model is also set as a secondary hint for
+ *         background/summary streams.
  *       • DARKMOON_AGENT_MODELS — JSON object mapping agent name to model
  *         id, applied as config.agent.<name>.model. Bare ids are scoped
  *         to the default provider.
- *       • DARKMOON_MODEL_FAST / DARKMOON_MODEL_BALANCED / DARKMOON_MODEL_DEEP
- *         — dispatch-tier routing. The pentest orchestrator already emits
- *         `TIER_CHOICE=<fast|balanced|deep>` (and MODEL_TIER) in each
- *         subagent dispatch prompt. The chat.params hook detects that
- *         marker in the outgoing request and rewrites the model on the fly.
- *         Real-time, prompt-driven, per-dispatch — no config reload needed.
  *       • DARKMOON_DISCOVER_MODELS=1 — at startup, query each configured
  *         OpenAI-compatible provider's /v1/models endpoint and merge the
  *         returned model ids into config.provider.<id>.models so the agent
@@ -119,8 +117,12 @@ const TIER_PATTERN = /(?:TIER_CHOICE|MODEL_TIER)\s*[:=]\s*(fast|balanced|deep)/i
  *         without an explicit provider block. Failures are logged and
  *         skipped; the hook never throws.
  *
- * The chat.params hook is the final provider-request boundary: it strips
- * forbidden keys from the outbound options object and applies tier routing.
+ * Note: In OpenCode 1.18.12, the chat.params hook output carries only
+ * sampling parameters (temperature, topP, topK, maxOutputTokens, options)
+ * — no `model` or `messages` fields. Per-request model rewriting via
+ * chat.params is therefore not possible. All model routing is done at
+ * config time via config.agent.<name>.model, which the agent layer reads
+ * for every subagent dispatch.
  */
 export const DarkMoonCompatibility = async ({ client }) => {
   const log = async (level, message) => {
@@ -134,11 +136,6 @@ export const DarkMoonCompatibility = async ({ client }) => {
   }
 
   await log("info", "Dark-Moon compatibility plugin loaded")
-
-  // Tier → fully-qualified model id map, resolved once at config time.
-  // Populated by the config hook; consumed by chat.params for real-time
-  // dispatch-tier routing. Unset tiers are never rewritten.
-  let tierModels = {}
 
   return {
     config: async (config) => {
@@ -165,12 +162,6 @@ export const DarkMoonCompatibility = async ({ client }) => {
         for (const id of Object.keys(config.provider)) knownProviders.add(id)
       }
 
-      // PROBE: what agents does the config hook actually see?
-      {
-        const names = Object.keys(config.agent ?? {})
-        await log("info", `config probe: default_agent=${config.default_agent} agents([${names.length}])=[${names.slice(0, 12).join(",")}]`)
-      }
-
       // ── Variant binding (existing behavior) ──────────────────────
       if (config.agent && typeof config.agent === "object") {
         for (const agent of Object.values(config.agent)) {
@@ -189,7 +180,7 @@ export const DarkMoonCompatibility = async ({ client }) => {
         }
       }
 
-// ── Subagent model routing ────────────────────────────────────
+      // ── Subagent model routing ────────────────────────────────────
       // In OpenCode 1.18, task-dispatched subagents resolve their model via
       // agent.<name>.model (NOT small_model — subagent streams are
       // small=false). So a "default subagent model" must land on
@@ -225,14 +216,6 @@ export const DarkMoonCompatibility = async ({ client }) => {
         }
       }
 
-      // PROBE: post-routing agent state.
-      {
-        const names = Object.keys(config.agent ?? {})
-        const sample = ["explore", "general", "firmware", "pentest"].filter((n) => names.includes(n))
-        const detail = sample.map((n) => `${n}=${config.agent[n]?.model ?? "?"}`).join(" ")
-        await log("info", `post-routing probe: agents([${names.length}]) ${names.includes("explore") ? "explore-present" : "explore-missing"} ${detail}`)
-      }
-
       // ── Per-agent model routing ───────────────────────────────────
       // DARKMOON_AGENT_MODELS is a JSON object: { "<agent>": "<model>" }.
       // Bare model ids are scoped under the default provider. Explicit
@@ -263,29 +246,6 @@ export const DarkMoonCompatibility = async ({ client }) => {
         }
       }
 
-      // ── Dispatch-tier model routing ───────────────────────────────
-      // The pentest orchestrator emits TIER_CHOICE=<fast|balanced|deep>
-      // (and MODEL_TIER) into each subagent dispatch prompt at runtime.
-      // Resolve the tier→model map now (scoped to the default provider);
-      // chat.params applies it per request, in real time.
-      tierModels = {}
-      const tierEnv = {
-        fast: process.env.DARKMOON_MODEL_FAST,
-        balanced: process.env.DARKMOON_MODEL_BALANCED,
-        deep: process.env.DARKMOON_MODEL_DEEP,
-      }
-      for (const [tier, raw] of Object.entries(tierEnv)) {
-        if (!raw || !raw.trim()) continue
-        const resolved = resolveModelId(raw.trim(), defaultProvider, knownProviders)
-        if (resolved) {
-          tierModels[tier] = resolved
-        }
-      }
-      const tierCount = Object.keys(tierModels).length
-      if (tierCount > 0) {
-        await log("info", `dispatch-tier routing enabled (${tierCount} tier(s))`)
-      }
-
       // ── Optional provider model discovery ─────────────────────────
       // DARKMOON_DISCOVER_MODELS=1 → for every OpenAI-compatible provider
       // (including known built-ins resolved from the root model's provider
@@ -298,54 +258,13 @@ export const DarkMoonCompatibility = async ({ client }) => {
     },
 
     "chat.params": async (_input, output) => {
+      // In 1.18.12, chat.params output carries only sampling parameters
+      // (temperature, topP, topK, maxOutputTokens, options) — no `model` or
+      // `messages`. This hook is the final provider-option boundary: it
+      // strips forbidden keys from the outbound options object.
       stripKeys(output.options, FORBIDDEN_PROVIDER_KEYS)
-
-      // PROBE: does chat.params fire per stream, and which fields/messages?
-      {
-        const keys = output && typeof output === "object" ? Object.keys(output) : [typeof output]
-        const roles = output?.messages?.length
-          ? output.messages.map((m) => m?.role).filter(Boolean).join(",")
-          : "none"
-        const model = output?.model
-        await log("info", `chat.params probe: keys=[${keys.join(",")}] roles=${roles} model=${model}`)
-      }
-
-      // ── Real-time dispatch-tier routing ───────────────────────────
-      // If the outgoing request carries a tier marker (the orchestrator's
-      // TIER_CHOICE/MODEL_TIER in the dispatch prompt), rewrite the model
-      // to the tier's mapped model. This happens on the wire, per request,
-      // without any config reload.
-      const tier = detectTier(output)
-      if (tier && tierModels[tier] && typeof output === "object" && output !== null) {
-        output.model = tierModels[tier]
-        await log("info", `tier=${tier} rerouted request to ${tierModels[tier]}`)
-      }
     },
   }
-}
-
-/**
- * Look for a dispatch-tier marker in the outgoing request. Prefers the
- * newest user message (the dispatch prompt); falls back to scanning all
- * messages. Returns "fast" | "balanced" | "deep" or undefined.
- */
-function detectTier(output) {
-  if (!output || typeof output !== "object") return undefined
-  const messages = output.messages
-  if (!Array.isArray(messages)) return undefined
-
-  // Newest user message is where the orchestrator's dispatch prompt lands.
-  for (let index = messages.length - 1; index >= 0; index--) {
-    const message = messages[index]
-    if (!message || typeof message !== "object") continue
-    if (message.role !== "user") continue
-    const content = typeof message.content === "string"
-      ? message.content
-      : JSON.stringify(message.content ?? "")
-    const match = TIER_PATTERN.exec(content)
-    if (match) return match[1].toLowerCase()
-  }
-  return undefined
 }
 
 /**

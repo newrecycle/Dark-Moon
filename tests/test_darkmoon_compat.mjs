@@ -320,78 +320,38 @@ test("unknown env vars leave the stock config untouched", async () => {
   )
 })
 
-test("dispatch tier routing rewrites the model in chat.params", async () => {
+test("config-layer routing propagates to specialists and injected builtins", async () => {
   const hooks = await DarkMoonCompatibility({
     client: { app: { log: async () => undefined } },
   })
 
   await withEnv(
     {
-      // Slashed catalogue id, NOT provider-qualified — must scope to nvidia.
-      DARKMOON_MODEL_FAST: "poolside/laguna-xs-2.1",
-      DARKMOON_MODEL_BALANCED: "nvidia/deepseek-v4-flash",
-      DARKMOON_MODEL_DEEP: "nvidia/deepseek-v4-pro",
+      DARKMOON_SMALL_MODEL: "deepseek-ai/deepseek-v4-flash",
       DARKMOON_MCP_URL: "http://mcp.test:9000/custom",
     },
     async () => {
-      const config = { model: "nvidia/deepseek-v4-pro", small_model: "nvidia/deepseek-v4-pro" }
+      const config = {
+        model: "nvidia/deepseek-ai/deepseek-v4-pro",
+        small_model: "nvidia/deepseek-ai/deepseek-v4-pro",
+        agent: {
+          pentest: {},
+          "python-flask": {},
+          explore: {},
+        },
+      }
       await hooks.config(config)
 
-      const output = {
-        model: "nvidia/deepseek-v4-pro",
-        options: {},
-        messages: [
-          { role: "user", content: "enumerate the web plane\nTIER_CHOICE=fast REASON=triaging" },
-        ],
-      }
-      await hooks["chat.params"]({}, output)
-      assert.equal(output.model, "nvidia/poolside/laguna-xs-2.1", "fast tier routes to the scoped fast model")
-
-      const deep = {
-        model: "nvidia/deepseek-v4-pro",
-        options: {},
-        messages: [
-          { role: "user", content: "crown jewel recon\nMODEL_TIER: deep" },
-        ],
-      }
-      await hooks["chat.params"]({}, deep)
-      assert.equal(deep.model, "nvidia/deepseek-v4-pro", "deep tier routes to the deep model")
-    }
-  )
-})
-
-test("dispatch tier routing ignores requests without a tier marker", async () => {
-  const hooks = await DarkMoonCompatibility({
-    client: { app: { log: async () => undefined } },
-  })
-
-  await withEnv(
-    {
-      DARKMOON_MODEL_FAST: "nvidia/laguna-xs-2.1",
-      DARKMOON_MCP_URL: "http://mcp.test:9000/custom",
-    },
-    async () => {
-      const config = { model: "nvidia/deepseek-v4-pro", small_model: "nvidia/deepseek-v4-pro" }
-      await hooks.config(config)
-
-      const output = {
-        model: "nvidia/deepseek-v4-pro",
-        options: {},
-        messages: [
-          { role: "user", content: "run a scan" },
-        ],
-      }
-      await hooks["chat.params"]({}, output)
-      assert.equal(output.model, "nvidia/deepseek-v4-pro", "no marker → model untouched")
-
-      // Tier not configured for this tier → untouched
-      const unbalanced = {
-        model: "nvidia/deepseek-v4-pro",
-        options: {},
-        messages: [{ role: "user", content: "TIER_CHOICE=deep" }],
-      }
-      await hooks["chat.params"]({}, unbalanced)
-      assert.equal(unbalanced.model, "nvidia/deepseek-v4-pro", "unmapped tier → model untouched")
+      // Primary orchestrator keeps the root model.
+      assert.equal(config.agent.pentest.model, undefined, "orchestrator keeps primary model")
+      // Specialist routed to the small model.
+      assert.equal(config.agent["python-flask"].model, "nvidia/deepseek-ai/deepseek-v4-flash", "specialist routed")
+      // Built-in subagents injected by the plugin.
+      assert.equal(config.agent.explore.model, "nvidia/deepseek-ai/deepseek-v4-flash", "builtin subagent routed")
+      assert.equal(config.agent.general.model, "nvidia/deepseek-ai/deepseek-v4-flash", "general builtin routed")
+      assert.equal(config.agent.researcher.model, "nvidia/deepseek-ai/deepseek-v4-flash", "researcher builtin routed")
+      assert.equal(config.agent.debugger.model, "nvidia/deepseek-ai/deepseek-v4-flash", "debugger builtin routed")
+      assert.equal(config.agent.documenter.model, "nvidia/deepseek-ai/deepseek-v4-flash", "documenter builtin routed")
     }
   )
 })
