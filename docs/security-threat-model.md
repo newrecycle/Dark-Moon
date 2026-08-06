@@ -1,154 +1,154 @@
 # 🔐 Darkmoon — Threat Model & Security Design
 
-Ce document décrit le **threat model de Darkmoon lui-même**.
+This document describes **Darkmoon's own threat model**.
 
-Objectif :
-- comprendre les surfaces d’attaque,
-- justifier les choix d’architecture,
-- démontrer que Darkmoon est **conçu de manière défensive**, malgré sa vocation offensive.
+Objective:
+- understand the attack surfaces,
+- justify the architecture choices,
+- demonstrate that Darkmoon is **designed defensively**, despite its offensive purpose.
 
-Public cible :
-- RSSI
-- auditeurs
-- architectes sécurité
-- clients exigeants
-
----
-
-## 1. Principe fondamental
-
-Darkmoon repose sur un principe non négociable :
-
-> **L’IA ne doit jamais pouvoir exécuter librement du code.**
-
-Tout est construit autour de cette contrainte.
+Target audience:
+- CISOs
+- auditors
+- security architects
+- demanding clients
 
 ---
 
-## 2. Actifs à protéger
+## 1. Foundational Principle
 
-| Actif | Description |
+Darkmoon is built on a non-negotiable principle:
+
+> **The AI must never be able to freely execute code.**
+
+Everything is built around this constraint.
+
+---
+
+## 2. Assets to Protect
+
+| Asset | Description |
 |-----|------------|
-| Host utilisateur | Système de l’opérateur |
-| Clés API LLM | Accès aux modèles |
-| Toolbox | Outils de pentest |
-| Configuration OpenCode | Agents, prompts |
-| Résultats de scan | Données sensibles |
+| User host | Operator's system |
+| LLM API Keys | Model access |
+| Toolbox | Pentest tools |
+| OpenCode Configuration | Agents, prompts |
+| Scan Results | Sensitive data |
 
 ---
 
-## 3. Modèle de menace global
+## 3. Global Threat Model
 
-Menaces considérées :
+Threats considered:
 
 - prompt injection
-- exécution de commandes arbitraires
-- fuite de secrets
-- escalade de privilèges
-- sortie de périmètre Docker
-- abus du LLM
+- arbitrary command execution
+- secret leakage
+- privilege escalation
+- Docker breakout
+- LLM abuse
 
 ---
 
-## 4. Frontières de sécurité (défense en profondeur)
+## 4. Security Boundaries (Defense in Depth)
 
-### 4.1 IA ↔ Exécution
+### 4.1 AI ↔ Execution
 
-| Élément | Mesure |
+| Element | Measure |
 |------|-------|
-| Agents | Markdown auditables |
-| IA | Aucune commande directe |
-| MCP | Seul point d’exécution |
+| Agents | Auditable Markdown |
+| AI | No direct commands |
+| MCP | Sole execution point |
 
-👉 **Barrière la plus importante**.
+👉 **Most important barrier**.
 
 ---
 
 ### 4.2 MCP ↔ Toolbox
 
-| Élément | Mesure |
+| Element | Measure |
 |------|-------|
-| Exécution | Docker isolé |
-| Outils | Whitelist |
-| Timeouts | Contrôlés |
-| Parsing | Structuré |
+| Execution | Isolated Docker |
+| Tools | Whitelist |
+| Timeouts | Controlled |
+| Parsing | Structured |
 
 ---
 
 ### 4.3 Toolbox ↔ Host
 
-| Élément | Mesure |
+| Element | Measure |
 |------|-------|
 | Isolation | Docker |
-| Volumes | Contrôlés |
-| Réseau | Limité |
-| Permissions | Root maîtrisé |
+| Volumes | Controlled |
+| Network | Limited |
+| Permissions | Root controlled |
 
-### 4.4 Données ↔ LLM (Privacy Gateway — v1.2.0)
+### 4.4 Data ↔ LLM (Privacy Gateway — v1.2.0)
 
-Frontière de **minimisation des données** entre le modèle et l'exécution (`mcp/src/privacy/`). Le LLM ne reçoit **jamais** les vraies valeurs sensibles (IP, hostnames, domaines, URLs, emails, identifiants, chemins internes) : il ne manipule que des **placeholders déterministes** (`IP_PRIVATE_001`, `HOST_INTERNAL_001`…). Les vraies valeurs sont réinjectées **localement, juste avant l'exécution de l'outil**, puis re-masquées dans toute sortie avant retour au modèle → aucune donnée sensible ne quitte le périmètre vers le fournisseur du modèle.
+**Data minimization** boundary between the model and execution (`mcp/src/privacy/`). The LLM **never** receives real sensitive values (IP, hostnames, domains, URLs, emails, credentials, internal paths): it only manipulates **deterministic placeholders** (`IP_PRIVATE_001`, `HOST_INTERNAL_001`…). Real values are re-injected **locally, just before tool execution**, then re-masked in any output before returning to the model → no sensitive data leaves the perimeter toward the model provider.
 
-| Élément | Mesure |
+| Element | Measure |
 |------|-------|
-| Tokenisation | Déterministe par session (`PrivacyVault`) |
-| Mapping | Chiffré (Fernet) + dédup HMAC ; **aucune valeur brute** retenue/loggée ; TTL |
-| Réhydratation | *Context-aware* (`CommandGateway`), jamais un remplacement global |
-| Exfiltration | Bloquée : placeholder dans query URL / host externe littéral / echo-print / body sortant / `/dev/tcp` / nc-telnet hors cible |
-| Secrets | `CRED` jamais restauré dans une commande exécutée |
-| Config | `DARKMOON_PRIVACY` (on par défaut) · `DARKMOON_PRIVACY_CATEGORIES` |
+| Tokenization | Per-session deterministic (`PrivacyVault`) |
+| Mapping | Encrypted (Fernet) + HMAC dedup; **no raw value** retained/logged; TTL |
+| Rehydration | *Context-aware* (`CommandGateway`), never a global replacement |
+| Exfiltration | Blocked: placeholder in query URL / literal external host / echo-print / outgoing body / `/dev/tcp` / nc-telnet outside target |
+| Secrets | `CRED` never restored in an executed command |
+| Config | `DARKMOON_PRIVACY` (on by default) · `DARKMOON_PRIVACY_CATEGORIES` |
 
-Cœur open-source ; durcissement entreprise (vault scellé par le runtime guard, audit trail, mention conformité dans le rapport signé) en édition Pro.
+Open-source core; enterprise hardening (vault sealed by runtime guard, audit trail, compliance mention in signed report) in Pro edition.
 
 ---
 
-## 5. Gestion des secrets
+## 5. Secret Management
 
-- Clés API **jamais** hardcodées
-- `.env` hors image
-- `auth.json` généré dynamiquement
-- Volumes persistés côté utilisateur
+- API keys **never** hardcoded
+- `.env` outside image
+- `auth.json` generated dynamically
+- Volumes persisted on user side
 
 ---
 
 ## 6. Prompt Injection & LLM Safety
 
-Mesures :
+Measures:
 
-- agents stricts (pas de raisonnement exposé),
-- MCP obligatoire,
-- pas d’auto-modification des règles,
-- pas d’input utilisateur dynamique non contrôlé.
+- strict agents (no exposed reasoning),
+- mandatory MCP,
+- no self-modification of rules,
+- no uncontrolled dynamic user input.
 
-👉 Une injection ne permet **pas** d’exécuter du code.
+👉 An injection does **not** allow code execution.
 
 ---
 
-## 7. Risques assumés
+## 7. Accepted Risks
 
-| Risque | Justification |
+| Risk | Justification |
 |-----|---------------|
-| Outils offensifs | Cœur du produit |
-| Root dans toolbox | Nécessaire |
-| Docker socket | Maîtrisé |
+| Offensive tools | Core product |
+| Root in toolbox | Necessary |
+| Docker socket | Controlled |
 
-👉 Ces risques sont **connus, contrôlés et documentés**.
-
----
-
-## 8. Ce que Darkmoon ne fait PAS
-
-- pas d’auto-propagation,
-- pas de persistance hors périmètre,
-- pas d’exploitation destructive,
-- pas d’exécution hors scope.
+👉 These risks are **known, controlled, and documented**.
 
 ---
 
-## 9. Conclusion sécurité
+## 8. What Darkmoon Does NOT Do
 
-Darkmoon est :
-- offensif par vocation,
-- défensif par conception,
-- contrôlé par architecture.
+- no self-propagation,
+- no out-of-scope persistence,
+- no destructive exploitation,
+- no out-of-scope execution.
 
-👉 **La sécurité est une contrainte fondatrice, pas un ajout.**
+---
+
+## 9. Security Conclusion
+
+Darkmoon is:
+- offensive by purpose,
+- defensive by design,
+- controlled by architecture.
+
+👉 **Security is a foundational constraint, not an add-on.**

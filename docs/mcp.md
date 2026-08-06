@@ -1,162 +1,160 @@
 # 🔌 Darkmoon — MCP (Model Context Protocol)
 
-Ce document décrit **le serveur MCP Darkmoon**, son rôle, son fonctionnement,
-et pourquoi il est **central** dans l’architecture.
+This document describes **the Darkmoon MCP server**, its role, how it works,
+and why it is **central** to the architecture.
 
-Public cible :
-- architectes
-- développeurs backend
+Target audience:
+- architects
+- backend developers
 - AI engineers
-- experts sécurité
+- security experts
 
 ---
 
-## 1. Qu’est-ce que le MCP dans Darkmoon ?
+## 1. What is MCP in Darkmoon?
 
-Le MCP (Model Context Protocol) est **la frontière de sécurité et d’exécution**
-entre :
+MCP (Model Context Protocol) is **the security and execution boundary**
+between:
 
-- l’IA (OpenCode + agents),
-- les outils réels de pentest.
+- the AI (OpenCode + agents),
+- the real pentest tools.
 
-👉 L’IA **ne touche jamais directement** aux outils.
-👉 Tout passe par le MCP.
-
----
-
-## 2. Rôle du MCP Darkmoon
-
-Le MCP sert à :
-
-- exposer des **fonctions contrôlées** à l’IA,
-- exécuter des commandes dans la toolbox Docker,
-- fournir des **workflows métiers** prêts à l’emploi,
-- empêcher toute action non autorisée.
+👉 The AI **never directly** touches the tools.
+👉 Everything goes through the MCP.
 
 ---
 
-## 3. Implémentation technique
+## 2. Role of the Darkmoon MCP
 
-Le MCP Darkmoon est implémenté avec **FastMCP**.
+The MCP serves to:
 
-Emplacement :
+- expose **controlled functions** to the AI,
+- execute commands in the Docker toolbox,
+- provide **ready-to-use business workflows**,
+- prevent any unauthorized action.
+
+---
+
+## 3. Technical Implementation
+
+The Darkmoon MCP is implemented with **FastMCP**.
+
+Location:
 
 ```
-
 mcp/src/server.py
-
 ```
 
-Il expose :
-- des outils simples,
-- des outils avancés,
-- des workflows dynamiques.
+It exposes:
+- simple tools,
+- advanced tools,
+- dynamic workflows.
 
 ---
 
-## 4. Outils MCP exposés
+## 4. Exposed MCP Tools
 
-### 4.1 Santé & diagnostic
+### 4.1 Health & Diagnostics
 
 - `health_check`
 - `check_tool`
 - `diagnose`
 
-👉 Permet à l’IA de vérifier l’état du système **avant d’attaquer**.
+👉 Allows the AI to check the system state **before attacking**.
 
 ---
 
-### 4.2 Exécution générique
+### 4.2 Generic Execution
 
 - `execute_command`
 - `list_allowed_tools`
 
-Caractéristiques :
-- whitelist stricte,
-- protection contre commandes dangereuses,
-- timeouts contrôlés.
+Characteristics:
+- strict whitelist,
+- protection against dangerous commands,
+- controlled timeouts.
 
 ---
 
-### 4.3 Workflows dynamiques
+### 4.3 Dynamic Workflows
 
 - `list_workflows`
 - `run_workflow`
 
-Les workflows sont découverts **automatiquement** au runtime.
+Workflows are discovered **automatically** at runtime.
 
 ---
 
-## 5. Interaction avec Docker
+## 5. Interaction with Docker
 
-Le MCP utilise :
-- l’API Docker locale,
-- un client dédié (`DarkmoonDockerClient`),
-- un nom de conteneur fixe (`darkmoon`).
+The MCP uses:
+- the local Docker API,
+- a dedicated client (`DarkmoonDockerClient`),
+- a fixed container name (`darkmoon`).
 
-👉 Le MCP :
-- ne dépend pas du shell utilisateur,
-- ne dépend pas du host,
-- reste isolé.
-
----
-
-## 6. Exemple d’utilisation côté IA
-
-Dans le chat OpenCode :
-
-> “exécute un scan de vulnérabilité sur example.com”
-
-L’IA :
-1. identifie le besoin,
-2. choisit le workflow,
-3. appelle `run_workflow`,
-4. interprète les résultats,
-5. enchaîne si nécessaire.
+👉 The MCP:
+- does not depend on the user shell,
+- does not depend on the host,
+- remains isolated.
 
 ---
 
-## 7. Sécurité par design
+## 6. Example of AI-side Usage
 
-Le MCP impose :
-- aucune exécution libre,
-- aucun accès Docker direct,
-- aucun montage non maîtrisé,
-- aucune élévation implicite.
+In the OpenCode chat:
 
-👉 C’est la **clé de la sécurité globale** de Darkmoon.
+> "run a vulnerability scan on example.com"
 
----
-
-## 8. Étendre le MCP
-
-Pour ajouter une fonctionnalité :
-
-1. créer un nouveau workflow,
-2. ou ajouter un outil MCP,
-3. redémarrer le serveur MCP.
-
-Aucune modification côté agent requise.
+The AI:
+1. identifies the need,
+2. chooses the workflow,
+3. calls `run_workflow`,
+4. interprets the results,
+5. chains if necessary.
 
 ---
 
-## 9. Pourquoi ce design est robuste
+## 7. Security by Design
 
-- séparation IA / exécution,
-- auditabilité totale,
-- extensibilité contrôlée,
-- réduction massive des risques.
+The MCP enforces:
+- no free execution,
+- no direct Docker access,
+- no uncontrolled mount,
+- no implicit elevation.
 
----
-
-## 10. Résumé
-
-Le MCP est :
-- le **cœur d’exécution** de Darkmoon,
-- la **barrière de sécurité**,
-- le point d’extension principal.
+👉 This is the **key to Darkmoon's overall security**.
 
 ---
 
-➡️ Pour comprendre les outils réels :
-voir `docs/toolbox.md`
+## 8. Extending the MCP
+
+To add a functionality:
+
+1. create a new workflow,
+2. or add an MCP tool,
+3. restart the MCP server.
+
+No agent-side modification required.
+
+---
+
+## 9. Why This Design is Robust
+
+- AI / execution separation,
+- total auditability,
+- controlled extensibility,
+- massive risk reduction.
+
+---
+
+## 10. Summary
+
+The MCP is:
+- the **execution heart** of Darkmoon,
+- the **security barrier**,
+- the main extension point.
+
+---
+
+➡️ To understand the real tools:
+see `docs/toolbox.md`

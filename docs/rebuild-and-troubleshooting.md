@@ -1,40 +1,40 @@
 # 🧹 Rebuild & Troubleshooting Darkmoon
 
-Ce document explique :
-- pourquoi un build peut échouer,
-- quand rebuild,
-- comment repartir proprement.
+This document explains:
+- why a build can fail,
+- when to rebuild,
+- how to start fresh.
 
 ---
 
-## 1. Erreurs Docker fréquentes (non bloquantes)
+## 1. Frequent Docker Errors (Non-blocking)
 
-Exemple typique :
+Typical example:
 
 ```bash
 failed to solve: error getting credentials
-````
+```
 
-Ou :
+Or:
 
 ```bash
 load metadata for docker.io/library/debian
-````
+```
 
-👉 Ces erreurs :
-- **ne viennent pas du projet**,
-- sont liées au réseau Docker, WSL ou aux registries,
-- sont **temporaires**.
+👉 These errors:
+- **do not come from the project**,
+- are related to Docker network, WSL, or registries,
+- are **temporary**.
 
-### Solution simple
+### Simple Solution
 
-Relancer la commande :
+Rerun the command:
 
 ```bash
 docker compose build
-````
+```
 
-ou :
+or:
 
 ```bash
 docker compose up -d
@@ -42,98 +42,98 @@ docker compose up -d
 
 ---
 
-## 2. Pourquoi Docker peut échouer
+## 2. Why Docker Can Fail
 
-Causes fréquentes :
+Frequent causes:
 
-* timeout réseau,
-* problème DNS,
-* cache Docker corrompu,
-* WSL instable (Windows).
+* network timeout,
+* DNS issue,
+* corrupted Docker cache,
+* unstable WSL (Windows).
 
-👉 **Aucun lien avec la qualité du code ou des Dockerfiles.**
+👉 **No relation to the code quality or Dockerfiles.**
 
 ---
 
-## 3. Script de rebuild propre : `recreate_clean.sh`
+## 3. Clean Rebuild Script: `recreate_clean.sh`
 
-Darkmoon fournit un script dédié :
+Darkmoon provides a dedicated script:
 
 ```bash
 ./recreate_clean.sh
 ```
 
-### Ce que fait ce script
+### What This Script Does
 
-1. Stoppe la stack Docker
-2. Supprime les bind mounts suivants :
+1. Stops the Docker stack
+2. Removes the following bind mounts:
 
    * `./data`
    * `./darkmoon-settings`
    * `$HOME/darkmoon-docker-fs`
-3. Rebuild **sans cache**
-4. Recrée la stack proprement
+3. Rebuilds **without cache**
+4. Recreates the stack cleanly
 
 ---
 
-## 4. Pourquoi utiliser ce script
+## 4. Why Use This Script
 
-Ce script est **essentiel** si :
+This script is **essential** if:
 
-* vous avez modifié :
+* you have modified:
 
-  * des agents,
+  * agents,
   * `opencode.json`,
   * `auth.json`,
-* vous avez des conflits de volumes,
-* vous voulez un environnement propre,
-* vous changez de modèle LLM.
+* you have volume conflicts,
+* you want a clean environment,
+* you change the LLM model.
 
-👉 Il garantit :
+👉 It guarantees:
 
-* un état cohérent,
-* une stack propre,
-* aucune pollution des anciens builds.
-
----
-
-## 5. Héritage intelligent de configuration
-
-Même après un rebuild :
-
-* les fichiers de configuration peuvent être **réinjectés**,
-* les agents peuvent être **recopiés automatiquement**,
-* la logique de seed ne s’exécute **qu’une seule fois**.
+* a consistent state,
+* a clean stack,
+* no pollution from old builds.
 
 ---
 
-## 6. Quand NE PAS rebuild
+## 5. Smart Configuration Inheritance
 
-Ne rebuild **pas** si :
+Even after a rebuild:
 
-* vous modifiez uniquement un agent Markdown,
-* vous changez un prompt,
-* vous modifiez un workflow Python dans un volume monté.
-
-👉 Ces changements sont pris en compte **à chaud**.
+* configuration files can be **re-injected**,
+* agents can be **copied automatically**,
+* the seed logic runs **only once**.
 
 ---
 
-## 7. Debug avancé
+## 6. When NOT to Rebuild
 
-### Vérifier les conteneurs
+Do **not** rebuild if:
+
+* you only modify a Markdown agent,
+* you change a prompt,
+* you modify a Python workflow in a mounted volume.
+
+👉 These changes are taken into account **on the fly**.
+
+---
+
+## 7. Advanced Debugging
+
+### Check Containers
 
 ```bash
 docker ps
 ```
 
-### Logs OpenCode
+### OpenCode Logs
 
 ```bash
 docker logs opencode
 ```
 
-### Logs Darkmoon Toolbox
+### Darkmoon Toolbox Logs
 
 ```bash
 docker logs darkmoon
@@ -141,14 +141,14 @@ docker logs darkmoon
 
 ---
 
-## 8. Résumé rapide
+## 8. Quick Summary
 
-* Erreur Docker ≠ problème Darkmoon
-* Relancer suffit souvent
-* `recreate_clean.sh` = rebuild propre
-* Volumes = modification sans rebuild
+* Docker Error ≠ Darkmoon problem
+* Rerunning is often enough
+* `recreate_clean.sh` = clean rebuild
+* Volumes = modification without rebuild
 
 ---
 
-➡️ Pour comprendre l’architecture :
-voir `docs/architecture.md`
+➡️ To understand the architecture:
+see `docs/architecture.md`
