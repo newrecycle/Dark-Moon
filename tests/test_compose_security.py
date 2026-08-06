@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import unittest
 
@@ -49,6 +50,11 @@ class ComposeSecurityTests(unittest.TestCase):
         self.assertTrue(any(str(volume).endswith(":/data:rw") for volume in bootstrap["volumes"]))
         self.assertTrue(any(str(volume).endswith(":/workflows:rw") for volume in bootstrap["volumes"]))
 
+        bootstrap_volumes = set(bootstrap["volumes"])
+        self.assertIn("${DARKMOON_REPORTS_DIR:-./reports}:/data/reports:rw", bootstrap_volumes)
+        self.assertIn("${DARKMOON_SESSIONS_DIR:-./sessions}:/data/sessions:rw", bootstrap_volumes)
+        self.assertIn("${DARKMOON_WORKSPACE_DIR:-./workspace}:/data/workspace:rw", bootstrap_volumes)
+
         socket_consumers = {
             name
             for name, service in services.items()
@@ -68,6 +74,33 @@ class ComposeSecurityTests(unittest.TestCase):
         self.assertEqual(services["docker-proxy"]["image"], PROXY_IMAGE)
         self.assertEqual(services["darkmoon-mcp"]["environment"]["DOCKER_HOST"], "tcp://docker-proxy:2375")
         self.assertFalse(any(SOCKET in volume for volume in services["darkmoon-mcp"].get("volumes", [])))
+
+    def test_production_fixture_uses_one_model_contract(self) -> None:
+        compose = yaml.safe_load(
+            (REPO / "tests" / "docker-compose.production.yml").read_text(encoding="utf-8")
+        )
+        services = compose["services"]
+        mock_env = services["mock-provider"]["environment"]
+        overlay = json.loads(services["opencode"]["environment"]["OPENCODE_CONFIG_CONTENT"])
+
+        model_id = mock_env["MOCK_EXPECT_MODEL"]
+        self.assertEqual(model_id, "darkmoon-test-model")
+        self.assertEqual(mock_env["MOCK_EXPECT_TEMPERATURE"], "0.2")
+        self.assertEqual(mock_env["MOCK_EXPECT_TOP_P"], "0.9")
+        self.assertEqual(mock_env["MOCK_EXPECT_REASONING_EFFORT"], "medium")
+
+        self.assertEqual(set(overlay["provider"]), {"mock"})
+        model = overlay["provider"]["mock"]["models"][model_id]
+        self.assertIs(model["temperature"], True)
+        self.assertIs(model["reasoning"], True)
+        self.assertIs(model["tool_call"], True)
+        self.assertEqual(model["variants"]["medium"]["reasoning_effort"], "medium")
+
+        agent = overlay["agent"]["pentest"]
+        self.assertEqual(agent["temperature"], 0.2)
+        self.assertEqual(agent["top_p"], 0.9)
+        self.assertEqual(agent["variant"], "medium")
+        self.assertEqual(agent["options"]["reasoning_effort"], "medium")
 
 
 if __name__ == "__main__":
