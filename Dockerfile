@@ -266,7 +266,14 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 # az (Azure CLI) and aws are installed into /opt/darkmoon/python by setup_py.sh
 # ------------------------------------------------------------
 ARG GCLOUD_VERSION=490.0.0
-RUN curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" -o /tmp/gcloud.tgz \
+RUN set -eux; \
+    ARCH="$(dpkg --print-architecture)"; \
+    case "${ARCH}" in \
+      amd64) GCLOUD_ARCH=linux-x86_64 ;; \
+      arm64) GCLOUD_ARCH=linux-arm ;; \
+      *) echo "[WARN] gcloud SDK not available for ${ARCH} — gcp agent will lack gcloud/gsutil/bq"; exit 0 ;; \
+    esac; \
+    curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-${GCLOUD_ARCH}.tar.gz" -o /tmp/gcloud.tgz \
  && tar xzf /tmp/gcloud.tgz -C /opt \
  && rm -f /tmp/gcloud.tgz \
  && /opt/google-cloud-sdk/install.sh --quiet --usage-reporting false --path-update false --command-completion false \
@@ -344,7 +351,7 @@ RUN command -v nuclei >/dev/null \
 # Nuclei bootstrap
 # ------------------------------------------------------------
 RUN mkdir -p /root/nuclei-templates \
- && cp -a ${NUCLEI_TEMPLATES}/. /root/nuclei-templates/ || true \
+ && cp -a ${OUT}/nuclei-templates/. /root/nuclei-templates/ || true \
  && nuclei -tl >/dev/null 2>&1 || true
 
 # ------------------------------------------------------------

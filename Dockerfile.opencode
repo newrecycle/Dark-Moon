@@ -80,6 +80,7 @@ RUN apt-get update && apt-get install -y \
     bash \
     docker.io \
     inotify-tools \
+    procps \
     python3-yaml \
  && rm -rf /var/lib/apt/lists/*
 
