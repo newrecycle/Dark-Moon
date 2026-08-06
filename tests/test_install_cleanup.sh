@@ -23,7 +23,9 @@ assert_file_exists() {
 }
 
 assert_path_absent() {
-  [ ! -e "$1" ] && [ ! -L "$1" ] || fail "expected $1 to be absent"
+  if [ -e "$1" ] || [ -L "$1" ]; then
+    fail "expected $1 to be absent"
+  fi
 }
 
 assert_contains() {

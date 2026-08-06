@@ -5,16 +5,17 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
 GENERATED_BIND_PATHS=(
-  data
-  darkmoon-settings
-  workflows
-  reports
-  sessions
-  workspace
+  "./data"
+  "./darkmoon-settings"
+  "./workflows"
+  "./reports"
+  "./sessions"
+  "./workspace"
 )
 
 OPENCODE_ENV_FILE=".opencode.env"
 
+# Colors
 CYAN="\033[1;36m"
 BLUE="\033[1;34m"
 GREEN="\033[1;32m"
@@ -42,7 +43,7 @@ USAGE
 
 # ─────────────────────────────────────────────────────────────────
 # Parse args before any Docker or destructive operation
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 FORCE_RESET=false
 KEEP_DATA=false
 for ARG in "$@"; do
@@ -77,7 +78,32 @@ cat <<'EOF_BANNER'
 EOF_BANNER
 echo -e "${RESET}"
 
-# ─────────────────────────────────────────────────────────────────
+echo -e "${BLUE}🔎 Checking prerequisites...${RESET}"
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo -e "${RED}❌ Docker is not installed.${RESET}"
+  echo -e "${YELLOW}Please install Docker before running this script.${RESET}"
+  echo ""
+  echo "Install guide: https://docs.docker.com/engine/install/"
+  exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  echo -e "${RED}❌ Docker daemon is not running.${RESET}"
+  echo -e "${YELLOW}Please start Docker and retry.${RESET}"
+  exit 1
+fi
+
+if ! docker compose version >/dev/null 2>&1; then
+  echo -e "${RED}❌ Docker Compose (v2) is not available.${RESET}"
+  echo -e "${YELLOW}Install Docker Compose plugin:${RESET}"
+  echo "https://docs.docker.com/compose/install/"
+  exit 1
+fi
+
+echo -e "${GREEN}✔ Docker and Docker Compose detected${RESET}"
+
+# ───────────────────────────────────────────────────────────────
 # Select one Compose configuration and use it for the entire run
 # ─────────────────────────────────────────────────────────────────
 ARCH="$(uname -m)"
@@ -107,7 +133,7 @@ while IFS= read -r image; do
   [ -n "${image}" ] && STACK_IMAGES+=("${image}")
 done < <(compose config --images 2>/dev/null | awk 'NF && !seen[$0]++')
 
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 # Save .opencode.env before a clean rebuild unless --init was requested
 # ─────────────────────────────────────────────────────────────────
 SAVED_OPENCODE_ENV=""
@@ -170,7 +196,7 @@ prompt_secret_required() {
 
 # ─────────────────────────────────────────────────────────────────
 # LLM provider configuration
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 if [ "${SKIP_PROVIDER_FORM}" = true ]; then
   echo -e "${GREEN}✔ LLM provider already configured — skipping${RESET}"
   printf '%s\n' "${SAVED_OPENCODE_ENV}" > "${OPENCODE_ENV_FILE}"
@@ -274,7 +300,7 @@ fi
 chmod 600 "${OPENCODE_ENV_FILE}"
 echo -e "${GREEN}✔ ${OPENCODE_ENV_FILE} written${RESET}"
 
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 # Root-owned bind cleanup, using selected stack images only
 # ─────────────────────────────────────────────────────────────────
 find_local_cleanup_image() {
@@ -338,9 +364,9 @@ remove_bind_path() {
   fi
 }
 
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 # Stop stack, optionally purge persistent state, then remove images
-# ─────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────
 if [ "${KEEP_DATA}" = true ]; then
   echo -e "${BLUE}🛑 Stopping stack while preserving volumes and bind-mounted data...${RESET}"
   compose down --remove-orphans

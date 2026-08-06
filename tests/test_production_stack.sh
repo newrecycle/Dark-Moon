@@ -33,6 +33,8 @@ OPENCODE_LOCAL_MODE=true
 OPENCODE_LOCAL_PROVIDER_ID=mock
 OPENCODE_LOCAL_PROVIDER_NAME=Production stack mock
 OPENCODE_LOCAL_BASE_URL=http://mock-provider:8000/v1
+# Provider configuration stores the provider-relative model ID. The wrapper
+# invocations below use the fully qualified OpenCode ID: mock/darkmoon-test-model.
 OPENCODE_LOCAL_MODEL=darkmoon-test-model
 OPENCODE_LOCAL_API_KEY=not-a-real-key
 EOF
@@ -328,12 +330,11 @@ python3 "$ROOT/tests/assert_issue36_capture.py" \
   --expect-top-p 0.9
 
 stage "Verify session monitor startup"
-set +e
-trap - ERR
-monitor_output="$(DARKMOON_DEBUG=1 timeout 3 "$ROOT/darkmoon.sh" --log test-session 2>&1)"
-monitor_status=$?
-trap 'on_error "$?" "$LINENO" "$BASH_COMMAND"' ERR
-set -e
+if monitor_output="$(DARKMOON_DEBUG=1 timeout 3 "$ROOT/darkmoon.sh" --log test-session 2>&1)"; then
+  monitor_status=0
+else
+  monitor_status=$?
+fi
 printf '%s\n' "$monitor_output" | tee "$TEST_ROOT/wrapper-monitor.stdout"
 [[ $monitor_status -eq 124 || $monitor_status -eq 143 ]]
 grep -q 'streaming MCP output session=test-session' <<<"$monitor_output"

@@ -291,8 +291,20 @@ CANONICAL SUFFIX
         wrapper = (REPO / "darkmoon.sh").read_text()
         self.assertIn('${BASH_SOURCE[0]}', installer)
         self.assertIn("--keep", installer)
-        for path in ("data", "darkmoon-settings", "workflows", "reports", "sessions", "workspace"):
-            self.assertRegex(installer, rf"(?m)^  {re.escape(path)}$")
+        generated_match = re.search(
+            r"(?ms)^GENERATED_BIND_PATHS=\(\n(?P<body>.*?)^\)\n",
+            installer,
+        )
+        self.assertIsNotNone(generated_match)
+        assert generated_match is not None
+        generated_paths = re.findall(
+            r'(?m)^\s+"\./([^"]+)"\s*$',
+            generated_match.group("body"),
+        )
+        self.assertEqual(
+            generated_paths,
+            ["data", "darkmoon-settings", "workflows", "reports", "sessions", "workspace"],
+        )
         self.assertNotIn('SCRIPT_DIR="$(pwd)"', installer)
         self.assertNotIn("bash -lc", wrapper)
         self.assertIn("darkmoon-mcp", wrapper)
