@@ -61,6 +61,7 @@ function resolveModelId(raw, defaultProvider, knownProviders) {
     const prefix = model.slice(0, slash)
     if (knownProviders && knownProviders.has(prefix)) return model
     if (KNOWN_BASE_URLS[prefix]) return model
+    if (KNOWN_MODEL_PREFIXES.has(prefix)) return model
   }
   if (!defaultProvider) return model
   return `${defaultProvider}/${model}`
@@ -80,6 +81,17 @@ const KNOWN_BASE_URLS = {
   mistral: "https://api.mistral.ai/v1",
   xai: "https://api.x.ai/v1",
 }
+
+/**
+ * Model id prefixes that OpenCode recognizes natively (not external
+ * providers with a base URL). "opencode" is OpenCode's built-in model
+ * namespace (e.g. "opencode/deepseek-v4-flash-free"). These are passed
+ * through resolveModelId unchanged.
+ */
+const KNOWN_MODEL_PREFIXES = new Set([
+  ...Object.keys(KNOWN_BASE_URLS),
+  "opencode",
+])
 
 /**
  * Dark-Moon compatibility and model-routing plugin for stock OpenCode 1.18.12.

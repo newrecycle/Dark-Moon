@@ -356,6 +356,30 @@ test("config-layer routing propagates to specialists and injected builtins", asy
   )
 })
 
+test("opencode/ prefix is passed through unchanged (OpenCode built-in models)", async () => {
+  const hooks = await DarkMoonCompatibility({
+    client: { app: { log: async () => undefined } },
+  })
+
+  await withEnv(
+    {
+      DARKMOON_SMALL_MODEL: "opencode/deepseek-v4-flash-free",
+      DARKMOON_MCP_URL: "http://mcp.test:9000/custom",
+    },
+    async () => {
+      const config = {
+        model: "nvidia/deepseek-ai/deepseek-v4-pro",
+        small_model: "nvidia/deepseek-ai/deepseek-v4-pro",
+        agent: { pentest: {}, "python-flask": {} },
+      }
+      await hooks.config(config)
+      // opencode/ prefix must NOT be re-scoped to nvidia/.
+      assert.equal(config.small_model, "opencode/deepseek-v4-flash-free", "opencode/ prefix preserved")
+      assert.equal(config.agent["python-flask"].model, "opencode/deepseek-v4-flash-free", "specialist routed to opencode model")
+    }
+  )
+})
+
 test("discovery synthesizes known built-in provider from the root model", async () => {
   const originalFetch = globalThis.fetch
   let requestCount = 0
