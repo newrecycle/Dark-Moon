@@ -105,6 +105,24 @@ Body.
         self.assertEqual(data["mode"], "primary")
         self.assertTrue(prompt)
 
+    def test_stale_primary_mode_on_non_pentest_agent_is_auto_corrected(self) -> None:
+        """A stale agent with mode: primary (not pentest) must be migrated to subagent."""
+        stale = self.agents / "pentest-web.md"
+        stale.write_text(
+            "---\n"
+            "description: Stale web pentest agent\n"
+            "mode: primary\n"
+            "permission:\n"
+            "  '*': deny\n"
+            "  darkmoon_*: allow\n"
+            "---\n"
+            "Prompt body.\n"
+        )
+        CONFIG.migrate_agents(self.agents)
+        data, _ = CONFIG.read_agent(stale, allow_legacy=False)
+        self.assertEqual(data["mode"], "subagent")
+        CONFIG.validate_agents(self.agents)
+
     def test_unknown_and_duplicate_frontmatter_are_rejected(self) -> None:
         path = self.agents / "aws.md"
         original = path.read_text()

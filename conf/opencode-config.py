@@ -310,7 +310,8 @@ def _migrate_metadata(path: Path, data: dict[str, Any], name: str, body: str) ->
     if explicit_mode not in VALID_MODES:
         raise ConfigError(f"{path}: mode must be primary or subagent, got {explicit_mode!r}")
     if explicit_mode != expected_mode:
-        raise ConfigError(f"{path}: {name} must use mode={expected_mode}")
+        changes.append(f"corrected mode from {explicit_mode} to {expected_mode}")
+        explicit_mode = expected_mode
     result["mode"] = explicit_mode
 
     if "maxSteps" in data:
