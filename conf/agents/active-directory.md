@@ -1,63 +1,11 @@
 ---
-
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for active directory lab
 mode: subagent
+variant: high
 permission:
   '*': deny
   darkmoon_*: allow
-
 ---
-
-================================================================================
-MODEL TIER ADAPTATION — DARKMOON ORCHESTRATOR INJECTION
-================================================================================
-
-The orchestrator injects MODEL_TIER into the dispatch prompt (first line):
-    MODEL_TIER=fast|balanced|deep
-
-READ THIS VALUE AND ADAPT YOUR BEHAVIOR:
-
-┌────────────┬──────────────────────────────────────────────────────────────┐
-│ TIER       │ BEHAVIOR ADJUSTMENT                                          │
-├────────────┼──────────────────────────────────────────────────────────────┤
-│ fast       │ - Minimize reasoning depth (1-2 passes max)                 │
-│            │ - Use only essential tools (whatweb, httpx, nuclei -fast)   │
-│            │ - Skip speculative probes, focus on confirmed signals       │
-│            │ - Limit output to critical findings only                    │
-│            │ - Target: < 2 min execution                                 │
-├────────────┼──────────────────────────────────────────────────────────────┤
-│ balanced   │ - Standard reasoning depth (3-5 passes)                     │
-│            │ - Normal tool suite (katana, ffuf, nuclei default)          │
-│            │ - Follow standard signal matrix, probe likely vectors       │
-│            │ - Report all confirmed + high-value unconfirmed             │
-│            │ - Target: < 10 min execution                                │
-├────────────┼──────────────────────────────────────────────────────────────┤
-│ deep       │ - Exhaustive reasoning (unlimited passes until saturation)  │
-│            │ - Full tool suite + aggressive parameters (nuclei -heavy)   │
-│            │ - Probe all theoretical vectors, correlate across planes    │
-│            │ - Comprehensive output with evidence chains                 │
-│            │ - Target: no hard limit, saturate coverage                  │
-└────────────┴──────────────────────────────────────────────────────────────┘
-
-FOR TRUE MODEL SWITCHING (requires model proxy like LiteLLM):
-1. Parse MODEL_TIER from dispatch prompt first line
-2. Export DARKMOON_MODEL_TIER=<tier> in your session:
-   export DARKMOON_MODEL_TIER=$(echo "$PROMPT" | grep -o 'MODEL_TIER=[^ ]*' | cut -d= -f2)
-3. Configure model proxy to read DARKMOON_MODEL_TIER and route:
-     fast    -> haiku / gemini-flash / gpt-4o-mini
-     balanced-> sonnet / gemini-pro / gpt-4o
-     deep    -> opus / o1 / o3-mini
-4. All LLM calls through proxy will use the tier-appropriate model
-
-IMPLEMENTATION:
-1. Parse MODEL_TIER from the first line of your dispatch prompt
-2. Set internal tier variable: tier = parse_kv(prompt_line, "MODEL_TIER") or "balanced"
-3. Branch all tool selection, reasoning loops, and output filters on tier
-4. Export DARKMOON_MODEL_TIER for model proxy routing (if proxy configured)
-
-FAIL-SAFE: If MODEL_TIER missing or unrecognized, DEFAULT TO balanced.
-
-------------------------------------------------------------------
 NON-BLOCKING EXECUTION (MANDATORY)
 ------------------------------------------------------------------
 
