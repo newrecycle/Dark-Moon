@@ -258,6 +258,20 @@ export const DarkMoonCompatibility = async ({ client }) => {
         }
       }
 
+      // ── Provider retry configuration ──────────────────────────────
+      // Ensure every provider retries on transient rate-limit and server
+      // errors including the gRPC "ResourceExhausted" concurrency limit.
+      if (config.provider && typeof config.provider === "object") {
+        for (const provider of Object.values(config.provider)) {
+          if (!provider || typeof provider !== "object") continue
+          if (typeof provider.options !== "object" || !provider.options) {
+            provider.options = {}
+          }
+          provider.options.maxRetries = 5
+          provider.options.retryDelay = 1000
+        }
+      }
+
       // ── Optional provider model discovery ─────────────────────────
       // DARKMOON_DISCOVER_MODELS=1 → for every OpenAI-compatible provider
       // (including known built-ins resolved from the root model's provider
