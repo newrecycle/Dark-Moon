@@ -300,6 +300,155 @@ test("DARKMOON_DISCOVER_MODELS merges provider /models into config", async () =>
   assert.ok(requestCount > 0, "discovery issued at least one request")
 })
 
+test("chat.params acquires a slot and event releases it on step.ended", async () => {
+  const hooks = await DarkMoonCompatibility({
+    client: { app: { log: async () => undefined } },
+  })
+
+  const output = { options: { reasoning_effort: "low" } }
+  await hooks["chat.params"]({ sessionID: "test-session" }, output)
+  assert.deepEqual(output.options, { reasoning_effort: "low" })
+
+  await hooks.event({
+    event: {
+      type: "session.next.step.ended",
+      properties: { sessionID: "test-session" },
+    },
+  })
+})
+
+test("chat.params serializes concurrent requests when MAX_CONCURRENCY=1", async () => {
+  await withEnv(
+    { DARKMOON_MAX_CONCURRENCY: "1", DARKMOON_MCP_URL: "http://mcp.test:9000/custom" },
+    async () => {
+      const hooks = await DarkMoonCompatibility({
+        client: { app: { log: async () => undefined } },
+      })
+
+      let firstAcquired = false
+      let secondAcquired = false
+
+      const p1 = hooks["chat.params"]({ sessionID: "session-a" }, { options: {} })
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      firstAcquired = true
+
+      const p2 = hooks["chat.params"]({ sessionID: "session-b" }, { options: {} })
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      secondAcquired = true
+
+      await hooks.event({
+        event: {
+          type: "session.next.step.ended",
+          properties: { sessionID: "session-a" },
+        },
+      })
+
+      await p2
+      assert.ok(firstAcquired, "first request acquired")
+      assert.ok(secondAcquired, "second request was waiting")
+    }
+  )
+})
+
+test("429 error triggers immediate backoff", async () => {
+  await withEnv(
+    {
+      DARKMOON_MAX_CONCURRENCY: "1",
+      DARKMOON_BACKOFF_BASE_MS: "500",
+      DARKMOON_BACKOFF_MAX_MS: "2000",
+      DARKMOON_MCP_URL: "http://mcp.test:9000/custom",
+    },
+    async () => {
+      const hooks = await DarkMoonCompatibility({
+        client: { app: { log: async () => undefined } },
+      })
+
+      await hooks["chat.params"]({ sessionID: "session-a" }, { options: {} })
+
+      await hooks.event({
+        event: {
+          type: "session.next.step.failed",
+          properties: {
+            sessionID: "session-a",
+            error: { data: { statusCode: 429 }, message: "Too Many Requests" },
+          },
+        },
+      })
+
+      const start = Date.now()
+      const p = hooks["chat.params"]({ sessionID: "session-b" }, { options: {} })
+
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      const elapsed = Date.now() - start
+      assert.ok(elapsed < 400, "second request should be waiting due to backoff")
+
+      await p
+      const totalElapsed = Date.now() - start
+      assert.ok(totalElapsed >= 400, "second request should have waited for backoff to clear")
+    }
+  )
+})
+
+test("non-429 step failure does not trigger backoff", async () => {
+  await withEnv(
+    {
+      DARKMOON_MAX_CONCURRENCY: "1",
+      DARKMOON_BACKOFF_BASE_MS: "500",
+      DARKMOON_BACKOFF_MAX_MS: "2000",
+      DARKMOON_MCP_URL: "http://mcp.test:9000/custom",
+    },
+    async () => {
+      const hooks = await DarkMoonCompatibility({
+        client: { app: { log: async () => undefined } },
+      })
+
+      await hooks["chat.params"]({ sessionID: "session-a" }, { options: {} })
+
+      await hooks.event({
+        event: {
+          type: "session.next.step.failed",
+          properties: {
+            sessionID: "session-a",
+            error: { data: { statusCode: 500 }, message: "Internal Server Error" },
+          },
+        },
+      })
+
+      // Should acquire immediately — no backoff for non-429 errors.
+      const start = Date.now()
+      await hooks["chat.params"]({ sessionID: "session-b" }, { options: {} })
+      const elapsed = Date.now() - start
+      assert.ok(elapsed < 100, "non-429 failure should not trigger backoff")
+    }
+  )
+})
+
+test("session.deleted releases a pending slot", async () => {
+  await withEnv(
+    { DARKMOON_MAX_CONCURRENCY: "1", DARKMOON_MCP_URL: "http://mcp.test:9000/custom" },
+    async () => {
+      const hooks = await DarkMoonCompatibility({
+        client: { app: { log: async () => undefined } },
+      })
+
+      await hooks["chat.params"]({ sessionID: "session-a" }, { options: {} })
+
+      await hooks.event({
+        event: {
+          type: "session.deleted",
+          properties: { sessionID: "session-a" },
+        },
+      })
+
+      // Should acquire immediately — slot was released by session.deleted.
+      const start = Date.now()
+      await hooks["chat.params"]({ sessionID: "session-b" }, { options: {} })
+      const elapsed = Date.now() - start
+      assert.ok(elapsed < 100, "slot released by session.deleted")
+    }
+  )
+})
+
 test("unknown env vars leave the stock config untouched", async () => {
   const hooks = await DarkMoonCompatibility({
     client: { app: { log: async () => undefined } },

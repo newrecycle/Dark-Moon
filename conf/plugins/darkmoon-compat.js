@@ -11,6 +11,13 @@ const FORBIDDEN_PROVIDER_KEYS = new Set([
   "name",
   "tools",
   "maxSteps",
+  // AI SDK client-side retry options must never reach the provider API.
+  // The nvidia endpoint returns "Bad Request: Validation: Unsupported
+  // parameter(s)" if these are present in the request body.
+  "maxRetries",
+  "retryDelay",
+  "respectRetryAfter",
+  "maxRetryDelay",
 ])
 
 function stripKeys(value, keys) {
@@ -128,6 +135,16 @@ const KNOWN_MODEL_PREFIXES = new Set([
  *         providers (nvidia, openrouter, openai, …) are resolved even
  *         without an explicit provider block. Failures are logged and
  *         skipped; the hook never throws.
+ *  5. Concurrency & rate limiting (chat.params + event hooks):
+ *       • DARKMOON_MAX_CONCURRENCY — max simultaneous in-flight LLM requests
+ *         across all sessions (default: 4). Enforced via a semaphore acquired
+ *         in chat.params and released on step.ended / step.failed.
+ *       • DARKMOON_RPM_LIMIT — max LLM requests per minute across all
+ *         sessions (default: 60). Enforced via a token bucket.
+ *       • DARKMOON_BACKOFF_BASE_MS / DARKMOON_BACKOFF_MAX_MS — exponential
+ *         backoff applied globally when a 429 (rate-limit) response is
+ *         detected from the provider. All new requests pause until the
+ *         backoff window clears. Backoff halves on each successful step.
  *
  * Note: In OpenCode 1.18.12, the chat.params hook output carries only
  * sampling parameters (temperature, topP, topK, maxOutputTokens, options)
@@ -145,6 +162,133 @@ export const DarkMoonCompatibility = async ({ client }) => {
     } catch {
       // Logging must never prevent OpenCode from loading the plugin.
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Concurrency & Rate Limiting
+  // ─────────────────────────────────────────────────────────────
+  // DARKMOON_MAX_CONCURRENCY — max simultaneous in-flight LLM requests
+  //   across all sessions (semaphore). Prevents overwhelming the provider
+  //   with too many parallel calls when subagents fan out.
+  // DARKMOON_RPM_LIMIT — max LLM requests per minute across all sessions
+  //   (token bucket). Prevents exceeding provider RPM quotas.
+  // DARKMOON_BACKOFF_BASE_MS / DARKMOON_BACKOFF_MAX_MS — exponential
+  //   backoff applied globally when a 429 is detected. All new requests
+  //   pause until the backoff window clears, then resume with halved
+  //   multiplier on each successful step.
+  const MAX_CONCURRENCY = parseInt(process.env.DARKMOON_MAX_CONCURRENCY || "4", 10)
+  const RPM_LIMIT = parseInt(process.env.DARKMOON_RPM_LIMIT || "60", 10)
+  const BACKOFF_BASE_MS = parseInt(process.env.DARKMOON_BACKOFF_BASE_MS || "1000", 10)
+  const BACKOFF_MAX_MS = parseInt(process.env.DARKMOON_BACKOFF_MAX_MS || "60000", 10)
+
+  // Semaphore: activeRequests counts in-flight LLM steps across all sessions.
+  let activeRequests = 0
+
+  // Token bucket: tokens are replenished at RPM_LIMIT/60 per second.
+  const TOKEN_INTERVAL_MS = 60000 / RPM_LIMIT
+  let lastTokenTime = Date.now()
+  let tokens = RPM_LIMIT
+
+  // Global backoff state (shared across all sessions/models).
+  let backoffMultiplier = 1
+  let backoffUntil = 0
+
+  // Track the pending release per session so we can defensively release
+  // before re-acquiring (prevents deadlocks when chat.params fires again
+  // before the previous step.ended event arrives).
+  const pendingBySession = new Map()
+
+  function is429Error(error) {
+    if (!error) return false
+    // ApiError carries data.statusCode from the provider response.
+    if (error.data?.statusCode === 429) return true
+    // Fallback: scan the message for 429 / rate-limit patterns.
+    const msg = error.message || error.data?.message || ""
+    return /429|rate.?limit/i.test(msg)
+  }
+
+  async function acquireSlot(sessionID) {
+    // Defensive: release any previous pending slot for this session so we
+    // never hold two slots for the same session simultaneously.
+    const prev = pendingBySession.get(sessionID)
+    if (prev) {
+      prev.release()
+      pendingBySession.delete(sessionID)
+    }
+
+    while (true) {
+      const now = Date.now()
+
+      // 1. Global backoff pause (triggered by a recent 429).
+      if (now < backoffUntil) {
+        const waitMs = backoffUntil - now
+        await new Promise((resolve) => setTimeout(resolve, Math.min(waitMs, 1000)))
+        continue
+      }
+
+      // 2. Concurrency semaphore.
+      if (activeRequests >= MAX_CONCURRENCY) {
+        await new Promise((resolve) => setTimeout(resolve, 100))
+        continue
+      }
+
+      // 3. Token bucket (rate limiting).
+      const elapsed = now - lastTokenTime
+      const newTokens = Math.floor(elapsed / TOKEN_INTERVAL_MS)
+      if (newTokens > 0) {
+        tokens = Math.min(RPM_LIMIT, tokens + newTokens)
+        lastTokenTime = now
+      }
+      if (tokens <= 0) {
+        await new Promise((resolve) => setTimeout(resolve, Math.max(1, TOKEN_INTERVAL_MS)))
+        continue
+      }
+
+      // All gates passed — acquire the slot.
+      tokens--
+      activeRequests++
+
+      // Auto-release after a safety timeout. In headless mode (opencode run),
+      // the step.ended event may not fire reliably. If the slot isn't released
+      // within SLOT_TIMEOUT_MS, release it automatically to prevent deadlock.
+      const SLOT_TIMEOUT_MS = parseInt(
+        process.env.DARKMOON_SLOT_TIMEOUT_MS || "120000",
+        10
+      )
+      const timer = setTimeout(() => {
+        const pending = pendingBySession.get(sessionID)
+        if (pending && pending.timer === timer) {
+          pendingBySession.delete(sessionID)
+          activeRequests--
+          if (activeRequests < 0) activeRequests = 0
+          log("warn", `chat.params: auto-released expired slot for session ${sessionID} (activeRequests: ${activeRequests})`)
+        }
+      }, SLOT_TIMEOUT_MS)
+
+      const release = () => {
+        clearTimeout(timer)
+        activeRequests--
+        if (activeRequests < 0) activeRequests = 0
+      }
+      pendingBySession.set(sessionID, { release, timer })
+      return release
+    }
+  }
+
+  function releaseForSession(sessionID, reason) {
+    const pending = pendingBySession.get(sessionID)
+    if (!pending) return
+    pendingBySession.delete(sessionID)
+    pending.release()
+  }
+
+  function handle429() {
+    backoffMultiplier = Math.min(backoffMultiplier * 2, BACKOFF_MAX_MS / BACKOFF_BASE_MS)
+    backoffUntil = Date.now() + BACKOFF_BASE_MS * backoffMultiplier
+  }
+
+  function handleSuccess() {
+    backoffMultiplier = Math.max(1, backoffMultiplier * 0.5)
   }
 
   await log("info", "Dark-Moon compatibility plugin loaded")
@@ -258,19 +402,13 @@ export const DarkMoonCompatibility = async ({ client }) => {
         }
       }
 
-      // ── Provider retry configuration ──────────────────────────────
-      // Ensure every provider retries on transient rate-limit and server
-      // errors including the gRPC "ResourceExhausted" concurrency limit.
-      if (config.provider && typeof config.provider === "object") {
-        for (const provider of Object.values(config.provider)) {
-          if (!provider || typeof provider !== "object") continue
-          if (typeof provider.options !== "object" || !provider.options) {
-            provider.options = {}
-          }
-          provider.options.maxRetries = 5
-          provider.options.retryDelay = 1000
-        }
-      }
+       // ── Provider retry configuration ──────────────────────────────
+      // NOTE: In OpenCode 1.18.12 the top-level config.provider map does NOT
+      // exist at config-hook time — providers are synthesised at runtime from
+      // auth.json + known base-URLs. Provider retry options must therefore be
+      // injected in the chat.params hook (see below) where output.options is
+      // the actual options object passed to the AI SDK language-model call.
+      // We keep this section for documentation / forward-compatibility.
 
       // ── Optional provider model discovery ─────────────────────────
       // DARKMOON_DISCOVER_MODELS=1 → for every OpenAI-compatible provider
@@ -283,12 +421,92 @@ export const DarkMoonCompatibility = async ({ client }) => {
       }
     },
 
-    "chat.params": async (_input, output) => {
+    "chat.params": async (input, output) => {
+      // Acquire a concurrency/rate-limit slot before the LLM request is sent.
+      // The slot is held until the step ends (released in the event hook)
+      // so that tool execution counts against the concurrency budget — this
+      // is intentionally conservative to avoid bursting past provider limits.
+      await log("debug", `chat.params: acquiring slot for session ${input.sessionID} (activeRequests before: ${activeRequests})`)
+      const release = await acquireSlot(input.sessionID)
+      await log("debug", `chat.params: slot acquired for session ${input.sessionID} (activeRequests after: ${activeRequests})`)
+
       // In 1.18.12, chat.params output carries only sampling parameters
       // (temperature, topP, topK, maxOutputTokens, options) — no `model` or
-      // `messages`. This hook is the final provider-option boundary: it
-      // strips forbidden keys from the outbound options object.
+      // `messages`. This hook is the final provider-option boundary.
+      //
+      // ── Provider retry configuration ─────────────────────────
+      // IMPORTANT: OpenCode 1.18.12 maps chat.params output.options into
+      // the provider request body via `be.providerOptions()`. The nvidia
+      // endpoint rejects unknown keys with "Bad Request: Validation:
+      // Unsupported parameter(s)". retryDelay, maxRetryDelay,
+      // respectRetryAfter, maxRetries are AI SDK CLIENT-SIDE config —
+      // NOT valid provider API fields — and OpenCode disables the AI SDK
+      // inner retry anyway (`y.retries ?? 0` → maxRetries:0 in streamText).
+      //
+      // OpenCode's outer SessionRetry policy (wl.policy) uses hardcoded
+      // constants vs=2000, Ds=2, producing 2,4,8,16,32,64,128s backoff.
+      // These are compiled into the binary and cannot be overridden from
+      // the plugin. The plugin's own backoff (handle429) in acquireSlot
+      // is the only lever — it adds additional wait time. To engage it,
+      // the event hook detects 429s via session.status retry events.
+
+      // Strip forbidden keys from the outbound options object.
       stripKeys(output.options, FORBIDDEN_PROVIDER_KEYS)
+    },
+
+    event: async ({ event }) => {
+      const props = event?.properties
+      if (!props) {
+        return
+      }
+
+       switch (event.type) {
+         case "session.status":
+           // OpenCode's SessionRetry policy emits session.status events with
+           // status.type === "retry" BEFORE each retry, including the attempt
+           // number. In headless mode (opencode run) this is the ONLY signal
+           // that a 429/stream errors — step.failed/step.ended don't fire.
+           // We use it to (a) release the prior slot and (b) engage the
+           // plugin's own exponential backoff so the intended interval
+           // pattern (BACKOFF_BASE_MS * 2^n, capped) is respected.
+           if (props.sessionID && props.status?.type === "retry") {
+             const isRateLimited =
+               props.status.action?.reason === "rate_limit" ||
+               /429|rate.?limit|too many|retry/i.test(props.status.message || "")
+             if (isRateLimited) {
+               await log("warn", `retry detected for session ${props.sessionID} (attempt ${props.status.attempt ?? "?"}): ${props.status.message || props.status.action?.title || "rate-limited"}; engaging plugin backoff`)
+               handle429()
+             } else {
+               await log("debug", `session.status: non-rate-limit retry for session ${props.sessionID} (attempt ${props.status.attempt ?? "?"}): ${props.status.message || "other"}`)
+             }
+           }
+           return
+
+         case "session.next.step.ended":
+           releaseForSession(props.sessionID, "step.ended")
+           handleSuccess()
+           await log("debug", `step.ended: released slot for session ${props.sessionID} (activeRequests: ${activeRequests})`)
+           return
+         case "session.next.step.failed":
+           releaseForSession(props.sessionID, "step.failed")
+           if (is429Error(props.error)) {
+             await log("warn", `429 detected for session ${props.sessionID}; backing off`)
+             handle429()
+           }
+           return
+         case "session.error":
+           releaseForSession(props.sessionID, "session.error")
+           if (is429Error(props.error)) {
+             await log("warn", `429 detected for session ${props.sessionID}; backing off`)
+             handle429()
+           }
+           return
+         case "session.deleted":
+           releaseForSession(props.sessionID, "session.deleted")
+           return
+         default:
+           await log("debug", `event: unhandled event type: ${event.type}`)
+       }
     },
   }
 }

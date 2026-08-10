@@ -651,7 +651,13 @@ def render_config(config_file: Path, auth_file: Path) -> str:
         strategy = "Anthropic-compatible"
     elif cloud:
         provider_id = os.environ["OPENROUTER_PROVIDER"]
-        model = f"{provider_id}/{os.environ['OPENCODE_MODEL']}"
+        model_id = os.environ["OPENCODE_MODEL"]
+        # If OPENCODE_MODEL already contains the provider prefix (e.g.
+        # "nvidia/minimaxai/minimax-m3"), don't double it up.
+        if model_id.startswith(f"{provider_id}/"):
+            model = model_id
+        else:
+            model = f"{provider_id}/{model_id}"
         strategy = f"cloud provider {provider_id}"
     else:
         model = "opencode/big-pickle"

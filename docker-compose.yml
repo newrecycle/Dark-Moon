@@ -116,10 +116,11 @@ services:
       OPENCODE_DISABLE_AUTOUPDATE: "true"
       TERM: xterm-256color
       LANG: C.UTF-8
+
     volumes:
       - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}:/root/.config/opencode:rw
       - ${DARKMOON_SETTINGS_DIR:-./darkmoon-settings}/data:/root/.local/share/opencode:rw
-      - ./conf/plugins:/root/.config/opencode/plugins:ro
+      - ./conf/plugins:/root/.config/opencode/plugins:rw
       - ${DARKMOON_REPORTS_DIR:-./reports}:/root/.local/share/opencode/reports:rw
       - ${DARKMOON_SESSIONS_DIR:-./sessions}:/root/.local/share/opencode/sessions:rw
       - ${DARKMOON_WORKSPACE_DIR:-./workspace}:/workspace:rw

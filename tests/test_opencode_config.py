@@ -173,6 +173,7 @@ Body.
                 "OPENCODE_LOCAL_MODEL": "model",
             }, "local/model"),
             ({"OPENROUTER_PROVIDER": "openrouter", "OPENROUTER_API_KEY": "x", "OPENCODE_MODEL": "z-ai/glm-5.2"}, "openrouter/z-ai/glm-5.2"),
+            ({"OPENROUTER_PROVIDER": "nvidia", "OPENROUTER_API_KEY": "x", "OPENCODE_MODEL": "nvidia/minimaxai/minimax-m3"}, "nvidia/minimaxai/minimax-m3"),
         ]
         for env, expected in cases:
             with self.subTest(expected=expected):
