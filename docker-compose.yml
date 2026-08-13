@@ -2,7 +2,7 @@ name: darkmoon-stack
 
 services:
   darkmoon:
-    image: ascit/darkmoon:latest
+    image: ascit/darkmoon:local
     container_name: darkmoon
     user: "0:0"
     network_mode: host
