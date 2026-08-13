@@ -365,6 +365,20 @@ RUN mkdir -p /var/lib/dpkg \
  && rm -rf /var/lib/dpkg/info /var/lib/dpkg/updates
 
 
+# --- Dark-Moon MCP server: baked into the toolbox image -------------------
+# Runs in-container and executes tools locally (DARKMOON_EXEC_MODE=local).
+# `pip` here is the symlink created earlier (/usr/local/bin/pip -> /opt/darkmoon/python).
+COPY mcp/requirements.lock /opt/darkmoon/mcp/server/requirements.lock
+RUN pip install --no-cache-dir --disable-pip-version-check --require-hashes \
+      --requirement /opt/darkmoon/mcp/server/requirements.lock
+COPY mcp/ /opt/darkmoon/mcp/server/
+ENV DARKMOON_EXEC_MODE=local \
+    DARKMOON_MCP_HOST=127.0.0.1 \
+    DARKMOON_MCP_PORT=8000 \
+    DARKMOON_MCP_PATH=/mcp \
+    DARKMOON_MCP_AUTOSTART=1
+EXPOSE 8000
+
 COPY conf/entrypoint-darkmoon.sh /entrypoint-darkmoon.sh
 RUN sed -i 's/\r$//' /entrypoint-darkmoon.sh \
  && chmod +x /entrypoint-darkmoon.sh

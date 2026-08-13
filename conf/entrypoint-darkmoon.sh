@@ -95,4 +95,11 @@ DM_GPU_NAME=${DM_GPU_NAME}
 DM_HASHCAT_OPTS=${DM_HASHCAT_OPTS}
 EOF
 
+# Launch the Dark-Moon MCP server inside the toolbox (local execution mode).
+# As a parent of the server, our exported DM_GPU_* env reaches it directly,
+# and it can read /run/darkmoon-gpu.env. Keep the GPU env file too (back-compat).
+if [ "${DARKMOON_MCP_AUTOSTART:-0}" = "1" ]; then
+  ( cd /opt/darkmoon/mcp/server && exec python -m src.http_server ) &
+fi
+
 exec "$@"
