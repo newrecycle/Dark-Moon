@@ -4,6 +4,6 @@
   "version": "0.1.0",
   "description": "Autonomous AI penetration-testing toolbox: exposes darkmoon_* MCP tools (50+ offensive tools behind a security gatekeeper + privacy gateway) and a pentest skill. Requires the Dark-Moon Docker backend running locally.",
   "author": { "name": "Dark-Moon" },
-  "license": "see repository LICENSE",
+  "license": "GPL-3.0-or-later",
   "keywords": ["security", "pentest", "mcp", "offensive-security"]
 }
