@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keyless regression tests for Dark-Moon/OpenCode agent compatibility."""
+"""Keyless regression tests for Dark-Moon agent configuration."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ CONFIG = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CONFIG)
 
 
-class OpenCodeConfigTests(unittest.TestCase):
+class AgentConfigTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
@@ -283,27 +283,29 @@ CANONICAL SUFFIX
         self.assertEqual(production["subagent_depth"], 1)
         self.assertEqual(CONFIG._walk_forbidden(production), [])
 
-    def test_production_and_arm_compose_share_stock_opencode_topology(self) -> None:
-        for filename in ("docker-compose.yml", "docker-compose-dev.yml"):
-            compose = yaml.safe_load((REPO / filename).read_text())
-            services = compose["services"]
-            opencode = services["opencode"]
-            mcp = services["darkmoon-mcp"]
-            bootstrap = services["opencode-bootstrap"]
-            self.assertEqual(opencode["image"], "ghcr.io/anomalyco/opencode:1.18.12")
-            self.assertNotIn("build", opencode)
-            self.assertEqual(opencode["working_dir"], "/workspace")
-            self.assertNotIn("/var/run/docker.sock:/var/run/docker.sock", opencode["volumes"])
-            self.assertEqual(opencode["depends_on"]["darkmoon-mcp"]["condition"], "service_healthy")
-            self.assertEqual(opencode["depends_on"]["opencode-bootstrap"]["condition"], "service_completed_successfully")
-            self.assertEqual(mcp["build"]["dockerfile"], "Dockerfile.mcp")
-            self.assertEqual(bootstrap["build"]["dockerfile"], "Dockerfile.bootstrap")
-            self.assertEqual(set(opencode["networks"]), {"control", "egress"})
-            self.assertIn("control", mcp["networks"])
+    def test_production_and_arm_compose_are_single_darkmoon_container(self) -> None:
         production = yaml.safe_load((REPO / "docker-compose.yml").read_text())
         development = yaml.safe_load((REPO / "docker-compose-dev.yml").read_text())
-        self.assertNotIn("build", production["services"]["darkmoon"])
-        self.assertEqual(development["services"]["darkmoon"]["build"]["dockerfile"], "Dockerfile")
+        for name, compose in (("production", production), ("development", development)):
+            services = compose["services"]
+            self.assertEqual(
+                set(services),
+                {"darkmoon"},
+                f"{name}: expected exactly one service 'darkmoon'",
+            )
+            svc = services["darkmoon"]
+            self.assertEqual(svc.get("network_mode"), "host")
+            env = svc.get("environment", {})
+            self.assertEqual(env.get("DARKMOON_EXEC_MODE"), "local")
+            self.assertEqual(env.get("DARKMOON_MCP_HOST"), "127.0.0.1")
+            # No legacy services survive the merge.
+            for legacy in ("opencode", "opencode-bootstrap", "docker-proxy", "darkmoon-mcp"):
+                self.assertNotIn(legacy, services, f"{name}: legacy service '{legacy}' remains")
+            # Prod uses the prebuilt image; dev builds locally.
+            if name == "production":
+                self.assertNotIn("build", svc)
+            else:
+                self.assertEqual(svc["build"]["dockerfile"], "Dockerfile")
 
     def test_installer_and_wrapper_are_repository_safe_and_stock_image_compatible(self) -> None:
         installer = (REPO / "install.sh").read_text()
@@ -326,7 +328,7 @@ CANONICAL SUFFIX
         )
         self.assertNotIn('SCRIPT_DIR="$(pwd)"', installer)
         self.assertNotIn("bash -lc", wrapper)
-        self.assertIn("darkmoon-mcp", wrapper)
+        self.assertIn("darkmoon", wrapper)
         self.assertIn("src.mcp_monitoring", wrapper)
 
 

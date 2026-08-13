@@ -1,107 +1,87 @@
 #!/usr/bin/env python3
+"""Security-invariant tests for the single-container Dark-Moon stack.
+
+The stack is now ONE container (`darkmoon`): the toolbox image with the MCP
+server baked in, executing tools locally (DARKMOON_EXEC_MODE=local). There is
+no OpenCode brain container and no docker-proxy sidecar, and the Docker socket
+is never mounted.
+"""
+
 from __future__ import annotations
 
-import json
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 import yaml
 
 REPO = Path(__file__).resolve().parents[1]
 SOCKET = "/var/run/docker.sock"
-PROXY_IMAGE = "tecnativa/docker-socket-proxy:v0.4.2@sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476"
+
+
+def load_services(path: Path) -> dict:
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return data.get("services", {})
 
 
 class ComposeSecurityTests(unittest.TestCase):
-    def check_topology(self, filename: str) -> None:
-        compose = yaml.safe_load((REPO / filename).read_text(encoding="utf-8"))
-        services = compose["services"]
-        proxy = services["docker-proxy"]
-        mcp = services["darkmoon-mcp"]
-        bootstrap = services["opencode-bootstrap"]
-        opencode = services["opencode"]
+    def setUp(self) -> None:
+        self.compose = load_services(REPO / "docker-compose.yml")
+        self.dev_compose = load_services(REPO / "docker-compose-dev.yml")
 
-        self.assertEqual(proxy["image"], PROXY_IMAGE)
-        self.assertEqual(proxy["networks"], ["control"])
-        self.assertNotIn("ports", proxy)
+    def _assert_single_service(self, services: dict, label: str) -> dict:
         self.assertEqual(
-            proxy["environment"],
-            {"CONTAINERS": "1", "EXEC": "1", "POST": "1", "LOG_LEVEL": "warning"},
+            set(services.keys()),
+            {"darkmoon"},
+            f"{label}: expected exactly one service 'darkmoon', got {sorted(services)}",
         )
-        self.assertEqual(proxy["volumes"], [f"{SOCKET}:{SOCKET}:ro"])
+        return services["darkmoon"]
 
-        self.assertEqual(mcp["environment"]["DOCKER_HOST"], "tcp://docker-proxy:2375")
-        self.assertEqual(mcp["depends_on"]["docker-proxy"]["condition"], "service_started")
-        self.assertFalse(any(SOCKET in volume for volume in mcp.get("volumes", [])))
-        self.assertFalse(any(SOCKET in volume for volume in opencode.get("volumes", [])))
+    def _assert_no_socket_mount(self, services: dict, label: str) -> None:
+        for name, svc in services.items():
+            for volume in svc.get("volumes", []):
+                self.assertNotIn(
+                    SOCKET,
+                    str(volume),
+                    f"{label}: service '{name}' mounts the Docker socket ({volume})",
+                )
 
-        # Bootstrap starts as root only to initialize Docker-created bind mounts.
-        # conf/bootstrap.py must receive a target identity, use neutral writable
-        # paths, and drop privileges before provider secrets are rendered.
-        self.assertNotIn("user", bootstrap)
-        self.assertEqual(bootstrap["network_mode"], "none")
-        self.assertEqual(bootstrap["environment"]["DARKMOON_UID"], "${DARKMOON_UID:-0}")
-        self.assertEqual(bootstrap["environment"]["DARKMOON_GID"], "${DARKMOON_GID:-0}")
-        self.assertEqual(bootstrap["environment"]["OPENCODE_CONFIG_DIR"], "/config")
-        self.assertEqual(bootstrap["environment"]["OPENCODE_DATA_DIR"], "/data")
-        self.assertEqual(bootstrap["environment"]["OPENCODE_AGENTS_DIR"], "/config/agents")
-        self.assertEqual(bootstrap["environment"]["DARKMOON_WORKFLOWS_DIR"], "/workflows")
-        self.assertTrue(any(str(volume).endswith(":/config:rw") for volume in bootstrap["volumes"]))
-        self.assertTrue(any(str(volume).endswith(":/data:rw") for volume in bootstrap["volumes"]))
-        self.assertTrue(any(str(volume).endswith(":/workflows:rw") for volume in bootstrap["volumes"]))
+    def test_production_is_single_container_no_socket(self) -> None:
+        svc = self._assert_single_service(self.compose, "production compose")
+        self._assert_no_socket_mount(self.compose, "production compose")
+        # Host networking: the MCP is reachable on localhost with no port publish.
+        self.assertEqual(svc.get("network_mode"), "host")
+        env = svc.get("environment", {})
+        self.assertEqual(env.get("DARKMOON_EXEC_MODE"), "local")
+        self.assertEqual(env.get("DARKMOON_MCP_HOST"), "127.0.0.1")
+        self.assertEqual(str(env.get("DARKMOON_MCP_PORT")), "8000")
+        self.assertEqual(env.get("DARKMOON_MCP_PATH"), "/mcp")
+        # Healthcheck resolves the baked-in server module.
+        healthcheck = " ".join(str(p) for p in svc.get("healthcheck", {}).get("test", []))
+        self.assertIn("src.healthcheck", healthcheck)
 
-        bootstrap_volumes = set(bootstrap["volumes"])
-        self.assertIn("${DARKMOON_REPORTS_DIR:-./reports}:/data/reports:rw", bootstrap_volumes)
-        self.assertIn("${DARKMOON_SESSIONS_DIR:-./sessions}:/data/sessions:rw", bootstrap_volumes)
-        self.assertIn("${DARKMOON_WORKSPACE_DIR:-./workspace}:/data/workspace:rw", bootstrap_volumes)
+    def test_development_is_single_container_no_socket(self) -> None:
+        svc = self._assert_single_service(self.dev_compose, "dev compose")
+        self._assert_no_socket_mount(self.dev_compose, "dev compose")
+        self.assertEqual(svc.get("network_mode"), "host")
+        env = svc.get("environment", {})
+        self.assertEqual(env.get("DARKMOON_EXEC_MODE"), "local")
+        self.assertEqual(env.get("DARKMOON_MCP_HOST"), "127.0.0.1")
+        # Dev bind-mounts the live mcp/ source tree.
+        mounts = " ".join(str(v) for v in svc.get("volumes", []))
+        self.assertIn("/opt/darkmoon/mcp/server", mounts)
 
-        socket_consumers = {
-            name
-            for name, service in services.items()
-            if any(SOCKET in volume for volume in service.get("volumes", []))
-        }
-        self.assertEqual(socket_consumers, {"darkmoon", "docker-proxy"})
-
-    def test_production_socket_boundary(self) -> None:
-        self.check_topology("docker-compose.yml")
-
-    def test_development_socket_boundary(self) -> None:
-        self.check_topology("docker-compose-dev.yml")
-
-    def test_protocol_fixture_uses_the_same_proxy_controls(self) -> None:
-        compose = yaml.safe_load((REPO / "tests" / "docker-compose.mcp.yml").read_text(encoding="utf-8"))
-        services = compose["services"]
-        self.assertEqual(services["docker-proxy"]["image"], PROXY_IMAGE)
-        self.assertEqual(services["darkmoon-mcp"]["environment"]["DOCKER_HOST"], "tcp://docker-proxy:2375")
-        self.assertFalse(any(SOCKET in volume for volume in services["darkmoon-mcp"].get("volumes", [])))
-
-    def test_production_fixture_uses_one_model_contract(self) -> None:
-        compose = yaml.safe_load(
-            (REPO / "tests" / "docker-compose.production.yml").read_text(encoding="utf-8")
-        )
-        services = compose["services"]
-        mock_env = services["mock-provider"]["environment"]
-        overlay = json.loads(services["opencode"]["environment"]["OPENCODE_CONFIG_CONTENT"])
-
-        model_id = mock_env["MOCK_EXPECT_MODEL"]
-        self.assertEqual(model_id, "darkmoon-test-model")
-        self.assertEqual(mock_env["MOCK_EXPECT_TEMPERATURE"], "0.2")
-        self.assertEqual(mock_env["MOCK_EXPECT_TOP_P"], "0.9")
-        self.assertEqual(mock_env["MOCK_EXPECT_REASONING_EFFORT"], "medium")
-
-        self.assertEqual(set(overlay["provider"]), {"mock"})
-        model = overlay["provider"]["mock"]["models"][model_id]
-        self.assertIs(model["temperature"], True)
-        self.assertIs(model["reasoning"], True)
-        self.assertIs(model["tool_call"], True)
-        self.assertEqual(model["variants"]["medium"]["reasoning_effort"], "medium")
-
-        agent = overlay["agent"]["pentest"]
-        self.assertEqual(agent["temperature"], 0.2)
-        self.assertEqual(agent["top_p"], 0.9)
-        self.assertEqual(agent["variant"], "medium")
-        self.assertEqual(agent["options"]["reasoning_effort"], "medium")
+    def test_no_legacy_services(self) -> None:
+        for services, label in (
+            (self.compose, "production compose"),
+            (self.dev_compose, "dev compose"),
+        ):
+            for legacy in ("opencode", "opencode-bootstrap", "docker-proxy", "darkmoon-mcp"):
+                self.assertNotIn(
+                    legacy,
+                    services,
+                    f"{label}: legacy service '{legacy}' must be removed",
+                )
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    unittest.main()
