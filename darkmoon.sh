@@ -4,8 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 cd "$SCRIPT_DIR"
 
-SERVICE="opencode"
-APP_BIN="opencode"
+SERVICE="darkmoon"
 ENV_FILE="${OPENCODE_ENV_FILE:-$SCRIPT_DIR/.opencode.env}"
 
 if docker compose version >/dev/null 2>&1; then
@@ -17,9 +16,6 @@ else
   exit 1
 fi
 
-# Tests, parallel installations, and operators using `docker compose -p` must
-# address the same project when this wrapper later performs `exec`. Compose file
-# selection alone is insufficient because `-p` changes container discovery.
 if [[ -n "${DARKMOON_COMPOSE_PROJECT:-}" ]]; then
   DC+=(-p "$DARKMOON_COMPOSE_PROJECT")
 fi
@@ -64,18 +60,56 @@ read_env_value() {
   done < "$ENV_FILE"
 }
 
+MCP_HOST="${DARKMOON_MCP_HOST:-127.0.0.1}"
+MCP_PORT="${DARKMOON_MCP_PORT:-8000}"
+
+wait_for_mcp_port() {
+  local timeout=${1:-60}
+  for _ in $(seq 1 "$timeout"); do
+    if python3 - "$MCP_HOST" "$MCP_PORT" <<'PY' 2>/dev/null
+import socket
+import sys
+host, port = sys.argv[1], int(sys.argv[2])
+try:
+    with socket.create_connection((host, port), timeout=1):
+        raise SystemExit(0)
+except OSError:
+    raise SystemExit(1)
+PY
+    then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "Timed out waiting for the Dark-Moon MCP on ${MCP_HOST}:${MCP_PORT}" >&2
+  return 1
+}
+
+probe_mcp_port() {
+  python3 - "$MCP_HOST" "$MCP_PORT" <<'PY' 2>/dev/null
+import socket
+import sys
+host, port = sys.argv[1], int(sys.argv[2])
+try:
+    with socket.create_connection((host, port), timeout=1):
+        print("reachable")
+except OSError:
+    print("unreachable")
+PY
+}
+
 preflight_provider_check() {
-  local url mode result
-  url="$(read_env_value ANTHROPIC_BASE_URL)"
-  mode="Anthropic-compatible"
-  if [[ -z "$url" ]]; then
-    url="$(read_env_value OPENCODE_LOCAL_BASE_URL)"
-    mode="Local OpenAI-compatible"
-  fi
+  # The Dark-Moon LLM brain (Hermes) runs outside the container. This preflight
+  # validates any provider base URL the external brain is configured to use by
+  # reaching it from inside the darkmoon container, so a loopback-only or
+  # unreachable endpoint fails fast instead of hanging at request time.
+  local url mode result status
+  url="$(read_env_value DARKMOON_PROVIDER_BASE_URL)"
+  mode="Dark-Moon provider"
   [[ -z "$url" ]] && return 0
 
   set +e
-  result="$("${DC[@]}" exec -T darkmoon-mcp python - "$url" <<'PY'
+  result="$("${DC[@]}" exec -T darkmoon python - "$url" <<'PY'
 import socket
 import sys
 from urllib.parse import urlparse
@@ -98,7 +132,7 @@ except OSError as exc:
 print("OK")
 PY
 )"
-  local status=$?
+  status=$?
   set -e
   if (( status == 0 )); then
     return 0
@@ -107,9 +141,9 @@ PY
   case "$result" in
     LOOPBACK\|*)
       cat >&2 <<EOF
-LLM endpoint uses a container-local loopback address:
+LLM provider endpoint uses a container-local loopback address:
   ${result#LOOPBACK|}
-Inside Docker, localhost points to the MCP/OpenCode container, not the host.
+Inside Docker, localhost points to the darkmoon container, not the host.
 Use host.docker.internal, the host LAN address, or a reachable service name.
 EOF
       ;;
@@ -128,54 +162,89 @@ EOF
   exit 3
 }
 
-is_direct_opencode_command() {
-  case "${1:-}" in
-    -h|--help|-v|--version|--mini|completion|acp|mcp|attach|debug|providers|auth|agent|upgrade|uninstall|serve|web|models|stats|export|import|github|pr|session|plugin|plug|db|run)
-      return 0
-      ;;
-    *) return 1 ;;
-  esac
+usage() {
+  cat <<'EOF'
+darkmoon.sh - lifecycle + MCP helper for the single darkmoon container.
+
+The Dark-Moon LLM brain is Hermes and runs outside the container. This script
+manages the merged darkmoon container and its baked-in MCP server.
+
+Usage:
+  ./darkmoon.sh up            Bring the darkmoon container up and wait for the MCP (127.0.0.1:8000).
+  ./darkmoon.sh down          Stop and remove the darkmoon container.
+  ./darkmoon.sh status        Show compose status and probe the MCP port.
+  ./darkmoon.sh mcp <module>  Exec `python -m src.<module>` inside the container (e.g. `mcp healthcheck`).
+  ./darkmoon.sh --log <id>    Tail the MCP monitoring stream for a session id.
+  ./darkmoon.sh --version     Print the wrapper version.
+  ./darkmoon.sh --help        Show this help.
+EOF
+}
+
+if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
+  echo "darkmoon.sh 1.0.0"
+  exit 0
+fi
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  usage
+  exit 0
+fi
+
+run_in_container() {
+  local script=$1
+  shift
+  local packed
+  packed=$(printf '%q ' "$@")
+  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" darkmoon sh -c "${script} ${packed}"
+  exec "${DC[@]}" exec "${EXEC_TTY[@]}" darkmoon sh -c "${script} ${packed}"
 }
 
 if [[ "${1:-}" == "--log" ]]; then
-  [[ $# -ge 2 ]] || { echo "Usage: $0 --log <session_id>" >&2; exit 1; }
-  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" darkmoon-mcp python -m src.mcp_monitoring "$2"
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" darkmoon-mcp \
-    python -m src.mcp_monitoring "$2"
+  shift
+  if [[ $# -lt 1 ]]; then
+    echo "Usage: $0 --log <session_id>" >&2
+    exit 1
+  fi
+  run_in_container 'cd /opt/darkmoon/mcp/server && exec python -m src.mcp_monitoring' "$1"
 fi
 
-preflight_provider_check
-
-# OpenCode global logging/plugin flags must precede the selected command. Pull
-# them off before deciding whether the remaining arguments are an explicit
-# top-level command or an implicit `opencode run` invocation.
-GLOBAL_ARGS=()
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --print-logs|--pure)
-      GLOBAL_ARGS+=("$1")
-      shift
-      ;;
-    --log-level)
-      [[ $# -ge 2 ]] || { echo "--log-level requires a value" >&2; exit 2; }
-      GLOBAL_ARGS+=("$1" "$2")
-      shift 2
-      ;;
-    --log-level=*)
-      GLOBAL_ARGS+=("$1")
-      shift
-      ;;
-    *) break ;;
-  esac
-done
-
-if [[ $# -eq 0 ]]; then
-  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}"
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}"
-elif is_direct_opencode_command "$1"; then
-  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" "$@"
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" "$@"
-else
-  debug_command "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" run "$@"
-  exec "${DC[@]}" exec "${EXEC_TTY[@]}" "$SERVICE" "$APP_BIN" "${GLOBAL_ARGS[@]}" run "$@"
+if [[ "${1:-}" == "mcp" ]]; then
+  shift
+  if [[ $# -lt 1 ]]; then
+    echo "Usage: $0 mcp <src-module> [args...]" >&2
+    exit 1
+  fi
+  module="$1"
+  shift
+  run_in_container "cd /opt/darkmoon/mcp/server && exec python -m src.${module}" "$@"
 fi
+
+if [[ "${1:-}" == "up" ]]; then
+  debug_command "${DC[@]}" up -d
+  "${DC[@]}" up -d
+  wait_for_mcp_port 60
+  preflight_provider_check
+  echo "darkmoon container is up; MCP reachable on ${MCP_HOST}:${MCP_PORT}"
+  exit 0
+fi
+
+if [[ "${1:-}" == "down" ]]; then
+  debug_command "${DC[@]}" down
+  "${DC[@]}" down
+  exit 0
+fi
+
+if [[ "${1:-}" == "status" ]]; then
+  "${DC[@]}" ps "$SERVICE"
+  if [[ "$(probe_mcp_port)" == "reachable" ]]; then
+    echo "MCP: reachable on ${MCP_HOST}:${MCP_PORT}"
+  else
+    echo "MCP: NOT reachable on ${MCP_HOST}:${MCP_PORT}" >&2
+    exit 1
+  fi
+  exit 0
+fi
+
+echo "Unknown or missing command: ${1:-<none>}" >&2
+usage >&2
+exit 2
