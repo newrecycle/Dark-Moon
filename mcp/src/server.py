@@ -24,11 +24,20 @@ from src.privacy import PrivacyVault, CommandGateway, GatewayDecision
 # Initialize FastMCP server
 mcp = FastMCP("Darkmoon CyberSecurity")
 
-# Initialize Docker client
-docker_client = DarkmoonDockerClient(
-    container_name=os.getenv("DOCKER_CONTAINER_NAME", "darkmoon"),
-    timeout=int(os.getenv("DOCKER_TIMEOUT", "300")),
-)
+# Initialize Docker client. By default we exec into the toolbox container via
+# Docker. When DARKMOON_EXEC_MODE=local the MCP is running INSIDE the toolbox and
+# instead runs tools as local subprocesses (LocalCommandClient) — same public
+# surface, zero behavior change for callers. The variable name is unchanged so
+# GenericExecutor / HealthChecker / WorkflowRegistry need no other edits.
+if os.getenv("DARKMOON_EXEC_MODE", "docker").lower() == "local":
+    from src.local_client import LocalCommandClient
+
+    docker_client = LocalCommandClient(timeout=int(os.getenv("DOCKER_TIMEOUT", "300")))
+else:
+    docker_client = DarkmoonDockerClient(
+        container_name=os.getenv("DOCKER_CONTAINER_NAME", "darkmoon"),
+        timeout=int(os.getenv("DOCKER_TIMEOUT", "300")),
+    )
 
 # Initialize core components
 executor = GenericExecutor(docker_client)
