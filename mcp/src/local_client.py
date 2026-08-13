@@ -18,7 +18,9 @@ It mirrors DarkmoonDockerClient's public surface and semantics exactly:
 import os
 import re
 import time
+import signal
 import socket
+import threading
 import subprocess
 from typing import Optional, List, Dict, Any
 
@@ -122,30 +124,95 @@ class LocalCommandClient:
                 merged_env.update(environment)
 
             # Run locally as a subprocess, merging stderr into stdout.
+            # start_new_session gives the `timeout` wrapper its OWN process
+            # group, so we can kill the whole group (direct child + any
+            # backgrounded grandchild) when the wall-clock deadline is exceeded.
             proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 cwd=workdir,
                 env=merged_env,
+                start_new_session=True,
             )
 
-            stdout_acc = ""
-
             assert proc.stdout is not None
-            while True:
-                chunk = proc.stdout.read(4096)
-                if not chunk:
-                    break
-                stdout_acc += chunk.decode("utf-8", errors="ignore")
-                # broadcast raw bytes (keeps ANSI + CRLF exactly)
-                if not is_noise:
-                    self._broadcast(chunk, session_id)
 
-            proc.stdout.close()
-            exit_code = proc.wait()
+            # Stream the merged pipe from a dedicated reader thread. A blocking
+            # read is the only correct way to drain a pipe, but a backgrounded
+            # grandchild can keep the write end open (and the read blocked)
+            # forever. The MAIN thread enforces the wall-clock deadline below and
+            # kills the whole process group if it is exceeded, which closes the
+            # pipe and unblocks this reader.
+            stdout_chunks: list[bytes] = []
+
+            def _reader() -> None:
+                assert proc.stdout is not None
+                while True:
+                    chunk = proc.stdout.read(4096)
+                    if not chunk:
+                        break  # EOF: every writer closed the pipe
+                    stdout_chunks.append(chunk)
+                    # broadcast raw bytes (keeps ANSI + CRLF exactly)
+                    if not is_noise:
+                        self._broadcast(chunk, session_id)
+
+            reader = threading.Thread(target=_reader, daemon=True)
+            reader.start()
+
+            # Wall-clock deadline against the merged pipe. The `timeout` binary
+            # only SIGKILLs its direct child (bash); a grandchild started in the
+            # background can keep the pipe open and make a blocking read hang
+            # forever. We wait on the reader for at most `hard_timeout`, then
+            # kill the whole process group (which closes the pipe) and join.
+            deadline_exceeded = False
+            while reader.is_alive() and (time.time() - start_time) < hard_timeout:
+                reader.join(0.25)
+
+            if reader.is_alive():
+                # Deadline exceeded: tear down the process group so the orphan
+                # holding the pipe open cannot keep this call (and the MCP)
+                # blocked. Closing the group's write end unblocks the reader.
+                deadline_exceeded = True
+                self._kill_process_group(proc.pid)
+                reader.join(5.0)
+
+            # The group is dead (or finished on its own), so the pipe is closed
+            # and the reader has reached EOF. Reap with bounded waits so neither
+            # call can block indefinitely.
+            try:
+                exit_code = proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._kill_process_group(proc.pid)
+                exit_code = proc.wait(timeout=5)
+            reader.join(timeout=5)
+            try:
+                proc.stdout.close()
+            except (OSError, ValueError):
+                pass
+            stdout_acc = b"".join(stdout_chunks).decode("utf-8", errors="ignore")
 
             duration = time.time() - start_time
+
+            # If our wall-clock deadline fired (e.g. a backgrounded grandchild
+            # kept the pipe open past `timeout`), report TIMEOUT even though the
+            # direct child may have already exited cleanly.
+            if deadline_exceeded:
+                self._reap_survivors(cmd_str)
+                return ExecutionResult(
+                    status=ExecutionStatus.TIMEOUT,
+                    stdout=stdout_acc,
+                    stderr=remediation(cmd_str, duration, hard_timeout),
+                    exit_code=exit_code,
+                    duration=duration,
+                    metadata={
+                        "command": cmd_str,
+                        "workdir": workdir,
+                        "timeout": hard_timeout,
+                        "timed_out": True,
+                        "guard": classify(cmd_str).label or "unclassified",
+                    },
+                )
 
             # coreutils `timeout` reports 124 on expiry (137 when it had to SIGKILL).
             if exit_code in (124, 137):
@@ -224,6 +291,29 @@ class LocalCommandClient:
 
         self._gpu_cache = state
         return state
+
+    def _kill_process_group(self, pid: int) -> None:
+        """Kill the entire process group rooted at `pid`.
+
+        `start_new_session=True` made the wrapper a process-group leader, so
+        SIGTERM/SIGKILL delivered to the group tears down the direct child AND
+        any backgrounded grandchild that inherited the stdout pipe. A short
+        SIGTERM grace precedes the SIGKILL so tools can flush/exit cleanly.
+        Never raises.
+        """
+        try:
+            pgid = os.getpgid(pid)
+        except (ProcessLookupError, OSError):
+            return
+        try:
+            os.killpg(pgid, signal.SIGTERM)
+        except (ProcessLookupError, OSError):
+            pass
+        time.sleep(0.2)
+        try:
+            os.killpg(pgid, signal.SIGKILL)
+        except (ProcessLookupError, OSError):
+            pass
 
     def _reap_survivors(self, cmd_str: str) -> None:
         """Kill scanner grandchildren that outlived the `timeout` wrapper.
