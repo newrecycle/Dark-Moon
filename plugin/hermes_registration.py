@@ -25,14 +25,18 @@ class HermesRegistrationError(RuntimeError):
 def _is_darkmoon_skill_path(path: Path) -> bool:
     """True for a path DarkMoon owns (a skills dir under a darkmoon plugin).
 
-    Matched case-insensitively so both ``darkmoon`` and ``darkmoon-<hash>``
-    install layouts are recognized, regardless of the host filesystem case.
+    Matched case-insensitively so the ``darkmoon`` install directory, the
+    ``dark-moon`` repository directory, and ``darkmoon-<hash>`` marketplace
+    layouts are all recognized, regardless of the host filesystem case.
     """
 
-    return path.name == "skills" and any(
-        part.lower() == "darkmoon" or part.lower().startswith("darkmoon-")
-        for part in path.parts
-    )
+    if path.name != "skills":
+        return False
+    for part in path.parts:
+        low = part.lower()
+        if low in ("darkmoon", "dark-moon") or low.startswith(("darkmoon-", "dark-moon-")):
+            return True
+    return False
 
 
 def default_hermes_root() -> Path:
