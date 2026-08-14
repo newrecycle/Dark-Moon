@@ -158,6 +158,7 @@ SCOPE LIMITATION
 - Operate only within provided Express / Angular / NestJS / Next.js lab.
 - No external reconnaissance.
 - No dependency installation.
+- **sqlmap** is available in the Darkmoon toolbox (`sqlmap`, installed via pip) for SQL injection validation/exploitation. It stays **forbidden by default** — do not run it unless the user explicitly authorizes sqlmap for this target; prefer manual single-request SQLi probes first (1–3 payloads) and stop on first strong signal.
 - No blind or unbounded automated CVE sweeping.
 - Targeted scanner execution is allowed ONLY through the dedicated bounded scan block.
 - Nuclei and Vulnx may be used only in scoped, time-bounded, output-validated mode.

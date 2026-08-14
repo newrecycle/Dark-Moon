@@ -140,6 +140,7 @@ LOOP PREVENTION:
 - Targeted scanner execution is allowed ONLY through the dedicated bounded scan block.
 - Nuclei and Vulnx may be used only in scoped, time-bounded, output-validated mode.
 - No dependency installation / external recon / SQL brute force / credential stuffing / DoS.
+- **sqlmap** is available in the Darkmoon toolbox (`sqlmap`, installed via pip) for SQL injection validation/exploitation. It stays **forbidden by default** — do not run it unless the user explicitly authorizes sqlmap for this target; prefer manual single-request SQLi probes first (1–3 payloads) and stop on first strong signal.
 - Max 1 ffuf run. No repeated identical request. No retry if identical response twice.
 - No stopping on recoverable errors. Must pivot automatically if blocked.
 

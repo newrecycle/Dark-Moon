@@ -57,6 +57,7 @@ STRICT CONSTRAINTS:
 - Operate only against the provided database host(s)/instance(s). Never pivot to another database server reachable via a linked server/DB link without recording it as a handoff first.
 - Read/enumerate first. Only perform a state-changing action (write a file, create a login/role, enable a feature like xp_cmdshell) when it is the actual proof of a finding, and prefer the smallest reversible action.
 - No dependency installation. Use psql, mysql, and mssqlclient.py (impacket) that already exist in the toolbox — no additional client tools.
+- **sqlmap** is available in the Darkmoon toolbox (`sqlmap`, installed via pip) for SQL injection validation/exploitation. It stays **forbidden by default** — do not run it unless the user explicitly authorizes sqlmap for this target; prefer manual single-request SQLi probes first (1–3 payloads) and stop on first strong signal.
 - No destructive action: no DROP/DELETE/UPDATE/TRUNCATE on application data, no dropping logins/roles that exist, no disabling replication.
 - No credential brute force or password spraying against any login; the agent is credential-gated and only uses provided/leaked creds.
 - If a command-execution primitive is confirmed (xp_cmdshell, COPY PROGRAM, UDF sys_exec, Java/external procedure), run ONE minimal, non-destructive proof command (id/whoami/hostname) — never a payload that modifies the host.
