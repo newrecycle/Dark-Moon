@@ -43,7 +43,7 @@ The Hermes entrypoint is the `plugin/` package: `hermes plugins install <path-or
 - **Agents = Markdown** in `conf/agents/*.md`: YAML frontmatter (fields restricted to `model, variant, temperature, top_p, description, mode, hidden, options, color, steps, disable, permission`) + prompt body. `pentest` is the only `primary`; all others are `subagent` (enforced). Permission defaults to least-privilege: `*`: deny, `darkmoon_*`: allow, `pentest` also `task`: allow. Legacy keys (`id, name, primary, secondary, prompt_file, mcp, tools, maxSteps`) are auto-migrated and stripped — never author them.
 - MCP tools must be named `darkmoon_*` (tests assert this wildcard). Tools are registered with bare names in `mcp/src/server.py`; the `darkmoon_` prefix comes from the MCP **server key** `"darkmoon"`. Executing them runs tools as **local subprocesses** inside the container (`DARKMOON_EXEC_MODE=local`).
 - New MCP workflow → copy `mcp/src/tools/workflows/TEMPLATE.py` (subclass `BaseWorkflow`), expose it in `mcp/src/server.py`; full guide in `mcp/WORKFLOW_GUIDE.md`.
-- `conf/plugins/darkmoon-compat.js` is the legacy OpenCode plugin (forces `default_agent=pentest`, registers the MCP as remote). It is retained for the config renderer but is NOT used when Hermes is the brain.
+- The legacy OpenCode compatibility plugin (`conf/plugins/darkmoon-compat.js`) has been removed. The Hermes brain uses the `plugin/` integration and never loads OpenCode plugins.
 - Model routing env vars (in `.opencode.env`): `DARKMOON_SMALL_MODEL`, `DARKMOON_AGENT_MODELS` (JSON), `DARKMOON_DISCOVER_MODELS=1`.
 - `mcp/requirements.lock` is hash-pinned via `pip-tools`; derivable from `mcp/requirements.in`.
 

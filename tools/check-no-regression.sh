@@ -75,7 +75,7 @@ fi
 
 # ---- apply-settings.sh renders valid JSON and validates all Markdown agents
 if [ -f "$APPLY" ]; then
-  echo "[config] apply-settings.sh renders valid opencode.json"
+  echo "[config] apply-settings.sh renders valid darkmoon.json"
   sb="$(mktemp -d)"
   mkdir -p "$sb/config" "$sb/share"
   cp -a "$AGENTS_DIR" "$sb/agents"
@@ -86,7 +86,7 @@ if [ -f "$APPLY" ]; then
      OPENCODE_CONFIG_TOOL="$REPO/conf/opencode-config.py" \
      OPENROUTER_PROVIDER=anthropic OPENROUTER_API_KEY=x OPENCODE_MODEL=anthropic/x \
      bash "$APPLY" >/dev/null 2>&1; then
-    if python3 - "$sb/config/opencode.json" <<'PY'
+    if python3 - "$sb/config/darkmoon.json" <<'PY'
 import json,sys
 d=json.load(open(sys.argv[1]))
 bad={"primary","secondary","prompt_file","id","mcp"}
@@ -106,8 +106,8 @@ assert d.get("mcp",{}).get("darkmoon",{}).get("enabled") is True
 assert not found, found
 print("VALID: no legacy agent metadata; global darkmoon MCP enabled")
 PY
-    then ok "opencode.json valid and free of legacy agent metadata"; else bad "opencode.json failed compatibility checks"; fi
-  else bad "apply-settings.sh failed to render opencode.json"; fi
+    then ok "darkmoon.json valid and free of legacy agent metadata"; else bad "darkmoon.json failed compatibility checks"; fi
+  else bad "apply-settings.sh failed to render darkmoon.json"; fi
   rm -rf "$sb"
 fi
 

@@ -49,9 +49,8 @@ jobs:
             mcp/src/http_server.py \
             mcp/src/healthcheck.py \
             mcp/src/mcp_monitoring.py \
-            tests/mock_openai_compatible.py \
-            tests/assert_issue36_capture.py \
-            tests/test_compose_security.py \
+             tests/mock_openai_compatible.py \
+             tests/test_compose_security.py \
             tests/test_reproducibility.py
 
       - name: Set up Node.js

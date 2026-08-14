@@ -63,7 +63,7 @@ class ProductionBootstrapTests(unittest.TestCase):
 
     def test_clean_bootstrap_seeds_agents_provider_remote_mcp_and_workflows(self) -> None:
         self.run_bootstrap()
-        config_path = self.config / "opencode.json"
+        config_path = self.config / "darkmoon.json"
         state_path = self.config / ".darkmoon-bootstrap.json"
         config = json.loads(config_path.read_text())
         state = json.loads(state_path.read_text())
@@ -98,7 +98,7 @@ class ProductionBootstrapTests(unittest.TestCase):
             DARKMOON_MCP_TRANSPORT="local",
             DARKMOON_MCP_COMMAND='["/usr/local/bin/darkmoon-mcp"]',
         )
-        config = json.loads((self.config / "opencode.json").read_text())
+        config = json.loads((self.config / "darkmoon.json").read_text())
         self.assertEqual(config["mcp"]["darkmoon"]["type"], "local")
         self.assertEqual(config["mcp"]["darkmoon"]["command"], ["/usr/local/bin/darkmoon-mcp"])
 

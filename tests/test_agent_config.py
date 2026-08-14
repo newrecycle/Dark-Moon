@@ -19,6 +19,7 @@ import re
 import shutil
 import tempfile
 import unittest
+import urllib.error
 from unittest import mock
 
 import yaml
@@ -213,6 +214,42 @@ Body.
                 generated = self.apply(env)
                 self.assertEqual(generated["model"], expected)
                 self.assertEqual(generated["small_model"], expected)
+
+    def test_nous_local_strategy_falls_back_to_free_set_when_offline(self) -> None:
+        # The `nous` local strategy enumerates the full live catalog from the
+        # provider's /models endpoint. When that endpoint is unreachable
+        # (e.g. offline bootstrap), it must fall back to the curated free set
+        # rather than crashing or emitting an empty model list.
+        env = {
+            "OPENCODE_LOCAL_MODE": "true",
+            "OPENCODE_LOCAL_PROVIDER_ID": "nous",
+            "OPENCODE_LOCAL_PROVIDER_NAME": "Nous",
+            "OPENCODE_LOCAL_BASE_URL": "https://inference-api.nousresearch.com/v1",
+            "OPENCODE_LOCAL_MODEL": "tencent/hy3:free",
+        }
+        offline = urllib.error.URLError("simulated offline bootstrap")
+        with mock.patch("urllib.request.urlopen", side_effect=offline):
+            generated = self.apply(env)
+        self.assertEqual(generated["model"], "nous/tencent/hy3:free")
+        self.assertEqual(generated["small_model"], "nous/tencent/hy3:free")
+        nous = generated["provider"]["nous"]
+        self.assertEqual(nous["npm"], "@ai-sdk/openai-compatible")
+        self.assertEqual(
+            nous["options"]["baseURL"], "https://inference-api.nousresearch.com/v1"
+        )
+        self.assertEqual(
+            set(nous["models"]),
+            {
+                "tencent/hy3:free",
+                "poolside/laguna-s-2.1:free",
+                "poolside/laguna-xs-2.1:free",
+                "upstage/solar-pro4:free",
+            },
+        )
+        # The configured default model must still be present in the fallback set.
+        self.assertIn("tencent/hy3:free", nous["models"])
+        # Fallback is the curated set, not the full live catalog.
+        self.assertNotIn("openai/gpt-4o", nous["models"])
 
     def test_mcp_tool_names_match_permission_wildcard(self) -> None:
         source = (REPO / "mcp" / "src" / "server.py").read_text()

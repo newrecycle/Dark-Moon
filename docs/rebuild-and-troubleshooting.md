@@ -80,11 +80,11 @@ Darkmoon provides a dedicated script:
 
 This script is **essential** if:
 
-* you have modified:
+  * you have modified:
 
-  * agents,
-  * `opencode.json`,
-  * `auth.json`,
+    * agents,
+    * `darkmoon.json` (DarkMoon agent config),
+    * `auth.json`,
 * you have volume conflicts,
 * you want a clean environment,
 * you change the LLM model.
@@ -127,10 +127,10 @@ Do **not** rebuild if:
 docker ps
 ```
 
-### OpenCode Logs
+### DarkMoon Container Logs
 
 ```bash
-docker logs opencode
+docker logs darkmoon
 ```
 
 ### Darkmoon Toolbox Logs

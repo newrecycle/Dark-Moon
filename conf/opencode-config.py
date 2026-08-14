@@ -611,6 +611,120 @@ def _atomic_json(path: Path, data: dict[str, Any], *, mode: int = 0o644) -> None
     temp.replace(path)
 
 
+# Free, text-only, tool-capable (agentic) chat models on the Nous
+# (inference-api.nousresearch.com) provider, with parameters verified
+# against the provider's /models endpoint. Supplied so the local
+# OpenAI-compatible strategy exposes the custom `nous` provider complete
+# with reasoning/effort handling and context/cost metadata.
+_NOUS_FREE_MODELS: dict[str, Any] = {
+    "tencent/hy3:free": {
+        "name": "Hy3:free",
+        "reasoning": True,
+        "limit": {"context": 262144, "output": 128000},
+        "cost": {"input": 0, "output": 0, "cache_read": 0},
+        "modalities": {"input": ["text"], "output": ["text"]},
+        "options": {"reasoningEffort": "high"},
+    },
+    "poolside/laguna-s-2.1:free": {
+        "name": "Laguna S 2.1:free",
+        "reasoning": True,
+        "limit": {"context": 262144, "output": 131072},
+        "cost": {"input": 0, "output": 0, "cache_read": 0},
+        "modalities": {"input": ["text"], "output": ["text"]},
+    },
+    "poolside/laguna-xs-2.1:free": {
+        "name": "Laguna XS 2.1:free",
+        "reasoning": True,
+        "limit": {"context": 262144, "output": 32768},
+        "cost": {"input": 0, "output": 0, "cache_read": 0},
+        "modalities": {"input": ["text"], "output": ["text"]},
+    },
+    "upstage/solar-pro4:free": {
+        "name": "Solar Pro 4:free",
+        "reasoning": False,
+        "limit": {"context": 524288, "output": 131072},
+        "cost": {"input": 0, "output": 0, "cache_read": 0},
+        "modalities": {"input": ["text"], "output": ["text"]},
+    },
+}
+
+
+_ALLOWED_MODALITIES = {"text", "audio", "image", "video", "pdf"}
+
+
+def _nous_model_entry(m: dict[str, Any]) -> dict[str, Any]:
+    """Sanitize one Nous /models entry into an opencode provider model entry."""
+    out: dict[str, Any] = {"name": m.get("name") or m.get("id")}
+    ctx = m.get("context_length")
+    mx = (m.get("top_provider") or {}).get("max_completion_tokens")
+    if isinstance(ctx, (int, float)) and isinstance(mx, (int, float)):
+        out["limit"] = {"context": int(ctx), "output": int(mx)}
+    p = m.get("pricing") or {}
+
+    def _num(v: object) -> float:
+        try:
+            return float(v)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return 0.0
+
+    out["cost"] = {
+        "input": _num(p.get("prompt")),
+        "output": _num(p.get("completion")),
+        "cache_read": _num(p.get("input_cache_read")),
+        "cache_write": _num(p.get("input_cache_write")),
+    }
+    arch = m.get("architecture") or {}
+    im = [x for x in (arch.get("input_modalities") or []) if x in _ALLOWED_MODALITIES]
+    om = [x for x in (arch.get("output_modalities") or []) if x in _ALLOWED_MODALITIES]
+    if im and om:
+        out["modalities"] = {"input": im, "output": om}
+    sp = m.get("supported_parameters") or []
+    out["reasoning"] = "reasoning" in sp
+    if "reasoning_effort" in sp:
+        de = (m.get("reasoning") or {}).get("default_effort")
+        if de:
+            out["options"] = {"reasoningEffort": de}
+    return out
+
+
+def _nous_provider_models(base_url: str) -> dict[str, Any]:
+    """Enumerate the full Nous catalog (like a built-in provider).
+
+    Queries the provider's /models endpoint and sanitizes every entry so the
+    model picker exposes context/cost/reasoning metadata. Falls back to the
+    curated free set if the endpoint is unreachable (e.g. offline bootstrap).
+    """
+    try:
+        import urllib.request
+
+        url = (base_url or "").rstrip("/") + "/models"
+        if not url.startswith("http"):
+            raise ValueError("missing base URL")
+        req = urllib.request.Request(
+            url, headers={"Accept": "application/json", "User-Agent": "opencode-config"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        models = {m["id"]: _nous_model_entry(m) for m in payload.get("data", []) if m.get("id")}
+        if models:
+            return models
+    except Exception:
+        pass
+    return dict(_NOUS_FREE_MODELS)
+
+
+def _local_provider_models(provider_id: str, model_id: str) -> dict[str, Any]:
+    """Model map for a local OpenAI-compatible provider.
+
+    The custom `nous` provider is enumerated in full from the live /models
+    endpoint (like a built-in provider); every other local provider just
+    exposes the single configured model.
+    """
+    if provider_id == "nous":
+        return _nous_provider_models(os.environ.get("OPENCODE_LOCAL_BASE_URL", ""))
+    return {model_id: {"name": model_id}}
+
+
 def render_config(config_file: Path, auth_file: Path) -> str:
     local = (
         os.getenv("OPENCODE_LOCAL_MODE", "false") == "true"
@@ -640,7 +754,7 @@ def render_config(config_file: Path, auth_file: Path) -> str:
                 "npm": "@ai-sdk/openai-compatible",
                 "name": os.getenv("OPENCODE_LOCAL_PROVIDER_NAME", "Local model"),
                 "options": options,
-                "models": {model_id: {"name": model_id}},
+                "models": _local_provider_models(provider_id, model_id),
             }
         }
         strategy = "local OpenAI-compatible"

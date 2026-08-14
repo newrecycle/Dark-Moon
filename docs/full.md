@@ -22,7 +22,7 @@ A platform that allows you to conduct a complete penetration testing campaign
     - [II.3.a Example environment variable](#ii3a-example-environment-variable)
     - [II.3.b Role of the variables](#ii3b-role-of-the-variables)
     - [II.3.d Compatible Models & Hardware](#ii3d-compatible-models--hardware)
-  - [II.4. Automatic generation of OpenCode files](#ii4-automatic-generation-of-opencode-files)
+  - [II.4. Automatic generation of DarkMoon configuration files](#ii4-automatic-generation-of-darkmoon-configuration-files)
   - [II.5. Volumes and persistence](#ii5-volumes-and-persistence)
     - [II.5.a Important volumes](#ii5a-important-volumes)
     - [II.5.b What this allows](#ii5b-what-this-allows)
@@ -43,7 +43,7 @@ A platform that allows you to conduct a complete penetration testing campaign
 - [IV. Architecture](#iv-architecture)
   - [IV.1. Core Idea](#iv1-core-idea)
   - [IV.2. Main Components (Who Does What)](#iv2-main-components-who-does-what)
-    - [IV.2.a. OpenCode — The Brain](#iv2a-opencode--the-brain)
+    - [IV.2.a. Hermes — The Brain](#iv2a-hermes--the-brain)
     - [IV.2.b. AI Agents — The Strategy Layer](#iv2b-ai-agents--the-strategy-layer)
     - [IV.2.c. MCP Darkmoon — The Security Gatekeeper](#iv2c-mcp-darkmoon--the-security-gatekeeper)
     - [IV.2.d. Darkmoon Toolbox — The Real Tools](#iv2d-darkmoon-toolbox--the-real-tools)
@@ -184,9 +184,9 @@ Darkmoon relies on **Docker** and **Docker Compose**.
 
 The important components are :
 
-- an **OpenCode** container (AI + agents),
-- a **Darkmoon Toolbox** container (pentest tools),
-- **shared volumes** for configuration.
+- the **Hermes** LLM brain (runs on the host, outside the container),
+- a single **Darkmoon** container (`darkmoon-plugin`: the MCP gatekeeper + pentest toolbox),
+- **shared volumes** for configuration and runtime state.
 
 ---
 
@@ -456,7 +456,7 @@ This ensures **maximum stability across Linux, WSL, and Docker Desktop environme
 
 ## II.3. Configuration of environment variables
 
-LLM provider configuration is no longer done in `docker-compose.yml`. It is now handled interactively by `install.sh`, which generates a `.opencode.env` file at the root of the project. This file is automatically loaded by Docker Compose at startup.
+The LLM brain (**Hermes**) is configured on the host (via its own provider setup). `install.sh` prepares the **DarkMoon container** environment: it generates a `.opencode.env` file at the root of the project — the container's env seed (API keys for the MCP toolbox and the provider base URL used by the wrapper's preflight check). Docker Compose loads it into the `darkmoon-plugin` container at startup.
 
 [Back to Summary](#summary)
 
@@ -504,11 +504,14 @@ API key (optional — leave empty if none): ****
 ```
 
 > [!NOTE]
-> The model name must be a **recognized Claude model id** (e.g. `claude-opus-4-6`) — opencode routes it through its native Anthropic provider, and your endpoint maps it to the actual served model (often via the base URL path). The API key is **optional**: leave it empty for keyless endpoints (a harmless placeholder is written so the Anthropic SDK stays happy).
+> The model name must be a **recognized Claude model id** (e.g. `claude-opus-4-6`) — the DarkMoon container reaches your provider through the configured base URL, and your endpoint maps it to the actual served model (often via the base URL path). The API key is **optional**: leave it empty for keyless endpoints (a harmless placeholder is written so the provider SDK stays happy).
 
 [Back to Summary](#summary)
 
-### II.3.b Generated .opencode.env file
+### II.3.b Generated `.opencode.env` file (container env seed)
+
+> [!NOTE]
+> `.opencode.env` configures the **DarkMoon container** (the MCP toolbox's provider access). The Hermes brain on the host is configured separately. These values are loaded into the `darkmoon-plugin` container at startup.
 
 **Cloud provider:**
 
@@ -577,7 +580,7 @@ ANTHROPIC_API_KEY=sk-...
 > No secret is stored in the Docker image or in `docker-compose.yml`. All credentials are isolated in `.opencode.env` which is excluded from version control.
 
 > [!NOTE]
-> For local models, the local server (Ollama or llama.cpp) must be running and accessible **before** starting the Darkmoon stack. The local server must be on the same Docker network as the `opencode` container. See [network configuration](#) for details.
+> For local models, the local server (Ollama or llama.cpp) must be running and accessible **before** starting the Darkmoon stack. The local server must be on the same Docker network as the `darkmoon` container. See [network configuration](#) for details.
 
 [Back to Summary](#summary)
 
@@ -668,17 +671,17 @@ The Opus-class models above are 355B–1T-parameter MoE. Figures assume the list
 
 [Back to Summary](#summary)
 
-## II.4. Automatic generation of OpenCode files
+## II.4. Automatic generation of DarkMoon configuration files
 
-On first launch, Darkmoon :
+On first launch, the Darkmoon container :
 
-1. reads the variables,
-2. automatically generates :
-   - `opencode.json`,
-   - `auth.json`,
+1. reads the variables from `.opencode.env`,
+2. automatically generates the container configuration :
+   - `darkmoon.json` (the DarkMoon agent config),
+   - `auth.json` (provider auth state),
 
-3. configures the main agent,
-4. initializes OpenCode.
+3. configures the `pentest` agent,
+4. initializes the DarkMoon MCP / configuration pipeline.
 
 All of this is done by the script :
 
@@ -689,7 +692,7 @@ conf/apply-settings.sh
 > [!IMPORTANT]
 > You **do not need to generate anything manually**.
 
-You can choose not to fill in the variables, in which case the default opencode model `opencode/big-pickle` will be executed
+You can choose not to fill in the variables, in which case the container falls back to its built-in default agent configuration.
 
 [Back to Summary](#summary)
 
@@ -713,7 +716,7 @@ Configuration files are persisted via Docker volumes.
 
 - Modify the configuration **without rebuild**
 - Add or modify AI agents
-- Keep logs and OpenCode state
+- Keep logs and Darkmoon runtime state
 
 ## II.6. Build and launch Darkmoon
 
@@ -1358,17 +1361,17 @@ This makes it suitable for **industrial-grade security assessments**.
 
 ## II.8. Direct access to the container (debug)
 
-It is possible to enter the OpenCode container directly :
+It is possible to enter the Darkmoon container directly :
 
 ```bash
-docker exec -ti opencode bash
+docker compose exec darkmoon bash
 ```
 
 This allows :
 
 - to inspect files,
 - to modify agents,
-- to test OpenCode directly.
+- to inspect the Darkmoon container directly.
 
 [Back to Summary](#summary)
 
@@ -1377,7 +1380,7 @@ This allows :
 | Action                    | Where                             |
 | ------------------------- | --------------------------------- |
 | Change the LLM model      | `.env`                            |
-| Modify `opencode.json`    | `darkmoon-settings/opencode.json` |
+| Modify `darkmoon.json` (agent config) | `darkmoon-settings/darkmoon.json` |
 | Modify `auth.json`        | `darkmoon-settings/auth.json`     |
 | Add an agent              | `darkmoon-settings/agents/`       |
 | Add an agent before build | `conf/agents/`                    |
@@ -1474,9 +1477,9 @@ The AI is responsible for reasoning, planning, and decision-making, but it does 
 
 ## IV.2. Main Components (Who Does What)
 
-### IV.2.a. OpenCode — The Brain
+### IV.2.a. Hermes — The Brain
 
-OpenCode acts as the central orchestrator of the system. It communicates with the LLM, manages AI agents, determines the next actions to perform, and calls the MCP whenever a real-world action is required. Importantly, OpenCode never executes any pentesting tool directly. It strictly remains at the orchestration and reasoning level.
+Hermes acts as the central orchestrator (the LLM brain) of the system. It runs on the host, outside the container. It communicates with the LLM, manages AI agents, determines the next actions to perform, and calls the DarkMoon MCP whenever a real-world action is required. Importantly, Hermes never executes any pentesting tool directly. It strictly remains at the orchestration and reasoning level.
 
 [Back to Summary](#summary)
 
@@ -1512,23 +1515,23 @@ Docker is used to isolate system components from each other and from the host sy
 
 ## IV.3. Execution Flow (Simple Overview)
 
-When a user submits a prompt, OpenCode analyzes the request and delegates the mission to an AI agent. The agent determines the appropriate strategy and, when an action is needed, calls a function exposed by the MCP. The MCP then executes the corresponding tool inside the Docker-based Toolbox. Results are returned to the MCP, passed back to the agent in structured form, and used to determine the next step or produce a final report. The entire flow remains controlled and traceable.
+When a user submits a prompt, the Hermes brain analyzes the request and delegates the mission to an AI agent. The agent determines the appropriate strategy and, when an action is needed, calls a function exposed by the MCP. The MCP then executes the corresponding tool inside the Docker-based Toolbox. Results are returned to the MCP, passed back to the agent in structured form, and used to determine the next step or produce a final report. The entire flow remains controlled and traceable.
 
 [Back to Summary](#summary)
 
 ### IV.3.a Deployment diagram
 
-This diagram illustrates the overall architecture and data flow of the system. The User interacts with the platform through a command-line interface or prompt sent to DarkmoonCLI. This interface forwards the request to OpenCode, which acts as the orchestration layer responsible for managing AI-driven tasks.
+This diagram illustrates the overall architecture and data flow of the system. The User interacts with the platform through the Darkmoon wrapper (or the Hermes plugin) on the host. This interface forwards the request to the Hermes brain, which acts as the orchestration layer responsible for managing AI-driven tasks.
 
-OpenCode communicates with MCP (Model Context Protocol) to access external capabilities.
+Hermes communicates with the DarkMoon MCP (Model Context Protocol) to access external capabilities.
 
 MCP then interacts with the Toolbox, a collection of tools executed through the Docker API, allowing isolated and reproducible execution environments. This layered architecture separates the user interface, AI orchestration, tool abstraction, and actual execution of security tools.
 
 ```mermaid
 flowchart LR
   User -->|CLI / Prompt| DarkmoonCLI
-  DarkmoonCLI --> OpenCode
-  OpenCode --> MCP
+  DarkmoonCLI --> Hermes
+  Hermes --> MCP
   MCP -->|Docker API| Toolbox
 ```
 
@@ -1536,16 +1539,16 @@ flowchart LR
 
 ### IV.3.b Network flow diagram
 
-This sequence diagram describes the step-by-step interaction between the user, the AI system, and the execution environment. The process begins when the User submits a prompt to OpenCode. OpenCode delegates the task to an AI Agent, which determines the appropriate actions to perform. The agent calls a function exposed through MCP Darkmoon, which serves as a standardized interface to external tools.
+This sequence diagram describes the step-by-step interaction between the user, the AI system, and the execution environment. The process begins when the User submits a prompt (via the Darkmoon wrapper / Hermes plugin). Hermes delegates the task to an AI Agent, which determines the appropriate actions to perform. The agent calls a function exposed through the DarkMoon MCP, which serves as a standardized interface to external tools.
 
 MCP then triggers the execution of a real tool inside the Docker Toolbox. Once the tool finishes its execution, the results are returned to MCP, which formats them into a structured output.
 
-The AI agent analyzes these results to decide the next action or produce a conclusion. Finally, OpenCode delivers a summarized result back to the user.
+The AI agent analyzes these results to decide the next action or produce a conclusion. Finally, Hermes (via the Darkmoon wrapper) delivers the result back to the user.
 
 ```mermaid
 sequenceDiagram
   participant U as User
-  participant O as OpenCode
+  participant O as Hermes
   participant A as AI Agent
   participant M as MCP Darkmoon
   participant T as Docker Toolbox
@@ -1643,7 +1646,7 @@ Target audience:
 A Darkmoon agent is:
 
 - a **Markdown file**,
-- loaded by OpenCode,
+- loaded by the DarkMoon agent configuration (rendered from `conf/agents/`),
 - that defines **autonomous behavior**,
 - and controls the MCP to perform real actions.
 
@@ -1827,7 +1830,7 @@ Advantages:
 
 ## V.7. Agent Lifecycle
 
-1. OpenCode starts
+1. The Darkmoon container starts
 2. Checks if agents already exist
 3. Initial seed if needed
 4. Dynamic loading
