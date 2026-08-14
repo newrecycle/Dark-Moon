@@ -1,0 +1,629 @@
+{
+  "generated_by": "audit_toolbox.py",
+  "source_files": [
+    "Dockerfile",
+    "setup.sh",
+    "setup_py.sh",
+    "setup_ruby.sh"
+  ],
+  "total_records": 68,
+  "counts": {
+    "exact_reproducible": 64,
+    "host_or_build_only": 3,
+    "floating_unpinned": 1
+  },
+  "records": [
+    {
+      "id": "bash",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/bin/bash",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "ca-certificates",
+      "class": "apt",
+      "exposure": "support-only",
+      "resolved_version": "distro",
+      "install_location": "/usr/share/ca-certificates",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "tzdata",
+      "class": "apt",
+      "exposure": "support-only",
+      "resolved_version": "distro",
+      "install_location": "/usr/share/zoneinfo",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "dnsutils",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/dig",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "curl-apt",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/curl",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "jq",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/jq",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "hydra",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/hydra",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "snmp",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/snmpwalk",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "openssh-client",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/ssh",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "acl",
+      "class": "apt",
+      "exposure": "support-only",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/setfacl",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "inotify-tools",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/inotifywait",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "git",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/git",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "postgresql-client",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/psql",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "default-mysql-client",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/mysql",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "redis-tools",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/redis-cli",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "binwalk",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/binwalk",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "squashfs-tools",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/unsquashfs",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "netcat-openbsd",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/bin/nc",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "john",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/sbin/john",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "sqlite3",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/sqlite3",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "arp-scan",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/arp-scan",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "nmap",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/nmap",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "medusa",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/medusa",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "ncrack",
+      "class": "apt",
+      "exposure": "callable",
+      "resolved_version": "distro",
+      "install_location": "/usr/bin/ncrack",
+      "status": "exact_reproducible",
+      "detail": "apt package installed; version pinned by immutable base image tag"
+    },
+    {
+      "id": "nvidia-container-toolkit",
+      "class": "apt",
+      "exposure": "host-only",
+      "resolved_version": "distro",
+      "install_location": "host",
+      "status": "host_or_build_only",
+      "detail": "not expected in runtime image"
+    },
+    {
+      "id": "rocm-hip-sdk",
+      "class": "apt",
+      "exposure": "host-only",
+      "resolved_version": "distro",
+      "install_location": "host",
+      "status": "host_or_build_only",
+      "detail": "not expected in runtime image"
+    },
+    {
+      "id": "rocm-opencl-runtime",
+      "class": "apt",
+      "exposure": "host-only",
+      "resolved_version": "distro",
+      "install_location": "host",
+      "status": "host_or_build_only",
+      "detail": "not expected in runtime image"
+    },
+    {
+      "id": "impacket",
+      "class": "pip",
+      "exposure": "callable",
+      "resolved_version": "4c09897a8645818e873787f2c79ec1bce90c5777",
+      "install_location": "/opt/darkmoon/python/bin",
+      "status": "exact_reproducible",
+      "detail": "pip install impacket==4c09897a8645818e873787f2c79ec1bce90c5777 present"
+    },
+    {
+      "id": "netexec",
+      "class": "pip",
+      "exposure": "callable",
+      "resolved_version": "v1.4.0",
+      "install_location": "/opt/darkmoon/python/bin",
+      "status": "exact_reproducible",
+      "detail": "pip install Pennyw0rth/NetExec==v1.4.0 present"
+    },
+    {
+      "id": "bloodhound",
+      "class": "pip",
+      "exposure": "callable",
+      "resolved_version": "1.7.2",
+      "install_location": "/opt/darkmoon/python/bin",
+      "status": "exact_reproducible",
+      "detail": "pip install bloodhound==1.7.2 present"
+    },
+    {
+      "id": "wafw00f",
+      "class": "pip",
+      "exposure": "callable",
+      "resolved_version": "2.4.2",
+      "install_location": "/opt/darkmoon/python/bin",
+      "status": "exact_reproducible",
+      "detail": "pip install wafw00f==2.4.2 present"
+    },
+    {
+      "id": "sqlmap",
+      "class": "pip",
+      "exposure": "callable",
+      "resolved_version": "1.10.8",
+      "install_location": "/opt/darkmoon/python/bin",
+      "status": "exact_reproducible",
+      "detail": "pip install sqlmap==1.10.8 present"
+    },
+    {
+      "id": "arjun",
+      "class": "pip",
+      "exposure": "callable",
+      "resolved_version": "2.2.7",
+      "install_location": "/opt/darkmoon/python/bin",
+      "status": "exact_reproducible",
+      "detail": "pip install arjun==2.2.7 present"
+    },
+    {
+      "id": "awscli",
+      "class": "pip",
+      "exposure": "callable",
+      "resolved_version": "1.46.0",
+      "install_location": "/opt/darkmoon/python/bin",
+      "status": "exact_reproducible",
+      "detail": "pip install awscli==1.46.0 present"
+    },
+    {
+      "id": "azure-cli",
+      "class": "pip",
+      "exposure": "callable",
+      "resolved_version": "2.76.0",
+      "install_location": "/opt/darkmoon/python/bin/az",
+      "status": "exact_reproducible",
+      "detail": "pip install azure-cli==2.76.0 present"
+    },
+    {
+      "id": "ldapdomaindump",
+      "class": "pip",
+      "exposure": "callable",
+      "resolved_version": "0.10.0",
+      "install_location": "/opt/darkmoon/python/bin",
+      "status": "exact_reproducible",
+      "detail": "pip install ldapdomaindump==0.10.0 present"
+    },
+    {
+      "id": "bundler",
+      "class": "gem",
+      "exposure": "support-only",
+      "resolved_version": "2.7.2",
+      "install_location": "/opt/darkmoon/ruby/bin",
+      "status": "exact_reproducible",
+      "detail": "gem install bundler -v 2.7.2 present"
+    },
+    {
+      "id": "kube-bench",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v0.16.0",
+      "install_location": "/usr/local/bin/kube-bench",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v0.16.0"
+    },
+    {
+      "id": "nuclei",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v3.11.1",
+      "install_location": "/usr/local/bin/nuclei",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v3.11.1"
+    },
+    {
+      "id": "zgrab2",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v1.0.0",
+      "install_location": "/usr/local/bin/zgrab2",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v1.0.0"
+    },
+    {
+      "id": "katana",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v1.7.0",
+      "install_location": "/usr/local/bin/katana",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v1.7.0"
+    },
+    {
+      "id": "waybackurls",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v0.1.0",
+      "install_location": "/usr/local/bin/waybackurls",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v0.1.0"
+    },
+    {
+      "id": "naabu",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v2.6.1",
+      "install_location": "/usr/local/bin/naabu",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v2.6.1"
+    },
+    {
+      "id": "httpx",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v1.10.0",
+      "install_location": "/usr/local/bin/httpx",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v1.10.0"
+    },
+    {
+      "id": "kubescape",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v3.0.9",
+      "install_location": "/usr/local/bin/kubescape",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v3.0.9"
+    },
+    {
+      "id": "kubectl-who-can",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v0.4.0",
+      "install_location": "/usr/local/bin/kubectl-who-can",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v0.4.0"
+    },
+    {
+      "id": "kubeletctl",
+      "class": "binary",
+      "exposure": "callable",
+      "resolved_version": "v1.13",
+      "install_location": "/usr/local/bin/kubeletctl",
+      "status": "exact_reproducible",
+      "detail": "resolved version v1.13 present in build"
+    },
+    {
+      "id": "rbac-police",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v1.1.2",
+      "install_location": "/usr/local/bin/rbac-police",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v1.1.2"
+    },
+    {
+      "id": "ffuf",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v2.2.1",
+      "install_location": "/usr/local/bin/ffuf",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v2.2.1"
+    },
+    {
+      "id": "subfinder",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v2.15.0",
+      "install_location": "/usr/local/bin/subfinder",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v2.15.0"
+    },
+    {
+      "id": "vulnx",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v1.0.0",
+      "install_location": "/usr/local/bin/vulnx",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v1.0.0"
+    },
+    {
+      "id": "grpcurl",
+      "class": "go",
+      "exposure": "callable",
+      "resolved_version": "v1.9.3",
+      "install_location": "/usr/local/bin/grpcurl",
+      "status": "exact_reproducible",
+      "detail": "go install / asset pinned to v1.9.3"
+    },
+    {
+      "id": "curl-8.15.0",
+      "class": "source",
+      "exposure": "callable",
+      "resolved_version": "8.15.0",
+      "install_location": "/opt/darkmoon/curl/bin/curl",
+      "status": "exact_reproducible",
+      "detail": "resolved version 8.15.0 present in build"
+    },
+    {
+      "id": "dirb",
+      "class": "source",
+      "exposure": "callable",
+      "resolved_version": "2.22",
+      "install_location": "/usr/local/bin/dirb",
+      "status": "exact_reproducible",
+      "detail": "resolved version 2.22 present in build"
+    },
+    {
+      "id": "kubectl",
+      "class": "binary",
+      "exposure": "callable",
+      "resolved_version": "v1.34.2",
+      "install_location": "/usr/local/bin/kubectl",
+      "status": "exact_reproducible",
+      "detail": "resolved version v1.34.2 present in build"
+    },
+    {
+      "id": "ruby",
+      "class": "source",
+      "exposure": "support-only",
+      "resolved_version": "3.3.5",
+      "install_location": "/opt/darkmoon/ruby/bin/ruby",
+      "status": "exact_reproducible",
+      "detail": "resolved version 3.3.5 present in build"
+    },
+    {
+      "id": "python3",
+      "class": "source",
+      "exposure": "support-only",
+      "resolved_version": "3.12.6",
+      "install_location": "/opt/darkmoon/python/bin/python3",
+      "status": "exact_reproducible",
+      "detail": "resolved version 3.12.6 present in build"
+    },
+    {
+      "id": "pip3",
+      "class": "source",
+      "exposure": "support-only",
+      "resolved_version": "bundled",
+      "install_location": "/opt/darkmoon/python/bin/pip3",
+      "status": "exact_reproducible",
+      "detail": "bundled with the pinned parent build (reproducible)"
+    },
+    {
+      "id": "whatweb",
+      "class": "binary",
+      "exposure": "callable",
+      "resolved_version": "v0.6.4",
+      "install_location": "/usr/local/bin/whatweb",
+      "status": "exact_reproducible",
+      "detail": "resolved version v0.6.4 present in build"
+    },
+    {
+      "id": "lightpanda",
+      "class": "binary",
+      "exposure": "callable",
+      "resolved_version": "nightly",
+      "install_location": "/usr/local/bin/lightpanda",
+      "status": "floating_unpinned",
+      "detail": "documented upstream-rolling (nightly); accepted exception"
+    },
+    {
+      "id": "wpscan",
+      "class": "gem",
+      "exposure": "callable",
+      "resolved_version": "4.1.0",
+      "install_location": "/usr/local/bin/wpscan",
+      "status": "exact_reproducible",
+      "detail": "gem install wpscan -v 4.1.0 present"
+    },
+    {
+      "id": "cmseek",
+      "class": "binary",
+      "exposure": "callable",
+      "resolved_version": "v.1.1.3",
+      "install_location": "/usr/local/bin/cmseek",
+      "status": "exact_reproducible",
+      "detail": "resolved version v.1.1.3 present in build"
+    },
+    {
+      "id": "nuclei-templates",
+      "class": "binary",
+      "exposure": "support-only",
+      "resolved_version": "v10.4.7",
+      "install_location": "/opt/darkmoon/nuclei-templates",
+      "status": "exact_reproducible",
+      "detail": "resolved version v10.4.7 present in build"
+    },
+    {
+      "id": "google-cloud-sdk",
+      "class": "binary",
+      "exposure": "callable",
+      "resolved_version": "490.0.0",
+      "install_location": "/opt/google-cloud-sdk/bin/gcloud",
+      "status": "exact_reproducible",
+      "detail": "resolved version 490.0.0 present in build"
+    },
+    {
+      "id": "hashcat",
+      "class": "binary",
+      "exposure": "callable",
+      "resolved_version": "6.2.6",
+      "install_location": "/opt/hashcat/hashcat.bin",
+      "status": "exact_reproducible",
+      "detail": "resolved version 6.2.6 present in build"
+    },
+    {
+      "id": "sasquatch",
+      "class": "binary",
+      "exposure": "callable",
+      "resolved_version": "sasquatch-v4.5.1-6",
+      "install_location": "/usr/bin/sasquatch",
+      "status": "exact_reproducible",
+      "detail": "resolved version sasquatch-v4.5.1-6 present in build"
+    },
+    {
+      "id": "firmwalker",
+      "class": "binary",
+      "exposure": "callable",
+      "resolved_version": "23ff299980319b7f1b623817a176e06dda143b45",
+      "install_location": "/usr/local/bin/firmwalker",
+      "status": "exact_reproducible",
+      "detail": "resolved version 23ff299980319b7f1b623817a176e06dda143b45 present in build"
+    },
+    {
+      "id": "finalrecon",
+      "class": "binary",
+      "exposure": "callable",
+      "resolved_version": "v1.1.6",
+      "install_location": "/usr/local/bin/finalrecon",
+      "status": "exact_reproducible",
+      "detail": "resolved version v1.1.6 present in build"
+    }
+  ]
+}

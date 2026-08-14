@@ -1,0 +1,2295 @@
+{
+  "schema_version": "1.0",
+  "generated": "2026-08-14",
+  "source_of_truth": "/home/justin/darkmoon_tool_manifest.md",
+  "runtime_distribution": "ubuntu:22.04 (nvidia/cuda:13.1.0-devel-ubuntu22.04)",
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "exposure_classes": [
+    "callable",
+    "support-only",
+    "build-only",
+    "host-only",
+    "blocked"
+  ],
+  "records": [
+    {
+      "id": "bash",
+      "class": "apt",
+      "category": "system",
+      "upstream": "bash",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "bash"
+      ],
+      "aliases": [],
+      "install_location": "/bin/bash",
+      "paths": [
+        "/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "apt (distro pinned by base image digest)",
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "bash --version | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' bash",
+      "notes": ""
+    },
+    {
+      "id": "ca-certificates",
+      "class": "apt",
+      "category": "system",
+      "upstream": "ca-certificates",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [],
+      "aliases": [],
+      "install_location": "/usr/share/ca-certificates",
+      "paths": [
+        "/usr/share/ca-certificates"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "support-only",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "test -d /etc/ssl/certs",
+      "version_assert": "dpkg-query -W -f='${Version}' ca-certificates",
+      "notes": ""
+    },
+    {
+      "id": "tzdata",
+      "class": "apt",
+      "category": "system",
+      "upstream": "tzdata",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [],
+      "aliases": [],
+      "install_location": "/usr/share/zoneinfo",
+      "paths": [
+        "/usr/share/zoneinfo"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "support-only",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "test -f /usr/share/zoneinfo/UTC",
+      "version_assert": "dpkg-query -W -f='${Version}' tzdata",
+      "notes": ""
+    },
+    {
+      "id": "dnsutils",
+      "class": "apt",
+      "category": "dns",
+      "upstream": "dnsutils",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "dig",
+        "nslookup"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/dig",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "dig -v 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' dnsutils",
+      "notes": ""
+    },
+    {
+      "id": "curl-apt",
+      "class": "apt",
+      "category": "system",
+      "upstream": "curl",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "curl"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/curl",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "command -v curl && curl --version | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' curl",
+      "notes": "System curl. Shadowed in PATH by the custom curl-8.15.0 build (/opt/darkmoon/curl/bin precedes /usr/bin). Both are real and verified.",
+      "allow_exec_collision": true
+    },
+    {
+      "id": "jq",
+      "class": "apt",
+      "category": "system",
+      "upstream": "jq",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "jq"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/jq",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "jq --version",
+      "version_assert": "dpkg-query -W -f='${Version}' jq",
+      "notes": ""
+    },
+    {
+      "id": "hydra",
+      "class": "apt",
+      "category": "cred",
+      "upstream": "hydra",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "hydra"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/hydra",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "hydra --version 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' hydra",
+      "notes": ""
+    },
+    {
+      "id": "snmp",
+      "class": "apt",
+      "category": "recon",
+      "upstream": "snmp",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "snmpwalk",
+        "snmpget",
+        "snmpstatus",
+        "snmptranslate"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/snmpwalk",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "snmpwalk --version 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' snmp",
+      "notes": ""
+    },
+    {
+      "id": "openssh-client",
+      "class": "apt",
+      "category": "system",
+      "upstream": "openssh-client",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "ssh",
+        "scp",
+        "ssh-keygen"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/ssh",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "ssh -V 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' openssh-client",
+      "notes": ""
+    },
+    {
+      "id": "acl",
+      "class": "apt",
+      "category": "system",
+      "upstream": "acl",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "setfacl",
+        "getfacl"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/setfacl",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "support-only",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "setfacl --version 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' acl",
+      "notes": ""
+    },
+    {
+      "id": "inotify-tools",
+      "class": "apt",
+      "category": "system",
+      "upstream": "inotify-tools",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "inotifywait",
+        "inotifywatch"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/inotifywait",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "inotifywait --version 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' inotify-tools",
+      "notes": ""
+    },
+    {
+      "id": "git",
+      "class": "apt",
+      "category": "system",
+      "upstream": "git",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "git"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/git",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "git --version",
+      "version_assert": "dpkg-query -W -f='${Version}' git",
+      "notes": ""
+    },
+    {
+      "id": "postgresql-client",
+      "class": "apt",
+      "category": "db",
+      "upstream": "postgresql-client",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "psql"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/psql",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "psql --version 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' postgresql-client",
+      "notes": ""
+    },
+    {
+      "id": "default-mysql-client",
+      "class": "apt",
+      "category": "db",
+      "upstream": "default-mysql-client",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "mysql",
+        "mysqladmin"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/mysql",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "mysql --version 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' default-mysql-client",
+      "notes": ""
+    },
+    {
+      "id": "redis-tools",
+      "class": "apt",
+      "category": "db",
+      "upstream": "redis-tools",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "redis-cli"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/redis-cli",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "redis-cli --version 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' redis-tools",
+      "notes": ""
+    },
+    {
+      "id": "binwalk",
+      "class": "apt",
+      "category": "firmware",
+      "upstream": "binwalk",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "binwalk"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/binwalk",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "command -v binwalk",
+      "version_assert": "dpkg-query -W -f='${Version}' binwalk",
+      "notes": ""
+    },
+    {
+      "id": "squashfs-tools",
+      "class": "apt",
+      "category": "firmware",
+      "upstream": "squashfs-tools",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "unsquashfs"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/unsquashfs",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "command -v unsquashfs",
+      "version_assert": "dpkg-query -W -f='${Version}' squashfs-tools",
+      "notes": ""
+    },
+    {
+      "id": "netcat-openbsd",
+      "class": "apt",
+      "category": "system",
+      "upstream": "netcat-openbsd",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "nc"
+      ],
+      "aliases": [],
+      "install_location": "/bin/nc",
+      "paths": [
+        "/bin",
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "command -v nc",
+      "version_assert": "dpkg-query -W -f='${Version}' netcat-openbsd",
+      "notes": ""
+    },
+    {
+      "id": "john",
+      "class": "apt",
+      "category": "cred",
+      "upstream": "john",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "john",
+        "unshadow",
+        "7z2john"
+      ],
+      "aliases": [],
+      "install_location": "/usr/sbin/john",
+      "paths": [
+        "/usr/sbin",
+        "/usr/bin",
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "command -v john",
+      "version_assert": "dpkg-query -W -f='${Version}' john",
+      "notes": "7z2john wrapper is created by the Dockerfile from openwall/john bleeding-jumbo; unshadow ships with the john package."
+    },
+    {
+      "id": "sqlite3",
+      "class": "apt",
+      "category": "system",
+      "upstream": "sqlite3",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "sqlite3"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/sqlite3",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "sqlite3 --version 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' sqlite3",
+      "notes": ""
+    },
+    {
+      "id": "arp-scan",
+      "class": "apt",
+      "category": "recon",
+      "upstream": "arp-scan",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "arp-scan"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/arp-scan",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "command -v arp-scan",
+      "version_assert": "dpkg-query -W -f='${Version}' arp-scan",
+      "notes": ""
+    },
+    {
+      "id": "nmap",
+      "class": "apt",
+      "category": "recon",
+      "upstream": "nmap",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "nmap"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/nmap",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "nmap --version 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' nmap",
+      "notes": "Added to align the image with the documented toolbox (README/VI.10 list nmap as the service-probe scanner alongside Naabu)."
+    },
+    {
+      "id": "medusa",
+      "class": "apt",
+      "category": "cred",
+      "upstream": "medusa",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "medusa"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/medusa",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "medusa 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' medusa",
+      "notes": "Added to align the image with docs/full.md (network brute-forcers grouped with hydra/ncrack)."
+    },
+    {
+      "id": "ncrack",
+      "class": "apt",
+      "category": "cred",
+      "upstream": "ncrack",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "ncrack"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/ncrack",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "ncrack 2>&1 | head -1",
+      "version_assert": "dpkg-query -W -f='${Version}' ncrack",
+      "notes": "Added to align the image with docs/full.md (network brute-forcers grouped with hydra/medusa)."
+    },
+    {
+      "id": "nvidia-container-toolkit",
+      "class": "apt",
+      "category": "gpu-host",
+      "upstream": "nvidia-container-toolkit",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [],
+      "aliases": [],
+      "install_location": "host",
+      "paths": [],
+      "data_dirs": [],
+      "checksum_source": "host package manager",
+      "sha256": null,
+      "install_method": null,
+      "exposure": "host-only",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "echo 'host-only: not installed in image'",
+      "version_assert": "n/a (host-only)",
+      "notes": ""
+    },
+    {
+      "id": "rocm-hip-sdk",
+      "class": "apt",
+      "category": "gpu-host",
+      "upstream": "rocm-hip-sdk",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [],
+      "aliases": [],
+      "install_location": "host",
+      "paths": [],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "host-only",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "echo 'host-only: not installed in image'",
+      "version_assert": "n/a (host-only)",
+      "notes": ""
+    },
+    {
+      "id": "rocm-opencl-runtime",
+      "class": "apt",
+      "category": "gpu-host",
+      "upstream": "rocm-opencl-runtime",
+      "requested_version": "distro",
+      "resolved_version": "distro",
+      "resolved_ref": "distro",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [],
+      "aliases": [],
+      "install_location": "host",
+      "paths": [],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "host-only",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "echo 'host-only: not installed in image'",
+      "version_assert": "n/a (host-only)",
+      "notes": ""
+    },
+    {
+      "id": "impacket",
+      "class": "pip",
+      "category": "ad",
+      "upstream": "impacket",
+      "requested_version": "git commit 4c09897a (pinned to match netexec's dependency)",
+      "resolved_version": "4c09897a8645818e873787f2c79ec1bce90c5777",
+      "resolved_ref": "4c09897a8645818e873787f2c79ec1bce90c5777",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "Get-GPPPassword.py",
+        "GetADComputers.py",
+        "GetADUsers.py",
+        "GetLAPSPassword.py",
+        "GetNPUsers.py",
+        "GetUserSPNs.py",
+        "addcomputer.py",
+        "atexec.py",
+        "badsuccessor.py",
+        "changepasswd.py",
+        "dcomexec.py",
+        "dpapi.py",
+        "esentutl.py",
+        "exchange.py",
+        "filetime.py",
+        "findDelegation.py",
+        "getArch.py",
+        "getPac.py",
+        "getST.py",
+        "getTGT.py",
+        "goldenPac.py",
+        "jp.py",
+        "keylistattack.py",
+        "lookupsid.py",
+        "mimikatz.py",
+        "mqtt_check.py",
+        "mssqlclient.py",
+        "mssqlinstance.py",
+        "net.py",
+        "netview.py",
+        "ntfs-read.py",
+        "ntlmrelayx.py",
+        "owneredit.py",
+        "ping.py",
+        "psexec.py",
+        "raiseChild.py",
+        "rdp_check.py",
+        "registry-read.py",
+        "regsecrets.py",
+        "rpcdump.py",
+        "rpcmap.py",
+        "sambaPipe.py",
+        "samedit.py",
+        "samrdump.py",
+        "secretsdump.py",
+        "services.py",
+        "smbclient.py",
+        "smbexec.py",
+        "smbserver.py",
+        "sniff.py",
+        "sniffer.py",
+        "ticketConverter.py",
+        "ticketer.py",
+        "tstool.py",
+        "wmiexec.py",
+        "wmipersist.py",
+        "wmiquery.py"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/python/bin",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/fortra/impacket/commit/4c09897a8645818e873787f2c79ec1bce90c5777",
+      "sha256": null,
+      "install_method": "pip install \"impacket @ git+https://github.com/fortra/impacket.git@4c09897a8645818e873787f2c79ec1bce90c5777\"",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "python3 -c 'import impacket,sys; print(impacket.__version__)'",
+      "version_assert": "import importlib.metadata as m; assert '4c09897a' in m.version('impacket')",
+      "notes": ""
+    },
+    {
+      "id": "netexec",
+      "class": "pip",
+      "category": "ad",
+      "upstream": "Pennyw0rth/NetExec",
+      "requested_version": "@v1.4.0",
+      "resolved_version": "v1.4.0",
+      "resolved_ref": "806e4c73b21fca54b5a6b79cf39fde5c01c89a45",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "nxc",
+        "netexec",
+        "minikerberos-asreproast",
+        "minikerberos-ccache2kirbi",
+        "minikerberos-ccacheedit",
+        "minikerberos-ccacheroast",
+        "minikerberos-cve202233647",
+        "minikerberos-cve202233679",
+        "minikerberos-getNTPKInit",
+        "minikerberos-getS4U2proxy",
+        "minikerberos-getS4U2self",
+        "minikerberos-getTGS",
+        "minikerberos-getTGT",
+        "minikerberos-keylist",
+        "minikerberos-kirbi2ccache",
+        "minikerberos-pw"
+      ],
+      "aliases": [
+        "crackmapexec"
+      ],
+      "install_location": "/opt/darkmoon/python/bin",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/Pennyw0rth/NetExec/releases/tag/v1.4.0",
+      "sha256": null,
+      "install_method": "pip install git+https://github.com/Pennyw0rth/NetExec.git@v1.4.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "netexec --version 2>&1 | head -1",
+      "version_assert": "netexec --version reports v1.4.0",
+      "notes": ""
+    },
+    {
+      "id": "bloodhound",
+      "class": "pip",
+      "category": "ad",
+      "upstream": "bloodhound",
+      "requested_version": "==1.7.2",
+      "resolved_version": "1.7.2",
+      "resolved_ref": "1.7.2",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "bloodhound"
+      ],
+      "aliases": [
+        "bloodhound-python"
+      ],
+      "install_location": "/opt/darkmoon/python/bin",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://pypi.org/project/bloodhound/1.7.2/",
+      "sha256": null,
+      "install_method": "pip install bloodhound==1.7.2",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "python3 -c 'import bloodhound,sys; print(bloodhound.__version__)'",
+      "version_assert": "import importlib.metadata as m; assert m.version('bloodhound')=='1.7.2'",
+      "notes": "MISSING in current image: setup_py.sh never installs bloodhound; the bloodhound-python wrapper execs a non-existent binary. Added in Phase 4."
+    },
+    {
+      "id": "wafw00f",
+      "class": "pip",
+      "category": "web",
+      "upstream": "wafw00f",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "2.4.2",
+      "resolved_ref": "2.4.2",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "wafw00f"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/python/bin",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://pypi.org/project/wafw00f/2.4.2/",
+      "sha256": null,
+      "install_method": "pip install wafw00f==2.4.2",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "wafw00f --help 2>&1 | head -1",
+      "version_assert": "import importlib.metadata as m; assert m.version('wafw00f')=='2.4.2'",
+      "notes": ""
+    },
+    {
+      "id": "sqlmap",
+      "class": "pip",
+      "category": "web",
+      "upstream": "sqlmap",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "1.10.8",
+      "resolved_ref": "1.10.8",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "sqlmap"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/python/bin",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://pypi.org/project/sqlmap/1.10.8/",
+      "sha256": null,
+      "install_method": "pip install sqlmap==1.10.8",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "sqlmap --version 2>&1 | head -1",
+      "version_assert": "import importlib.metadata as m; assert m.version('sqlmap')=='1.10.8'",
+      "notes": "CALLABLE but FORBIDDEN BY DEFAULT at runtime. Agents may not run sqlmap unless the user explicitly authorizes it for a target. Documented in the exposure policy, NOT modeled as 'blocked' (it is installed + allowed).",
+      "runtime_policy": "forbidden_by_default"
+    },
+    {
+      "id": "arjun",
+      "class": "pip",
+      "category": "web",
+      "upstream": "arjun",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "2.2.7",
+      "resolved_ref": "2.2.7",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "arjun"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/python/bin",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://pypi.org/project/arjun/2.2.7/",
+      "sha256": null,
+      "install_method": "pip install arjun==2.2.7",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "arjun --help 2>&1 | head -1",
+      "version_assert": "import importlib.metadata as m; assert m.version('arjun')=='2.2.7'",
+      "notes": ""
+    },
+    {
+      "id": "awscli",
+      "class": "pip",
+      "category": "cloud",
+      "upstream": "awscli",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "1.46.0",
+      "resolved_ref": "1.46.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "aws"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/python/bin",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://pypi.org/project/awscli/1.46.0/",
+      "sha256": null,
+      "install_method": "pip install awscli==1.46.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "aws --version 2>&1 | head -1",
+      "version_assert": "aws --version reports 1.46.0",
+      "notes": ""
+    },
+    {
+      "id": "azure-cli",
+      "class": "pip",
+      "category": "cloud",
+      "upstream": "azure-cli",
+      "requested_version": "==2.76.0",
+      "resolved_version": "2.76.0",
+      "resolved_ref": "2.76.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "az"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/python/bin/az",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://pypi.org/project/azure-cli/2.76.0/",
+      "sha256": null,
+      "install_method": "pip install azure-cli==2.76.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "az --version 2>&1 | head -1",
+      "version_assert": "az --version reports 2.76.0",
+      "notes": ""
+    },
+    {
+      "id": "ldapdomaindump",
+      "class": "pip",
+      "category": "ad",
+      "upstream": "ldapdomaindump",
+      "requested_version": "==0.10.0",
+      "resolved_version": "0.10.0",
+      "resolved_ref": "0.10.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "ldapdomaindump"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/python/bin",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://pypi.org/project/ldapdomaindump/0.10.0/",
+      "sha256": null,
+      "install_method": "pip install ldapdomaindump==0.10.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "ldapdomaindump --help 2>&1 | head -1",
+      "version_assert": "import importlib.metadata as m; assert m.version('ldapdomaindump')=='0.10.0'",
+      "notes": "Promoted from a dangling legacy executor allow-list entry to a proper inventory record; was never installed before, now pinned + installed."
+    },
+    {
+      "id": "bundler",
+      "class": "gem",
+      "category": "ruby",
+      "upstream": "bundler",
+      "requested_version": "2.7.2",
+      "resolved_version": "2.7.2",
+      "resolved_ref": "2.7.2",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "bundle",
+        "bundler"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/ruby/bin",
+      "paths": [
+        "/opt/darkmoon/ruby/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://rubygems.org/gems/bundler/versions",
+      "sha256": null,
+      "install_method": "gem install bundler -v 2.7.2 --no-document",
+      "exposure": "support-only",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "bundle --version",
+      "version_assert": "bundle --version reports 2.7.2",
+      "notes": "Build/runtime dependency for WhatWeb (Ruby). Interpreter/package-manager class \u2014 not exposed as a callable agent command."
+    },
+    {
+      "id": "kube-bench",
+      "class": "go",
+      "category": "k8s",
+      "upstream": "aquasecurity/kube-bench",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v0.16.0",
+      "resolved_ref": "v0.16.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "kube-bench"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/kube-bench",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/aquasecurity/kube-bench/releases/tag/v0.16.0",
+      "sha256": null,
+      "install_method": "go install github.com/aquasecurity/kube-bench@v0.16.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "kube-bench --version 2>&1 | head -1",
+      "version_assert": "kube-bench --version reports v0.16.0 (build-pinned)",
+      "notes": ""
+    },
+    {
+      "id": "nuclei",
+      "class": "go",
+      "category": "web",
+      "upstream": "projectdiscovery/nuclei",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v3.11.1",
+      "resolved_ref": "v3.11.1",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "nuclei"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/nuclei",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/projectdiscovery/nuclei/releases/tag/v3.11.1",
+      "sha256": null,
+      "install_method": "go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@v3.11.1",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "nuclei -version 2>&1 | head -1",
+      "version_assert": "nuclei -version reports v3.11.1 (build-pinned)",
+      "notes": ""
+    },
+    {
+      "id": "zgrab2",
+      "class": "go",
+      "category": "recon",
+      "upstream": "zmap/zgrab2",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v1.0.0",
+      "resolved_ref": "v1.0.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "zgrab2"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/zgrab2",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/zmap/zgrab2/releases/tag/v1.0.0",
+      "sha256": null,
+      "install_method": "go install github.com/zmap/zgrab2/cmd/zgrab2@v1.0.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "zgrab2 --help 2>&1 | head -1",
+      "version_assert": "binary present; build-pinned v1.0.0",
+      "notes": ""
+    },
+    {
+      "id": "katana",
+      "class": "go",
+      "category": "web",
+      "upstream": "projectdiscovery/katana",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v1.7.0",
+      "resolved_ref": "v1.7.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "katana"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/katana",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/projectdiscovery/katana/releases/tag/v1.7.0",
+      "sha256": null,
+      "install_method": "CGO_ENABLED=1 go install github.com/projectdiscovery/katana/cmd/katana@v1.7.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "katana -version 2>&1 | head -1",
+      "version_assert": "katana -version reports v1.7.0 (build-pinned)",
+      "notes": ""
+    },
+    {
+      "id": "waybackurls",
+      "class": "go",
+      "category": "recon",
+      "upstream": "tomnomnom/waybackurls",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v0.1.0",
+      "resolved_ref": "v0.1.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "waybackurls"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/waybackurls",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/tomnomnom/waybackurls/tags",
+      "sha256": null,
+      "install_method": "go install github.com/tomnomnom/waybackurls@v0.1.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "waybackurls --help 2>&1 | head -1",
+      "version_assert": "binary present; build-pinned v0.1.0",
+      "notes": ""
+    },
+    {
+      "id": "naabu",
+      "class": "go",
+      "category": "recon",
+      "upstream": "projectdiscovery/naabu",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v2.6.1",
+      "resolved_ref": "v2.6.1",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "naabu"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/naabu",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/projectdiscovery/naabu/releases/tag/v2.6.1",
+      "sha256": null,
+      "install_method": "go install github.com/projectdiscovery/naabu/v2/cmd/naabu@v2.6.1",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "naabu -version 2>&1 | head -1",
+      "version_assert": "naabu -version reports v2.6.1 (build-pinned)",
+      "notes": ""
+    },
+    {
+      "id": "httpx",
+      "class": "go",
+      "category": "web",
+      "upstream": "projectdiscovery/httpx",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v1.10.0",
+      "resolved_ref": "v1.10.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "httpx"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/httpx",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/projectdiscovery/httpx/releases/tag/v1.10.0",
+      "sha256": null,
+      "install_method": "go install github.com/projectdiscovery/httpx/cmd/httpx@v1.10.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "httpx -version 2>&1 | head -1",
+      "version_assert": "httpx -version reports v1.10.0 (build-pinned)",
+      "notes": ""
+    },
+    {
+      "id": "kubescape",
+      "class": "go",
+      "category": "k8s",
+      "upstream": "kubescape/kubescape",
+      "requested_version": "v3.0.9 (EXACT)",
+      "resolved_version": "v3.0.9",
+      "resolved_ref": "v3.0.9",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "kubescape"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/kubescape",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/kubescape/kubescape/releases/tag/v3.0.9",
+      "sha256": null,
+      "install_method": "binary release download kubescape-ubuntu-latest v3.0.9",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "kubescape version 2>&1 | head -1",
+      "version_assert": "kubescape version reports v3.0.9",
+      "notes": "EXACT pin required by manifest; do not bump to v4.x."
+    },
+    {
+      "id": "kubectl-who-can",
+      "class": "go",
+      "category": "k8s",
+      "upstream": "aquasecurity/kubectl-who-can",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v0.4.0",
+      "resolved_ref": "v0.4.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "kubectl-who-can"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/kubectl-who-can",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/aquasecurity/kubectl-who-can/releases/tag/v0.4.0",
+      "sha256": null,
+      "install_method": "go install github.com/aquasecurity/kubectl-who-can/cmd/kubectl-who-can@v0.4.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "kubectl-who-can --help 2>&1 | head -1",
+      "version_assert": "binary present; build-pinned v0.4.0",
+      "notes": ""
+    },
+    {
+      "id": "kubeletctl",
+      "class": "binary",
+      "category": "k8s",
+      "upstream": "cyberark/kubeletctl",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v1.13",
+      "resolved_ref": "v1.13",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "kubeletctl"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/kubeletctl",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/cyberark/kubeletctl/releases/tag/v1.13",
+      "sha256": null,
+      "install_method": "binary release download kubeletctl_linux_${arch} v1.13",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "kubeletctl version 2>&1 | head -1",
+      "version_assert": "kubeletctl version reports v1.13",
+      "notes": ""
+    },
+    {
+      "id": "rbac-police",
+      "class": "go",
+      "category": "k8s",
+      "upstream": "PaloAltoNetworks/rbac-police",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v1.1.2",
+      "resolved_ref": "v1.1.2",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "rbac-police"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/rbac-police",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/PaloAltoNetworks/rbac-police/releases/tag/v1.1.2",
+      "sha256": null,
+      "install_method": "go install github.com/PaloAltoNetworks/rbac-police@v1.1.2",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "rbac-police --help 2>&1 | head -1",
+      "version_assert": "binary present; build-pinned v1.1.2",
+      "notes": "May fail to cross-compile on some arches; treated as best-effort in build but still REQUIRED by manifest. Verify presence at runtime."
+    },
+    {
+      "id": "ffuf",
+      "class": "go",
+      "category": "web",
+      "upstream": "ffuf/ffuf",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v2.2.1",
+      "resolved_ref": "v2.2.1",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "ffuf"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/ffuf",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/ffuf/ffuf/releases/tag/v2.2.1",
+      "sha256": null,
+      "install_method": "go install github.com/ffuf/ffuf/v2@v2.2.1",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "ffuf -V 2>&1 | head -1",
+      "version_assert": "ffuf -V reports v2.2.1 (build-pinned)",
+      "notes": ""
+    },
+    {
+      "id": "subfinder",
+      "class": "go",
+      "category": "recon",
+      "upstream": "projectdiscovery/subfinder",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v2.15.0",
+      "resolved_ref": "v2.15.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "subfinder"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/subfinder",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/projectdiscovery/subfinder/releases/tag/v2.15.0",
+      "sha256": null,
+      "install_method": "go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@v2.15.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "subfinder -version 2>&1 | head -1",
+      "version_assert": "subfinder -version reports v2.15.0 (build-pinned)",
+      "notes": ""
+    },
+    {
+      "id": "vulnx",
+      "class": "go",
+      "category": "web",
+      "upstream": "projectdiscovery/cvemap",
+      "requested_version": "v1.0.0",
+      "resolved_version": "v1.0.0",
+      "resolved_ref": "v1.0.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "vulnx"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/vulnx",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/projectdiscovery/cvemap/releases/tag/v1.0.0",
+      "sha256": null,
+      "install_method": "go install github.com/projectdiscovery/cvemap/cmd/vulnx@v1.0.0",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "vulnx -h 2>&1 | head -1",
+      "version_assert": "binary present; pinned to cvemap v1.0.0",
+      "notes": "vulnx is a subcommand of the cvemap module (its go.mod declares github.com/projectdiscovery/cvemap); pinned to v1.0.0 for reproducible builds."
+    },
+    {
+      "id": "grpcurl",
+      "class": "go",
+      "category": "web",
+      "upstream": "fullstorydev/grpcurl",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "v1.9.3",
+      "resolved_ref": "v1.9.3",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "grpcurl"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/grpcurl",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/fullstorydev/grpcurl/releases/tag/v1.9.3",
+      "sha256": null,
+      "install_method": "go install github.com/fullstorydev/grpcurl/cmd/grpcurl@v1.9.3",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "grpcurl --version 2>&1 | head -1",
+      "version_assert": "grpcurl --version reports v1.9.3 (build-pinned)",
+      "notes": "Manifest lists grpcurl in BOTH \u00a74 (go install) and \u00a75 (build from source). Deduplicated to a single go-install record."
+    },
+    {
+      "id": "curl-8.15.0",
+      "class": "source",
+      "category": "system",
+      "upstream": "curl/curl",
+      "requested_version": "8.15.0 (EXACT)",
+      "resolved_version": "8.15.0",
+      "resolved_ref": "8.15.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "curl"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/curl/bin/curl",
+      "paths": [
+        "/opt/darkmoon/curl/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://curl.se/download/ (GPG sig curl-8.15.0.tar.xz.asc)",
+      "sha256": "6cd0a8a5b126ddfda61c94dc2c3fc53481ba7a35461cf7c5ab66aa9d6775b609",
+      "install_method": "build from source, higher PATH priority than apt curl",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "/opt/darkmoon/curl/bin/curl --version | head -1",
+      "version_assert": "/opt/darkmoon/curl/bin/curl --version reports 8.15.0",
+      "notes": "EXACT pin required by manifest. Verified available (HTTP 200). Build verifies the upstream GPG signature / published digest before install."
+    },
+    {
+      "id": "dirb",
+      "class": "source",
+      "category": "web",
+      "upstream": "dirb (SourceForge)",
+      "requested_version": "2.22 (EXACT)",
+      "resolved_version": "2.22",
+      "resolved_ref": "2.22",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "dirb"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/dirb",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [
+        "/usr/share/dirb/wordlists"
+      ],
+      "checksum_source": "https://downloads.sourceforge.net/project/dirb/dirb/2.22/dirb222.tar.gz",
+      "sha256": null,
+      "install_method": "build from source (links custom curl) + copy wordlists",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "dirb --help 2>&1 | head -1",
+      "version_assert": "dirb --help reports 2.22; wordlists present",
+      "notes": ""
+    },
+    {
+      "id": "kubectl",
+      "class": "binary",
+      "category": "k8s",
+      "upstream": "kubernetes/kubernetes",
+      "requested_version": "v1.34.2 (EXACT)",
+      "resolved_version": "v1.34.2",
+      "resolved_ref": "v1.34.2",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "kubectl"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/kubectl",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://dl.k8s.io/release/v1.34.2/bin/linux/${arch}/kubectl.sha256",
+      "sha256": "9591f3d75e1581f3f7392e6ad119aab2f28ae7d6c6e083dc5d22469667f27253",
+      "install_method": "official binary download v1.34.2 (sha256 verified)",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "kubectl version --client 2>&1 | head -1",
+      "version_assert": "kubectl version --client reports v1.34.2",
+      "notes": "EXACT pin required by manifest; verified available (HTTP 200).",
+      "sha256_arm64": "95df604e914941f3172a93fa8feeb1a1a50f4011dfbe0c01e01b660afc8f9b85"
+    },
+    {
+      "id": "ruby",
+      "class": "source",
+      "category": "ruby",
+      "upstream": "ruby/ruby",
+      "requested_version": "3.3.5 (EXACT)",
+      "resolved_version": "3.3.5",
+      "resolved_ref": "3.3.5",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "ruby"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/ruby/bin/ruby",
+      "paths": [
+        "/opt/darkmoon/ruby/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://cache.ruby-lang.org/pub/ruby/3.3/ruby-3.3.5.tar.gz + GPG",
+      "sha256": "837d299e8f7ddf2be31a229a7a7e019d354979825117989acb3b32b1a9be262a",
+      "install_method": "ruby-build 3.3.5 /opt/darkmoon/ruby",
+      "exposure": "support-only",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "/opt/darkmoon/ruby/bin/ruby --version",
+      "version_assert": "ruby --version reports 3.3.5",
+      "notes": "Interpreter; not exposed as a callable agent command (only WhatWeb/WPScan use it)."
+    },
+    {
+      "id": "python3",
+      "class": "source",
+      "category": "python",
+      "upstream": "python/cpython",
+      "requested_version": "3.12.6 (EXACT)",
+      "resolved_version": "3.12.6",
+      "resolved_ref": "3.12.6",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "python3"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/python/bin/python3",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://www.python.org/ftp/python/3.12.6/Python-3.12.6.tgz + GPG",
+      "sha256": "85a4c1be906d20e5c5a69f2466b00da769c221d6a684acfd3a514dbf5bf10a66",
+      "install_method": "build from source --with-ensurepip=install",
+      "exposure": "support-only",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "/opt/darkmoon/python/bin/python3 --version",
+      "version_assert": "python3 --version reports 3.12.6",
+      "notes": "Interpreter; not exposed as a callable agent command."
+    },
+    {
+      "id": "pip3",
+      "class": "source",
+      "category": "python",
+      "upstream": "pypa/pip",
+      "requested_version": "bundled with python3 3.12.6",
+      "resolved_version": "bundled",
+      "resolved_ref": "bundled",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "pip3"
+      ],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/python/bin/pip3",
+      "paths": [
+        "/opt/darkmoon/python/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": null,
+      "sha256": null,
+      "install_method": null,
+      "exposure": "support-only",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "/opt/darkmoon/python/bin/pip3 --version",
+      "version_assert": "pip3 --version reports a version bundled with 3.12.6",
+      "notes": ""
+    },
+    {
+      "id": "whatweb",
+      "class": "binary",
+      "category": "web",
+      "upstream": "urbanadventurer/WhatWeb",
+      "requested_version": "v0.6.4 (resolve once)",
+      "resolved_version": "v0.6.4",
+      "resolved_ref": "v0.6.4",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "whatweb"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/whatweb",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/urbanadventurer/WhatWeb/releases/tag/v0.6.4",
+      "sha256": null,
+      "install_method": "git clone --branch v0.6.4 + bundler",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "whatweb --version 2>&1 | head -1",
+      "version_assert": "whatweb --version reports v0.6.4",
+      "notes": ""
+    },
+    {
+      "id": "lightpanda",
+      "class": "binary",
+      "category": "web",
+      "upstream": "lightpanda-io/browser",
+      "requested_version": "latest release (nightly)",
+      "resolved_version": "nightly",
+      "resolved_ref": "nightly",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "lightpanda"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/lightpanda",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/lightpanda-io/browser/releases/tag/nightly",
+      "sha256": null,
+      "install_method": "release binary download (nightly rolling tag)",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "lightpanda --version 2>&1 | head -1",
+      "version_assert": "binary present; nightly (no immutable version)",
+      "notes": "Upstream ONLY publishes a rolling 'nightly' tag \u2014 cannot be pinned to an immutable version. Recorded as floating-by-upstream-design; documented as a known exception (see audit). Assets: lightpanda-x86_64-linux / -aarch64-linux.",
+      "floating_by_upstream_design": true
+    },
+    {
+      "id": "wpscan",
+      "class": "gem",
+      "category": "web",
+      "upstream": "wpscan",
+      "requested_version": "latest (resolve once)",
+      "resolved_version": "4.1.0",
+      "resolved_ref": "4.1.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "wpscan"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/wpscan",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://rubygems.org/gems/wpscan/versions",
+      "sha256": null,
+      "install_method": "gem install wpscan -v 4.1.0 --no-document",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "wpscan --version 2>&1 | head -1",
+      "version_assert": "wpscan --version reports 4.1.0",
+      "notes": ""
+    },
+    {
+      "id": "cmseek",
+      "class": "binary",
+      "category": "web",
+      "upstream": "Tuhinshubhra/CMSeeK",
+      "requested_version": "v.1.1.3 (resolve once)",
+      "resolved_version": "v.1.1.3",
+      "resolved_ref": "v.1.1.3",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "cmseek"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/cmseek",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/Tuhinshubhra/CMSeeK/releases/tag/v.1.1.3",
+      "sha256": null,
+      "install_method": "git clone --branch v.1.1.3 + requirements",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "cmseek --help 2>&1 | head -1",
+      "version_assert": "binary present; pinned v.1.1.3",
+      "notes": ""
+    },
+    {
+      "id": "nuclei-templates",
+      "class": "binary",
+      "category": "web",
+      "upstream": "projectdiscovery/nuclei-templates",
+      "requested_version": "v10.4.7 (resolve once)",
+      "resolved_version": "v10.4.7",
+      "resolved_ref": "v10.4.7",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [],
+      "aliases": [],
+      "install_location": "/opt/darkmoon/nuclei-templates",
+      "paths": [
+        "/opt/darkmoon/nuclei-templates"
+      ],
+      "data_dirs": [
+        "/opt/darkmoon/nuclei-templates"
+      ],
+      "checksum_source": "https://github.com/projectdiscovery/nuclei-templates/releases/tag/v10.4.7",
+      "sha256": null,
+      "install_method": "git clone --branch v10.4.7 (replaces floating -update-templates)",
+      "exposure": "support-only",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "test -d /opt/darkmoon/nuclei-templates && ls /opt/darkmoon/nuclei-templates | head -1",
+      "version_assert": "templates dir present and non-empty at pinned tag",
+      "notes": "Data dependency for nuclei. Previously updated via floating 'nuclei -update-templates' at build time; now pinned to v10.4.7."
+    },
+    {
+      "id": "google-cloud-sdk",
+      "class": "binary",
+      "category": "cloud",
+      "upstream": "google-cloud-sdk",
+      "requested_version": "490.0.0",
+      "resolved_version": "490.0.0",
+      "resolved_ref": "490.0.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "gcloud",
+        "gsutil",
+        "bq"
+      ],
+      "aliases": [],
+      "install_location": "/opt/google-cloud-sdk/bin/gcloud",
+      "paths": [
+        "/opt/google-cloud-sdk/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-490.0.0-linux-x86_64.tar.gz",
+      "sha256": null,
+      "install_method": "tarball google-cloud-cli-490.0.0-linux-x86_64.tar.gz (Dockerfile ARG GCLOUD_VERSION=490.0.0)",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "gcloud --version 2>&1 | head -1",
+      "version_assert": "gcloud --version reports 490.0.0",
+      "notes": ""
+    },
+    {
+      "id": "hashcat",
+      "class": "binary",
+      "category": "cred",
+      "upstream": "hashcat",
+      "requested_version": "6.2.6",
+      "resolved_version": "6.2.6",
+      "resolved_ref": "6.2.6",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "hashcat"
+      ],
+      "aliases": [],
+      "install_location": "/opt/hashcat/hashcat.bin",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://hashcat.net/files/hashcat-6.2.6.7z",
+      "sha256": null,
+      "install_method": "wget hashcat-6.2.6.7z + 7z extract (Dockerfile)",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "hashcat --version 2>&1 | head -1",
+      "version_assert": "hashcat --version reports v6.2.6",
+      "notes": ""
+    },
+    {
+      "id": "sasquatch",
+      "class": "binary",
+      "category": "firmware",
+      "upstream": "sasquatch",
+      "requested_version": "sasquatch-v4.5.1-6",
+      "resolved_version": "sasquatch-v4.5.1-6",
+      "resolved_ref": "sasquatch-v4.5.1-6",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "sasquatch"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/sasquatch",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/onekey-sec/sasquatch/releases/download/sasquatch-v4.5.1-6/sasquatch_1.0_<arch>.deb",
+      "sha256": null,
+      "install_method": "best-effort .deb from release tag sasquatch-v4.5.1-6 (Dockerfile ARG SASQUATCH_TAG)",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "command -v sasquatch",
+      "version_assert": "sasquatch binary present (tag sasquatch-v4.5.1-6)",
+      "notes": "Best-effort per build; firmware agent falls back to plain unsquashfs when absent."
+    },
+    {
+      "id": "firmwalker",
+      "class": "binary",
+      "category": "firmware",
+      "upstream": "firmwalker",
+      "requested_version": "git pin",
+      "resolved_version": "23ff299980319b7f1b623817a176e06dda143b45",
+      "resolved_ref": "23ff299980319b7f1b623817a176e06dda143b45",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "firmwalker"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/firmwalker",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/craigz28/firmwalker (pinned commit)",
+      "sha256": null,
+      "install_method": "git clone + git checkout 23ff299980319b7f1b623817a176e06dda143b45 (Dockerfile)",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "command -v firmwalker",
+      "version_assert": "firmwalker wrapper present (commit 23ff299)",
+      "notes": "Pinned to a commit because upstream publishes no release tags."
+    },
+    {
+      "id": "finalrecon",
+      "class": "binary",
+      "category": "web",
+      "upstream": "FinalRecon",
+      "requested_version": "v1.1.6",
+      "resolved_version": "v1.1.6",
+      "resolved_ref": "v1.1.6",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "finalrecon"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/finalrecon",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "https://github.com/thewhiteh4t/FinalRecon/releases/tag/v1.1.6",
+      "sha256": null,
+      "install_method": "git clone --branch v1.1.6 (setup_py.sh FINALRECON_VERSION=v1.1.6)",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": true,
+      "probe": "command -v finalrecon",
+      "version_assert": "finalrecon wrapper present (v1.1.6)",
+      "notes": "Pinned to v1.1.6 (setup_py.sh)."
+    }
+  ],
+  "core_shell_exceptions": [
+    {
+      "command": "bash",
+      "reason": "core shell / script execution"
+    },
+    {
+      "command": "sh",
+      "reason": "core shell"
+    },
+    {
+      "command": "cat",
+      "reason": "core shell utility"
+    },
+    {
+      "command": "chmod",
+      "reason": "core shell utility (script perms)"
+    },
+    {
+      "command": "grep",
+      "reason": "core shell utility"
+    },
+    {
+      "command": "awk",
+      "reason": "core shell utility"
+    },
+    {
+      "command": "sed",
+      "reason": "core shell utility"
+    },
+    {
+      "command": "node",
+      "reason": "headless-browser / playwright runtime"
+    },
+    {
+      "command": "npm",
+      "reason": "node package ecosystem (headless-browser agent)"
+    },
+    {
+      "command": "npx",
+      "reason": "node package runner (headless-browser agent)"
+    },
+    {
+      "command": "jq",
+      "reason": "JSON CLI (in inventory as apt:jq)"
+    },
+    {
+      "command": "file",
+      "reason": "firmware / file-type triage"
+    },
+    {
+      "command": "strings",
+      "reason": "firmware / binary triage"
+    },
+    {
+      "command": "zip",
+      "reason": "archive utility"
+    },
+    {
+      "command": "unzip",
+      "reason": "archive utility"
+    },
+    {
+      "command": "wget",
+      "reason": "download utility (firmware/wordlist fetch)"
+    },
+    {
+      "command": "ping",
+      "reason": "connectivity check"
+    }
+  ],
+  "platform_exceptions": [],
+  "blocked": [],
+  "do_not_install": [
+    {
+      "command": "terraform",
+      "reason": "terraform agent uses pre-existing binary; go install terraform forbidden"
+    },
+    {
+      "command": "ansible",
+      "reason": "ansible agent; apt/pip install ansible forbidden"
+    },
+    {
+      "command": "ansible-vault",
+      "reason": "ansible agent; install forbidden"
+    }
+  ]
+}

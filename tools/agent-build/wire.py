@@ -40,7 +40,7 @@ NEW_AGENTS = [
 
 ROSTER_ANCHOR = "    nest\n    any future agent"
 SIGNAL_ANCHOR = "PHASE 3 — REACTIVE FEEDBACK LOOP (CORE MECHANISM)"
-APPLY_ANCHOR = '"prompt_file": "/root/.opencode/agents/pentest.md"'
+APPLY_ANCHOR = '"mode": "primary"'
 
 
 def detect_nl(raw_bytes):
@@ -127,9 +127,7 @@ def apply_block(aid):
     return (
         f'    "{aid}": {{\n'
         f'      "model": "$FINAL_MODEL",\n'
-        f'      "mcp": ["darkmoon"],\n'
-        f'      "secondary": true,\n'
-        f'      "prompt_file": "/root/.opencode/agents/{aid}.md"\n'
+        f'      "mode": "subagent"\n'
         f'    }},\n'
     )
 
