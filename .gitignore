@@ -39,3 +39,6 @@ dist/
 darkmoon-settings/
 session-*.md
 workspace/
+
+# Local Hermes planning/working artifacts (not project source)
+.hermes/
