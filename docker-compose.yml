@@ -17,6 +17,9 @@ services:
       - ${HOME}/.kube:/root/.kube:ro
       - ${DARKMOON_REPORTS_DIR:-./reports}:/root/.local/share/opencode/reports:rw
       - ${DARKMOON_WORKFLOWS_DIR:-./workflows}:/opt/darkmoon/mcp/server/src/tools/workflows:rw
+      # Agent personas (read-only): exposed to the MCP as `agent://<name>` resources
+      # so a Hermes agent can load the orchestrator/subagent identity via darkmoon_* tools.
+      - ./conf/agents:/opt/darkmoon/conf/agents:ro
     cap_add:
       - NET_RAW
       - NET_ADMIN

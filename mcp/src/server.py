@@ -12,6 +12,7 @@ Architecture:
 import os
 import uuid
 from typing import Optional, Dict, Any
+from pathlib import Path
 from fastmcp import FastMCP
 
 from src.docker_client import DarkmoonDockerClient
@@ -100,6 +101,14 @@ def _get_vault(session_id: Optional[str]) -> PrivacyVault:
 # Generate a unique session ID when the MCP server starts
 SESSION_ID = uuid.uuid4().hex[:8]
 
+# Agent persona directory (bind-mounted read-only into the container by compose).
+# Falls back to the repo path so the dev server run outside Docker still works.
+AGENTS_DIR = Path(os.getenv("DARKMOON_AGENTS_DIR", "/opt/darkmoon/conf/agents"))
+if not AGENTS_DIR.is_dir():
+    _repo_agents = Path(__file__).resolve().parents[2] / "conf" / "agents"
+    if _repo_agents.is_dir():
+        AGENTS_DIR = _repo_agents
+
 
 @mcp.tool()
 def get_session() -> Dict[str, str]:
@@ -138,6 +147,49 @@ def health_check() -> Dict[str, Any]:
     """
     health_status = health_checker.check()
     return health_status.model_dump()
+
+
+# ============================================================================
+# AGENT PERSONAS (exposed as MCP resources so a Hermes agent can load the
+# orchestrator/subagent identity through darkmoon_* tools — no host file access
+# required, and stays inside the plugin's tool allow-list)
+# ============================================================================
+
+@mcp.resource("agent://{name}")
+def agent_persona(name: str) -> str:
+    """Read an agent persona markdown by name (e.g. `agent://aws`)."""
+    path = AGENTS_DIR / f"{name}.md"
+    if not path.is_file():
+        return f"# Agent '{name}' not found\n\nAvailable: {', '.join(sorted(p.stem for p in AGENTS_DIR.glob('*.md')))}"
+    return path.read_text(encoding="utf-8")
+
+
+@mcp.tool()
+def list_agents() -> Dict[str, Any]:
+    """List the available Dark-Moon agent personas (orchestrator + specialists).
+
+    Returns the agent names; read one with `read_agent(name)` or the
+    `agent://<name>` MCP resource to load its full markdown as an identity.
+    """
+    names = sorted(p.stem for p in AGENTS_DIR.glob("*.md"))
+    return {"count": len(names), "agents": names}
+
+
+@mcp.tool()
+def read_agent(name: str) -> Dict[str, Any]:
+    """Return the full markdown body of an agent persona (e.g. `aws`, `pentest`).
+
+    Use this to adopt an agent's identity before dispatching work to it: the
+    returned markdown is that agent's complete operating manual / system prompt.
+    """
+    path = AGENTS_DIR / f"{name}.md"
+    if not path.is_file():
+        return {
+            "found": False,
+            "name": name,
+            "available": sorted(p.stem for p in AGENTS_DIR.glob("*.md")),
+        }
+    return {"found": True, "name": name, "markdown": path.read_text(encoding="utf-8")}
 
 
 @mcp.tool()
