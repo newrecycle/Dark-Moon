@@ -63,45 +63,24 @@ read_env_value() {
 MCP_HOST="${DARKMOON_MCP_HOST:-127.0.0.1}"
 MCP_PORT="${DARKMOON_MCP_PORT:-8000}"
 
-wait_for_mcp_port() {
+wait_for_mcp_ready() {
   local timeout=${1:-60}
   for _ in $(seq 1 "$timeout"); do
-    if python3 - "$MCP_HOST" "$MCP_PORT" <<'PY' 2>/dev/null
-import socket
-import sys
-host, port = sys.argv[1], int(sys.argv[2])
-try:
-    with socket.create_connection((host, port), timeout=1):
-        raise SystemExit(0)
-except OSError:
-    raise SystemExit(1)
-PY
-    then
+    if "${DC[@]}" exec -T "$SERVICE" sh -c \
+      'cd /opt/darkmoon/mcp/server && python -m src.healthcheck' \
+      >/dev/null 2>&1; then
       return 0
     fi
     sleep 1
   done
-  echo "Timed out waiting for the Dark-Moon MCP on ${MCP_HOST}:${MCP_PORT}" >&2
+  echo "Timed out waiting for the darkmoon-plugin MCP on ${MCP_HOST}:${MCP_PORT}" >&2
   return 1
-}
-
-probe_mcp_port() {
-  python3 - "$MCP_HOST" "$MCP_PORT" <<'PY' 2>/dev/null
-import socket
-import sys
-host, port = sys.argv[1], int(sys.argv[2])
-try:
-    with socket.create_connection((host, port), timeout=1):
-        print("reachable")
-except OSError:
-    print("unreachable")
-PY
 }
 
 preflight_provider_check() {
   # The Dark-Moon LLM brain (Hermes) runs outside the container. This preflight
   # validates any provider base URL the external brain is configured to use by
-  # reaching it from inside the darkmoon container, so a loopback-only or
+  # reaching it from inside the darkmoon-plugin container, so a loopback-only or
   # unreachable endpoint fails fast instead of hanging at request time.
   local url mode result status
   url="$(read_env_value DARKMOON_PROVIDER_BASE_URL)"
@@ -143,7 +122,7 @@ PY
       cat >&2 <<EOF
 LLM provider endpoint uses a container-local loopback address:
   ${result#LOOPBACK|}
-Inside Docker, localhost points to the darkmoon container, not the host.
+Inside Docker, localhost points to the darkmoon-plugin container, not the host.
 Use host.docker.internal, the host LAN address, or a reachable service name.
 EOF
       ;;
@@ -164,14 +143,14 @@ EOF
 
 usage() {
   cat <<'EOF'
-darkmoon.sh - lifecycle + MCP helper for the single darkmoon container.
+darkmoon.sh - lifecycle + MCP helper for the single darkmoon-plugin container.
 
 The Dark-Moon LLM brain is Hermes and runs outside the container. This script
-manages the merged darkmoon container and its baked-in MCP server.
+manages the merged darkmoon-plugin container and its baked-in MCP server.
 
 Usage:
-  ./darkmoon.sh up            Bring the darkmoon container up and wait for the MCP (127.0.0.1:8000).
-  ./darkmoon.sh down          Stop and remove the darkmoon container.
+  ./darkmoon.sh up            Bring the darkmoon-plugin container up and wait for the MCP (127.0.0.1:8000).
+  ./darkmoon.sh down          Stop and remove the darkmoon-plugin container.
   ./darkmoon.sh status        Show compose status and probe the MCP port.
   ./darkmoon.sh mcp <module>  Exec `python -m src.<module>` inside the container (e.g. `mcp healthcheck`).
   ./darkmoon.sh --log <id>    Tail the MCP monitoring stream for a session id.
@@ -222,9 +201,9 @@ fi
 if [[ "${1:-}" == "up" ]]; then
   debug_command "${DC[@]}" up -d
   "${DC[@]}" up -d
-  wait_for_mcp_port 60
+  wait_for_mcp_ready 60
   preflight_provider_check
-  echo "darkmoon container is up; MCP reachable on ${MCP_HOST}:${MCP_PORT}"
+  echo "darkmoon-plugin container is up; MCP reachable on ${MCP_HOST}:${MCP_PORT}"
   exit 0
 fi
 
@@ -236,7 +215,9 @@ fi
 
 if [[ "${1:-}" == "status" ]]; then
   "${DC[@]}" ps "$SERVICE"
-  if [[ "$(probe_mcp_port)" == "reachable" ]]; then
+  if "${DC[@]}" exec -T "$SERVICE" sh -c \
+    'cd /opt/darkmoon/mcp/server && python -m src.healthcheck' \
+    >/dev/null 2>&1; then
     echo "MCP: reachable on ${MCP_HOST}:${MCP_PORT}"
   else
     echo "MCP: NOT reachable on ${MCP_HOST}:${MCP_PORT}" >&2

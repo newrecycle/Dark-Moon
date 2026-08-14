@@ -4,6 +4,7 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 PROJECT="darkmoon-production-${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}"
 PROJECT="$(printf '%s' "$PROJECT" | tr '[:upper:]_' '[:lower:]-' | tr -cd 'a-z0-9-')"
+export DARKMOON_TEST_CONTAINER_NAME="${PROJECT}-toolbox"
 TEST_ROOT="$(mktemp -d -p "${TMPDIR:-/tmp}" darkmoon-production.XXXXXX)"
 ARTIFACT_DIR="${DARKMOON_TEST_ARTIFACT_DIR:-$TEST_ROOT/diagnostics}"
 TRACE_FILE="$TEST_ROOT/test-trace.log"
@@ -117,7 +118,7 @@ stage "Render production Compose topology"
 stage "Start production stack"
 "${COMPOSE[@]}" up -d
 
-stage "Wait for the darkmoon container to become healthy"
+stage "Wait for the darkmoon-plugin container to become healthy"
 wait_for_health
 
 stage "Exercise real toolbox commands through MCP"
@@ -152,8 +153,10 @@ DARKMOON_DEBUG=1 "$ROOT/darkmoon.sh" --version \
 grep -q 'darkmoon.sh' "$TEST_ROOT/wrapper-version.stdout"
 
 stage "Verify wrapper status probe"
-"$ROOT/darkmoon.sh" status > "$TEST_ROOT/wrapper-status.stdout" 2>&1
+DARKMOON_COMPOSE_PROJECT="$PROJECT" \
+  DARKMOON_COMPOSE_FILES="$ROOT/docker-compose.yml:$ROOT/tests/docker-compose.production.yml" \
+  "$ROOT/darkmoon.sh" status > "$TEST_ROOT/wrapper-status.stdout" 2>&1
 grep -q 'MCP: reachable' "$TEST_ROOT/wrapper-status.stdout"
 
 stage "Production integration complete"
-echo "PASS: single darkmoon container, baked-in MCP, and real darkmoon_* toolbox MCP round-trip"
+echo "PASS: single darkmoon-plugin container, baked-in MCP, and real darkmoon_* toolbox MCP round-trip"

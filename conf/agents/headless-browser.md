@@ -795,3 +795,33 @@ Success criteria:
 ------------------------------------------------------------------
 
 All actions are executed via the Darkmoon MCP infrastructure using Playwright as the browser engine.
+
+<!-- DARKMOON_BROWSER_CAPABILITIES_START -->
+## Runtime browser capabilities (authoritative)
+
+Call `darkmoon_list_workflows` before browser work; its `headless_browser.capabilities` object is the live contract and supersedes any earlier mode or limit list in this file.
+
+Supported output modes:
+
+- `snapshot` — Complete DOM snapshot with supporting telemetry; single-page unless link following is enabled.
+- `crawl` — Follow links and return complete snapshots for multiple pages.
+- `full` — Return every privacy-safe collector for the requested page set.
+- `content` — Return rendered text, headings, and page identity.
+- `metadata` — Return page identity, status, and headings only.
+- `links` — Return discovered links and their rendered labels.
+- `forms` — Return forms and input metadata without field values.
+- `scripts` — Return external script inventory and source/sink indicators.
+- `dom_sinks` — Focus on DOM sources, sinks, and inline event handlers.
+- `network` — Return bounded request, response, and failure metadata.
+- `console` — Return bounded, credential-scrubbed console messages.
+- `accessibility` — Return a bounded semantic and interactive-element tree.
+- `performance` — Return navigation, paint, and resource timing aggregates.
+- `security` — Return privacy-safe browser security observations.
+- `screenshot` — Capture viewport screenshots and minimal page metadata.
+
+Set `follow_links=true` to traverse links with any mode. `crawl` enables traversal automatically, and `screenshot` enables screenshot capture automatically. Navigation waits support `commit`, `domcontentloaded`, `load`, `networkidle`.
+
+Defaults are 10 pages, depth 3, 750 requests, 120 seconds, and 2000 ms settle time. Hard ceilings are 50 pages, depth 8, 2500 requests, 600 seconds, and 30000 ms settle time.
+
+Browser output remains privacy-minimized: no request or response bodies, header values, cookies, browser storage, or form field values are returned.
+<!-- DARKMOON_BROWSER_CAPABILITIES_END -->

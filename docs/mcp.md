@@ -90,7 +90,7 @@ Workflows are discovered **automatically** at runtime.
 The MCP uses:
 - the local Docker API,
 - a dedicated client (`DarkmoonDockerClient`),
-- a fixed container name (`darkmoon`).
+- a fixed plugin container name (`darkmoon-plugin`).
 
 👉 The MCP:
 - does not depend on the user shell,

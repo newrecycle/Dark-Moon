@@ -17,15 +17,16 @@ been proven safe, and only for placeholder tokens known to the session vault.
 
 from __future__ import annotations
 
+import ipaddress
 import os
 import re
 import shlex
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Sequence, Tuple
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
-from .vault import PrivacyVault, PLACEHOLDER_RE
+from .vault import Category, PrivacyVault, PLACEHOLDER_RE
 
 # Commands that would print / echo a value straight back (exfil / extraction).
 _PRINT_SINKS = {"echo", "printf", "print", "cat", "tee", "logger", "write"}
@@ -40,6 +41,40 @@ _OUTBOUND_DATA_FLAGS = {
 # Characters that must never appear in a rehydrated value (injection guard).
 _SHELL_META_RE = re.compile(r"""[;|&`$><(){}\[\]\n\r'"\\!*?~]""")
 _NET_REDIRECT_RE = re.compile(r"/dev/(?:tcp|udp)/|>\(|<\(")
+_HOST_CATEGORIES = {
+    Category.IP_PRIVATE,
+    Category.IP_PUBLIC,
+    Category.HOST_INTERNAL,
+    Category.DOMAIN,
+}
+_HOST_LABEL_RE = re.compile(
+    r"[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?"
+)
+
+
+def _safe_rehydrated_host(value: str) -> Optional[str]:
+    """Return a normalized host value or ``None`` when it is not host-only."""
+
+    host = value.strip()
+    if not host or len(host) > 253 or any(char.isspace() for char in host):
+        return None
+    if any(char in host for char in "/?#@[]"):
+        return None
+    try:
+        return str(ipaddress.ip_address(host))
+    except ValueError:
+        pass
+
+    trailing_dot = host.endswith(".")
+    candidate = host[:-1] if trailing_dot else host
+    try:
+        ascii_host = candidate.encode("idna").decode("ascii")
+    except UnicodeError:
+        return None
+    labels = ascii_host.split(".")
+    if not labels or any(not _HOST_LABEL_RE.fullmatch(label) for label in labels):
+        return None
+    return f"{ascii_host}." if trailing_dot else ascii_host
 
 
 class GatewayDecision(str, Enum):
@@ -241,6 +276,111 @@ class CommandGateway:
             GatewayDecision.ALLOW,
             resolved=resolved,
             placeholders=list(dict.fromkeys(seen)),
+        )
+
+    def process_target_url(self, url: str, vault: PrivacyVault) -> GatewayResult:
+        """Resolve a protected HTTP(S) target without permitting URL exfiltration.
+
+        A full ``URL_*`` placeholder may represent the complete target. Otherwise
+        placeholders are accepted only as the entire hostname. Protected values
+        in userinfo, path, query, or fragment positions are refused.
+        """
+
+        value = (url or "").strip()
+        full_placeholder = PLACEHOLDER_RE.fullmatch(value)
+        if full_placeholder:
+            placeholder = full_placeholder.group("ph")
+            category = vault.category_of(placeholder)
+            if category is None:
+                return self._block(
+                    f"unknown placeholder not issued this session: {placeholder}",
+                    [placeholder],
+                )
+            if category is not Category.URL:
+                return self._block(
+                    "only a URL placeholder may replace the complete target URL",
+                    [placeholder],
+                )
+            real_url = vault.rehydrate(placeholder)
+            if real_url is None:
+                return self._block(
+                    f"could not resolve placeholder {placeholder}", [placeholder]
+                )
+            value = real_url
+
+        placeholders = list(dict.fromkeys(PLACEHOLDER_RE.findall(value)))
+        unknown = [item for item in placeholders if vault.category_of(item) is None]
+        if unknown:
+            return self._block(
+                f"unknown placeholder(s) not issued this session: {unknown}",
+                placeholders,
+            )
+        if vault.is_expired():
+            return self._block(
+                "session privacy vault expired; refusing to rehydrate", placeholders
+            )
+
+        try:
+            parts = urlsplit(value)
+            port = parts.port
+        except ValueError:
+            return self._block("target URL could not be parsed safely", placeholders)
+        if parts.scheme.lower() not in {"http", "https"} or not parts.hostname:
+            return self._block("target URL must use http or https", placeholders)
+        if parts.username is not None or parts.password is not None:
+            return self._block(
+                "credentials in target URL userinfo are forbidden", placeholders
+            )
+
+        protected_non_host = "".join((parts.path, parts.query, parts.fragment))
+        if PLACEHOLDER_RE.search(protected_non_host):
+            return self._block(
+                "placeholder in URL path/query/fragment is an exfiltration vector",
+                placeholders,
+            )
+
+        # A fully rehydrated URL_* value has no placeholders left and is now safe.
+        if not placeholders:
+            return GatewayResult(GatewayDecision.ALLOW, command=value)
+
+        host_token = (parts.hostname or "").upper()
+        host_match = PLACEHOLDER_RE.fullmatch(host_token)
+        if host_match is None or set(placeholders) != {host_match.group("ph")}:
+            return self._block(
+                "protected target must occupy the complete URL hostname",
+                placeholders,
+            )
+
+        placeholder = host_match.group("ph")
+        category = vault.category_of(placeholder)
+        if category not in _HOST_CATEGORIES:
+            return self._block(
+                f"placeholder {placeholder} does not contain a hostname",
+                placeholders,
+            )
+        real_host = vault.rehydrate(placeholder)
+        if real_host is None:
+            return self._block(
+                f"could not resolve placeholder {placeholder}", placeholders
+            )
+        normalized_host = _safe_rehydrated_host(real_host)
+        if normalized_host is None or _SHELL_META_RE.search(normalized_host):
+            return self._block(
+                f"resolved value for {placeholder} is not a safe hostname",
+                placeholders,
+            )
+
+        rendered_host = (
+            f"[{normalized_host}]" if ":" in normalized_host else normalized_host
+        )
+        netloc = rendered_host if port is None else f"{rendered_host}:{port}"
+        resolved_url = urlunsplit(
+            (parts.scheme, netloc, parts.path, parts.query, parts.fragment)
+        )
+        return GatewayResult(
+            GatewayDecision.ALLOW,
+            command=resolved_url,
+            placeholders=placeholders,
         )
 
     # ------------------------------------------------------------------ output

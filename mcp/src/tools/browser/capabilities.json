@@ -1,0 +1,58 @@
+{
+  "modes": {
+    "snapshot": "Complete DOM snapshot with supporting telemetry; single-page unless link following is enabled.",
+    "crawl": "Follow links and return complete snapshots for multiple pages.",
+    "full": "Return every privacy-safe collector for the requested page set.",
+    "content": "Return rendered text, headings, and page identity.",
+    "metadata": "Return page identity, status, and headings only.",
+    "links": "Return discovered links and their rendered labels.",
+    "forms": "Return forms and input metadata without field values.",
+    "scripts": "Return external script inventory and source/sink indicators.",
+    "dom_sinks": "Focus on DOM sources, sinks, and inline event handlers.",
+    "network": "Return bounded request, response, and failure metadata.",
+    "console": "Return bounded, credential-scrubbed console messages.",
+    "accessibility": "Return a bounded semantic and interactive-element tree.",
+    "performance": "Return navigation, paint, and resource timing aggregates.",
+    "security": "Return privacy-safe browser security observations.",
+    "screenshot": "Capture viewport screenshots and minimal page metadata."
+  },
+  "wait_until": [
+    "commit",
+    "domcontentloaded",
+    "load",
+    "networkidle"
+  ],
+  "defaults": {
+    "max_pages": 10,
+    "max_depth": 3,
+    "max_requests": 750,
+    "timeout_seconds": 120,
+    "settle_ms": 2000,
+    "wait_until": "domcontentloaded"
+  },
+  "minimums": {
+    "max_pages": 1,
+    "max_depth": 0,
+    "max_requests": 10,
+    "timeout_seconds": 5,
+    "settle_ms": 0
+  },
+  "limits": {
+    "max_url_length": 16384,
+    "max_pages": 50,
+    "max_depth": 8,
+    "max_requests": 2500,
+    "max_timeout_seconds": 600,
+    "max_settle_ms": 30000,
+    "max_result_string_length": 16384,
+    "max_result_items": 5000,
+    "max_text_chars_per_page": 12000,
+    "max_links_per_page": 500,
+    "max_forms_per_page": 200,
+    "max_scripts_per_page": 500,
+    "max_headings_per_page": 250,
+    "max_console_messages": 250,
+    "max_blocked_requests": 500,
+    "max_semantic_nodes_per_page": 1000
+  }
+}

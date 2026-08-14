@@ -174,6 +174,54 @@ def test_structured_tool_call_only_target_field(vault, gw):
     assert bad.blocked
 
 
+def test_structured_browser_url_rehydrates_only_hostname(vault, gw):
+    vault.tokenize(f"host {REAL_IP}")
+    result = gw.process_target_url(
+        "https://IP_PRIVATE_001/app?mode=test", vault
+    )
+    assert result.allowed
+    assert result.command == f"https://{REAL_IP}/app?mode=test"
+
+
+def test_structured_browser_url_blocks_placeholder_in_query(vault, gw):
+    vault.tokenize(f"host {REAL_IP}")
+    result = gw.process_target_url(
+        "https://public.example.test/?target=IP_PRIVATE_001", vault
+    )
+    assert result.blocked
+    assert REAL_IP not in (result.reason or "")
+
+
+def test_structured_browser_accepts_complete_url_placeholder(vault, gw):
+    placeholder = vault.register(
+        "https://host-internal.local/app?mode=test", Category.URL
+    )
+    result = gw.process_target_url(placeholder, vault)
+    assert result.allowed
+    assert result.command == "https://host-internal.local/app?mode=test"
+
+
+@pytest.mark.parametrize("category,value", [
+    (Category.URL, "https://host-internal.local/app"),
+    (Category.PATH, "/etc/shadow"),
+    (Category.USER, "operator"),
+])
+def test_structured_browser_rejects_non_host_placeholder_as_hostname(
+    vault, gw, category, value
+):
+    placeholder = vault.register(value, category)
+    result = gw.process_target_url(f"https://{placeholder}/", vault)
+    assert result.blocked
+    assert value not in (result.reason or "")
+
+
+def test_structured_browser_rejects_invalid_rehydrated_hostname(vault, gw):
+    placeholder = vault.register("host/path", Category.HOST_INTERNAL)
+    result = gw.process_target_url(f"https://{placeholder}/", vault)
+    assert result.blocked
+    assert "host/path" not in (result.reason or "")
+
+
 def test_expired_vault_refuses_rehydration(gw):
     v = PrivacyVault(session_id="s", ttl_seconds=0)
     v.tokenize(f"host {REAL_IP}")

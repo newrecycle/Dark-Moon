@@ -9,6 +9,7 @@ Architecture:
 - Workflow Discovery & Execution (2 tools)
 """
 
+import json
 import os
 import uuid
 from typing import Optional, Dict, Any
@@ -19,7 +20,12 @@ from src.docker_client import DarkmoonDockerClient
 from src.tools.core.executor import GenericExecutor
 from src.tools.core.health import HealthChecker
 from src.tools.workflows.list_workflows import WorkflowRegistry
-from src.privacy import PrivacyVault, CommandGateway, GatewayDecision
+from src.privacy import (
+    PLACEHOLDER_RE,
+    PrivacyVault,
+    CommandGateway,
+    GatewayDecision,
+)
 
 
 # Initialize FastMCP server
@@ -36,7 +42,7 @@ if os.getenv("DARKMOON_EXEC_MODE", "docker").lower() == "local":
     docker_client = LocalCommandClient(timeout=int(os.getenv("DOCKER_TIMEOUT", "300")))
 else:
     docker_client = DarkmoonDockerClient(
-        container_name=os.getenv("DOCKER_CONTAINER_NAME", "darkmoon"),
+        container_name=os.getenv("DOCKER_CONTAINER_NAME", "darkmoon-plugin"),
         timeout=int(os.getenv("DOCKER_TIMEOUT", "300")),
     )
 
@@ -88,6 +94,20 @@ def _get_vault(session_id: Optional[str]) -> PrivacyVault:
         vault = PrivacyVault(session_id=sid, ttl_seconds=ttl, enabled_categories=_resolve_categories())
         _vaults[sid] = vault
     return vault
+
+
+def _sanitize_structured_output(value: Any, vault: PrivacyVault) -> Any:
+    """Apply the privacy gateway to every string in a structured result."""
+
+    serialized = json.dumps(value, ensure_ascii=False, default=str)
+    sanitized = _command_gateway.sanitize_output(serialized, vault)
+    try:
+        return json.loads(sanitized)
+    except json.JSONDecodeError:
+        return {
+            "error": "workflow output could not be safely serialized",
+            "privacy": "sanitized",
+        }
 
 
 # ============================================================================
@@ -419,7 +439,8 @@ def list_workflows() -> Dict[str, Any]:
 def run_workflow(
     workflow: str,
     method: str,
-    params: Optional[Dict[str, Any]] = None
+    params: Optional[Dict[str, Any]] = None,
+    session_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Execute a workflow method dynamically by name.
@@ -430,6 +451,7 @@ def run_workflow(
         workflow: Name of the workflow (e.g., "port_scan", "subdomain_discovery")
         method: Name of the method to call (e.g., "scan_ports", "discover_subdomains")
         params: Dictionary of parameters to pass to the method
+        session_id: Privacy-vault session ID from get_session (optional)
 
     Returns:
         Result of the workflow execution, or error details if failed.
@@ -453,7 +475,42 @@ def run_workflow(
         # Web crawling
         run_workflow("web_crawler", "crawl_website", {"target": "https://example.com"})
     """
-    return workflow_registry.run_workflow(workflow, method, params)
+    resolved_params = dict(params or {})
+    vault = None
+    if PRIVACY_ENABLED:
+        vault = _get_vault(session_id)
+        if workflow == "headless_browser" and method == "analyze":
+            target = resolved_params.get("url")
+            if isinstance(target, str):
+                decision = _command_gateway.process_target_url(target, vault)
+                if decision.decision == GatewayDecision.BLOCK:
+                    return {
+                        "workflow": workflow,
+                        "ok": False,
+                        "error": {
+                            "code": "privacy_block",
+                            "message": decision.reason,
+                        },
+                        "has_errors": True,
+                    }
+                resolved_params["url"] = decision.command or target
+
+            for key, value in resolved_params.items():
+                if key != "url" and isinstance(value, str) and PLACEHOLDER_RE.search(value):
+                    return {
+                        "workflow": workflow,
+                        "ok": False,
+                        "error": {
+                            "code": "privacy_block",
+                            "message": f"placeholder is forbidden in browser field '{key}'",
+                        },
+                        "has_errors": True,
+                    }
+
+    result = workflow_registry.run_workflow(workflow, method, resolved_params)
+    if vault is not None:
+        result = _sanitize_structured_output(result, vault)
+    return result
 
 # ============================================================================
 # DASHBOARD EXPORT TOOLS (4 tools)

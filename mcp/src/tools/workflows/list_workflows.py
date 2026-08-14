@@ -9,6 +9,7 @@ import importlib
 import inspect
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union, get_type_hints
 
@@ -121,12 +122,16 @@ class WorkflowRegistry:
             # Extract method metadata
             methods[method_name] = self._extract_method_metadata(method)
 
-        return {
+        metadata = {
             "class": cls.__name__,
             "description": (cls.__doc__ or "").strip().split("\n")[0],
             "file": filename,
             "methods": methods,
         }
+        capabilities = getattr(instance, "WORKFLOW_CAPABILITIES", None)
+        if isinstance(capabilities, dict):
+            metadata["capabilities"] = capabilities
+        return metadata
 
     def _extract_method_metadata(self, method) -> Dict[str, Any]:
         """
@@ -227,11 +232,31 @@ class WorkflowRegistry:
         if value is None:
             return value
 
+        def strict_int(raw: Any) -> int:
+            if isinstance(raw, bool):
+                raise ValueError("boolean is not an integer")
+            if isinstance(raw, int):
+                return raw
+            if isinstance(raw, str) and re.fullmatch(r"[+-]?\d+", raw.strip()):
+                return int(raw)
+            raise ValueError("value is not an integer")
+
+        def strict_bool(raw: Any) -> bool:
+            if isinstance(raw, bool):
+                return raw
+            if isinstance(raw, str):
+                normalized = raw.strip().lower()
+                if normalized in {"true", "1", "yes"}:
+                    return True
+                if normalized in {"false", "0", "no"}:
+                    return False
+            raise ValueError("value is not a boolean")
+
         # Handle common type conversions
         type_converters = {
-            "int": int,
+            "int": strict_int,
             "float": float,
-            "bool": lambda v: v if isinstance(v, bool) else str(v).lower() in ("true", "1", "yes"),
+            "bool": strict_bool,
             "str": str,
         }
 

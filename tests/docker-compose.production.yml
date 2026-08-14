@@ -7,4 +7,8 @@
 # example capture directories or ARM/local image selection) without editing the
 # shipped docker-compose.yml.
 
-services: {}
+services:
+  darkmoon:
+    # The integration stack must never claim the production plugin container
+    # name. The test harness supplies a unique, project-scoped value.
+    container_name: ${DARKMOON_TEST_CONTAINER_NAME:?set by test_production_stack.sh}

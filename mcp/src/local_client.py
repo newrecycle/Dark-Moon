@@ -88,6 +88,11 @@ class LocalCommandClient:
         """
         timeout = timeout or self.default_timeout
         start_time = time.time()
+        browser_request = bool(
+            isinstance(command, list)
+            and len(command) >= 3
+            and os.path.basename(command[1]) == "headless_runner.mjs"
+        )
 
         try:
             # Every command is wrapped in coreutils `timeout` so the deadline is
@@ -104,13 +109,22 @@ class LocalCommandClient:
 
             if isinstance(command, list):
                 cmd = ["timeout", "--kill-after=5", str(hard_timeout)] + command
-                cmd_str = " ".join(command)
+                if browser_request:
+                    cmd_str = (
+                        f"{command[0]} {command[1]} [REDACTED_BROWSER_REQUEST]"
+                    )
+                else:
+                    cmd_str = " ".join(command)
             else:
                 cmd = ["timeout", "--kill-after=5", str(hard_timeout), "bash", "-c", command]
                 cmd_str = command
 
             # OPTIONAL: ignore health checks in the live stream (no spam)
-            is_noise = cmd_str.startswith("which ") or cmd_str.startswith("df -h ")
+            is_noise = (
+                browser_request
+                or cmd_str.startswith("which ")
+                or cmd_str.startswith("df -h ")
+            )
 
             # Inject cyan prompt with timestamp before streaming
             if not is_noise:
@@ -253,12 +267,22 @@ class LocalCommandClient:
 
         except Exception as e:
             duration = time.time() - start_time
+            safe_command = (
+                f"{command[0]} {command[1]} [REDACTED_BROWSER_REQUEST]"
+                if browser_request and isinstance(command, list)
+                else str(command)
+            )
+            safe_error = (
+                f"browser runner failed ({type(e).__name__})"
+                if browser_request
+                else str(e)
+            )
             return ExecutionResult(
                 status=ExecutionStatus.FAILED,
-                stderr=f"Execution error: {str(e)}",
+                stderr=f"Execution error: {safe_error}",
                 exit_code=1,
                 duration=duration,
-                metadata={"command": str(command), "error": str(e)},
+                metadata={"command": safe_command, "error": safe_error},
             )
 
     def _gpu_state(self) -> Dict[str, str]:

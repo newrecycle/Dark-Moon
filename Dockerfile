@@ -254,11 +254,14 @@ RUN set -eux; \
 # ------------------------------------------------------------
 WORKDIR /opt/darkmoon
 
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/darkmoon/playwright-browsers
+
+COPY browser/package.json browser/package-lock.json browser/verify-runtime.cjs ./
+
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get install -y --no-install-recommends nodejs \
- && npm init -y \
- && npm install playwright \
- && npx playwright install chromium \
+ && npm ci --omit=dev \
+ && npx --no-install playwright install chromium \
  && npm cache clean --force
 
 # ------------------------------------------------------------
@@ -345,7 +348,7 @@ RUN for bin in /out/bin/*; do \
 RUN command -v nuclei >/dev/null \
  && command -v finalrecon >/dev/null \
  && command -v node >/dev/null \
- && node -e "require('playwright')"
+ && node /opt/darkmoon/verify-runtime.cjs --launch
 
 # ------------------------------------------------------------
 # Nuclei bootstrap

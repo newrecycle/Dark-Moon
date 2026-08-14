@@ -13,6 +13,7 @@ import threading
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from src import local_client as local_client_module  # noqa: E402
 from src.local_client import LocalCommandClient  # noqa: E402
 from src.models.common import ExecutionStatus  # noqa: E402
 
@@ -81,3 +82,35 @@ def test_orphan_pipe_does_not_hang():
     )
 
     assert result.status == ExecutionStatus.TIMEOUT
+
+
+def test_browser_request_payload_is_not_broadcast_or_recorded():
+    client = LocalCommandClient(timeout=5)
+    broadcasts = []
+    client._broadcast = lambda payload, _session_id=None: broadcasts.append(payload)
+
+    result = client.execute_command(
+        ["true", "/fixed/headless_runner.mjs", "reversible-encoded-target"],
+        timeout=5,
+    )
+
+    assert result.status == ExecutionStatus.SUCCESS
+    assert broadcasts == []
+    assert "reversible-encoded-target" not in str(result.metadata)
+    assert "REDACTED_BROWSER_REQUEST" in str(result.metadata)
+
+
+def test_browser_request_payload_is_hidden_on_executor_exception(monkeypatch):
+    def fail_to_start(*_args, **_kwargs):
+        raise RuntimeError("failure mentions reversible-encoded-target")
+
+    monkeypatch.setattr(local_client_module.subprocess, "Popen", fail_to_start)
+    result = LocalCommandClient(timeout=5).execute_command(
+        ["node", "/fixed/headless_runner.mjs", "reversible-encoded-target"],
+        timeout=5,
+    )
+
+    serialized = f"{result.stderr} {result.metadata}"
+    assert result.status == ExecutionStatus.FAILED
+    assert "reversible-encoded-target" not in serialized
+    assert "REDACTED_BROWSER_REQUEST" in serialized

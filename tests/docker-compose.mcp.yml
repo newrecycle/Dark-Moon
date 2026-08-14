@@ -10,7 +10,9 @@ name: darkmoon-mcp-test
 services:
   darkmoon:
     image: ascit/darkmoon:latest
-    container_name: darkmoon
+    # Intentionally omit container_name: the unique Compose project name used by
+    # the integration test must own its namespace and never collide with either
+    # the production darkmoon-plugin container or an unrelated darkmoon fork.
     network_mode: host
     environment:
       DM_MODE: default

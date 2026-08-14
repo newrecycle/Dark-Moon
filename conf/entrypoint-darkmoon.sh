@@ -100,6 +100,7 @@ EOF
 # and it can read /run/darkmoon-gpu.env. Keep the GPU env file too (back-compat).
 if [ "${DARKMOON_MCP_AUTOSTART:-0}" = "1" ]; then
   ( cd /opt/darkmoon/mcp/server && exec python -m src.http_server ) &
+  printf '%s\n' "$!" > "${DARKMOON_MCP_PID_FILE:-/run/darkmoon-mcp.pid}"
 fi
 
 exec "$@"

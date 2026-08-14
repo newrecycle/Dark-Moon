@@ -9,7 +9,7 @@
 # and so our new tools (aws/az/gcloud/gsutil/bq/psql/mysql/redis-cli) did not
 # regress the existing ones.
 #
-# It runs live probes inside the toolbox container (default: darkmoon) and cross-
+# It runs live probes inside the toolbox container (default: darkmoon-plugin) and cross-
 # checks them against the allow-list in mcp/src/tools/core/executor.py.
 #
 # Usage:
@@ -22,7 +22,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
 EXECUTOR="$REPO/mcp/src/tools/core/executor.py"
-CONTAINER="${1:-darkmoon}"
+CONTAINER="${1:-darkmoon-plugin}"
 
 # Tools that are shell builtins / not expected as standalone binaries — skip probe.
 SKIP_REGEX='^(bash|cat|chmod|grep|awk|sed)$'

@@ -3,6 +3,10 @@ from src.docker_client import DarkmoonDockerClient
 from src.models.common import HealthStatus
 
 
+BROWSER_RUNTIME_NAME = "playwright-chromium"
+BROWSER_RUNTIME_PROBE = ["node", "/opt/darkmoon/verify-runtime.cjs"]
+
+
 class HealthChecker:
     """
     Comprehensive health check system for Darkmoon toolbox.
@@ -31,7 +35,39 @@ class HealthChecker:
             "waybackurls",
             "kubeletctl",
             "kubescape",
+            "lightpanda",
         ]
+
+    def check_browser_runtime(self) -> Dict[str, Any]:
+        """Verify that the pinned Playwright package and Chromium binary exist."""
+
+        result = self.docker_client.execute_command(
+            BROWSER_RUNTIME_PROBE,
+            timeout=15,
+            workdir="/opt/darkmoon",
+        )
+        details: Dict[str, Any] = {
+            "tool_name": BROWSER_RUNTIME_NAME,
+            "available": False,
+            "version": None,
+        }
+        if result.stdout:
+            import json
+
+            for line in reversed(result.stdout.splitlines()):
+                try:
+                    parsed = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(parsed, dict):
+                    details["available"] = bool(parsed.get("available")) and result.success
+                    details["version"] = parsed.get("version")
+                    if parsed.get("error"):
+                        details["error"] = str(parsed["error"])[:500]
+                    break
+        if not details["available"] and "error" not in details:
+            details["error"] = (result.stderr or "browser runtime probe failed")[:500]
+        return details
 
     def check(self) -> HealthStatus:
         """
@@ -55,6 +91,8 @@ class HealthChecker:
         essential_status = {}
         for tool in self.essential_tools:
             essential_status[tool] = self.docker_client.check_tool_available(tool)
+        browser_runtime = self.check_browser_runtime()
+        essential_status[BROWSER_RUNTIME_NAME] = bool(browser_runtime["available"])
 
         # Check optional tools
         optional_status = {}
@@ -104,6 +142,9 @@ class HealthChecker:
         Returns:
             Dictionary with tool status and version info
         """
+        if tool_name == BROWSER_RUNTIME_NAME:
+            return self.check_browser_runtime()
+
         available = self.docker_client.check_tool_available(tool_name)
 
         version_info = None
@@ -192,6 +233,7 @@ class HealthChecker:
             "network": self.check_network_connectivity(),
             "resources": self.get_resource_usage(),
             "essential_tools": {
-                tool: self.check_tool(tool) for tool in self.essential_tools
+                tool: self.check_tool(tool)
+                for tool in [*self.essential_tools, BROWSER_RUNTIME_NAME]
             },
         }

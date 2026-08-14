@@ -1,9 +1,9 @@
-name: darkmoon-stack
+name: darkmoon-plugin-stack
 
 services:
   darkmoon:
     image: ascit/darkmoon:local
-    container_name: darkmoon
+    container_name: darkmoon-plugin
     user: "0:0"
     network_mode: host
     environment:

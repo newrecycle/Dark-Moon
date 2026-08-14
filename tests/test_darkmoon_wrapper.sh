@@ -18,7 +18,8 @@ if [[ "${1:-}" == "compose" && "${2:-}" == "version" ]]; then
   exit 0
 fi
 : "${DARKMOON_WRAPPER_CAPTURE:?set DARKMOON_WRAPPER_CAPTURE}"
-printf '%s\n' "$@" > "$DARKMOON_WRAPPER_CAPTURE"
+printf '<%s>' "$@" >> "$DARKMOON_WRAPPER_CAPTURE"
+printf '\n' >> "$DARKMOON_WRAPPER_CAPTURE"
 EOF
 chmod +x "$FAKE_BIN/docker"
 
@@ -27,51 +28,46 @@ export DARKMOON_WRAPPER_CAPTURE="$CAPTURE"
 export DARKMOON_COMPOSE_FILE="$ROOT/docker-compose.yml"
 export OPENCODE_ENV_FILE="$ENV_FILE"
 
-assert_args() {
-  local label=$1
-  shift
-  local -a actual expected
-  mapfile -t actual < "$CAPTURE"
-  expected=("$@")
-  if [[ "${actual[*]}" != "${expected[*]}" ]]; then
-    printf 'FAIL: %s\nexpected:' "$label" >&2
-    printf ' <%s>' "${expected[@]}" >&2
-    printf '\nactual:' >&2
-    printf ' <%s>' "${actual[@]}" >&2
-    printf '\n' >&2
-    return 1
-  fi
-  printf 'PASS: %s\n' "$label"
-}
-
 run_case() {
   : > "$CAPTURE"
-  "$ROOT/darkmoon.sh" "$@" </dev/null >"$TEMP_ROOT/stdout" 2>"$TEMP_ROOT/stderr"
+  "$ROOT/darkmoon.sh" "$@" </dev/null \
+    >"$TEMP_ROOT/stdout" 2>"$TEMP_ROOT/stderr"
 }
 
-prefix=(compose -f "$ROOT/docker-compose.yml" exec -T opencode opencode)
-
-run_case
-assert_args "no arguments opens the TUI" "${prefix[@]}"
+assert_line() {
+  local expected=$1
+  grep -Fx -- "$expected" "$CAPTURE" >/dev/null || {
+    printf 'FAIL: expected Docker call %s\nactual:\n' "$expected" >&2
+    cat "$CAPTURE" >&2
+    return 1
+  }
+}
 
 run_case --version
-assert_args "version remains a top-level flag" "${prefix[@]}" --version
+grep -q '^darkmoon.sh ' "$TEMP_ROOT/stdout"
+[[ ! -s "$CAPTURE" ]]
+echo "PASS: version does not launch a container"
 
-run_case mcp list
-assert_args "explicit subcommands remain top-level" "${prefix[@]}" mcp list
+run_case down
+assert_line "<compose><-f><$ROOT/docker-compose.yml><down>"
+echo "PASS: down targets only the plugin Compose project"
 
-run_case --mini
-assert_args "mini mode remains top-level" "${prefix[@]}" --mini
+run_case mcp healthcheck
+assert_line "<compose><-f><$ROOT/docker-compose.yml><exec><-T><darkmoon><sh><-c><cd /opt/darkmoon/mcp/server && exec python -m src.healthcheck '' >"
+echo "PASS: MCP helper executes in the plugin service"
 
-run_case "TARGET: example.com"
-assert_args "plain prompt uses opencode run" "${prefix[@]}" run "TARGET: example.com"
+run_case status
+assert_line "<compose><-f><$ROOT/docker-compose.yml><ps><darkmoon>"
+assert_line "<compose><-f><$ROOT/docker-compose.yml><exec><-T><darkmoon><sh><-c><cd /opt/darkmoon/mcp/server && python -m src.healthcheck>"
+grep -q 'MCP: reachable' "$TEMP_ROOT/stdout"
+echo "PASS: status verifies the plugin-owned MCP process"
 
-run_case --agent pentest --model mock/test --title wrapper-test --format json "Call one tool"
-assert_args "run options are routed through opencode run" \
-  "${prefix[@]}" run --agent pentest --model mock/test --title wrapper-test --format json "Call one tool"
-
-run_case --print-logs --log-level DEBUG --agent pentest "Trace this request"
-assert_args "global flags precede implicit run" \
-  "${prefix[@]}" --print-logs --log-level DEBUG run --agent pentest "Trace this request"
-
-echo "PASS: darkmoon.sh wrapper routing"
+if run_case; then
+  echo "FAIL: missing command should be rejected" >&2
+  exit 1
+elif [[ $? -ne 2 ]]; then
+  echo "FAIL: missing command returned the wrong status" >&2
+  exit 1
+fi
+[[ ! -s "$CAPTURE" ]]
+echo "PASS: missing command cannot fall back to an in-container LLM"

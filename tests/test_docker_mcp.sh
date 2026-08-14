@@ -94,4 +94,4 @@ if grep -Eqi 'failed to (start|load|connect)|configuration failed|unhandled exce
   exit 1
 fi
 
-echo "PASS: single darkmoon container, local-exec toolbox, and darkmoon_* MCP round-trip"
+echo "PASS: single project-scoped test container, local-exec toolbox, and darkmoon_* MCP round-trip"
