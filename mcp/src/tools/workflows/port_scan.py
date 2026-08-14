@@ -97,7 +97,9 @@ class PortScanWorkflow(BaseWorkflow):
         all_ports = []
 
         for finding in findings:
-            host = finding.get("host", "unknown")
+            # naabu emits the host under "ip"; some tool versions use "host".
+            # Fall back gracefully so the httpx step builds a resolvable URL.
+            host = finding.get("host") or finding.get("ip") or "unknown"
             port = finding.get("port")
 
             if port:
@@ -121,7 +123,7 @@ class PortScanWorkflow(BaseWorkflow):
         # Build URLs from discovered ports
         http_urls = []
         for host, ports in ports_by_host.items():
-            for port in ports:
+            for port in sorted(set(ports)):
                 if port in [80, 443, 8000, 8080, 8443, 8888]:
                     protocol = "https" if port == 443 or port == 8443 else "http"
                     http_urls.append(f"{protocol}://{host}:{port}")
@@ -135,14 +137,25 @@ class PortScanWorkflow(BaseWorkflow):
             )
 
             httpx_output = f"{workspace_dir}/httpx_output.json"
-            success, findings, output = self.execute_step(
+            # NB: keep naabu's `findings` intact for the summary; use a distinct
+            # name here so the httpx results don't shadow it.
+            success, httpx_findings, output = self.execute_step(
                 step_name=f"HTTP service verification ({len(http_urls)} URLs)",
                 command=f"httpx -l {httpx_input} -json -silent -o {httpx_output} && cat {httpx_output}",
                 timeout=httpx_timeout,
                 parse_json=True,
             )
 
-            web_services = [f.get("url") for f in findings if f.get("url")]
+            # Dedupe by URL: httpx can emit a result both to stdout and to the
+            # -o file (so `cat` of that file yields a duplicate line), and naabu
+            # occasionally reports the same open port more than once.
+            seen = set()
+            web_services = []
+            for f in httpx_findings:
+                u = f.get("url")
+                if u and u not in seen:
+                    seen.add(u)
+                    web_services.append(u)
 
             steps["http_services"] = {
                 "success": success,
