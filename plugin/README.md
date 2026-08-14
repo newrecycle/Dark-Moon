@@ -41,16 +41,26 @@ The scripts only ever run `docker compose … up -d` / `down` to bring the backe
 
 ## Install the plugin
 
-Portable plugin packages install **disabled** by default. Install, then enable:
+Portable plugin packages install **disabled** by default. Use the one-command
+installer, which installs the *committed* plugin, enables it, and registers its
+skills for slash-command discovery — all idempotent and with no Docker required:
 
 ```bash
-# Install from a git URL or a local path:
-hermes plugins install /home/justin/Dark-Moon/plugin
-# or, for a published package:
-hermes plugins install <git-url-or-local-path>
+bash plugin/scripts/install.sh
+```
 
-# Enable it (this is required — installs land disabled):
+> **Note on reproducibility:** Hermes installs plugins by cloning Git HEAD, so any
+> uncommitted or untracked change in the repository is *not* part of the installed
+> plugin. Commit your changes before installing for a reproducible setup. The
+> installer warns (but does not fail) when the worktree is dirty.
+
+To install from a different checkout or a published package, point the installer
+at the plugin directory, or run the equivalent steps by hand:
+
+```bash
+hermes plugins install /path/to/plugin   # or a git URL
 hermes plugins enable darkmoon
+bash plugin/scripts/setup-hermes-skills.sh
 ```
 
 ---
@@ -127,6 +137,61 @@ dispatched on inference alone.
 > for misuse of this tool.
 
 ---
+
+## Pentest sessions (isolated, explicit invocation)
+
+The `darkmoon-pentest` skill creates a **separate, fully isolated** Hermes
+session. It never mutates the invoking agent — it spins up a distinct
+`darkmoon-pentest` profile and runs the pentest there.
+
+**Trigger.** The secure trigger is the native `/darkmoon-pentest` slash command.
+Hermes executes it directly (outside the model's context), which mints a
+one-use, time-boxed **capability token** and starts the isolated session. An
+ordinary prompt that merely asks for a pentest cannot create a session, because
+the model cannot see or forge that token.
+
+**Isolation guarantee.** The new profile never copies or loads the invoking
+agent's identity (`AGENTS.md`, `SOUL.md`, `CLAUDE.md`, `.hermes.md`, memory or
+user-profile Markdown, repository rules). It clears inherited personality,
+hooks, plugins, memory, user-profile, prefill, and external skill configuration,
+and `--ignore-rules` is mandatory on start and resume. The only environment
+carried over is an **allowlist of provider/model credentials** copied into the
+profile's `.env`; terminal state, session routing, plugin settings, hooks,
+prefills, and identity-related variables are never copied. All Hermes
+session-routing, cron, and delegated-child variables are stripped from the
+nested process. The canonical DarkMoon `pentest` identity is loaded
+server-side and its body is never returned or logged — only its fingerprint and
+byte count are reported.
+
+**Toolset.** The isolated session is limited to the DarkMoon MCP tools
+(`mcp__darkmoon__*`) plus Hermes delegation, and inherits no unrelated parent
+MCP servers. The pentest main can delegate specialist work (e.g. headless
+browser) to leaf children, which receive the DarkMoon tools but not the
+delegation toolset.
+
+**Resume.** Pass a prior DarkMoon pentest session ID to `/darkmoon-pentest` to
+resume; the same session ID is preserved.
+
+**Portable skill namespaces vs. slash commands.** Hermes namespaces portable
+plugin tools as `mcp__<server>__<tool>`; the session tools live on the
+`darkmoon-session` server, so their stable names are
+`mcp__darkmoon_session__start_pentest_session` and
+`mcp__darkmoon_session__resume_pentest_session`. The parent-facing DarkMoon MCP
+tools keep stable names such as `mcp__darkmoon__read_agent`. Slash *skills* are
+for discovery; the actual authorization boundary is the native slash command's
+capability token, not the skill instructions.
+
+## Uninstall
+
+Remove only the DarkMoon-owned skills registration (leaving unrelated external
+skill directories untouched):
+
+```bash
+python plugin/hermes_registration.py --plugin-root plugin --unregister
+# then, if desired:
+hermes plugins disable darkmoon
+hermes plugins uninstall darkmoon
+```
 
 ## Files
 

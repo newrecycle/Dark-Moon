@@ -1,9 +1,41 @@
-darkmoon-settings/
-data/
-sessions/
 reports/
 workflows/
-workspace/
 .opencode.env
 *.env
-session-ses*.*
+# OS metadata. A drive-by PR (#37) once added two of these because nothing
+# stopped it. They carry no information for anyone but the machine that made them.
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Editor state. A committed .vscode/mcp.json is not inert: it offers every
+# person who opens this repo an MCP server that fetches and runs a package.
+# Editor configuration that executes code stays local (PR #38).
+.vscode/
+.idea/
+*.swp
+*~
+
+# Build / install / test artifacts. Hermes clones Git HEAD on install, uv/pip
+# create venvs, npm creates node_modules, and the running toolbox writes
+# darkmoon-settings/ and session notes. None of these belong in version control.
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+node_modules/
+build/
+dist/
+darkmoon-settings/
+session-*.md
+workspace/

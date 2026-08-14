@@ -4,6 +4,15 @@
     "darkmoon": {
       "type": "streamable-http",
       "url": "http://localhost:8000/mcp"
+    },
+    "darkmoon-session": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["${PLUGIN_ROOT}/scripts/darkmoon-session-mcp.sh"],
+      "cwd": "${PLUGIN_ROOT}",
+      "env": {
+        "DARKMOON_MCP_URL": "http://localhost:8000/mcp"
+      }
     }
   }
 }
