@@ -18,6 +18,20 @@ set -e
 # MCP server runs every command.
 # =============================================================================
 
+SHARED_DIR="${DARKMOON_SHARED_DIR:-/output}"
+SHARED_UID="${DARKMOON_UID:-1000}"
+SHARED_GID="${DARKMOON_GID:-1000}"
+
+[[ "$SHARED_UID" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid DARKMOON_UID" >&2; exit 1; }
+[[ "$SHARED_GID" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid DARKMOON_GID" >&2; exit 1; }
+
+# The toolbox stays root for security tooling that needs NET_RAW/NET_ADMIN, but
+# shared artifacts must remain editable by the host and the non-root orchestrator.
+mkdir -p "$SHARED_DIR"
+chown -R "$SHARED_UID:$SHARED_GID" "$SHARED_DIR"
+chmod -R u+rwX "$SHARED_DIR"
+chmod 2775 "$SHARED_DIR"
+
 DM_GPU=0
 DM_GPU_VENDOR="none"
 DM_GPU_NAME=""
