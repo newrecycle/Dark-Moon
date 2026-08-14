@@ -6,54 +6,70 @@
 # skills for slash-command discovery. Idempotent on repeated runs and does not
 # require Docker.
 #
-# NOTE: Hermes installs plugins by cloning Git HEAD. Any uncommitted or untracked
-# change in this repository will NOT be part of the installed plugin. This script
-# warns (but does not fail) when the worktree is dirty so the install stays
-# reproducible from version control.
+# Reproducibility: Hermes installs plugins by cloning Git HEAD, so any
+# uncommitted/untracked change is NOT part of the installed plugin. This script
+# warns (but does not fail) on a dirty worktree.
 set -euo pipefail
 
-# Resolve repository root from this script's location:
-#   plugin/scripts/<this>  ->  .. = plugin  ->  ../.. = repo root.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
+PLUGIN_NAME="darkmoon"
 HERMES_BIN="$(command -v hermes || true)"
+
+usage() {
+  cat <<'USAGE'
+Usage: plugin/scripts/install.sh [OPTIONS]
+
+One-command Dark-Moon Hermes plugin setup (install + enable + register skills).
+Idempotent; does not require Docker.
+
+Options:
+  --help, -h     Show this help
+
+Notes:
+  Hermes installs plugins from Git HEAD, so commit your changes first for a
+  reproducible install. Uncommitted/untracked files are NOT included.
+USAGE
+}
+
+for ARG in "$@"; do
+  case "${ARG}" in
+    --help|-h) usage; exit 0 ;;
+    *) echo "Unknown option: ${ARG}" >&2; usage; exit 2 ;;
+  esac
+done
+
 if [ -z "${HERMES_BIN}" ]; then
-    echo "Error: the 'hermes' CLI was not found in PATH." >&2
-    exit 1
+  echo "Error: the 'hermes' CLI was not found in PATH." >&2
+  exit 1
 fi
 
-# Warn about a dirty worktree (Git HEAD clone caveat).
+# Warn (non-fatal) about a dirty worktree.
 if [ -d "${REPO_ROOT}/.git" ]; then
-    if [ -n "$(git -C "${REPO_ROOT}" status --porcelain 2>/dev/null)" ]; then
-        echo "Warning: the repository has uncommitted or untracked changes." >&2
-        echo "Hermes installs plugins by cloning Git HEAD, so those changes will" >&2
-        echo "NOT be installed. Commit (or stash) them before installing for a" >&2
-        echo "reproducible install." >&2
-    fi
+  if [ -n "$(git -C "${REPO_ROOT}" status --porcelain 2>/dev/null)" ]; then
+    echo "Warning: repository has uncommitted or untracked changes." >&2
+    echo "Hermes installs plugins by cloning Git HEAD, so those changes will" >&2
+    echo "NOT be installed. Commit (or stash) them for a reproducible install." >&2
+  fi
 fi
 
-# 1. Install (or update) the committed plugin. Re-running is safe.
+echo "==> Installing Dark-Moon plugin (${PLUGIN_DIR})"
 if "${HERMES_BIN}" plugins install "${PLUGIN_DIR}" >/dev/null 2>&1; then
-    echo "Installed Dark-Moon plugin from ${PLUGIN_DIR}"
+  echo "    installed"
+elif "${HERMES_BIN}" plugins update "${PLUGIN_NAME}" >/dev/null 2>&1; then
+  echo "    updated existing installation"
 else
-    # Already installed: try an in-place update instead.
-    if "${HERMES_BIN}" plugins update darkmoon >/dev/null 2>&1; then
-        echo "Updated existing Dark-Moon plugin installation"
-    else
-        echo "Error: could not install or update the Dark-Moon plugin." >&2
-        exit 1
-    fi
+  echo "Error: could not install or update the Dark-Moon plugin." >&2
+  exit 1
 fi
 
-# 2. Enable the plugin (idempotent).
-"${HERMES_BIN}" plugins enable darkmoon >/dev/null 2>&1 || true
-echo "Enabled plugin: darkmoon"
+echo "==> Enabling plugin: ${PLUGIN_NAME}"
+"${HERMES_BIN}" plugins enable "${PLUGIN_NAME}" >/dev/null 2>&1 || true
 
-# 3. Register skills for slash-command discovery (idempotent, no Docker).
+echo "==> Registering Dark-Moon skills with Hermes"
 bash "${PLUGIN_DIR}/scripts/setup-hermes-skills.sh" --quiet
-echo "Registered Dark-Moon skills with Hermes"
 
 echo
 echo "Done. Start (or reload) a Hermes session and invoke /darkmoon-pentest."
