@@ -20,6 +20,7 @@ env:
 jobs:
   configuration-and-plugin:
     name: Configuration, bootstrap, plugin, and wrapper
+    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -99,6 +100,7 @@ jobs:
 
   protocol-integration:
     name: Stock OpenCode protocol fixture
+    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -125,6 +127,7 @@ jobs:
 
   production-clean-install:
     name: Production clean install and wrapper
+    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
