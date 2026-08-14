@@ -1,0 +1,36 @@
+# Thin fixture image for the Dark-Moon production integration test.
+#
+# The prebuilt ascit/darkmoon toolbox image still supplies the real offensive
+# tools (nuclei, etc.), but it does NOT ship the MCP server. This stage layers
+# the MCP onto it so the test no longer depends on the toolbox image having the
+# MCP baked in. We add only:
+#   * the pinned MCP runtime deps (same hash-locked lockfile the image installs)
+#   * the MCP server source from the repo's mcp/
+#   * the current entrypoint, which autostarts the MCP inside the toolbox
+#
+# Live workflows are still mounted at runtime by the base docker-compose.yml
+# volumes, so this stage does not need to vendor them.
+FROM ascit/darkmoon:latest
+
+USER 0:0
+
+# Hash-pinned MCP runtime dependencies, installed into the toolbox's own Python.
+COPY mcp/requirements.lock /opt/darkmoon/mcp/server/requirements.lock
+RUN pip install --no-cache-dir --disable-pip-version-check --require-hashes \
+      --requirement /opt/darkmoon/mcp/server/requirements.lock
+
+# MCP server source (the toolbox image has no /opt/darkmoon/mcp/server).
+COPY mcp/ /opt/darkmoon/mcp/server/
+
+# The prebuilt toolbox entrypoint predates the MCP autostart block; copy the
+# current one so the server is launched (and its PID recorded) on container start.
+COPY conf/entrypoint-darkmoon.sh /entrypoint-darkmoon.sh
+RUN sed -i 's/\r$//' /entrypoint-darkmoon.sh \
+  && chmod +x /entrypoint-darkmoon.sh
+
+# Self-sufficient defaults; the compose environment also sets these.
+ENV DARKMOON_EXEC_MODE=local \
+    DARKMOON_MCP_AUTOSTART=1 \
+    DARKMOON_MCP_HOST=127.0.0.1 \
+    DARKMOON_MCP_PORT=8000 \
+    DARKMOON_MCP_PATH=/mcp

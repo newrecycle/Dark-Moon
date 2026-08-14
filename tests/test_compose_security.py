@@ -66,7 +66,16 @@ class ComposeSecurityTests(unittest.TestCase):
         self.assertNotIn("docker-proxy", services)
         darkmoon = services["darkmoon"]
         self.assertNotIn("container_name", darkmoon)
-        self.assertNotIn("build", darkmoon)
+        # The fixture builds the MCP image locally (Dockerfile.mcp) so it does
+        # not depend on the ascit/darkmoon image having the MCP baked in. That
+        # requires a `build` clause, so allow it -- but it must be the
+        # single-container MCP image, never a separate sidecar service.
+        build = darkmoon.get("build")
+        if build is not None:
+            self.assertTrue(
+                str(build.get("dockerfile", "")).endswith("Dockerfile.mcp"),
+                "protocol fixture must build the MCP image from Dockerfile.mcp",
+            )
         _assert_no_socket(services)
         self.assertEqual(_env_get(darkmoon, "DARKMOON_MCP_HOST"), "127.0.0.1")
         self.assertEqual(_env_get(darkmoon, "DARKMOON_EXEC_MODE"), "local")

@@ -1,14 +1,24 @@
 # Overlay for production integration tests.
 #
-# The Dark-Moon stack is a single `darkmoon` container with the MCP baked in
-# and the LLM brain (Hermes) running outside the container, so there is no
-# in-stack OpenCode service or mock provider to override here. This file exists
-# only so the production test can layer environment-specific overrides (for
-# example capture directories or ARM/local image selection) without editing the
-# shipped docker-compose.yml.
+# The Dark-Moon stack is a single `darkmoon` container with the LLM brain
+# (Hermes) running outside the container, so there is no in-stack OpenCode
+# service or mock provider to override here. This file layers the MCP onto the
+# prebuilt toolbox image by BUILDING a thin local image
+# (tests/Dockerfile.toolbox-mcp) instead of assuming the ascit/darkmoon image
+# has the MCP baked in. It only sets the build/image + container name; all other
+# service configuration (network mode, volumes, capabilities, healthcheck) comes
+# from the shipped docker-compose.yml.
 
 services:
   darkmoon:
+    # Built locally so the test never depends on a registry image shipping the MCP.
+    image: darkmoon-test-toolbox:local
+    build:
+      # Resolved relative to the primary compose file (docker-compose.yml, the
+      # repo root) rather than this overlay, so `context` is "." and the
+      # Dockerfile path is relative to the repo root.
+      context: .
+      dockerfile: tests/Dockerfile.toolbox-mcp
     # The integration stack must never claim the production plugin container
     # name. The test harness supplies a unique, project-scoped value.
     container_name: ${DARKMOON_TEST_CONTAINER_NAME:?set by test_production_stack.sh}

@@ -116,7 +116,9 @@ stage "Render production Compose topology"
 "${COMPOSE[@]}" config >/dev/null
 
 stage "Start production stack"
-"${COMPOSE[@]}" up -d
+# Build the MCP-enabled toolbox image locally (tests/Dockerfile.toolbox-mcp)
+# instead of relying on ascit/darkmoon:local having the MCP baked in.
+"${COMPOSE[@]}" up -d --build
 
 stage "Wait for the darkmoon-plugin container to become healthy"
 wait_for_health
@@ -132,7 +134,8 @@ async def main():
     # is applied by the Hermes MCP server key (server-side of the
     # Hermes<->MCP integration), so a raw MCP client sees bare names. These are
     # the same tools the privacy gateway + local executor path exposes for the
-    # real toolbox round-trip; nuclei is a real binary baked into the image.
+    # real toolbox round-trip; nuclei is a real binary in the toolbox image, and
+    # the MCP server itself is built locally by the test fixture.
     async with Client("http://127.0.0.1:8000/mcp") as client:
         tools = {tool.name for tool in await client.list_tools()}
         assert {"check_tool", "execute_command", "list_workflows"} <= tools
@@ -159,4 +162,4 @@ DARKMOON_COMPOSE_PROJECT="$PROJECT" \
 grep -q 'MCP: reachable' "$TEST_ROOT/wrapper-status.stdout"
 
 stage "Production integration complete"
-echo "PASS: single darkmoon-plugin container, baked-in MCP, and real darkmoon_* toolbox MCP round-trip"
+echo "PASS: single darkmoon-plugin container, locally-built MCP, and real darkmoon_* toolbox MCP round-trip"

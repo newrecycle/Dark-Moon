@@ -57,7 +57,9 @@ wait_for_mcp() {
 }
 
 compose config >/dev/null
-compose up -d
+# Build the MCP image locally (Dockerfile.mcp) so the test never depends on the
+# ascit/darkmoon toolbox image having the MCP baked in.
+compose up -d --build
 wait_for_mcp
 
 compose exec -T darkmoon python - <<'PY'
