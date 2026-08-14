@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import json
 import os
 import re
@@ -110,6 +111,15 @@ _SECRET_RE = re.compile(
     r"password|passwd|access[-_]?key|private[-_]?key)\S*?)\s*([=:]\s*)(\S+)"
 )
 _IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+# IPv6 redaction. We only redact strings that actually parse as IPv6 addresses
+# (via the ipaddress module), so MAC addresses, hex dumps, and arbitrary
+# colon-separated tokens are left intact -- only real target addresses leave.
+# The lookbehind/lookahead keep us from grabbing a fragment of a longer
+# hex/colon run (a word boundary won't do, since ':' is a non-word char).
+_IPV6_CANDIDATE_RE = re.compile(
+    r"(?<![0-9A-Fa-f:.%])(?:[0-9A-Fa-f]{0,4}:){2,}[0-9A-Fa-f]{0,4}"
+    r"(?:%[0-9A-Za-z]+)?(?![0-9A-Fa-f:.%])"
+)
 _REDACT_LINE_LIMIT = 8192
 
 
@@ -616,10 +626,22 @@ def _resume_command(session_id: str) -> str:
     )
 
 
+def _redact_ipv6(match: "re.Match[str]") -> str:
+    """Redact a candidate IPv6 address, leaving non-address hex/colon runs alone."""
+    candidate = match.group(0)
+    addr = candidate.split("%", 1)[0]
+    try:
+        ipaddress.ip_address(addr)
+    except ValueError:
+        return candidate
+    return "IP_REDACTED"
+
+
 def _redact(text: str) -> str:
     if not text:
         return text
     text = _IPV4_RE.sub("IP_REDACTED", text)
+    text = _IPV6_CANDIDATE_RE.sub(_redact_ipv6, text)
     out = []
     for line in text.splitlines():
         # Skip the secret scan on pathological long lines (e.g. a large response

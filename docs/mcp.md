@@ -16,7 +16,7 @@ Target audience:
 MCP (Model Context Protocol) is **the security and execution boundary**
 between:
 
-- the AI (OpenCode + agents),
+- the AI (Hermes + agents),
 - the real pentest tools.
 
 👉 The AI **never directly** touches the tools.
@@ -101,7 +101,7 @@ The MCP uses:
 
 ## 6. Example of AI-side Usage
 
-In the OpenCode chat:
+In the Hermes chat:
 
 > "run a vulnerability scan on example.com"
 

@@ -32,7 +32,7 @@ Everything is built around this constraint.
 | User host | Operator's system |
 | LLM API Keys | Model access |
 | Toolbox | Pentest tools |
-| OpenCode Configuration | Agents, prompts |
+| DarkMoon Agent Configuration | Agents, prompts |
 | Scan Results | Sensitive data |
 
 ---
