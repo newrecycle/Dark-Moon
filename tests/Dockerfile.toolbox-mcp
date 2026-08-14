@@ -1,6 +1,6 @@
 # Thin fixture image for the Dark-Moon production integration test.
 #
-# The prebuilt ascit/darkmoon toolbox image still supplies the real offensive
+# The prebuilt newrecycle/darkmoon toolbox image still supplies the real offensive
 # tools (nuclei, etc.), but it does NOT ship the MCP server. This stage layers
 # the MCP onto it so the test no longer depends on the toolbox image having the
 # MCP baked in. We add only:
@@ -10,7 +10,7 @@
 #
 # Live workflows are still mounted at runtime by the base docker-compose.yml
 # volumes, so this stage does not need to vendor them.
-FROM ascit/darkmoon:latest
+FROM newrecycle/darkmoon:latest
 
 USER 0:0
 

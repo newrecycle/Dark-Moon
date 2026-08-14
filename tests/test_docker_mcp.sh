@@ -58,7 +58,7 @@ wait_for_mcp() {
 
 compose config >/dev/null
 # Build the MCP image locally (Dockerfile.mcp) so the test never depends on the
-# ascit/darkmoon toolbox image having the MCP baked in.
+# newrecycle/darkmoon toolbox image having the MCP baked in.
 compose up -d --build
 wait_for_mcp
 

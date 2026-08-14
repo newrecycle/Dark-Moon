@@ -9,7 +9,7 @@ service.
 
 ## Production Compose
 
-`docker-compose.yml` (x86_64, image `ascit/darkmoon:local`) and
+`docker-compose.yml` (x86_64, image `newrecycle/darkmoon:local`) and
 `docker-compose-dev.yml` (ARM64, builds the `Dockerfile` locally) each define
 exactly one service: `darkmoon`. On container start, `conf/bootstrap.py` seeds or
 migrates the persistent agents, renders the provider selected by `install.sh`,

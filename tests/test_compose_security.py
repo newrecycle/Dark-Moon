@@ -67,7 +67,7 @@ class ComposeSecurityTests(unittest.TestCase):
         darkmoon = services["darkmoon"]
         self.assertNotIn("container_name", darkmoon)
         # The fixture builds the MCP image locally (Dockerfile.mcp) so it does
-        # not depend on the ascit/darkmoon image having the MCP baked in. That
+        # not depend on the newrecycle/darkmoon image having the MCP baked in. That
         # requires a `build` clause, so allow it -- but it must be the
         # single-container MCP image, never a separate sidecar service.
         build = darkmoon.get("build")

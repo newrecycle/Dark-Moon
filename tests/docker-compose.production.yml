@@ -4,7 +4,7 @@
 # (Hermes) running outside the container, so there is no in-stack OpenCode
 # service or mock provider to override here. This file layers the MCP onto the
 # prebuilt toolbox image by BUILDING a thin local image
-# (tests/Dockerfile.toolbox-mcp) instead of assuming the ascit/darkmoon image
+# (tests/Dockerfile.toolbox-mcp) instead of assuming the newrecycle/darkmoon image
 # has the MCP baked in. It only sets the build/image + container name; all other
 # service configuration (network mode, volumes, capabilities, healthcheck) comes
 # from the shipped docker-compose.yml.

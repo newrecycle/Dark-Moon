@@ -48,7 +48,7 @@ The Hermes entrypoint is the `plugin/` package: `hermes plugins install <path-or
 - `mcp/requirements.lock` is hash-pinned via `pip-tools`; derivable from `mcp/requirements.in`.
 
 ## Pitfalls
-- **Single container by design.** `docker-compose.yml` (x86_64, `ascit/darkmoon:local` — the image with the MCP baked in; build it via `docker compose -f docker-compose-dev.yml build` or retag `ascit/darkmoon:latest`) and `docker-compose-dev.yml` (ARM64, builds `Dockerfile` locally) each define exactly ONE service: `darkmoon`. Tests assert no `opencode`/`opencode-bootstrap`/`docker-proxy`/`darkmoon-mcp` services remain — don't add them back.
+- **Single container by design.** `docker-compose.yml` (x86_64, `newrecycle/darkmoon:local` — the image with the MCP baked in; build it via `docker compose -f docker-compose-dev.yml build` or retag `newrecycle/darkmoon:latest`) and `docker-compose-dev.yml` (ARM64, builds `Dockerfile` locally) each define exactly ONE service: `darkmoon`. Tests assert no `opencode`/`opencode-bootstrap`/`docker-proxy`/`darkmoon-mcp` services remain — don't add them back.
 - The `darkmoon` container uses `network_mode: host`, so `localhost:8000/mcp` is reachable from the host with no port mapping. Under host networking, `ports:` are ignored.
 - **No Docker socket is mounted.** The toolbox runs its tools locally; the docker-audit agent targets *external/host* sockets via local exec, never its own. Security tests fail if `/var/run/docker.sock` appears in any compose volume.
 - `darkmoon-settings/` is the **live** runtime state (agents, auth, DB, reports) and is gitignored. `conf/agents/` is canonical/source. Do not hand-edit `darkmoon-settings/agents/*.md` — bootstrap migrates from `conf/agents` and is idempotent.

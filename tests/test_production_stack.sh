@@ -117,7 +117,7 @@ stage "Render production Compose topology"
 
 stage "Start production stack"
 # Build the MCP-enabled toolbox image locally (tests/Dockerfile.toolbox-mcp)
-# instead of relying on ascit/darkmoon:local having the MCP baked in.
+# instead of relying on newrecycle/darkmoon:local having the MCP baked in.
 "${COMPOSE[@]}" up -d --build
 
 stage "Wait for the darkmoon-plugin container to become healthy"

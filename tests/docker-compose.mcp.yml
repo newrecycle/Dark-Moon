@@ -2,7 +2,7 @@ name: darkmoon-mcp-test
 
 # Single-container fixture for the Dark-Moon MCP. The MCP server is BUILT LOCALLY
 # from Dockerfile.mcp (python:3.12-slim + the repo's mcp/ source + pinned deps),
-# so the test does NOT depend on the ascit/darkmoon toolbox image having the MCP
+# so the test does NOT depend on the newrecycle/darkmoon toolbox image having the MCP
 # baked in. There is no separate OpenCode brain, docker-proxy, or darkmoon-mcp
 # sidecar: the LLM brain (Hermes) runs outside the container. The MCP server
 # executes tools locally (DARKMOON_EXEC_MODE=local).

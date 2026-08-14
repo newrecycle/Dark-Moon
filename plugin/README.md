@@ -118,7 +118,7 @@ bash plugin/scripts/darkmoon-down.sh   # tear down
 
 `darkmoon-up.sh` picks the right compose file for your architecture:
 
-- **x86_64** → `docker-compose.yml` (expects a prebuilt `ascit/darkmoon:local`).
+- **x86_64** → `docker-compose.yml` (expects a prebuilt `newrecycle/darkmoon:local`).
 - **ARM64** (`aarch64`/`arm64`) → `docker-compose-dev.yml` (local build).
 
 Do not swap the two: the x86 file expects a prebuilt image that does not exist

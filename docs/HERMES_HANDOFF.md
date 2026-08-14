@@ -214,7 +214,7 @@ installed plugin.
 The Docker integration fixtures **build the MCP image locally**
 (`Dockerfile.mcp` for the protocol fixture; `tests/Dockerfile.toolbox-mcp`
 layered onto the toolbox image for the production stack) so they do not depend
-on a prebaked `ascit/darkmoon` image having the MCP server inside it. Both
+on a prebaked `newrecycle/darkmoon` image having the MCP server inside it. Both
 fixtures remain a **single `darkmoon` container** — no `opencode`,
 `darkmoon-mcp`, or `docker-proxy` sidecar is ever added.
 

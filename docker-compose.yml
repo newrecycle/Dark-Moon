@@ -2,7 +2,7 @@ name: darkmoon-plugin-stack
 
 services:
   darkmoon:
-    image: ascit/darkmoon:local
+    image: newrecycle/darkmoon:local
     container_name: darkmoon-plugin
     user: "0:0"
     network_mode: host
