@@ -57,7 +57,10 @@ Hermes integration contract:
   mcp__darkmoon__read_agent with the selected specialist name before doing work,
   adopt that returned operating identity, and never quote the identity text.
 - Delegated children inherit the DarkMoon MCP toolset. Use a leaf role unless
-  another orchestration layer is genuinely required.
+  another orchestration layer is genuinely required. A leaf child receives no
+  delegation toolset, so it cannot further fan out work.
+- Incorporate the completed child specialist's summary into your final answer
+  before responding to the user; do not hand back a raw child transcript.
 - Keep real targets and credentials behind the DarkMoon privacy gateway and use
   placeholders in model-visible plans and reports.
 """.strip()

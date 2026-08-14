@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 
 TOOL_PATH = Path(os.getenv("OPENCODE_CONFIG_TOOL", "/opt/darkmoon/opencode-config.py"))
 CONFIG_DIR = Path(os.getenv("OPENCODE_CONFIG_DIR", "/root/.config/opencode"))
-CONFIG_FILE = Path(os.getenv("OPENCODE_CONFIG_FILE", str(CONFIG_DIR / "opencode.json")))
+CONFIG_FILE = Path(os.getenv("DARKMOON_CONFIG_FILE", str(CONFIG_DIR / "darkmoon.json")))
 DATA_DIR = Path(os.getenv("OPENCODE_DATA_DIR", "/root/.local/share/opencode"))
 AUTH_FILE = Path(os.getenv("OPENCODE_AUTH_FILE", str(DATA_DIR / "auth.json")))
 AGENTS_DIR = Path(os.getenv("OPENCODE_AGENTS_DIR", str(CONFIG_DIR / "agents")))
