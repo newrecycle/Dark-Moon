@@ -138,10 +138,13 @@ class DarkmoonDockerClient:
                 self._broadcast(prefix.encode(), session_id)
 
             # Use docker low-level exec API for correct streaming + exit code
+            effective_workdir = workdir or os.environ.get(
+                "DARKMOON_SHARED_DIR", "/output"
+            )
             exec_id = self.client.api.exec_create(
                 container=container.id,
                 cmd=cmd,
-                workdir=workdir,
+                workdir=effective_workdir,
                 environment=environment,
                 tty=True,   # important: reduce buffering, keep ANSI
             )["Id"]
@@ -168,6 +171,7 @@ class DarkmoonDockerClient:
 
             inspect = self.client.api.exec_inspect(exec_id)
             exit_code = inspect.get("ExitCode", 1)
+            self._normalize_shared_ownership(container)
 
             # coreutils `timeout` reports 124 on expiry (137 when it had to SIGKILL).
             # Hand the agent an actionable explanation instead of silence: a bare
@@ -183,7 +187,7 @@ class DarkmoonDockerClient:
                     duration=duration,
                     metadata={
                         "command": cmd_str,
-                        "workdir": workdir,
+                        "workdir": effective_workdir,
                         "timeout": hard_timeout,
                         "timed_out": True,
                         "guard": classify(cmd_str).label or "unclassified",
@@ -204,7 +208,7 @@ class DarkmoonDockerClient:
                 duration=duration,
                 metadata={
                     "command": cmd_str,
-                    "workdir": workdir,
+                    "workdir": effective_workdir,
                     "timeout": hard_timeout,
                 },
             )
@@ -218,6 +222,37 @@ class DarkmoonDockerClient:
                 duration=duration,
                 metadata={"command": str(command), "error": str(e)},
             )
+
+    def _normalize_shared_ownership(self, container: Container) -> None:
+        """Return toolbox-created collaboration artifacts to the host identity."""
+        shared_dir = os.environ.get("DARKMOON_SHARED_DIR", "/output")
+        uid = os.environ.get("DARKMOON_UID", "1000")
+        gid = os.environ.get("DARKMOON_GID", "1000")
+
+        if not shared_dir.startswith("/") or ".." in shared_dir.split("/"):
+            return
+        if not uid.isdigit() or not gid.isdigit() or int(uid) <= 0 or int(gid) <= 0:
+            return
+
+        try:
+            exec_id = self.client.api.exec_create(
+                container=container.id,
+                cmd=[
+                    "bash",
+                    "-c",
+                    'if [ -d "$1" ]; then '
+                    'chown -R "$2:$3" "$1" && '
+                    'chmod -R u+rwX "$1" && chmod 2775 "$1"; fi',
+                    "darkmoon-shared-ownership",
+                    shared_dir,
+                    uid,
+                    gid,
+                ],
+            )["Id"]
+            self.client.api.exec_start(exec_id)
+        except Exception:
+            # Ownership repair must not hide the actual tool result.
+            pass
 
     def _gpu_state(self, container) -> Dict[str, str]:
         """Read the GPU profile the toolbox entrypoint wrote at container start.

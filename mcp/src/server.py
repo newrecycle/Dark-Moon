@@ -237,10 +237,18 @@ def execute_command(
             )
         real_command = gw.command or command
 
+    resolved_workdir = workdir
+    if not resolved_workdir and session_id:
+        try:
+            from api.live_push import campaign_output_dir_for_session
+            resolved_workdir = campaign_output_dir_for_session(session_id)
+        except Exception:
+            resolved_workdir = None
+
     result = executor.execute(
         command=real_command,
         timeout=timeout,
-        workdir=workdir,
+        workdir=resolved_workdir,
         session_id=session_id,   # pass through
     )
 
@@ -307,7 +315,7 @@ def list_allowed_tools() -> Dict[str, Any]:
             "recon": ["subfinder", "waybackurls", "katana"],
             "dns": ["dig", "nslookup"],
             "network": ["curl", "wget", "ping"],
-            "ad_windows": ["netexec", "bloodhound-python", "smbclient.py", "hashcat", "Get-GPPPassword.py", "GetADComputer.py", "GetADUsers.py", "GetLAPSassword.py", "GetNPUsers.py", "GetUserSPNs.py", "ldapdomaindump.py", "smbclient.py", "smbexec.py", "smbserver.py", "findDelegation.py", "addcomputer.py", "exchanger.py", "raiseChild.py", "rdp-check.py", "registry-read.py", "regsecrets.py", "rpcdump.py", "rpcmap.py", "ticketConverter.py", "ticketer.py", "tstool.py", "owneredit.py", "ping.py", "psexec.py", "sambaPipe.py", "samedit.py", "samrdump.py", "sniff.py", "sniffer.py", "secretsdump.py", "snmpwalk", "dcomexec.py", "dpapi.py", "filetime.py", "getArch.py", "getPac.py", "getST.py", "getTGT.py", "goldenPac.py", "jp.py", "keylistattack.py", "lookupsid.py", "mimikatz.py", "minikerberos-asreproast", "minikerberos-ccache2kirbi", "minikerberos-ccacheedit", "minikerberos-ccacheroast", "minikerberos-cve202233647", "minikerberos-cve202233679", "minikerberos-getNTPKInit", "minikerberos-getS4U2proxy", "minikerberos-getS4U2self", "minikerberos-getTGS", "minikerberos-kerb23hashdecrypt", "minikerberos-kerberoast", "minikerberos-keylist", "minikerberos-kirbi2ccache", "minikerberos-pw", "mqtt_check.py", "mssqlclient.py", "mssqlinstance.py", "wmiexec.py", "wmipersist.py", "wmiquery.py", "changepasswd.py", "badsuccessor.py", "net.py", "netview.py", "ntfs-read.py", "ntmlrelayx.py",],
+            "ad_windows": ["netexec", "bloodhound-python", "smbclient.py", "hashcat", "Get-GPPPassword.py", "GetADComputer.py", "GetADUsers.py", "GetLAPSassword.py", "GetNPUsers.py", "GetUserSPNs.py", "ldapdomaindump", "smbclient.py", "smbexec.py", "smbserver.py", "findDelegation.py", "addcomputer.py", "exchange.py", "raiseChild.py", "rdp-check.py", "registry-read.py", "regsecrets.py", "rpcdump.py", "rpcmap.py", "ticketConverter.py", "ticketer.py", "tstool.py", "owneredit.py", "ping.py", "psexec.py", "sambaPipe.py", "samedit.py", "samrdump.py", "sniff.py", "sniffer.py", "secretsdump.py", "snmpwalk", "dcomexec.py", "dpapi.py", "filetime.py", "getArch.py", "getPac.py", "getST.py", "getTGT.py", "goldenPac.py", "jp.py", "keylistattack.py", "lookupsid.py", "mimikatz.py", "minikerberos-asreproast", "minikerberos-ccache2kirbi", "minikerberos-ccacheedit", "minikerberos-ccacheroast", "minikerberos-cve202233647", "minikerberos-cve202233679", "minikerberos-getNTPKInit", "minikerberos-getS4U2proxy", "minikerberos-getS4U2self", "minikerberos-getTGS", "minikerberos-kerb23hashdecrypt", "minikerberos-kerberoast", "minikerberos-keylist", "minikerberos-kirbi2ccache", "minikerberos-pw", "mqtt_check.py", "mssqlclient.py", "mssqlinstance.py", "wmiexec.py", "wmipersist.py", "wmiquery.py", "changepasswd.py", "badsuccessor.py", "net.py", "netview.py", "ntfs-read.py", "ntmlrelayx.py",],
             "kubernetes": ["kubectl", "kubeletctl", "kubescape"],
             "misc": ["jq", "grep", "awk", "sed", "zip", "unzip",],
         },
@@ -406,6 +414,7 @@ def dashboard_init_campaign(
     target_ip: str,
     project_name: str = "Darkmoon Assessment",
     methodology: str = "ISO 27001 / NIST SP 800-115 / MITRE ATT&CK",
+    campaign_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Initialize a live campaign for the Darkmoon Dashboard.
@@ -420,6 +429,8 @@ def dashboard_init_campaign(
         target_ip: Target IP address
         project_name: Name for the assessment project
         methodology: Methodology string
+        campaign_name: Shared output folder name. Files are shared at
+            /output/{campaign_name}; defaults to project_name.
 
     Returns:
         Dictionary with project_id, target_id, campaign_id.
@@ -439,6 +450,7 @@ def dashboard_init_campaign(
         target_ip=target_ip,
         project_name=project_name,
         methodology=methodology,
+        campaign_name=campaign_name,
     )
 
 
@@ -685,8 +697,19 @@ def dashboard_finalize_campaign(
     elif _is_reference(report_markdown):
         # Agent passed a file path or reference — check disk first, then auto-generate
         from pathlib import Path
+        output_root = Path(os.environ.get("DARKMOON_SHARED_DIR", "/output")).resolve()
+        reference_text = str(report_markdown or "").strip()
+        referenced_report = None
+        if reference_text.startswith("/output/"):
+            candidate = Path(reference_text.splitlines()[0]).resolve()
+            if candidate.is_relative_to(output_root) and candidate.is_file():
+                referenced_report = candidate.read_text(encoding="utf-8")
+
+        if referenced_report and len(referenced_report) > 2000:
+            resolved_markdown = referenced_report
+
         reports_dir = Path("/root/.local/share/opencode/reports")
-        if reports_dir.exists():
+        if (not resolved_markdown or _is_reference(resolved_markdown)) and reports_dir.exists():
             suffix = campaign_id[-8:]
             disk_reports = sorted(
                 [p for p in reports_dir.glob("pentest_report_*.md")

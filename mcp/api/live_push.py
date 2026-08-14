@@ -13,6 +13,8 @@ Flow during a live pentest:
 Each call writes JSON to disk immediately so the API serves fresh data.
 """
 
+import os
+import re
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -116,6 +118,7 @@ from api.json_storage import (
     save_target,
     save_campaign,
     load_campaign,
+    load_campaigns,
     find_target_by_host_or_ip,
     find_project_by_target_id,
     _read_json,
@@ -369,6 +372,42 @@ def _normalize_campaign_status(status: str) -> str:
     return aliases.get(normalized, normalized)
 
 
+def _campaign_output_dir(campaign_name: str, campaign_id: str) -> Path:
+    """Create the shared, traversal-safe output directory for a campaign."""
+    raw_name = str(campaign_name or campaign_id).strip()
+    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", raw_name).strip("._-")
+    safe_name = safe_name[:96] or campaign_id
+
+    output_root = Path(os.environ.get("DARKMOON_SHARED_DIR", "/output")).resolve()
+    output_root.mkdir(parents=True, exist_ok=True)
+    output_dir = output_root / safe_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.chmod(0o2775)
+    return output_dir
+
+
+def campaign_output_dir_for_session(session_id: str) -> Optional[str]:
+    """Resolve an orchestrator or subagent session to its shared campaign dir."""
+    if not session_id:
+        return None
+
+    parent_campaign_id = _find_parent_campaign_id(session_id)
+    if parent_campaign_id:
+        campaign = load_campaign(parent_campaign_id)
+        if campaign:
+            name = campaign.get("name") or parent_campaign_id
+            return str(_campaign_output_dir(name, parent_campaign_id))
+
+    clean_session = str(session_id).replace("ses_", "").replace("-", "")
+    for campaign in reversed(load_campaigns()):
+        stored = str(campaign.get("session_id", "")).replace("ses_", "").replace("-", "")
+        if stored and (stored == clean_session or stored in clean_session or clean_session in stored):
+            campaign_id = str(campaign.get("id") or clean_session)
+            name = campaign.get("name") or campaign_id
+            return str(_campaign_output_dir(name, campaign_id))
+    return None
+
+
 # -----------------------------------------------------------------------
 # 1. Init campaign — creates project/target/campaign skeleton
 # -----------------------------------------------------------------------
@@ -384,6 +423,7 @@ def init_live_campaign(
     ports: Optional[List[Dict[str, Any]]] = None,
     technologies: Optional[List[Dict[str, Any]]] = None,
     os_info: str = "",
+    campaign_name: Optional[str] = None,
 ) -> Dict[str, str]:
     """
     Initialize a live campaign. Creates project + target + campaign skeleton.
@@ -508,17 +548,27 @@ def init_live_campaign(
                 existing_nodes.append(n)
         _write_json(infra_path, existing_nodes)
 
+        parent_campaign = load_campaign(parent_campaign_id) or {}
+        resolved_campaign_name = parent_campaign.get("name") or parent_campaign_id
+        output_dir = str(_campaign_output_dir(resolved_campaign_name, parent_campaign_id))
+
         return {
             "project_id": project_id,
             "target_id": target_id,
             "campaign_id": parent_campaign_id,
+            "campaign_name": resolved_campaign_name,
+            "output_dir": output_dir,
             "status": "subagent_merged_into_parent",
         }
 
     campaign_id = f"camp_{today}_{session_id}"
+    resolved_campaign_name = campaign_name or project_name or campaign_id
+    output_dir = str(_campaign_output_dir(resolved_campaign_name, campaign_id))
 
     campaign = {
         "id": campaign_id,
+        "name": resolved_campaign_name,
+        "output_dir": output_dir,
         "project_id": project_id,
         "target_id": target_id,
         "session_id": session_id,
@@ -576,6 +626,8 @@ def init_live_campaign(
         "project_id": project_id,
         "target_id": target_id,
         "campaign_id": campaign_id,
+        "campaign_name": resolved_campaign_name,
+        "output_dir": output_dir,
         "status": "campaign_initialized",
     }
 

@@ -1,0 +1,1016 @@
+{
+  "schema_version": "1.0",
+  "generated_by": "generate_mcp_policy.py",
+  "source_inventory": "tools/toolbox-manifest.json",
+  "allow": {
+    "bash": {
+      "source": "inventory",
+      "records": [
+        "bash"
+      ]
+    },
+    "dig": {
+      "source": "inventory",
+      "records": [
+        "dnsutils"
+      ]
+    },
+    "nslookup": {
+      "source": "inventory",
+      "records": [
+        "dnsutils"
+      ]
+    },
+    "curl": {
+      "source": "inventory",
+      "records": [
+        "curl-8.15.0",
+        "curl-apt"
+      ]
+    },
+    "jq": {
+      "source": "inventory",
+      "records": [
+        "jq"
+      ]
+    },
+    "hydra": {
+      "source": "inventory",
+      "records": [
+        "hydra"
+      ]
+    },
+    "snmpwalk": {
+      "source": "inventory",
+      "records": [
+        "snmp"
+      ]
+    },
+    "snmpget": {
+      "source": "inventory",
+      "records": [
+        "snmp"
+      ]
+    },
+    "snmpstatus": {
+      "source": "inventory",
+      "records": [
+        "snmp"
+      ]
+    },
+    "snmptranslate": {
+      "source": "inventory",
+      "records": [
+        "snmp"
+      ]
+    },
+    "ssh": {
+      "source": "inventory",
+      "records": [
+        "openssh-client"
+      ]
+    },
+    "scp": {
+      "source": "inventory",
+      "records": [
+        "openssh-client"
+      ]
+    },
+    "ssh-keygen": {
+      "source": "inventory",
+      "records": [
+        "openssh-client"
+      ]
+    },
+    "inotifywait": {
+      "source": "inventory",
+      "records": [
+        "inotify-tools"
+      ]
+    },
+    "inotifywatch": {
+      "source": "inventory",
+      "records": [
+        "inotify-tools"
+      ]
+    },
+    "git": {
+      "source": "inventory",
+      "records": [
+        "git"
+      ]
+    },
+    "psql": {
+      "source": "inventory",
+      "records": [
+        "postgresql-client"
+      ]
+    },
+    "mysql": {
+      "source": "inventory",
+      "records": [
+        "default-mysql-client"
+      ]
+    },
+    "mysqladmin": {
+      "source": "inventory",
+      "records": [
+        "default-mysql-client"
+      ]
+    },
+    "redis-cli": {
+      "source": "inventory",
+      "records": [
+        "redis-tools"
+      ]
+    },
+    "binwalk": {
+      "source": "inventory",
+      "records": [
+        "binwalk"
+      ]
+    },
+    "unsquashfs": {
+      "source": "inventory",
+      "records": [
+        "squashfs-tools"
+      ]
+    },
+    "nc": {
+      "source": "inventory",
+      "records": [
+        "netcat-openbsd"
+      ]
+    },
+    "john": {
+      "source": "inventory",
+      "records": [
+        "john"
+      ]
+    },
+    "unshadow": {
+      "source": "inventory",
+      "records": [
+        "john"
+      ]
+    },
+    "7z2john": {
+      "source": "inventory",
+      "records": [
+        "john"
+      ]
+    },
+    "sqlite3": {
+      "source": "inventory",
+      "records": [
+        "sqlite3"
+      ]
+    },
+    "arp-scan": {
+      "source": "inventory",
+      "records": [
+        "arp-scan"
+      ]
+    },
+    "nmap": {
+      "source": "inventory",
+      "records": [
+        "nmap"
+      ]
+    },
+    "medusa": {
+      "source": "inventory",
+      "records": [
+        "medusa"
+      ]
+    },
+    "ncrack": {
+      "source": "inventory",
+      "records": [
+        "ncrack"
+      ]
+    },
+    "Get-GPPPassword.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "GetADComputers.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "GetADUsers.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "GetLAPSPassword.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "GetNPUsers.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "GetUserSPNs.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "addcomputer.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "atexec.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "badsuccessor.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "changepasswd.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "dcomexec.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "dpapi.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "esentutl.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "exchange.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "filetime.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "findDelegation.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "getArch.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "getPac.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "getST.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "getTGT.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "goldenPac.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "jp.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "keylistattack.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "lookupsid.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "mimikatz.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "mqtt_check.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "mssqlclient.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "mssqlinstance.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "net.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "netview.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "ntfs-read.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "ntlmrelayx.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "owneredit.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "ping.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "psexec.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "raiseChild.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "rdp_check.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "registry-read.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "regsecrets.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "rpcdump.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "rpcmap.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "sambaPipe.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "samedit.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "samrdump.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "secretsdump.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "services.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "smbclient.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "smbexec.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "smbserver.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "sniff.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "sniffer.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "ticketConverter.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "ticketer.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "tstool.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "wmiexec.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "wmipersist.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "wmiquery.py": {
+      "source": "inventory",
+      "records": [
+        "impacket"
+      ]
+    },
+    "nxc": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "netexec": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-asreproast": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-ccache2kirbi": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-ccacheedit": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-ccacheroast": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-cve202233647": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-cve202233679": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-getNTPKInit": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-getS4U2proxy": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-getS4U2self": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-getTGS": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-getTGT": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-keylist": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-kirbi2ccache": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "minikerberos-pw": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "crackmapexec": {
+      "source": "inventory",
+      "records": [
+        "netexec"
+      ]
+    },
+    "bloodhound": {
+      "source": "inventory",
+      "records": [
+        "bloodhound"
+      ]
+    },
+    "bloodhound-python": {
+      "source": "inventory",
+      "records": [
+        "bloodhound"
+      ]
+    },
+    "wafw00f": {
+      "source": "inventory",
+      "records": [
+        "wafw00f"
+      ]
+    },
+    "sqlmap": {
+      "source": "inventory",
+      "records": [
+        "sqlmap"
+      ]
+    },
+    "arjun": {
+      "source": "inventory",
+      "records": [
+        "arjun"
+      ]
+    },
+    "aws": {
+      "source": "inventory",
+      "records": [
+        "awscli"
+      ]
+    },
+    "az": {
+      "source": "inventory",
+      "records": [
+        "azure-cli"
+      ]
+    },
+    "ldapdomaindump": {
+      "source": "inventory",
+      "records": [
+        "ldapdomaindump"
+      ]
+    },
+    "kube-bench": {
+      "source": "inventory",
+      "records": [
+        "kube-bench"
+      ]
+    },
+    "nuclei": {
+      "source": "inventory",
+      "records": [
+        "nuclei"
+      ]
+    },
+    "zgrab2": {
+      "source": "inventory",
+      "records": [
+        "zgrab2"
+      ]
+    },
+    "katana": {
+      "source": "inventory",
+      "records": [
+        "katana"
+      ]
+    },
+    "waybackurls": {
+      "source": "inventory",
+      "records": [
+        "waybackurls"
+      ]
+    },
+    "naabu": {
+      "source": "inventory",
+      "records": [
+        "naabu"
+      ]
+    },
+    "httpx": {
+      "source": "inventory",
+      "records": [
+        "httpx"
+      ]
+    },
+    "kubescape": {
+      "source": "inventory",
+      "records": [
+        "kubescape"
+      ]
+    },
+    "kubectl-who-can": {
+      "source": "inventory",
+      "records": [
+        "kubectl-who-can"
+      ]
+    },
+    "kubeletctl": {
+      "source": "inventory",
+      "records": [
+        "kubeletctl"
+      ]
+    },
+    "rbac-police": {
+      "source": "inventory",
+      "records": [
+        "rbac-police"
+      ]
+    },
+    "ffuf": {
+      "source": "inventory",
+      "records": [
+        "ffuf"
+      ]
+    },
+    "subfinder": {
+      "source": "inventory",
+      "records": [
+        "subfinder"
+      ]
+    },
+    "vulnx": {
+      "source": "inventory",
+      "records": [
+        "vulnx"
+      ]
+    },
+    "grpcurl": {
+      "source": "inventory",
+      "records": [
+        "grpcurl"
+      ]
+    },
+    "dirb": {
+      "source": "inventory",
+      "records": [
+        "dirb"
+      ]
+    },
+    "kubectl": {
+      "source": "inventory",
+      "records": [
+        "kubectl"
+      ]
+    },
+    "whatweb": {
+      "source": "inventory",
+      "records": [
+        "whatweb"
+      ]
+    },
+    "lightpanda": {
+      "source": "inventory",
+      "records": [
+        "lightpanda"
+      ]
+    },
+    "wpscan": {
+      "source": "inventory",
+      "records": [
+        "wpscan"
+      ]
+    },
+    "cmseek": {
+      "source": "inventory",
+      "records": [
+        "cmseek"
+      ]
+    },
+    "gcloud": {
+      "source": "inventory",
+      "records": [
+        "google-cloud-sdk"
+      ]
+    },
+    "gsutil": {
+      "source": "inventory",
+      "records": [
+        "google-cloud-sdk"
+      ]
+    },
+    "bq": {
+      "source": "inventory",
+      "records": [
+        "google-cloud-sdk"
+      ]
+    },
+    "hashcat": {
+      "source": "inventory",
+      "records": [
+        "hashcat"
+      ]
+    },
+    "sasquatch": {
+      "source": "inventory",
+      "records": [
+        "sasquatch"
+      ]
+    },
+    "firmwalker": {
+      "source": "inventory",
+      "records": [
+        "firmwalker"
+      ]
+    },
+    "finalrecon": {
+      "source": "inventory",
+      "records": [
+        "finalrecon"
+      ]
+    },
+    "sh": {
+      "source": "exception",
+      "reason": "core shell"
+    },
+    "cat": {
+      "source": "exception",
+      "reason": "core shell utility"
+    },
+    "chmod": {
+      "source": "exception",
+      "reason": "core shell utility (script perms)"
+    },
+    "grep": {
+      "source": "exception",
+      "reason": "core shell utility"
+    },
+    "awk": {
+      "source": "exception",
+      "reason": "core shell utility"
+    },
+    "sed": {
+      "source": "exception",
+      "reason": "core shell utility"
+    },
+    "node": {
+      "source": "exception",
+      "reason": "headless-browser / playwright runtime"
+    },
+    "npm": {
+      "source": "exception",
+      "reason": "node package ecosystem (headless-browser agent)"
+    },
+    "npx": {
+      "source": "exception",
+      "reason": "node package runner (headless-browser agent)"
+    },
+    "file": {
+      "source": "exception",
+      "reason": "firmware / file-type triage"
+    },
+    "strings": {
+      "source": "exception",
+      "reason": "firmware / binary triage"
+    },
+    "zip": {
+      "source": "exception",
+      "reason": "archive utility"
+    },
+    "unzip": {
+      "source": "exception",
+      "reason": "archive utility"
+    },
+    "wget": {
+      "source": "exception",
+      "reason": "download utility (firmware/wordlist fetch)"
+    },
+    "ping": {
+      "source": "exception",
+      "reason": "connectivity check"
+    }
+  },
+  "forbidden_by_default": [
+    "sqlmap"
+  ],
+  "blocked": [],
+  "do_not_install": [
+    {
+      "command": "terraform",
+      "reason": "terraform agent uses pre-existing binary; go install terraform forbidden"
+    },
+    {
+      "command": "ansible",
+      "reason": "ansible agent; apt/pip install ansible forbidden"
+    },
+    {
+      "command": "ansible-vault",
+      "reason": "ansible agent; install forbidden"
+    }
+  ],
+  "exceptions": {
+    "core_shell": [
+      {
+        "command": "bash",
+        "reason": "core shell / script execution"
+      },
+      {
+        "command": "sh",
+        "reason": "core shell"
+      },
+      {
+        "command": "cat",
+        "reason": "core shell utility"
+      },
+      {
+        "command": "chmod",
+        "reason": "core shell utility (script perms)"
+      },
+      {
+        "command": "grep",
+        "reason": "core shell utility"
+      },
+      {
+        "command": "awk",
+        "reason": "core shell utility"
+      },
+      {
+        "command": "sed",
+        "reason": "core shell utility"
+      },
+      {
+        "command": "node",
+        "reason": "headless-browser / playwright runtime"
+      },
+      {
+        "command": "npm",
+        "reason": "node package ecosystem (headless-browser agent)"
+      },
+      {
+        "command": "npx",
+        "reason": "node package runner (headless-browser agent)"
+      },
+      {
+        "command": "jq",
+        "reason": "JSON CLI (in inventory as apt:jq)"
+      },
+      {
+        "command": "file",
+        "reason": "firmware / file-type triage"
+      },
+      {
+        "command": "strings",
+        "reason": "firmware / binary triage"
+      },
+      {
+        "command": "zip",
+        "reason": "archive utility"
+      },
+      {
+        "command": "unzip",
+        "reason": "archive utility"
+      },
+      {
+        "command": "wget",
+        "reason": "download utility (firmware/wordlist fetch)"
+      },
+      {
+        "command": "ping",
+        "reason": "connectivity check"
+      }
+    ],
+    "platform": []
+  },
+  "legacy_baseline_size": 132,
+  "legacy_retained_count": 0,
+  "legacy_retained": [],
+  "counts": {
+    "allow": 156,
+    "inventory_derived": 141,
+    "exception_derived": 15,
+    "legacy_retained": 0,
+    "blocked": 0,
+    "forbidden_by_default": 1
+  }
+}
