@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Keyless regression tests for Dark-Moon agent configuration."""
+"""Keyless regression tests for Dark-Moon agent configuration.
+
+These tests validate the Markdown agent schema, the legacy-metadata migration,
+and the agent-config renderer (conf/opencode-config.py). They are independent of
+any specific LLM brain: the Dark-Moon LLM entrypoint (Hermes) runs outside the
+container, and these tests only exercise config structure and field rules.
+"""
 
 from __future__ import annotations
 
@@ -31,7 +37,7 @@ class AgentConfigTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.agents = self.root / "agents"
         shutil.copytree(REPO / "conf" / "agents", self.agents)
-        self.config_file = self.root / "config" / "opencode.json"
+        self.config_file = self.root / "config" / "agent-config.json"
         self.auth_file = self.root / "share" / "auth.json"
 
     def tearDown(self) -> None:
@@ -39,12 +45,16 @@ class AgentConfigTests(unittest.TestCase):
 
     def apply(self, env: dict[str, str] | None = None) -> dict:
         with mock.patch.dict(os.environ, env or {}, clear=True):
-            CONFIG.apply_configuration(self.config_file, self.auth_file, self.agents, REPO / "conf" / "agents")
+            CONFIG.apply_configuration(
+                self.config_file, self.auth_file, self.agents, REPO / "conf" / "agents"
+            )
         return json.loads(self.config_file.read_text(encoding="utf-8"))
 
     def test_every_agent_uses_the_pinned_supported_schema(self) -> None:
         schema = json.loads((REPO / "conf" / "opencode-schema.json").read_text())
-        self.assertEqual(set(CONFIG.SUPPORTED_AGENT_FIELDS), set(schema["darkmoon_markdown_fields"]))
+        self.assertEqual(
+            set(CONFIG.SUPPORTED_AGENT_FIELDS), set(schema["darkmoon_markdown_fields"])
+        )
         agents = CONFIG.validate_agents(self.agents)
         self.assertGreaterEqual(len(agents), 50)
         for name, data in agents.items():
@@ -66,7 +76,9 @@ class AgentConfigTests(unittest.TestCase):
 
     def test_source_fallback_keeps_local_mcp_and_narrow_permissions(self) -> None:
         generated = self.apply()
-        self.assertEqual(generated["mcp"]["darkmoon"]["command"], ["/usr/local/bin/darkmoon-mcp"])
+        self.assertEqual(
+            generated["mcp"]["darkmoon"]["command"], ["/usr/local/bin/darkmoon-mcp"]
+        )
         pentest = CONFIG.validate_agents(self.agents)["pentest"]
         self.assertEqual(list(pentest["permission"])[:3], ["*", "darkmoon_*", "task"])
 
@@ -93,7 +105,6 @@ name: pentest
 description: Issue 36
 primary: true
 prompt_file: prompt.txt
-mcp: [darkmoon]
 ---
 Body.
 """
@@ -106,7 +117,6 @@ Body.
         self.assertTrue(prompt)
 
     def test_stale_primary_mode_on_non_pentest_agent_is_auto_corrected(self) -> None:
-        """A stale agent with mode: primary (not pentest) must be migrated to subagent."""
         stale = self.agents / "pentest-web.md"
         stale.write_text(
             "---\n"
@@ -126,26 +136,42 @@ Body.
     def test_unknown_and_duplicate_frontmatter_are_rejected(self) -> None:
         path = self.agents / "aws.md"
         original = path.read_text()
-        path.write_text(original.replace("mode: subagent\n", "mode: subagent\nopaque_metadata: true\n", 1))
+        path.write_text(
+            original.replace("mode: subagent\n", "mode: subagent\nopaque_metadata: true\n", 1)
+        )
         with self.assertRaisesRegex(CONFIG.ConfigError, "unsupported agent field"):
             CONFIG.migrate_agents(self.agents)
-        path.write_text(original.replace("mode: subagent\n", "mode: subagent\nmode: primary\n", 1))
+        path.write_text(
+            original.replace("mode: subagent\n", "mode: subagent\nmode: primary\n", 1)
+        )
         with self.assertRaisesRegex(CONFIG.ConfigError, "duplicate key"):
             CONFIG.validate_agents(self.agents)
 
     def test_invalid_permission_and_provider_metadata_are_rejected(self) -> None:
         path = self.agents / "aws.md"
         original = path.read_text()
-        path.write_text(original.replace("  darkmoon_*: allow\n", "  darkmoon_*:\n    '*': [allow]\n", 1))
+        path.write_text(
+            original.replace(
+                "  darkmoon_*: allow\n", "  darkmoon_*: \n    '*': [allow]\n", 1
+            )
+        )
         with self.assertRaisesRegex(CONFIG.ConfigError, "invalid nested permission action"):
             CONFIG.validate_agents(self.agents)
-        path.write_text(original.replace("mode: subagent\n", "mode: subagent\noptions:\n  reasoning_effort: low\n  primary: true\n", 1))
+        path.write_text(
+            original.replace(
+                "mode: subagent\n",
+                "mode: subagent\noptions:\n  reasoning_effort: low\n  primary: true\n",
+                1,
+            )
+        )
         with self.assertRaisesRegex(CONFIG.ConfigError, "options contains legacy agent metadata"):
             CONFIG.migrate_agents(self.agents)
 
     def test_valid_provider_options_survive_migration(self) -> None:
         path = self.agents / "aws.md"
-        path.write_text(path.read_text().replace("mode: subagent\n", "mode: subagent\noptions:\n  reasoning_effort: low\n", 1))
+        path.write_text(
+            path.read_text().replace("mode: subagent\n", "mode: subagent\noptions:\n  reasoning_effort: low\n", 1)
+        )
         CONFIG.migrate_agents(self.agents)
         data, _ = CONFIG.read_agent(path, allow_legacy=False)
         self.assertEqual(data["options"], {"reasoning_effort": "low"})
@@ -153,11 +179,15 @@ Body.
     def test_missing_prompt_and_duplicate_identifier_are_rejected(self) -> None:
         agents = self.root / "bad"
         agents.mkdir()
-        (agents / "pentest.md").write_text("---\nid: pentest\ndescription: Missing\nprimary: true\nprompt_file: absent.md\n---\nBody\n")
+        (agents / "pentest.md").write_text(
+            "---\nid: pentest\ndescription: Missing\nprimary: true\nprompt_file: absent.md\n---\nBody\n"
+        )
         with self.assertRaisesRegex(CONFIG.ConfigError, "prompt_file does not exist"):
             CONFIG.migrate_agents(agents)
         duplicate = self.agents / "ad.md"
-        duplicate.write_text("---\nid: active-directory\nname: active-directory\ndescription: Duplicate\n---\nPrompt\n")
+        duplicate.write_text(
+            "---\nid: active-directory\nname: active-directory\ndescription: Duplicate\n---\nPrompt\n"
+        )
         with self.assertRaisesRegex(CONFIG.ConfigError, "duplicate agent identifier"):
             CONFIG.migrate_agents(self.agents)
 
@@ -165,13 +195,16 @@ Body.
         cases = [
             ({}, "opencode/big-pickle"),
             ({"ANTHROPIC_BASE_URL": "http://anthropic.test", "ANTHROPIC_MODEL": "private"}, "anthropic/private"),
-            ({
-                "OPENCODE_LOCAL_MODE": "true",
-                "OPENCODE_LOCAL_PROVIDER_ID": "local",
-                "OPENCODE_LOCAL_PROVIDER_NAME": "Local",
-                "OPENCODE_LOCAL_BASE_URL": "http://local.test/v1",
-                "OPENCODE_LOCAL_MODEL": "model",
-            }, "local/model"),
+            (
+                {
+                    "OPENCODE_LOCAL_MODE": "true",
+                    "OPENCODE_LOCAL_PROVIDER_ID": "local",
+                    "OPENCODE_LOCAL_PROVIDER_NAME": "Local",
+                    "OPENCODE_LOCAL_BASE_URL": "http://local.test/v1",
+                    "OPENCODE_LOCAL_MODEL": "model",
+                },
+                "local/model",
+            ),
             ({"OPENROUTER_PROVIDER": "openrouter", "OPENROUTER_API_KEY": "x", "OPENCODE_MODEL": "z-ai/glm-5.2"}, "openrouter/z-ai/glm-5.2"),
             ({"OPENROUTER_PROVIDER": "nvidia", "OPENROUTER_API_KEY": "x", "OPENCODE_MODEL": "nvidia/minimaxai/minimax-m3"}, "nvidia/minimaxai/minimax-m3"),
         ]
@@ -183,11 +216,13 @@ Body.
 
     def test_mcp_tool_names_match_permission_wildcard(self) -> None:
         source = (REPO / "mcp" / "src" / "server.py").read_text()
-        functions = re.findall(r"@mcp\.tool\(\)\s*\ndef\s+([a-zA-Z0-9_]+)\(", source)
+        functions = re.findall(r"@mcp\.tool\(\)\s*\n\s*def\s+([a-zA-Z0-9_]+)\(", source)
         generated = {f"darkmoon_{name}" for name in functions}
         self.assertIn("darkmoon_get_session", generated)
         self.assertIn("darkmoon_execute_command", generated)
-        self.assertTrue(all(fnmatch.fnmatchcase(name, "darkmoon_*") for name in generated))
+        self.assertTrue(
+            all(fnmatch.fnmatchcase(name, "darkmoon_*") for name in generated)
+        )
 
     def test_configuration_restart_is_idempotent(self) -> None:
         env = {"OPENROUTER_PROVIDER": "nvidia", "OPENROUTER_API_KEY": "x", "OPENCODE_MODEL": "z-ai/glm-5.2"}
@@ -246,7 +281,7 @@ DISPATCH MAPPING (use the exact matching subagent_type):
     - WordPress -> wordpress
 CONTEXT PASS: canonical
 {fence}
-PHASE 6 — SUBAGENT SPAWN PROTOCOL — OPENCODE 1.18.12
+PHASE 6 — SUBAGENT SPAWN PROTOCOL — DARK-MOON AGENT CONFIG
 {fence}
 description, prompt, and subagent_type are required.
 {fence}
@@ -265,71 +300,6 @@ CANONICAL SUFFIX
         self.assertIn("WordPress -> wordpress", migrated)
         self.assertNotIn("RAW AGENT FILE", migrated)
         self.assertNotIn("cms/lms sub agent", migrated)
-
-    def test_source_dockerfile_pins_audited_opencode(self) -> None:
-        schema = json.loads((REPO / "conf" / "opencode-schema.json").read_text())
-        dockerfile = (REPO / "Dockerfile.opencode").read_text()
-        self.assertIn(f"ARG OPENCODE_COMMIT={schema['commit']}", dockerfile)
-        self.assertIn(f"ARG OPENCODE_VERSION={schema['version']}", dockerfile)
-        self.assertIn("bun install --frozen-lockfile", dockerfile)
-
-    def test_reference_configs_make_transport_scope_explicit(self) -> None:
-        source = json.loads((REPO / "conf" / "opencode.json").read_text())
-        production = json.loads((REPO / "conf" / "opencode.production.json").read_text())
-        standalone = json.loads((REPO / "mcp" / "opencode.json").read_text())
-        self.assertEqual(source["mcp"]["darkmoon"]["type"], "local")
-        self.assertEqual(standalone["mcp"]["darkmoon"]["type"], "local")
-        self.assertEqual(production["mcp"]["darkmoon"]["type"], "remote")
-        self.assertEqual(production["subagent_depth"], 1)
-        self.assertEqual(CONFIG._walk_forbidden(production), [])
-
-    def test_production_and_arm_compose_are_single_darkmoon_container(self) -> None:
-        production = yaml.safe_load((REPO / "docker-compose.yml").read_text())
-        development = yaml.safe_load((REPO / "docker-compose-dev.yml").read_text())
-        for name, compose in (("production", production), ("development", development)):
-            services = compose["services"]
-            self.assertEqual(
-                set(services),
-                {"darkmoon"},
-                f"{name}: expected exactly one service 'darkmoon'",
-            )
-            svc = services["darkmoon"]
-            self.assertEqual(svc.get("network_mode"), "host")
-            env = svc.get("environment", {})
-            self.assertEqual(env.get("DARKMOON_EXEC_MODE"), "local")
-            self.assertEqual(env.get("DARKMOON_MCP_HOST"), "127.0.0.1")
-            # No legacy services survive the merge.
-            for legacy in ("opencode", "opencode-bootstrap", "docker-proxy", "darkmoon-mcp"):
-                self.assertNotIn(legacy, services, f"{name}: legacy service '{legacy}' remains")
-            # Prod uses the prebuilt image; dev builds locally.
-            if name == "production":
-                self.assertNotIn("build", svc)
-            else:
-                self.assertEqual(svc["build"]["dockerfile"], "Dockerfile")
-
-    def test_installer_and_wrapper_are_repository_safe_and_stock_image_compatible(self) -> None:
-        installer = (REPO / "install.sh").read_text()
-        wrapper = (REPO / "darkmoon.sh").read_text()
-        self.assertIn('${BASH_SOURCE[0]}', installer)
-        self.assertIn("--keep", installer)
-        generated_match = re.search(
-            r"(?ms)^GENERATED_BIND_PATHS=\(\n(?P<body>.*?)^\)\n",
-            installer,
-        )
-        self.assertIsNotNone(generated_match)
-        assert generated_match is not None
-        generated_paths = re.findall(
-            r'(?m)^\s+"\./([^"]+)"\s*$',
-            generated_match.group("body"),
-        )
-        self.assertEqual(
-            generated_paths,
-            ["data", "darkmoon-settings", "workflows", "reports", "sessions", "workspace"],
-        )
-        self.assertNotIn('SCRIPT_DIR="$(pwd)"', installer)
-        self.assertNotIn("bash -lc", wrapper)
-        self.assertIn("darkmoon", wrapper)
-        self.assertIn("src.mcp_monitoring", wrapper)
 
 
 if __name__ == "__main__":

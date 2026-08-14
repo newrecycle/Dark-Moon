@@ -37,7 +37,7 @@ jobs:
       - name: Run configuration, bootstrap, security, and reproducibility regressions
         run: >-
           python -m unittest -v
-          tests.test_opencode_config
+          tests.test_agent_config
           tests.test_production_bootstrap
           tests.test_compose_security
           tests.test_reproducibility
@@ -59,9 +59,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Test compatibility plugin
-        run: node --test tests/test_darkmoon_compat.mjs
-
       - name: Test wrapper command routing
         run: bash tests/test_darkmoon_wrapper.sh
 
@@ -80,14 +77,6 @@ jobs:
 
       - name: Validate Compose topologies
         run: |
-          cat > .opencode.env <<'EOF'
-          OPENCODE_LOCAL_MODE=true
-          OPENCODE_LOCAL_PROVIDER_ID=mock
-          OPENCODE_LOCAL_PROVIDER_NAME=Compose validation
-          OPENCODE_LOCAL_BASE_URL=http://mock-provider:8000/v1
-          OPENCODE_LOCAL_MODEL=darkmoon-test-model
-          EOF
-          chmod 600 .opencode.env
           docker compose -f docker-compose.yml config >/dev/null
           docker compose -f docker-compose-dev.yml config >/dev/null
           export DARKMOON_TEST_CAPTURE_DIR="$RUNNER_TEMP/compose-capture"

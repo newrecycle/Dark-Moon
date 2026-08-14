@@ -34,5 +34,5 @@ services:
       MOCK_PROVIDER_CAPTURE: /capture/requests.jsonl
       MOCK_EXPECT_MODEL: darkmoon-test-model
     volumes:
-      - ./tests:/tests:ro
+      - ../tests:/tests:ro
       - ${DARKMOON_TEST_CAPTURE_DIR:?set DARKMOON_TEST_CAPTURE_DIR}:/capture:rw

@@ -23,9 +23,10 @@ backend** running locally to actually do anything. The helper scripts in
 | Skill | `skills/darkmoon-pentest/` | Guides Hermes to bring up the backend and call only `darkmoon_*` tools. |
 | Helper scripts | `scripts/darkmoon-up.sh`, `scripts/darkmoon-down.sh` | Arch-aware Docker bring-up / tear-down. |
 
-The MCP reaches Docker through a `docker-proxy` sidecar (`tcp://docker-proxy:2375`).
-**The plugin never mounts `/var/run/docker.sock`.** The scripts only ever run
-`docker compose … up -d` / `down`.
+The MCP server is **baked into the single `darkmoon` container** and runs tools
+as **local subprocesses** (`DARKMOON_EXEC_MODE=local`) — there is no `docker-proxy`
+sidecar. **Neither the plugin nor the container ever mounts `/var/run/docker.sock`.**
+The scripts only ever run `docker compose … up -d` / `down` to bring the backend up.
 
 ---
 

@@ -126,14 +126,20 @@ import asyncio
 from fastmcp import Client
 
 async def main():
+    # The MCP server registers tools with BARE names on the wire
+    # (check_tool, execute_command, list_workflows, ...). The `darkmoon_` prefix
+    # is applied by the Hermes MCP server key (server-side of the
+    # Hermes<->MCP integration), so a raw MCP client sees bare names. These are
+    # the same tools the privacy gateway + local executor path exposes for the
+    # real toolbox round-trip; nuclei is a real binary baked into the image.
     async with Client("http://127.0.0.1:8000/mcp") as client:
         tools = {tool.name for tool in await client.list_tools()}
-        assert {"darkmoon_check_tool", "darkmoon_execute_command", "darkmoon_list_workflows"} <= tools
-        checked = await client.call_tool("darkmoon_check_tool", {"tool_name": "nuclei"})
+        assert {"check_tool", "execute_command", "list_workflows"} <= tools
+        checked = await client.call_tool("check_tool", {"tool_name": "nuclei"})
         assert isinstance(checked.data, dict) and checked.data.get("available") is True, checked.data
-        workflows = await client.call_tool("darkmoon_list_workflows", {})
+        workflows = await client.call_tool("list_workflows", {})
         assert isinstance(workflows.data, dict) and workflows.data.get("count", 0) > 0, workflows.data
-        execution = await client.call_tool("darkmoon_execute_command", {"command": "nuclei -version", "timeout": 20})
+        execution = await client.call_tool("execute_command", {"command": "nuclei -version", "timeout": 20})
         assert isinstance(execution.data, str) and "EXIT CODE: 0" in execution.data, execution.data
 
 asyncio.run(main())

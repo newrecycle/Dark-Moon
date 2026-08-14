@@ -65,16 +65,22 @@ import asyncio
 from fastmcp import Client
 
 async def main() -> None:
+    # The MCP server registers tools with BARE names on the wire
+    # (get_session, execute_command, list_workflows, ...). The `darkmoon_`
+    # prefix is applied by the Hermes MCP server key (server-side of the
+    # Hermes<->MCP integration), so a raw MCP client sees bare names. We assert
+    # the wire contract here, which is exactly what the privacy-gateway + local
+    # executor path exposes for the real toolbox round-trip.
     client = Client("http://127.0.0.1:8000/mcp")
     async with client:
         tools = {tool.name for tool in await client.list_tools()}
-        assert "darkmoon_get_session" in tools
-        assert "darkmoon_execute_command" in tools
-        assert "darkmoon_list_workflows" in tools
-        session = await client.call_tool("darkmoon_get_session", {})
+        assert "get_session" in tools
+        assert "execute_command" in tools
+        assert "list_workflows" in tools
+        session = await client.call_tool("get_session", {})
         assert isinstance(session.data, dict)
         assert session.data.get("session_id")
-        execution = await client.call_tool("darkmoon_execute_command", {"command": "cat /etc/os-release", "timeout": 10})
+        execution = await client.call_tool("execute_command", {"command": "cat /etc/os-release", "timeout": 10})
         assert isinstance(execution.data, str), repr(execution.data)
         assert "EXIT CODE: 0" in execution.data, execution.data
         assert "STDOUT:" in execution.data, execution.data
