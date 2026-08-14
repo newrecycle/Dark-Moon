@@ -1,0 +1,297 @@
+DARKMOON TOOLBOX IMPLEMENTATION HANDOFF
+========================================
+
+Objective
+---------
+
+Finish the mapping, installation, exposure-policy integration, and verification
+of every requested toolbox item defined in:
+
+    /home/justin/darkmoon_tool_manifest.md
+
+Do not duplicate the individual package/tool list in this handoff. Treat the
+manifest as the inventory source of truth and derive all implementation records
+from it programmatically or by a careful one-time normalization pass.
+
+
+Non-negotiable constraints
+--------------------------
+
+[ ] Work in /home/justin/old-darkmoon/Dark-Moon.
+[ ] Read the authorized manifest above completely before changing source.
+[ ] Do not read or edit any agent Markdown file.
+[ ] Do not read other Markdown documentation to reconstruct the inventory.
+[ ] Do not stop, restart, recreate, exec into, inspect, or otherwise target the
+    currently running DarkMoon containers.
+[ ] Do not run compose up/down/restart or any command that can replace the live
+    services.
+[ ] Preserve all bind-mounted data, provider configuration, credentials,
+    sessions, reports, workflows, and shared output.
+[ ] Treat every pre-existing uncommitted change as user-owned. Never reset,
+    discard, overwrite, or broadly reformat unrelated work.
+[ ] Never print, copy, or commit API keys, tokens, auth files, or expanded compose
+    configuration containing secrets.
+[ ] Do not commit, push, or open a pull request unless explicitly requested.
+[ ] An item being explicitly blocked/banned is not permission to omit its build
+    or installation. Install and verify it, record the block separately, and do
+    not silently change the exposure policy.
+[ ] Keep host-only dependencies outside the runtime image. Verify/document their
+    classification without trying to install them in the image.
+
+
+Phase 1 - Establish one machine-readable source of truth
+---------------------------------------------------------
+
+[ ] Normalize every manifest row into one canonical machine-readable inventory,
+    preferably tools/toolbox-manifest.json.
+[ ] Deduplicate entries that appear under more than one installation method.
+[ ] Give each record these fields:
+      - stable logical identifier
+      - installation class
+      - upstream project/distribution identifier
+      - requested version, tag, or commit
+      - resolved immutable version/ref
+      - supported architectures
+      - expected executable names and compatibility aliases
+      - expected runtime paths and required data directories
+      - checksum/signature source for downloaded artifacts
+      - install location
+      - exposure class: callable, support-only, build-only, host-only, or blocked
+      - whether the current source explicitly bans it
+      - non-destructive liveness/version probe
+      - expected version output or package-metadata assertion
+[ ] Represent a distribution that provides several commands once, with all
+    expected commands nested under that record.
+[ ] Represent an explicitly blocked item as installed=true plus exposure=blocked;
+    never model blocked as missing.
+[ ] Add schema validation and fail on duplicate logical IDs, duplicate executable
+    ownership, missing versions, floating refs, absent probes, or unknown classes.
+
+
+Phase 2 - Verify every mapping against primary upstream metadata
+---------------------------------------------------------------
+
+[ ] Verify each operating-system package exists for the runtime distribution and
+    architectures and actually provides the expected executable or support files.
+[ ] Verify each language-package distribution/version exists in its official
+    registry and exposes the expected console entry points.
+[ ] Verify each source repository, tag/commit, module path, and command directory
+    exists. Follow repository renames and record the canonical mapping while
+    preserving compatibility where required.
+[ ] Verify every downloaded release URL for each supported architecture.
+[ ] Obtain official checksums or pin locally recorded SHA-256 values for every
+    downloaded artifact and source archive.
+[ ] Verify every requested exact version is still obtainable. Do not replace an
+    exact request with latest.
+[ ] Where the manifest says latest or gives no version, resolve one current stable
+    release/commit once, record it immutably, and stop using floating references.
+[ ] Confirm interpreter/runtime compatibility before selecting language-package
+    versions.
+[ ] Confirm native-library requirements and ensure they are present in the final
+    runtime stage, not only the builder stage.
+[ ] Confirm auxiliary data needed after startup is copied into the runtime image.
+[ ] Record mapping corrections explicitly in the machine-readable inventory; do
+    not hide them in shell wrappers or comments.
+
+
+Phase 3 - Audit the current implementation without using live containers
+--------------------------------------------------------------------------
+
+[ ] Inspect Dockerfile, setup.sh, setup_py.sh, setup_ruby.sh, install.sh, the MCP
+    executor/guard/health modules, and toolbox verification scripts.
+[ ] Do not inspect agent Markdown during this audit.
+[ ] Classify every inventory record as:
+      - exact and reproducible
+      - present but floating/unpinned
+      - present through an accidental dependency
+      - mapped to the wrong distribution/repository/entry point
+      - installed but not copied into the runtime image
+      - installed but missing from PATH
+      - installed but missing a compatibility alias
+      - requested but absent
+      - allowed by MCP but absent
+      - installed but intentionally blocked
+      - host-only or build-only
+[ ] Generate an audit result from code rather than relying only on comments.
+[ ] Check for required installs hidden behind best-effort branches, warning-only
+    failures, fallbacks to unpinned releases, or unconditional success messages.
+[ ] Check for advertised command names that differ from actual entry-point names.
+[ ] Check for support files lost during the builder-to-runtime copy.
+[ ] Check architecture branches for asymmetric support or incorrect asset names.
+
+
+Phase 4 - Make installation deterministic and complete
+-------------------------------------------------------
+
+[ ] Add every missing runtime operating-system dependency in the appropriate
+    package-install layer.
+[ ] Pin all exact language-package versions requested by the manifest.
+[ ] Add explicit installs for packages currently supplied only accidentally by a
+    transitive dependency.
+[ ] Pin source repositories to immutable tags or commits.
+[ ] Pin compiled module installs to explicit versions rather than floating refs.
+[ ] Pin runtime/interpreter/source archive versions and verify checksums.
+[ ] Pin downloaded CLI assets per architecture and verify their checksums before
+    installation.
+[ ] Add build-time installation of requested pre-provisioned tools even when their
+    prompts forbid runtime package installation.
+[ ] Add compatibility wrappers/symlinks only where the manifest expects a legacy
+    command name; wrappers must exec the real command and preserve exit status.
+[ ] Ensure every required binary is copied to the runtime image or is available
+    through the final PATH.
+[ ] Ensure required scripts retain executable mode and non-root readability.
+[ ] Make required installation failures fatal. Remove warning-and-continue logic
+    for required inventory entries.
+[ ] Remove fallback-to-latest behavior for pinned entries.
+[ ] Keep optional host-only dependencies out of the image and out of required
+    runtime validation.
+[ ] Avoid runtime self-install/update behavior; the completed image must work with
+    network access disabled.
+[ ] Preserve the existing shared-directory UID/GID/setgid behavior and avoid
+    introducing root-owned bind-mount artifacts.
+[ ] Keep build caches and temporary sources out of the final image.
+
+
+Phase 5 - Reconcile installation with MCP exposure and safety policy
+--------------------------------------------------------------------
+
+[ ] Generate or validate the MCP command mapping from the canonical inventory.
+[ ] Add every installed-and-callable command and required compatibility alias to
+    the executor allow-list.
+[ ] Do not expose build-only package managers, interpreters, or support-only
+    commands merely because they exist in the image.
+[ ] Keep explicitly blocked commands installed and verified, but represent their
+    blocked state in one clear policy location and report it in verification.
+[ ] Remove stale allow-list comments and advertised categories that contradict the
+    canonical inventory.
+[ ] Detect collisions where two packages claim the same command name.
+[ ] Ensure direct commands and wrapper-based commands resolve to the same intended
+    implementation.
+[ ] Extend the execution guard for newly installed high-impact scanners or
+    intrusive tools so commands remain scope-bounded and guaranteed to terminate.
+[ ] Enforce hard execution timeouts independently of prompt instructions.
+[ ] Add conservative rate/range controls for high-rate or broad-scope operations.
+[ ] Preserve an explicit policy distinction between installed, callable, and
+    blocked rather than conflating them.
+
+
+Phase 6 - Replace partial health checks with manifest-driven verification
+----------------------------------------------------------------------
+
+[ ] Refactor tools/verify-toolbox.sh or add a companion verifier that reads the
+    canonical inventory instead of regex-parsing a hand-maintained allow-list.
+[ ] Verify all required runtime records, including support-only and blocked-but-
+    installed entries, not only MCP-callable commands.
+[ ] For each expected executable, verify:
+      - command resolution
+      - regular executable target or valid wrapper
+      - non-destructive probe completes under a hard timeout
+      - expected package/version metadata
+      - architecture correctness
+      - required auxiliary files/directories
+[ ] Validate exact Python distribution versions using package metadata, not only
+    command banners.
+[ ] Validate exact Ruby distribution versions using gem metadata.
+[ ] Validate compiled/downloaded tools with deterministic version output or a
+    recorded build/ref marker when upstream lacks a version flag.
+[ ] Treat absent, wrong-version, wrong-target, broken-wrapper, and timed-out probes
+    as hard failures.
+[ ] Report blocked-but-installed distinctly from missing.
+[ ] Report host-only entries distinctly and do not fail the runtime image for them.
+[ ] Make summary counts reconcile exactly with the inventory record count.
+[ ] Keep normal verifier output free of secrets and environment dumps.
+
+
+Phase 7 - Add static regression tests
+-------------------------------------
+
+[ ] Add tests for inventory schema and deduplication.
+[ ] Add tests proving every callable inventory command is represented in MCP.
+[ ] Add tests proving every allow-listed command maps back to an inventory record
+    or an explicitly documented core-shell exception.
+[ ] Add tests proving blocked entries still have an installation mapping.
+[ ] Add tests proving host-only/build-only records are not required in runtime PATH.
+[ ] Add tests for compatibility aliases and wrapper target paths.
+[ ] Add tests for architecture asset selection.
+[ ] Add tests rejecting floating tags, unverified downloads, and silent required
+    install failures.
+[ ] Add execution-guard tests for bounded and prohibited scanner invocations.
+[ ] Run Python syntax/import tests, shell syntax tests, JSON/schema tests, compose
+    parsing, and git diff whitespace checks.
+[ ] Do not execute tests that read agent Markdown.
+
+
+Phase 8 - Build and test a candidate without touching live services
+-------------------------------------------------------------------
+
+[ ] Never use compose to recreate or stop the current stack.
+[ ] Build under a new, unambiguous candidate image tag; do not overwrite the tag
+    currently used by running services.
+[ ] Record the candidate image ID and build log location without leaking secrets.
+[ ] Run verification only in disposable, uniquely named test containers created
+    from the candidate tag.
+[ ] Do not mount the production configuration, reports, sessions, workflows,
+    shared directory, credentials, Docker socket, or user home into test containers.
+[ ] Use a temporary test directory created specifically for permission checks.
+[ ] Run the complete manifest verifier inside the candidate image.
+[ ] Run the image with network disabled and repeat liveness checks to prove no tool
+    attempts runtime installation or mandatory update downloads.
+[ ] Test as the intended non-root UID/GID where applicable.
+[ ] Verify shared-output directory ownership, setgid mode, and cross-user writes in
+    an isolated temporary bind mount.
+[ ] Verify expected capabilities separately and grant only the minimum needed to
+    the disposable test container.
+[ ] Clean up only the explicitly named disposable test containers and temporary
+    test directories. Never prune globally.
+[ ] Do not delete images, volumes, networks, or build cache belonging to the user.
+
+
+Phase 9 - Iterate until there are no unresolved implementation failures
+------------------------------------------------------------------------
+
+[ ] After each candidate build, capture failures as structured records keyed by
+    canonical inventory ID.
+[ ] Fix root causes in installation/mapping code; do not weaken probes merely to
+    turn failures green.
+[ ] Rebuild the candidate and rerun the complete suite after every fix batch.
+[ ] Do not accept warning-only success for a required record.
+[ ] Continue until there are zero missing, wrong-version, broken-wrapper,
+    wrong-architecture, timeout, or unexplained-present failures.
+[ ] If an upstream artifact is genuinely unavailable, select and pin an official
+    compatible source, update the mapping, and document the reason in code/data.
+[ ] If no safe official source exists, leave the record explicitly unresolved and
+    report it; never fabricate a stub executable.
+
+
+Phase 10 - Final review and handoff
+-----------------------------------
+
+[ ] Review the diff narrowly and preserve unrelated user changes.
+[ ] Confirm no agent Markdown was read or modified.
+[ ] Confirm no credentials or auth data entered the diff or logs.
+[ ] Confirm the current running containers were never targeted or changed.
+[ ] Confirm the candidate tag is separate from production tags.
+[ ] Provide a concise final matrix containing counts by status without reproducing
+    the full package list unless the user asks for it.
+[ ] Explicitly identify the count of installed-but-blocked entries and where their
+    policy is enforced.
+[ ] List changed source files and tests run.
+[ ] Report candidate image ID/tag and all verification results.
+[ ] State whether a future production rebuild/recreation is required, but do not
+    perform it without explicit user authorization.
+
+
+Definition of done
+------------------
+
+[ ] Every manifest entry has one verified canonical mapping.
+[ ] Every required runtime item is deterministically installed in the candidate.
+[ ] Every exact requested version is enforced.
+[ ] Every download/ref is immutable and verified.
+[ ] Every expected executable/alias resolves and passes its safe probe.
+[ ] MCP exposure matches the callable policy with no phantom commands.
+[ ] Explicitly banned entries are installed, tested, and clearly reported as
+    blocked rather than missing.
+[ ] Host-only and build-only entries are correctly excluded from runtime failures.
+[ ] Static, build-time, runtime, offline, permission, and policy tests all pass.
+[ ] No live container or persistent user data was touched.
