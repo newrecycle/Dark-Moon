@@ -112,6 +112,7 @@ from api.json_storage import (
     INFRASTRUCTURE_DIR,
     VULNERABILITIES_DIR,
     REPORTS_DIR,
+    _file_lock,
     load_project,
     load_target,
     save_project,
@@ -613,14 +614,15 @@ def init_live_campaign(
     )
     # Merge with existing infra nodes instead of overwriting
     infra_path = INFRASTRUCTURE_DIR / f"{campaign_id}.json"
-    existing_nodes = _read_json(infra_path)
-    if not isinstance(existing_nodes, list):
-        existing_nodes = []
-    existing_ids = {n["id"] for n in existing_nodes if n.get("id")}
-    for n in stack_nodes:
-        if n.get("id") and n["id"] not in existing_ids:
-            existing_nodes.append(n)
-    _write_json(infra_path, existing_nodes)
+    with _file_lock(infra_path):
+        existing_nodes = _read_json(infra_path)
+        if not isinstance(existing_nodes, list):
+            existing_nodes = []
+        existing_ids = {n["id"] for n in existing_nodes if n.get("id")}
+        for n in stack_nodes:
+            if n.get("id") and n["id"] not in existing_ids:
+                existing_nodes.append(n)
+        _write_json(infra_path, existing_nodes)
 
     return {
         "project_id": project_id,
@@ -645,25 +647,26 @@ def push_finding(
     Appends to the campaign's vulnerabilities file and updates stats.
     """
     vuln_path = VULNERABILITIES_DIR / f"{campaign_id}.json"
-    vulns = _read_json(vuln_path)
-    if not isinstance(vulns, list):
-        vulns = []
+    with _file_lock(vuln_path):
+        vulns = _read_json(vuln_path)
+        if not isinstance(vulns, list):
+            vulns = []
 
-    campaign = load_campaign(campaign_id)
-    if not campaign:
-        return {"error": f"Campaign {campaign_id} not found"}
+        campaign = load_campaign(campaign_id)
+        if not campaign:
+            return {"error": f"Campaign {campaign_id} not found"}
 
-    if not finding.get("id"):
-        finding["id"] = f"vuln_{uuid.uuid4().hex[:6]}"
+        if not finding.get("id"):
+            finding["id"] = f"vuln_{uuid.uuid4().hex[:6]}"
 
-    finding["campaign_id"] = campaign_id
-    finding["project_id"] = campaign.get("project_id")
-    finding["target_id"] = campaign.get("target_id")
-    finding["severity"] = str(finding.get("severity", "info")).strip().lower()
-    finding["status"] = str(finding.get("status", "unconfirmed")).strip().lower()
+        finding["campaign_id"] = campaign_id
+        finding["project_id"] = campaign.get("project_id")
+        finding["target_id"] = campaign.get("target_id")
+        finding["severity"] = str(finding.get("severity", "info")).strip().lower()
+        finding["status"] = str(finding.get("status", "unconfirmed")).strip().lower()
 
-    vulns.append(finding)
-    _write_json(vuln_path, vulns)
+        vulns.append(finding)
+        _write_json(vuln_path, vulns)
 
     stats = campaign.get("stats", {})
     stats["total_findings"] = len(vulns)
@@ -754,27 +757,28 @@ def push_infra_node(
     Also links the node to campaign + project + target.
     """
     infra_path = INFRASTRUCTURE_DIR / f"{campaign_id}.json"
-    nodes = _read_json(infra_path)
-    if not isinstance(nodes, list):
-        nodes = []
+    with _file_lock(infra_path):
+        nodes = _read_json(infra_path)
+        if not isinstance(nodes, list):
+            nodes = []
 
-    campaign = load_campaign(campaign_id)
-    if not campaign:
-        return {"error": f"Campaign {campaign_id} not found"}
+        campaign = load_campaign(campaign_id)
+        if not campaign:
+            return {"error": f"Campaign {campaign_id} not found"}
 
-    if not node.get("id"):
-        node["id"] = f"node_{uuid.uuid4().hex[:6]}"
+        if not node.get("id"):
+            node["id"] = f"node_{uuid.uuid4().hex[:6]}"
 
-    node["campaign_id"] = campaign_id
-    node["project_id"] = campaign.get("project_id")
-    node["target_id"] = campaign.get("target_id")
+        node["campaign_id"] = campaign_id
+        node["project_id"] = campaign.get("project_id")
+        node["target_id"] = campaign.get("target_id")
 
-    existing_ids = {n["id"] for n in nodes if n.get("id")}
-    if node["id"] not in existing_ids:
-        nodes.append(node)
-        _write_json(infra_path, nodes)
+        existing_ids = {n["id"] for n in nodes if n.get("id")}
+        if node["id"] not in existing_ids:
+            nodes.append(node)
+            _write_json(infra_path, nodes)
 
-    _sync_target_metadata_from_node(campaign, node)
+        _sync_target_metadata_from_node(campaign, node)
 
     return {
         "node_id": node["id"],

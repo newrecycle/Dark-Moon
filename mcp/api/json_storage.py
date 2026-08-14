@@ -18,15 +18,23 @@ Directory layout:
         └── *.md
 """
 
+import fcntl
 import json
 import os
+import tempfile
+import threading
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Resolve data directory — use opencode's standard data dir so it lands in the
-# volume-mounted path (e.g. ./darkmoon-settings or ./reports on the host).
-_OPENDATA_DIR = Path.home() / ".local" / "share" / "opencode"
-DATA_DIR = _OPENDATA_DIR
+# Resolve the data directory. The dashboard's JSON store lives under the single
+# shared folder (DARKMOON_SHARED_DIR, i.e. /output) so it is persistent on the
+# host and visible to every session/agent. Each campaign stays isolated by its
+# own campaign_id-named files/dirs. This replaces the old behaviour of stashing
+# data in the opencode home (~/.local/share/opencode), which was not the shared
+# volume and could be lost on container restart.
+_SHARED_DIR = Path(os.environ.get("DARKMOON_SHARED_DIR", "/output")).resolve()
+DATA_DIR = _SHARED_DIR / "darkmoon-data"
 
 PROJECTS_FILE = DATA_DIR / "projects.json"
 TARGETS_FILE = DATA_DIR / "targets.json"
@@ -35,13 +43,9 @@ INFRASTRUCTURE_DIR = DATA_DIR / "infrastructure"
 VULNERABILITIES_DIR = DATA_DIR / "vulnerabilities"
 REPORTS_DIR = DATA_DIR / "reports"
 
-# The Pro stack keeps DATA_DIR on a tmpfs (see the compose tmpfs list) and binds a
-# separate persistent volume for reports, announced through DARKMOON_REPORTS_DIR.
-# Nothing read that variable, so generated reports were written to the tmpfs and
-# vanished on the next container restart, while the host-side ./reports directory
-# the operator actually looks at stayed empty. Honour it when it is set; Community
-# and prod do not set it and keep writing into their volume-mounted data dir
-# exactly as before.
+# The Pro stack binds a separate persistent volume for reports, announced through
+# DARKMOON_REPORTS_DIR. Honour it when it is set; Community and prod do not set
+# it and keep writing into their shared-folder data dir exactly as before.
 _REPORTS_OVERRIDE = os.environ.get("DARKMOON_REPORTS_DIR", "").strip()
 if _REPORTS_OVERRIDE:
     REPORTS_DIR = Path(_REPORTS_OVERRIDE)
@@ -52,18 +56,85 @@ if _REPORTS_OVERRIDE:
 # ---------------------------------------------------------------------------
 
 def _read_json(path: Path) -> Any:
-    """Read and parse a JSON file. Returns [] if file not found."""
+    """Read and parse a JSON file.
+
+    Returns [] if the file is missing or unparseable (empty, truncated by a
+    concurrent writer, or otherwise corrupt) so list-expecting callers never
+    crash on a bad read. Dict-expecting callers already guard with
+    isinstance(data, dict) and treat a non-dict as "not found".
+    """
     if not path.exists():
         return []
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+    except OSError:
+        return []
+    if not content:
+        return []
+    try:
+        return json.loads(content)
+    except (json.JSONDecodeError, ValueError):
+        return []
 
 
 def _write_json(path: Path, data: Any) -> None:
-    """Write data as pretty-printed JSON."""
+    """Write data as pretty-printed JSON atomically.
+
+    Writes to a temp file in the same directory and os.replace()s it into
+    place, so a concurrent reader never observes a truncated/partial file
+    (the root cause of "Expecting value: line 1 column 1" JSON errors when
+    parallel subagents push to the same campaign).
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+# ---------------------------------------------------------------------------
+# Cross-process / cross-thread lock for read-modify-write callers
+# ---------------------------------------------------------------------------
+
+_file_locks: Dict[str, "threading.Lock"] = {}
+_file_locks_guard = threading.Lock()
+
+
+@contextmanager
+def _file_lock(path: Path):
+    """Serialize read-modify-write access to *path* across processes and threads.
+
+    Uses an advisory flock on a sidecar lock file (cross-process) plus a
+    per-path threading.Lock (same-process threads). This keeps parallel
+    subagents pushing nodes/findings for the *same* campaign from clobbering
+    each other, while different campaigns proceed concurrently.
+    """
+    path = Path(path)
+    key = str(path)
+    with _file_locks_guard:
+        tl = _file_locks.get(key)
+        if tl is None:
+            tl = threading.Lock()
+            _file_locks[key] = tl
+    with tl:
+        lock_path = path.with_suffix(path.suffix + ".lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "w", encoding="utf-8") as lf:
+            fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
 
 
 # ---------------------------------------------------------------------------
