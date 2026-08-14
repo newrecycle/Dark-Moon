@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "darkmoon",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Autonomous AI penetration-testing toolbox: exposes darkmoon_* MCP tools behind a security gatekeeper and privacy gateway, with pentest and bounded headless-browser skills. Requires the Dark-Moon Docker backend running locally.",
   "author": { "name": "Dark-Moon" },
   "license": "GPL-3.0-or-later",
