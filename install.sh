@@ -23,20 +23,27 @@ RESET="\033[0m"
 # Parse args
 # ─────────────────────────────────────────────────────────────────
 FORCE_RESET=false
+RESET_DATA=false
 for ARG in "$@"; do
   case "${ARG}" in
     --help|-h)
       echo "Usage: ./install.sh [OPTIONS]"
       echo ""
       echo "Options:"
-      echo "  --init    Force LLM provider reconfiguration (ignores existing .opencode.env)"
+      echo "  --init    Reconfigure the LLM provider while preserving existing data"
+      echo "  --reset   Reconfigure the provider and remove persisted bind-mount data"
       echo "  --help    Show this help"
       echo ""
       echo "Examples:"
-      echo "  ./install.sh           # rebuild, skip provider form if already configured"
+      echo "  ./install.sh           # rebuild locally and preserve current data"
       echo "  ./install.sh --init    # rebuild and reconfigure LLM provider"
+      echo "  ./install.sh --reset   # destructive clean install"
       exit 0 ;;
-    --reset|--init) FORCE_RESET=true ;;
+    --init) FORCE_RESET=true ;;
+    --reset)
+      FORCE_RESET=true
+      RESET_DATA=true
+      ;;
   esac
 done
 
@@ -273,45 +280,50 @@ EOF
   fi # end PROVIDER_TYPE
 fi # end SKIP_PROVIDER_FORM
 
-chmod 644 "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}"
+chmod 600 "${SCRIPT_DIR}/${OPENCODE_ENV_FILE}"
 echo -e "${GREEN}✔ ${OPENCODE_ENV_FILE} written${RESET}"
 
-# ─────────────────────────────────────────────────────────────────
-# Stop stack + purge + rebuild
-# ─────────────────────────────────────────────────────────────────
-echo -e "${BLUE}🛑 Stopping stack (containers + networks + volumes + images)...${RESET}"
-docker compose down --remove-orphans --volumes --rmi all
+# `--init` reconfigures an existing installation exactly once. Normal rebuilds
+# preserve hand-edited/custom providers in opencode.json.
+if [ "${FORCE_RESET}" = true ] && [ "${RESET_DATA}" = false ]; then
+  mkdir -p "${SCRIPT_DIR}/darkmoon-settings"
+  touch "${SCRIPT_DIR}/darkmoon-settings/.darkmoon-apply-settings-once"
+  chmod 600 "${SCRIPT_DIR}/darkmoon-settings/.darkmoon-apply-settings-once"
+fi
 
-echo -e "${BLUE}🧹 Purging bind mounts...${RESET}"
-for path in "${BIND_PATHS[@]}"; do
-  if [ -d "$path" ]; then
-    echo -e "${YELLOW}  - removing ${path}${RESET}"
-    rm -rf "$path"
-  else
-    echo -e "${YELLOW}  - ${path} (absent)${RESET}"
-  fi
-done
+# ─────────────────────────────────────────────────────────────────
+# Optional destructive reset
+# ─────────────────────────────────────────────────────────────────
+if [ "${RESET_DATA}" = true ]; then
+  echo -e "${YELLOW}⚠ Destructive reset requested: removing containers, volumes, images, and configured bind data.${RESET}"
+  docker compose down --remove-orphans --volumes --rmi all
 
-echo -e "${BLUE}🧽 Purging docker build cache...${RESET}"
-docker builder prune -f
+  for path in "${BIND_PATHS[@]}"; do
+    if [ -d "$path" ]; then
+      echo -e "${YELLOW}  - removing ${path}${RESET}"
+      rm -rf "$path"
+    else
+      echo -e "${YELLOW}  - ${path} (absent)${RESET}"
+    fi
+  done
+
+  docker builder prune -f
+else
+  echo -e "${GREEN}✔ Preserving containers, volumes, and bind-mounted data during the build${RESET}"
+fi
 
 COMPOSE_FILE="docker-compose.yml"
-ARCH="$(uname -m)"
-if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-    echo -e "${YELLOW}ARM64 architecture detected. Using docker-compose-dev.yml to build images locally...${RESET}"
-    COMPOSE_FILE="docker-compose-dev.yml"
-fi
 
 # GPU passthrough is opt-in at install time. hashcat is the one tool it changes
 # (offline cracking: hours on CPU threads, seconds on a GPU); network brute-forcers
 # are bound by the target, not by local compute, so they gain nothing. `gpus: all`
 # is kept in an overlay because it makes the container refuse to start on a host
 # without a GPU runtime, which would break every CPU-only install.
-COMPOSE_ARGS="-f $COMPOSE_FILE"
+COMPOSE_ARGS=(-f "$COMPOSE_FILE")
 if docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q nvidia \
    || docker run --rm --gpus all ubuntu:22.04 true >/dev/null 2>&1; then
     echo -e "${GREEN}GPU runtime detected. Enabling GPU passthrough for the toolbox.${RESET}"
-    COMPOSE_ARGS="$COMPOSE_ARGS -f docker-compose.gpu.yml"
+    COMPOSE_ARGS+=(-f docker-compose.gpu.yml)
 else
     echo -e "${YELLOW}No GPU runtime detected. The toolbox will run hashcat on CPU.${RESET}"
     echo -e "${YELLOW}To enable it later, install the NVIDIA container toolkit and re-run:${RESET}"
@@ -319,9 +331,9 @@ else
 fi
 
 echo -e "${BLUE}🔨 Rebuilding images (no cache)...${RESET}"
-docker compose $COMPOSE_ARGS build --no-cache
+docker compose "${COMPOSE_ARGS[@]}" build --no-cache
 
 echo -e "${BLUE}🚀 Recreating containers...${RESET}"
-docker compose $COMPOSE_ARGS up -d --force-recreate
+docker compose "${COMPOSE_ARGS[@]}" up -d --force-recreate
 
 echo -e "${GREEN}✅ Darkmoon stack rebuilt CLEAN${RESET}"

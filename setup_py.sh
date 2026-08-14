@@ -42,7 +42,7 @@ msg "Upgrade pip…"
 msg "Installation impacket (latest)…"
 
 "$PIP_BIN" install --no-cache-dir --prefer-binary \
-    impacket \
+    "impacket @ git+https://github.com/fortra/impacket.git@4c09897a8645818e873787f2c79ec1bce90c5777" \
     "ldap3<3" \
     "pyasn1<0.6"
 
@@ -75,8 +75,8 @@ msg "Pré-installation d'aardwolf (peut échouer, non bloquant)..."
 msg "Installation de NetExec..."
 "$PIP_BIN" install --no-cache-dir \
   "git+https://github.com/Pennyw0rth/NetExec.git@v1.4.0" || {
-  warn "Échec installation NetExec@v1.4.0, tentative avec latest stable..."
-  "$PIP_BIN" install --no-cache-dir netexec
+  echo "[FATAL] NetExec@v1.4.0 install failed (manifest requires this exact pin)"
+  exit 1
 }
 
 # Wrappers pour NetExec et BloodHound
@@ -100,9 +100,23 @@ exec /usr/local/bin/netexec "$@"
 EOF
 chmod +x "$BIN_OUT/crackmapexec"
 
+# BloodHound ingestor (manifest: bloodhound==1.7.2)
+msg "Installation de BloodHound (==1.7.2)…"
+"$PIP_BIN" install --no-cache-dir "bloodhound==1.7.2" || {
+  echo "[FATAL] bloodhound==1.7.2 install failed (manifest requires this exact pin)"
+  exit 1
+}
+ok "bloodhound==1.7.2"
+
+cat >"$BIN_OUT/bloodhound" <<'EOF'
+#!/bin/sh
+exec /opt/darkmoon/python/bin/bloodhound-python "$@"
+EOF
+chmod +x "$BIN_OUT/bloodhound"
+
 cat >"$BIN_OUT/bloodhound-python" <<'EOF'
 #!/bin/sh
-exec /opt/darkmoon/python/bin/bloodhound "$@"
+exec /opt/darkmoon/python/bin/bloodhound-python "$@"
 EOF
 chmod +x "$BIN_OUT/bloodhound-python"
 
@@ -213,19 +227,23 @@ ok "NetExec OpenSSL 3 patch applied (PKINIT/PFX disabled)"
 # Outils supplémentaires
 # ------------------------------------------------------------
 msg "Installation wafw00f …"
-"$PIP_BIN" install --no-cache-dir wafw00f && ok "wafw00f"
+"$PIP_BIN" install --no-cache-dir "wafw00f==2.4.2" && ok "wafw00f"
 
 msg "Installation sqlmap …"
-"$PIP_BIN" install --no-cache-dir sqlmap && ok "sqlmap"
+"$PIP_BIN" install --no-cache-dir "sqlmap==1.10.8" && ok "sqlmap"
 
 msg "Installation arjun …"
-"$PIP_BIN" install --no-cache-dir arjun && ok "arjun"
+"$PIP_BIN" install --no-cache-dir "arjun==2.2.7" && ok "arjun"
 
 msg "Installation awscli …"
-"$PIP_BIN" install --no-cache-dir awscli && ok "awscli"
+"$PIP_BIN" install --no-cache-dir "awscli==1.46.0" && ok "awscli"
 
 msg "Installation azure-cli (Entra ID / Azure agents) …"
-"$PIP_BIN" install --no-cache-dir azure-cli && ok "azure-cli"
+"$PIP_BIN" install --no-cache-dir "azure-cli==2.76.0" && ok "azure-cli"
+
+# ldapdomaindump (AD LDAP enumeration) - Version pinnée
+msg "Installation ldapdomaindump (AD LDAP enumeration) …"
+"$PIP_BIN" install --no-cache-dir "ldapdomaindump==0.10.0" && ok "ldapdomaindump"
 
 # ------------------------------------------------------------
 # FinalRecon (reconnaissance web) - Version pinnée
@@ -248,7 +266,7 @@ msg "Installation CMSeeK …"
 
 CMSEEK_DIR="/opt/darkmoon/cmseek"
 
-git clone --depth=1 https://github.com/Tuhinshubhra/CMSeeK "$CMSEEK_DIR"
+git clone --depth=1 --branch v.1.1.3 https://github.com/Tuhinshubhra/CMSeeK "$CMSEEK_DIR"
 
 "$PIP_BIN" install --no-cache-dir -r "$CMSEEK_DIR/requirements.txt"
 

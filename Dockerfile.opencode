@@ -61,12 +61,47 @@ RUN cd packages/opencode && \
 # =========================
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    bash \
-    docker.io \
-    inotify-tools \
- && rm -rf /var/lib/apt/lists/*
+ARG DOCKER_CLI_VERSION=29.6.2
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      bash \
+      ca-certificates \
+      curl \
+      gosu \
+      inotify-tools; \
+    case "$(dpkg --print-architecture)" in \
+      amd64) docker_arch=x86_64 ;; \
+      arm64) docker_arch=aarch64 ;; \
+      *) echo "Unsupported Docker CLI architecture" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL --retry 3 \
+      "https://download.docker.com/linux/static/stable/${docker_arch}/docker-${DOCKER_CLI_VERSION}.tgz" \
+      -o /tmp/docker.tgz; \
+    tar -xzf /tmp/docker.tgz -C /tmp docker/docker; \
+    install -m 0755 /tmp/docker/docker /usr/local/bin/docker; \
+    docker --version; \
+    rm -rf /tmp/docker /tmp/docker.tgz /var/lib/apt/lists/*
+
+# OpenCode starts through a short root-only initialization phase, then the
+# entrypoint remaps this account to the host UID/GID and drops privileges.
+# Files created in bind mounts are therefore owned by the host user instead of
+# root while Docker socket access can still be granted dynamically.
+ARG DARKMOON_UID=1000
+ARG DARKMOON_GID=1000
+RUN groupadd --gid "${DARKMOON_GID}" darkmoon \
+ && useradd --uid "${DARKMOON_UID}" \
+      --gid "${DARKMOON_GID}" \
+      --home-dir /root \
+      --shell /bin/bash \
+      --no-create-home \
+      darkmoon \
+ && chmod 0755 /root
+
+ENV DARKMOON_USER=darkmoon \
+    DARKMOON_UID=${DARKMOON_UID} \
+    DARKMOON_GID=${DARKMOON_GID} \
+    HOME=/root
 
 # ------------------------------------------------------------
 # OpenCode Agents (Darkmoon) - ensuite c'est l'entrypoint qui copie-collera dans /root/.opencode/agents
@@ -74,7 +109,12 @@ RUN apt-get update && apt-get install -y \
 
 # Agents par défaut (dans l'image)
 RUN mkdir -p /opt/darkmoon/default-agents
-COPY conf/agents/ /opt/darkmoon/default-agents/
+COPY --chown=darkmoon:darkmoon conf/agents/ /opt/darkmoon/default-agents/
+
+# Runtime-discovered provider catalogues. The entrypoint seeds these into the
+# bind-mounted OpenCode config without overwriting local customizations.
+RUN mkdir -p /opt/darkmoon/default-plugins
+COPY --chown=darkmoon:darkmoon conf/plugins/ /opt/darkmoon/default-plugins/
 
 # ------------------------------------------------------------
 # Darkmoon MCP Server (embedded, CLEAN)
@@ -95,7 +135,7 @@ COPY mcp ${DM_MCP_HOME}/server
 
 # Copie des workflow vers default-workflow qui seront ensuite copié vers le volume partagé pour éviter des écraser
 RUN mkdir -p /opt/darkmoon/default-workflows
-COPY mcp/src/tools/workflows /opt/darkmoon/default-workflows
+COPY --chown=darkmoon:darkmoon mcp/src/tools/workflows /opt/darkmoon/default-workflows
 
 # Installation MCP (EXTRACTION PROPRE de install.sh)
 RUN cd ${DM_MCP_HOME}/server \
@@ -138,8 +178,24 @@ RUN chmod +x /usr/local/bin/opencode
 ENV TERM=xterm-256color
 ENV LANG=C.UTF-8
 
-RUN mkdir -p /root/.local/share/opencode/sessions \
- && mkdir -p /root/.local/share/opencode/reports \
+# Shared project workspace for the primary orchestrator and all subagents.
+# OpenCode subagents inherit the parent process working directory, so making
+# this the image WORKDIR gives every agent the same collaboration boundary.
+# The setgid bit keeps shared artifacts in the collaboration group. Runtime
+# initialization also remaps ownership to the host UID/GID before OpenCode
+# starts, so the bind mount remains writable both inside and outside Docker.
+ENV DARKMOON_SHARED_DIR=/output
+RUN install -d -o darkmoon -g darkmoon -m 2775 "${DARKMOON_SHARED_DIR}"
+WORKDIR ${DARKMOON_SHARED_DIR}
+
+RUN install -d -o darkmoon -g darkmoon \
+      /root/.config/opencode \
+      /root/.cache/opencode \
+      /root/.local/state/opencode \
+      /root/.local/share/opencode \
+      /root/.local/share/opencode/sessions \
+      /root/.local/share/opencode/reports \
+      /root/.opencode/agents \
  && cat >> /root/.bashrc <<'EOF'
 
 # ============================
@@ -189,6 +245,8 @@ opencode() {
   _darkmoon_exec "$@"
 }
 EOF
+
+RUN chown darkmoon:darkmoon /root/.bashrc
 
 
 COPY conf/apply-settings.sh /root/conf/apply-settings.sh

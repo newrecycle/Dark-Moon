@@ -3,6 +3,10 @@ set -euo pipefail
 
 SERVICE="opencode"
 APP_BIN="opencode"
+# Use the named account so Docker initializes its supplemental groups. A
+# numeric UID:GID drops the dynamically-added Docker-socket group and causes
+# the embedded MCP server to fail with EACCES on /var/run/docker.sock.
+OPENCODE_EXEC_USER="${DARKMOON_USER:-darkmoon}"
 
 # ------------------------------------------------------------
 # Détection docker compose (plugin vs legacy)
@@ -41,7 +45,7 @@ if [[ "${1:-}" == "--log" ]]; then
 
   SESSION_ID="$2"
 
-  exec "${DC[@]}" exec "${TTY_FLAGS[@]}" "$SERVICE" \
+  exec "${DC[@]}" exec --user "$OPENCODE_EXEC_USER" "${TTY_FLAGS[@]}" "$SERVICE" \
     bash -lc 'exec "$1" "$2"' bash "darkmoon-cli" "$SESSION_ID"
 fi
 
@@ -54,7 +58,7 @@ fi
 # ------------------------------------------------------------
 preflight_provider_check() {
   local res
-  res="$("${DC[@]}" exec -T "$SERVICE" bash -c '
+  res="$("${DC[@]}" exec --user "$OPENCODE_EXEC_USER" -T "$SERVICE" bash -c '
     url="${ANTHROPIC_BASE_URL:-}"; mode="Anthropic (install.sh option 3)"
     if [ -z "$url" ]; then url="${OPENCODE_LOCAL_BASE_URL:-}"; mode="Local (install.sh option 2)"; fi
     [ -z "$url" ] && exit 0                         # cloud provider or none -> nothing to probe
@@ -99,7 +103,7 @@ preflight_provider_check
 # ------------------------------------------------------------
 if [[ $# -eq 0 ]]; then
   # Mode interactif → TUI
-  exec "${DC[@]}" exec "${TTY_FLAGS[@]}" "$SERVICE" \
+  exec "${DC[@]}" exec --user "$OPENCODE_EXEC_USER" "${TTY_FLAGS[@]}" "$SERVICE" \
     bash -lc 'exec "$1"' bash "$APP_BIN"
 elif [[ "${1:0:1}" == "-" ]]; then
   # Le 1er argument est un flag (court ou long : -s, -c, -m,
@@ -110,12 +114,12 @@ elif [[ "${1:0:1}" == "-" ]]; then
   # échouerait avec "You must provide a message or a command".
   # Pour relancer une session en mode one-shot, mettre le message
   # en 1er : ./darkmoon.sh "mon prompt" -s <session_id>
-  exec "${DC[@]}" exec "${TTY_FLAGS[@]}" "$SERVICE" \
+  exec "${DC[@]}" exec --user "$OPENCODE_EXEC_USER" "${TTY_FLAGS[@]}" "$SERVICE" \
     bash -lc 'app="$1"; shift; exec "$app" "$@"' bash "$APP_BIN" "$@"
 else
   # Arguments positionnels = prompt one-shot. opencode exige la
   # sous-commande `run`, sinon il interprète la chaîne comme un cwd
   # et échoue avec "Failed to change directory to /<prompt>".
-  exec "${DC[@]}" exec "${TTY_FLAGS[@]}" "$SERVICE" \
+  exec "${DC[@]}" exec --user "$OPENCODE_EXEC_USER" "${TTY_FLAGS[@]}" "$SERVICE" \
     bash -lc 'app="$1"; shift; exec "$app" run "$@"' bash "$APP_BIN" "$@"
 fi

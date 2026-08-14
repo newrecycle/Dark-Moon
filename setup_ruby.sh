@@ -15,13 +15,13 @@ BIN_OUT="/out/bin"
 msg "Installing WhatWeb (Ruby)…"
 
 WHATWEB_DIR="/opt/darkmoon/whatweb"
-git clone --depth=1 https://github.com/urbanadventurer/WhatWeb "$WHATWEB_DIR"
+git clone --depth=1 --branch v0.6.4 https://github.com/urbanadventurer/WhatWeb "$WHATWEB_DIR"
 
 # Validation que le fichier principal existe
 test -f "$WHATWEB_DIR/whatweb" || { echo "ERROR: whatweb script not found in $WHATWEB_DIR"; exit 1; }
 
-# Bundler
-"$GEM_BIN" install bundler --no-document
+# Bundler (manifest: bundler==2.7.2)
+"$GEM_BIN" install bundler -v 2.7.2 --no-document
 
 cd "$WHATWEB_DIR"
 "$BUNDLE_BIN" install
@@ -43,7 +43,7 @@ ok "WhatWeb installed"
 # ------------------------------------------------------------
 msg "Installing WPScan (Ruby)…"
 
-"$GEM_BIN" install wpscan --no-document
+"$GEM_BIN" install wpscan -v 4.1.0 --no-document
 
 # wrapper
 cat >"$BIN_OUT/wpscan" <<'EOF'

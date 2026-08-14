@@ -10,8 +10,13 @@ services:
       context: .
       dockerfile: Dockerfile
       network: host
+      cache_to:
+        - type=local,mode=max,dest=.buildcache
+      cache_from:
+        - type=local,src=.buildcache
     container_name: darkmoon
     user: "0:0"
+    working_dir: /output
     network_mode: "host"
 
     # GPU support (Compose v2 compatible)
@@ -21,6 +26,9 @@ services:
       - DM_MODE=default
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - DARKMOON_UID=${DARKMOON_UID:-1000}
+      - DARKMOON_GID=${DARKMOON_GID:-1000}
+      - DARKMOON_SHARED_DIR=/output
 
     ports:
       - "9222:9222"
@@ -28,6 +36,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ~/.kube:/root/.kube:ro
+      - ./shared:/output:rw
 
     cap_add:
       - NET_RAW
@@ -40,6 +49,10 @@ services:
       context: .
       dockerfile: Dockerfile.opencode
       network: host
+      cache_to:
+        - type=local,mode=max,dest=.buildcache
+      cache_from:
+        - type=local,src=.buildcache
     container_name: opencode
     stdin_open: true     # équivalent -it
     tty: true
@@ -56,7 +69,11 @@ services:
       - ./reports:/root/.local/share/opencode/reports/:rw
       - ./sessions:/root/.local/share/opencode/sessions/:rw
       - ./workflows:/opt/darkmoon/mcp/server/src/tools/workflows/:rw
+      - ./shared:/output:rw
 
     environment:
       - TERM=xterm-256color
       - LANG=C.UTF-8
+      - DARKMOON_UID=${DARKMOON_UID:-1000}
+      - DARKMOON_GID=${DARKMOON_GID:-1000}
+      - DARKMOON_SHARED_DIR=/output

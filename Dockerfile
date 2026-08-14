@@ -16,7 +16,9 @@ WORKDIR /build
 # ------------------------------------------------------------
 # Build dependencies
 # ------------------------------------------------------------
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     build-essential curl git unzip ca-certificates pkg-config \
     autoconf automake libtool make file \
     libssl-dev zlib1g-dev libnghttp2-dev libidn2-0-dev libpsl-dev \
@@ -29,10 +31,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # libcurl custom
 # ------------------------------------------------------------
 RUN set -eux; \
-    CURL_VER="$(curl -fsSL https://curl.se/download/ \
-      | grep -Eo 'curl-[0-9]+\.[0-9]+\.[0-9]+\.tar\.xz' \
-      | head -n1 | sed 's/curl-//;s/\.tar\.xz//')"; \
+    CURL_VER="8.15.0"; \
+    CURL_SHA256="6cd0a8a5b126ddfda61c94dc2c3fc53481ba7a35461cf7c5ab66aa9d6775b609"; \
     curl -fsSL https://curl.se/download/curl-${CURL_VER}.tar.xz -o curl.tar.xz; \
+    echo "${CURL_SHA256}  curl.tar.xz" | sha256sum -c -; \
     tar -xf curl.tar.xz; cd curl-${CURL_VER}; \
     ./configure --prefix=${OUT}/curl \
         --with-openssl \
@@ -48,7 +50,9 @@ ENV PKG_CONFIG_PATH=${OUT}/curl/lib/pkgconfig
 # Go tools
 # ------------------------------------------------------------
 COPY setup.sh .
-RUN chmod +x setup.sh \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    chmod +x setup.sh \
  && sed -i -E 's/(apt( |-)?get install -y[^#\n]*)\s+(golang(-go|-doc|-src)?)/\1/g' setup.sh \
  && bash -x setup.sh
 
@@ -56,22 +60,28 @@ RUN chmod +x setup.sh \
 # Nuclei templates
 # ------------------------------------------------------------
 RUN install -d ${OUT}/nuclei-templates \
- && nuclei -silent -update-templates -ut ${OUT}/nuclei-templates || true
+ && git clone --depth 1 --branch v10.4.7 \
+      https://github.com/projectdiscovery/nuclei-templates.git ${OUT}/nuclei-templates
 
 # ------------------------------------------------------------
 # Ruby 
 # ------------------------------------------------------------
 ARG RUBY_PREFIX=/opt/darkmoon/ruby
 ARG RUBY_VERSION=3.3.5
-
-RUN git clone https://github.com/rbenv/ruby-build.git /tmp/ruby-build \
+ENV RUBY_BUILD_CACHE_PATH=/tmp/ruby-cache
+RUN install -d ${RUBY_BUILD_CACHE_PATH} \
+ && curl -fsSL https://cache.ruby-lang.org/pub/ruby/3.3/ruby-${RUBY_VERSION}.tar.gz \
+      -o ${RUBY_BUILD_CACHE_PATH}/ruby-${RUBY_VERSION}.tar.gz \
+ && echo "3781a3504222c2f26cb4b9eb9c1a12dbf4944d366ce24a9ff8cf99ecbce75196  ${RUBY_BUILD_CACHE_PATH}/ruby-${RUBY_VERSION}.tar.gz" | sha256sum -c - \
+ && git clone https://github.com/rbenv/ruby-build.git /tmp/ruby-build \
  && /tmp/ruby-build/install.sh \
  && ruby-build ${RUBY_VERSION} ${RUBY_PREFIX} \
- && rm -rf /tmp/ruby-build
+ && rm -rf /tmp/ruby-build /tmp/ruby-cache
 
 # Ruby tools
 COPY setup_ruby.sh /setup_ruby.sh
-RUN chmod +x /setup_ruby.sh && /setup_ruby.sh
+RUN --mount=type=cache,target=/root/.gem \
+    chmod +x /setup_ruby.sh && /setup_ruby.sh
 
 # ------------------------------------------------------------
 # Python custom
@@ -79,6 +89,7 @@ RUN chmod +x /setup_ruby.sh && /setup_ruby.sh
 ARG PY_VER=3.12.6
 ARG PY_PREFIX=/opt/darkmoon/python
 RUN curl -fsSL https://www.python.org/ftp/python/${PY_VER}/Python-${PY_VER}.tgz -o python.tgz \
+ && echo "85a4c1be906d20e5c5a69f2466b00da769c221d6a684acfd3a514dbf5bf10a66  python.tgz" | sha256sum -c - \
  && tar -xzf python.tgz \
  && cd Python-${PY_VER} \
  && ./configure --prefix=${PY_PREFIX} --enable-optimizations --with-ensurepip=install \
@@ -95,7 +106,8 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Python tooling
 # ------------------------------------------------------------
 COPY setup_py.sh /setup_py.sh
-RUN chmod +x /setup_py.sh && /setup_py.sh
+RUN --mount=type=cache,target=/root/.cache/pip \
+    chmod +x /setup_py.sh && /setup_py.sh
 
 # ------------------------------------------------------------
 # SecLists — sparse: only the files actually used by agents
@@ -130,7 +142,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # ------------------------------------------------------------
 # Runtime OS dependencies
 # ------------------------------------------------------------
-RUN sed -i 's|http://archive.ubuntu.com|http://fr.archive.ubuntu.com|g' /etc/apt/sources.list \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    sed -i 's|http://archive.ubuntu.com|http://fr.archive.ubuntu.com|g' /etc/apt/sources.list \
  && sed -i 's|http://security.ubuntu.com|http://fr.archive.ubuntu.com|g' /etc/apt/sources.list \
  && apt-get update -o Acquire::Retries=3 \
  && apt-get install -y --no-install-recommends \
@@ -141,7 +155,8 @@ RUN sed -i 's|http://archive.ubuntu.com|http://fr.archive.ubuntu.com|g' /etc/apt
     libssl3 zlib1g libnghttp2-14 libidn2-0 libpsl5 \
     libkrb5-3 libssh2-1 libyaml-0-2 libreadline8 \
     libffi8 libgmp10 libncursesw6 libpcap0.8 \
-    hydra snmp openssh-client inotify-tools \
+    hydra snmp openssh-client inotify-tools acl \
+    nmap medusa ncrack \
     \
     # requis pour pip / wheels
     build-essential pkg-config libffi-dev libssl-dev \
@@ -226,7 +241,8 @@ RUN wget -qO /usr/local/bin/7z2john.pl https://raw.githubusercontent.com/openwal
 # ------------------------------------------------------------
 # firmwalker — automated firmware filesystem secret hunter (firmware agent)
 # ------------------------------------------------------------
-RUN git clone --depth 1 https://github.com/craigz28/firmwalker.git /opt/firmwalker \
+RUN git clone https://github.com/craigz28/firmwalker.git /opt/firmwalker \
+ && git -C /opt/firmwalker checkout 23ff299980319b7f1b623817a176e06dda143b45 \
  && ln -sf /opt/firmwalker/firmwalker.sh /usr/local/bin/firmwalker \
  && chmod +x /opt/firmwalker/firmwalker.sh
 # ------------------------------------------------------------
@@ -254,7 +270,9 @@ RUN set -eux; \
 # ------------------------------------------------------------
 WORKDIR /opt/darkmoon
 
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.cache/ms-playwright \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get install -y --no-install-recommends nodejs \
  && npm init -y \
  && npm install playwright \
@@ -332,6 +350,16 @@ RUN for bin in /out/bin/*; do \
       install -m 755 "$bin" "/usr/local/bin/$(basename "$bin")"; \
     done
 
+# Canonical toolbox inventory + manifest-driven verifier. Enables offline,
+# reproducible verification of the image without touching running services.
+COPY tools/toolbox-manifest.json /opt/darkmoon/toolbox/manifest.json
+COPY tools/verify_toolbox.py /opt/darkmoon/toolbox/verify_toolbox.py
+COPY tools/verify-toolbox.sh /opt/darkmoon/toolbox/verify-toolbox.sh
+COPY tools/tests/smoke_gpu_hash.sh /opt/darkmoon/toolbox/tests/smoke_gpu_hash.sh
+RUN install -d /opt/darkmoon/toolbox \
+ && chmod 644 /opt/darkmoon/toolbox/manifest.json /opt/darkmoon/toolbox/verify_toolbox.py \
+ && chmod +x /opt/darkmoon/toolbox/verify-toolbox.sh /opt/darkmoon/toolbox/tests/smoke_gpu_hash.sh
+
 # ------------------------------------------------------------
 # Post-install validation minimale
 # ------------------------------------------------------------
@@ -357,6 +385,13 @@ RUN mkdir -p /var/lib/dpkg \
  && : > /var/lib/dpkg/status \
  && rm -rf /var/lib/dpkg/info /var/lib/dpkg/updates
 
+# Shared workspace used by the OpenCode orchestrator and every toolbox-backed
+# subagent command. Compose bind-mounts the host's ./shared directory here.
+ENV DARKMOON_SHARED_DIR=/output \
+    DARKMOON_UID=1000 \
+    DARKMOON_GID=1000
+RUN install -d -o 1000 -g 1000 -m 2775 "${DARKMOON_SHARED_DIR}"
+WORKDIR ${DARKMOON_SHARED_DIR}
 
 COPY conf/entrypoint-darkmoon.sh /entrypoint-darkmoon.sh
 RUN sed -i 's/\r$//' /entrypoint-darkmoon.sh \

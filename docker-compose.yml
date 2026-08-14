@@ -6,13 +6,25 @@ volumes:
 services:
 
   darkmoon:
-    image: ascit/darkmoon:latest
+    image: newrecycle/darkmoon:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+      cache_to:
+        - type=local,mode=min,dest=.buildcache
+      cache_from:
+        - type=local,src=.buildcache
     container_name: darkmoon
     user: "0:0"
+    working_dir: /output
     network_mode: "host"
 
     environment:
       - DM_MODE=default
+      - DARKMOON_UID=${DARKMOON_UID:-1000}
+      - DARKMOON_GID=${DARKMOON_GID:-1000}
+      - DARKMOON_SHARED_DIR=/output
 
     ports:
       - "9222:9222"
@@ -20,6 +32,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ~/.kube:/root/.kube:ro
+      - ./shared:/output:rw
 
     cap_add:
       - NET_RAW
@@ -29,7 +42,15 @@ services:
 
 
   opencode:
-    image: ascit/opencode-darkmoon:latest
+    image: newrecycle/opencode-darkmoon:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.opencode
+      network: host
+      cache_to:
+        - type=local,mode=min,dest=.buildcache
+      cache_from:
+        - type=local,src=.buildcache
     container_name: opencode
     stdin_open: true
     tty: true
@@ -46,7 +67,11 @@ services:
       - ./reports:/root/.local/share/opencode/reports/:rw
       - ./sessions:/root/.local/share/opencode/sessions/:rw
       - ./workflows:/opt/darkmoon/mcp/server/src/tools/workflows/:rw
+      - ./shared:/output:rw
 
     environment:
       - TERM=xterm-256color
       - LANG=C.UTF-8
+      - DARKMOON_UID=${DARKMOON_UID:-1000}
+      - DARKMOON_GID=${DARKMOON_GID:-1000}
+      - DARKMOON_SHARED_DIR=/output

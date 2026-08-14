@@ -69,7 +69,8 @@ if "$TMP_KUBELETCTL" version >/dev/null 2>&1 || "$TMP_KUBELETCTL" help >/dev/nul
   install -D -m0755 "$TMP_KUBELETCTL" "$BIN_OUT/kubeletctl"
   ok "kubeletctl install (${KUBELETCTL_VERSION})"
 else
-  warn "kubeletctl KO (binaire invalide)"
+  echo "[FATAL] kubeletctl binary invalid after download from ${KUBELETCTL_URL}"
+  exit 1
 fi
 
 rm -f "$TMP_KUBELETCTL"
@@ -92,106 +93,106 @@ ok "kubescape ${KUBESCAPE_VERSION}"
 
 msg "kubectl-who-can …"
 
-go install github.com/aquasecurity/kubectl-who-can/cmd/kubectl-who-can@latest
+go install github.com/aquasecurity/kubectl-who-can/cmd/kubectl-who-can@v0.4.0
 
 WHOCAN_BIN="$(go env GOPATH)/bin/kubectl-who-can"
 if [ -x "$WHOCAN_BIN" ]; then
   install -D -m0755 "$WHOCAN_BIN" "$BIN_OUT/kubectl-who-can"
   ok "kubectl-who-can install"
 else
-  warn "kubectl-who-can KO"
+  echo "[FATAL] kubectl-who-can build failed"; exit 1
 fi
 
 # 3) ---- rbac-police — DOC OFFICIELLE: go install ----
 msg "rbac-police …"
 
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/PaloAltoNetworks/rbac-police@latest
+  go install github.com/PaloAltoNetworks/rbac-police@v1.1.2
 
 RBAC_POLICE_BIN="$(go env GOPATH)/bin/rbac-police"
 if [ -x "$RBAC_POLICE_BIN" ]; then
   install -D -m0755 "$RBAC_POLICE_BIN" "$BIN_OUT/rbac-police"
   ok "rbac-police install (go install)"
 else
-  warn "rbac-police KO (binaire introuvable)"
+  warn "rbac-police build skipped — documented best-effort per manifest (may be stub)"
 fi
 
 # 4) ---- naabu — DOC OFFICIELLE: go install (v2) ----
 msg "naabu …"
 
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+  go install github.com/projectdiscovery/naabu/v2/cmd/naabu@v2.6.1
 
 NAABU_BIN="$(go env GOPATH)/bin/naabu"
 if [ -x "$NAABU_BIN" ]; then
   install -D -m0755 "$NAABU_BIN" "$BIN_OUT/naabu"
   ok "naabu install (go install)"
 else
-  warn "naabu KO (binaire introuvable)"
+  echo "[FATAL] naabu build failed"; exit 1
 fi
 
 # 5) ---- httpx — DOC OFFICIELLE: go install ----
 msg "httpx …"
 
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/projectdiscovery/httpx/cmd/httpx@latest
+  go install github.com/projectdiscovery/httpx/cmd/httpx@v1.10.0
 
 HTTPX_BIN="$(go env GOPATH)/bin/httpx"
 if [ -x "$HTTPX_BIN" ]; then
   install -D -m0755 "$HTTPX_BIN" "$BIN_OUT/httpx"
   ok "httpx install (go install)"
 else
-  warn "httpx KO (binaire introuvable)"
+  echo "[FATAL] httpx build failed"; exit 1
 fi
 
 # 6) katana — DOC OFFICIELLE: go install
 msg "katana …"
 CGO_ENABLED=1 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/projectdiscovery/katana/cmd/katana@latest
+  go install github.com/projectdiscovery/katana/cmd/katana@v1.7.0
 KATANA_BIN="$(go env GOPATH)/bin/katana"
 if [ -x "$KATANA_BIN" ]; then
   install -D -m0755 "$KATANA_BIN" "$BIN_OUT/katana"
   ok "katana install (go install)"
 else
-  warn "katana KO (binaire introuvable)"
+  echo "[FATAL] katana build failed"; exit 1
 fi
 
 
 # 8) nuclei — DOC OFFICIELLE: go install (module v3)
 msg "nuclei …"
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+  go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@v3.11.1
 NUCLEI_BIN="$(go env GOPATH)/bin/nuclei"
 if [ -x "$NUCLEI_BIN" ]; then
   install -D -m0755 "$NUCLEI_BIN" "$BIN_OUT/nuclei"
   ok "nuclei install (go install)"
 else
-  warn "nuclei KO (binaire introuvable)"
+  echo "[FATAL] nuclei build failed"; exit 1
 fi
 
 # 9) zgrab2 — DOC OFFICIELLE: go install (binaire cmd/zgrab2)
 msg "zgrab2 …"
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/zmap/zgrab2/cmd/zgrab2@latest
+  go install github.com/zmap/zgrab2/cmd/zgrab2@v1.0.0
 ZGRAB2_BIN="$(go env GOPATH)/bin/zgrab2"
 if [ -x "$ZGRAB2_BIN" ]; then
   install -D -m0755 "$ZGRAB2_BIN" "$BIN_OUT/zgrab2"
   ok "zgrab2 install (go install)"
 else
-  warn "zgrab2 KO (binaire introuvable)"
+  echo "[FATAL] zgrab2 build failed"; exit 1
 fi
 
 # 10) ffuf — fuzzer / directory & parameter discovery
 msg "ffuf …"
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/ffuf/ffuf/v2@latest
+  go install github.com/ffuf/ffuf/v2@v2.2.1
 
 FFUF_BIN="$(go env GOPATH)/bin/ffuf"
 if [ -x "$FFUF_BIN" ]; then
   install -D -m0755 "$FFUF_BIN" "$BIN_OUT/ffuf"
   ok "ffuf install (go install)"
 else
-  warn "ffuf KO (binaire introuvable)"
+  echo "[FATAL] ffuf build failed"; exit 1
   exit 1
 fi
 
@@ -199,7 +200,7 @@ fi
 msg "subfinder …"
 
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+  go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@v2.15.0
 
 SUBFINDER_BIN="$(go env GOPATH)/bin/subfinder"
 
@@ -207,33 +208,33 @@ if [ -x "$SUBFINDER_BIN" ]; then
   install -D -m0755 "$SUBFINDER_BIN" "$BIN_OUT/subfinder"
   ok "subfinder install (go install)"
 else
-  warn "subfinder KO (binaire introuvable)"
+  echo "[FATAL] subfinder build failed"; exit 1
 fi
 
 # 12) kube-bench — DOC OFFICIELLE: go install
 msg "kube-bench …"
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/aquasecurity/kube-bench@latest
+  go install github.com/aquasecurity/kube-bench@v0.16.0
 
 KUBE_BENCH_BIN="$(go env GOPATH)/bin/kube-bench"
 if [ -x "$KUBE_BENCH_BIN" ]; then
   install -D -m0755 "$KUBE_BENCH_BIN" "$BIN_OUT/kube-bench"
   ok "kube-bench install (go install)"
 else
-  warn "kube-bench KO (binaire introuvable)"
+  echo "[FATAL] kube-bench build failed"; exit 1
 fi
 
 # 13) grpcurl — DOC OFFICIELLE: go install
 msg "grpcurl …"
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+  go install github.com/fullstorydev/grpcurl/cmd/grpcurl@v1.9.3
 
 GRPCURL_BIN="$(go env GOPATH)/bin/grpcurl"
 if [ -x "$GRPCURL_BIN" ]; then
   install -D -m0755 "$GRPCURL_BIN" "$BIN_OUT/grpcurl"
   ok "grpcurl install (go install)"
 else
-  warn "grpcurl KO (binaire introuvable)"
+  echo "[FATAL] grpcurl build failed"; exit 1
 fi
 
 # 14) ---- DIRB (autotools + libcurl custom) ----
@@ -289,33 +290,38 @@ ok "dirb install (libcurl custom)"
 # 15) ---- kubectl — DOC OFFICIELLE: binary release ----
 msg "kubectl …"
 
-KUBECTL_URL="https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/${KUBECTL_ARCH}/kubectl"
+KUBECTL_VERSION="v1.34.2"
+KUBECTL_URL="https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${KUBECTL_ARCH}/kubectl"
+KUBECTL_SHA_URL="https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${KUBECTL_ARCH}/kubectl.sha256"
 TMP_KUBECTL="/tmp/kubectl"
 
 curl -fsSL "$KUBECTL_URL" -o "$TMP_KUBECTL"
+curl -fsSL "$KUBECTL_SHA_URL" -o /tmp/kubectl.sha256
+echo "$(cat /tmp/kubectl.sha256)  $TMP_KUBECTL" | sha256sum -c -
 chmod +x "$TMP_KUBECTL"
 
 if "$TMP_KUBECTL" version --client >/dev/null 2>&1; then
   install -D -m0755 "$TMP_KUBECTL" "$BIN_OUT/kubectl"
   ok "kubectl install (official binary)"
 else
-  warn "kubectl KO (binaire invalide)"
+  echo "[FATAL] kubectl binary invalid after checksum verification"
+  exit 1
 fi
 
-rm -f "$TMP_KUBECTL"
+rm -f "$TMP_KUBECTL" /tmp/kubectl.sha256
 
 # 16) ---- waybackurls — DOC OFFICIELLE: go install ----
 msg "waybackurls …"
 
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/tomnomnom/waybackurls@latest
+  go install github.com/tomnomnom/waybackurls@v0.1.0
 
 WAYBACKURLS_BIN="$(go env GOPATH)/bin/waybackurls"
 if [ -x "$WAYBACKURLS_BIN" ]; then
   install -D -m0755 "$WAYBACKURLS_BIN" "$BIN_OUT/waybackurls"
   ok "waybackurls install (go install)"
 else
-  warn "waybackurls KO (binaire introuvable)"
+  echo "[FATAL] waybackurls build failed"; exit 1
 fi
 
 # ------------------------------------------------------------------
@@ -342,7 +348,7 @@ export LIGHTPANDA_DISABLE_TELEMETRY=true
 msg "vulnx …"
 
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/projectdiscovery/cvemap/cmd/vulnx@latest
+  go install github.com/projectdiscovery/cvemap/cmd/vulnx@v1.0.0
 
 VULNX_BIN="$(go env GOPATH)/bin/vulnx"
 
@@ -350,7 +356,7 @@ if [ -x "$VULNX_BIN" ]; then
   install -D -m0755 "$VULNX_BIN" "$BIN_OUT/vulnx"
   ok "vulnx install (go install)"
 else
-  warn "vulnx KO (binaire introuvable)"
+  echo "[FATAL] vulnx build failed"; exit 1
 fi
 
 

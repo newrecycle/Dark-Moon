@@ -3,6 +3,7 @@ data/
 sessions/
 reports/
 workflows/
+shared/
 .opencode.env
 *.env
 # OS metadata. A drive-by PR (#37) once added two of these because nothing
@@ -23,3 +24,12 @@ desktop.ini
 .idea/
 *.swp
 *~
+
+# Local BuildKit build cache (persisted by docker compose cache_to/cache_from).
+.buildcache/
+
+oldSaved/
+
+# Python bytecode (never commit compiled caches).
+__pycache__/
+*.pyc
