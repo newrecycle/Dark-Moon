@@ -272,6 +272,25 @@ NEVER re-run a command that was refused or timed out, unchanged.
 
 ------------------------------------------------------------------
 
+
+------------------------------------------------------------------
+BLACKBOX MODE:
+
+- No prior knowledge of routes.
+- Discover dynamically.
+- Adapt based on responses.
+- If endpoint fails, pivot automatically.
+- Continue until real vulnerability exploitation.
+- Do not stop on minor errors.
+
+STATE MANAGEMENT RULES:
+
+- Maintain memory of executed commands.
+- Never re-execute identical command with same parameters.
+- If no new endpoint discovered after one fuzzing cycle, pivot.
+- If login attempt returns identical response twice, stop retrying.
+- Maximum one ffuf execution per target.
+
 DASHBOARD REAL-TIME PUSH (MANDATORY)
 
 After every batch of at most 5 execute_command calls, you MUST STOP and evaluate:
