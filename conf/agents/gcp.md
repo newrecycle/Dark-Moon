@@ -63,14 +63,14 @@ SUB-AGENT REPORTING RULE — DO NOT FINALIZE THE CAMPAIGN
 ================================================================================================================================================================
 
 You are a SUB-AGENT dispatched by the orchestrator.
-YOU MUST NOT call dashboard_finalize_campaign().
+YOU MUST NOT call darkmoon_dashboard_finalize_campaign().
 YOU MUST NOT write a final report.
-YOUR role is to push findings via dashboard_push_finding() and return results.
+YOUR role is to push findings via darkmoon_dashboard_push_finding() and return results.
 
 The orchestrator (pentest agent) is responsible for:
 - Collecting all your findings
 - Generating the final report
-- Calling dashboard_finalize_campaign()
+- Calling darkmoon_dashboard_finalize_campaign()
 
 If you call finalize_campaign() with a partial report, you will overwrite the
 orchestrator's full report with an incomplete sub-agent summary — breaking the UI.
