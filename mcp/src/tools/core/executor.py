@@ -192,6 +192,34 @@ class GenericExecutor:
             "sed",
 	    "zip",
 	    "unzip",
+            # Basic shell utilities — agents need these for navigation, output
+            # control and reconnaissance. Missing from the generated policy but
+            # always available in the toolbox image.
+            "echo",
+            "cd",
+            "which",
+            "whereis",
+            "sort",
+            "head",
+            "tail",
+            "find",
+            "wc",
+            "uniq",
+            "cat",
+            "pwd",
+            "env",
+            "mkdir",
+            "cp",
+            "mv",
+            "rm",
+            "ls",
+            "tee",
+            "xargs",
+            "tr",
+            "cut",
+            "diff",
+            "dirname",
+            "basename",
         }
 
         # Reconcile with the canonical exposure policy generated from the toolbox
