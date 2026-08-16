@@ -166,7 +166,9 @@ RUN printf '%s\n' \
 # prevents a restart loop.
 COPY tools/mcp-health-check.sh /usr/local/bin/mcp-health-check.sh
 COPY tools/mcp-watchdog.sh /usr/local/bin/mcp-watchdog.sh
-RUN chmod +x /usr/local/bin/mcp-health-check.sh /usr/local/bin/mcp-watchdog.sh
+RUN chmod +x /usr/local/bin/mcp-health-check.sh /usr/local/bin/mcp-watchdog.sh \
+ && mkdir -p /run/darkmoon-mcp \
+ && chown darkmoon:darkmoon /run/darkmoon-mcp
 
 # ------------------------------------------------------------
 # Darkmoon CLI (Interactive Monitoring)
