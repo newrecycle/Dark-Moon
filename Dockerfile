@@ -268,16 +268,25 @@ RUN set -eux; \
 # ------------------------------------------------------------
 # Node.js + Playwright (stable project install)
 # ------------------------------------------------------------
+# PLAYWRIGHT_CACHE_BUSTER invalidates this layer (and everything after it)
+# on demand so the browsers get re-captured into the image layer without
+# throwing away the 20GB+ of cached tooling above it. Bump it when you need
+# to reinstall Playwright/Chromium. The BuildKit cache mounts below persist
+# the npm + browser downloads across builds, so this layer only ever
+# re-downloads when the buster changes.
+ARG PLAYWRIGHT_CACHE_BUSTER=1
 WORKDIR /opt/darkmoon
 
 RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/root/.cache/ms-playwright \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get install -y --no-install-recommends nodejs \
  && npm init -y \
  && npm install playwright \
- && npx playwright install chromium \
+ && PLAYWRIGHT_BROWSERS_PATH=/opt/darkmoon-browsers npx playwright install chromium \
  && npm cache clean --force
+
+# Pin Playwright to the on-image browser path at runtime too.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/darkmoon-browsers
 
 # ------------------------------------------------------------
 # Google Cloud SDK (gcp agent): gcloud + gsutil + bq via official tarball

@@ -261,6 +261,55 @@ def main():
                             "target": target, "version_status": version_status,
                             "detail": f"probe ok; version {version_status}"})
 
+    # --- Playwright / Chromium assertion (headless-browser agent runtime) ---
+    # The headless-browser agent is built entirely around Playwright driving a
+    # Chromium browser via MCP. node/npm are necessary but not sufficient: the
+    # browser binaries MUST be present and launchable, or the agent silently
+    # fails. This check catches a missing/partial Playwright browser install.
+    pw_browser_dir = os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "")
+    pw_chrome = None
+    if pw_browser_dir:
+        # find any chromium/headless-shell build under the pinned path
+        for name in os.listdir(pw_browser_dir) if os.path.isdir(pw_browser_dir) else []:
+            if "chromium" in name or "chrome" in name:
+                pw_chrome = os.path.join(pw_browser_dir, name)
+                break
+    if pw_chrome and shutil.which("node"):
+        # playwright lives in /opt/darkmoon/node_modules; point NODE_PATH there so
+        # the probe can require('playwright') without a cwd dependency.
+        node_modules = "/opt/darkmoon/node_modules"
+        pw_probe = (
+            "const { chromium } = require('playwright');"
+            " (async () => {"
+            "   const b = await chromium.launch({ headless: true });"
+            "   await b.newPage();"
+            "   await b.close();"
+            "   console.log('PLAYWRIGHT_OK');"
+            " })().catch((e) => { console.log('PLAYWRIGHT_FAIL:' + e.message); process.exit(1); });"
+        )
+        rc, out = run(
+            f"NODE_PATH={node_modules} node -e \"{pw_probe}\"", args.timeout)
+        if "PLAYWRIGHT_OK" in out:
+            counts["ok"] += 1
+            results.append({"id": "playwright-chromium", "exposure": "callable",
+                            "status": "OK",
+                            "detail": f"Chromium launches via Playwright ({os.path.basename(pw_chrome)})"})
+        else:
+            counts["fail"] += 1
+            results.append({"id": "playwright-chromium", "exposure": "callable",
+                            "status": "FAIL",
+                            "detail": f"Playwright present but Chromium did not launch: {out.strip()[:120]}"})
+    elif not pw_browser_dir:
+        counts["fail"] += 1
+        results.append({"id": "playwright-chromium", "exposure": "callable",
+                        "status": "FAIL",
+                        "detail": "PLAYWRIGHT_BROWSERS_PATH not set — browsers dir unknown"})
+    else:
+        counts["fail"] += 1
+        results.append({"id": "playwright-chromium", "exposure": "callable",
+                        "status": "FAIL",
+                        "detail": f"no Chromium build found in {pw_browser_dir}"})
+
     # summary
     required_total = sum(1 for r in records
                         if r.get("exposure") not in ("host-only", "build-only")
