@@ -29,6 +29,12 @@ OPENCODE_LOCAL_BASE_URL="${OPENCODE_LOCAL_BASE_URL:-}"
 OPENCODE_LOCAL_MODEL="${OPENCODE_LOCAL_MODEL:-}"
 OPENCODE_LOCAL_API_KEY="${OPENCODE_LOCAL_API_KEY:-}"
 
+# Subagent model — specialized sub-agents use this instead of the primary
+# model. Falls back to the same provider with a smaller/faster model so the
+# orchestrator (pentest) keeps the primary model. Set OPENCODE_SUBAGENT_MODEL
+# in .opencode.env to override.
+OPENCODE_SUBAGENT_MODEL="${OPENCODE_SUBAGENT_MODEL:-tencent/hy3:free}"
+
 # On-prem Anthropic-compatible vars (opencode reads ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY from env)
 ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-}"
 ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-}"
@@ -70,6 +76,19 @@ elif [ "$USE_OPENROUTER" = true ]; then
 else
   FINAL_MODEL="opencode/big-pickle"
   log "No provider configured → fallback to $FINAL_MODEL"
+fi
+
+# Subagent model — same provider routing as the primary model, but using
+# OPENCODE_SUBAGENT_MODEL (a smaller/faster model) so the orchestrator keeps
+# the heavyweight primary model while sub-agents run the lightweight one.
+if [ "$USE_OPENROUTER" = true ]; then
+  SUBAGENT_MODEL="${OPENROUTER_PROVIDER}/${OPENCODE_SUBAGENT_MODEL}"
+elif [ "$USE_ANTHROPIC" = true ]; then
+  SUBAGENT_MODEL="anthropic/${OPENCODE_SUBAGENT_MODEL}"
+elif [ "$USE_LOCAL" = true ]; then
+  SUBAGENT_MODEL="${OPENCODE_LOCAL_PROVIDER_ID}/${OPENCODE_SUBAGENT_MODEL}"
+else
+  SUBAGENT_MODEL="opencode/big-pickle"
 fi
 
 #######################################
@@ -148,6 +167,47 @@ elif [ "$USE_ANTHROPIC" = true ]; then
   }
 PROVEOF
 )
+elif [ "$USE_OPENROUTER" = true ]; then
+  # Register the Nous-compatible provider with BOTH the primary (orchestrator)
+  # and subagent models. reasoningEffort is set to high on both so every agent
+  # runs with maximum thinking/interleaved reasoning.
+  PROVIDER_BLOCK=$(cat <<PROVEOF
+,
+
+  "provider": {
+    "${OPENROUTER_PROVIDER}": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "${OPENROUTER_PROVIDER}",
+      "options": {
+        "baseURL": "https://inference-api.${OPENROUTER_PROVIDER}research.com/v1",
+        "includeUsage": true
+      },
+      "models": {
+        "${OPENCODE_SUBAGENT_MODEL}": {
+          "name": "${OPENCODE_SUBAGENT_MODEL}",
+          "reasoning": true,
+          "interleaved": {
+            "field": "reasoning"
+          },
+          "options": {
+            "reasoningEffort": "high"
+          }
+        },
+        "${OPENCODE_MODEL}": {
+          "name": "${OPENCODE_MODEL}",
+          "reasoning": true,
+          "interleaved": {
+            "field": "reasoning"
+          },
+          "options": {
+            "reasoningEffort": "high"
+          }
+        }
+      }
+    }
+  }
+PROVEOF
+)
 fi
 
 cat > "$OPENCODE_CONFIG_FILE" <<EOF
@@ -175,233 +235,233 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
     },
 
     "aws": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "azure": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "entra-id": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "gcp": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "github": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "gitlab": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "jenkins": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "terraform": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "ansible": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "docker": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "container-registry": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "hashicorp-vault": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "sql-databases": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "messaging-cache": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
     "firmware": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "sso-idp": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "gitops": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "observability": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "storage": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "edge-proxy": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "vpn-remote-access": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "firewall-network": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "email-infrastructure": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "backup": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "pki-adcs": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "nosql-databases": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "container-platform": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "hypervisor": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "business-platforms": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "mobile": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "mdm": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "active-directory": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "aspnet": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "python-flask": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "graphql": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "golang": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "headless-browser": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "kubernetes": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "nest": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "php": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "ruby-on-rails": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "springboot": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "nodejs": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "wordpress": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "prestashop": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "moodle": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "magento": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "joomla": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
 
     "drupal": {
-      "model": "$FINAL_MODEL",
+      "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     }
   }
