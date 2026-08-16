@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# darkmoon-mcp — opencode's MCP command entrypoint.
+# Exec into the MCP server so it inherits opencode's stdin/stdout pipes
+# (the stdio transport FastMCP expects). Simple, proven, stable.
 set -euo pipefail
-
-exec docker exec -i darkmoon darkmoon-mcp
+cd /opt/darkmoon/mcp/server
+source .venv/bin/activate
+exec python -m src.server
