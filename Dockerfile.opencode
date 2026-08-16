@@ -144,7 +144,9 @@ RUN cd ${DM_MCP_HOME}/server \
  && pip install --upgrade pip \
  && pip install -r requirements.txt
 
-# Entrypoint MCP local
+# Entrypoint MCP local — stdio transport for the MCP server.
+# opencode spawns this; it runs the server directly over stdio so sessions get
+# tools. The container-restart watchdog (below) keeps the whole container healthy.
 RUN printf '%s\n' \
   '#!/usr/bin/env bash' \
   'set -euo pipefail' \
@@ -153,6 +155,18 @@ RUN printf '%s\n' \
   'exec python -m src.server' \
   > /usr/local/bin/darkmoon-mcp \
  && chmod +x /usr/local/bin/darkmoon-mcp
+
+# MCP health probe + container-restart watchdog.
+# mcp-health-check.sh: authoritative liveness probe (boots the server, lists tools,
+# calls health_check). Exit 0 = healthy, 1 = down.
+# mcp-watchdog.sh --restart-container: loops the probe and, on THRESHOLD consecutive
+# failures (after WARMUP), runs `docker restart opencode`. The container has the
+# Docker CLI + socket mounted, so it can restart itself. The watchdog dies with the
+# container and is re-launched by the entrypoint on boot; WARMUP on the new instance
+# prevents a restart loop.
+COPY tools/mcp-health-check.sh /usr/local/bin/mcp-health-check.sh
+COPY tools/mcp-watchdog.sh /usr/local/bin/mcp-watchdog.sh
+RUN chmod +x /usr/local/bin/mcp-health-check.sh /usr/local/bin/mcp-watchdog.sh
 
 # ------------------------------------------------------------
 # Darkmoon CLI (Interactive Monitoring)

@@ -257,6 +257,27 @@ while read -r path; do
 done &
 
 #######################################
+# MCP container-restart watchdog
+#######################################
+# A background loop that probes the MCP server health and restarts the whole
+# opencode container on persistent failure. The container has the Docker CLI
+# + socket mounted, so it can restart itself. The watchdog dies with the
+# container and is re-launched by the entrypoint on boot; the watchdog's own
+# WARMUP period on the new instance prevents a restart loop.
+#
+# This replaces the abandoned socket-daemon approach: the MCP server is now run
+# directly over stdio by opencode (darkmoon-mcp -> src.server), and liveness is
+# enforced at the container level.
+start_mcp_watchdog() {
+  log "Starting MCP container-restart watchdog"
+  setsid /usr/local/bin/mcp-watchdog.sh --restart-container \
+    > /tmp/darkmoon-mcp-watchdog.log 2>&1 < /dev/null &
+  disown 2>/dev/null || true
+}
+
+start_mcp_watchdog
+
+#######################################
 # Start main process
 #######################################
 log "Starting main process: $*"
