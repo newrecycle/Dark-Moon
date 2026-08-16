@@ -111,6 +111,11 @@ ENV DARKMOON_USER=darkmoon \
 RUN mkdir -p /opt/darkmoon/default-agents
 COPY --chown=darkmoon:darkmoon conf/agents/ /opt/darkmoon/default-agents/
 
+# Opencode reads agents from ~/.agents/ but we store them in ~/.opencode/agents/.
+# Create a symlink at build time (as root) so opencode can find them.
+# The entrypoint seeds agents to ~/.opencode/agents/ at runtime (or they're bind-mounted).
+RUN mkdir -p /root/.opencode/agents && ln -sf /root/.opencode/agents /root/.agents
+
 # Runtime-discovered provider catalogues. The entrypoint seeds these into the
 # bind-mounted OpenCode config without overwriting local customizations.
 RUN mkdir -p /opt/darkmoon/default-plugins

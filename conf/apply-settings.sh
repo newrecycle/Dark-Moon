@@ -385,7 +385,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "mode": "subagent"
     },
 
-    "python-flask": {
+    "flask": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
@@ -420,7 +420,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "mode": "subagent"
     },
 
-    "ruby-on-rails": {
+    "ruby": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
@@ -430,7 +430,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "mode": "subagent"
     },
 
-    "nodejs": {
+    "nodejs-express-angular": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent"
     },
