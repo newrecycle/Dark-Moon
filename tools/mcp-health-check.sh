@@ -28,7 +28,10 @@ async def main():
         async with c:
             tools = await c.list_tools()
             r = await c.call_tool('health_check', {})
-            healthy = any('Healthy' in str(v) for v in (r if isinstance(r, (list,tuple)) else [r]))
+            # Read the structured result the server returns. r.data is a dict
+            # with a boolean 'healthy' key; fall back to False if absent.
+            _d = getattr(r, 'data', None)
+            healthy = bool(_d.get('healthy', False)) if isinstance(_d, dict) else False
             print(json.dumps({'ok': True, 'tools': len(tools), 'healthy': healthy}))
     except Exception as e:
         print(json.dumps({'ok': False, 'error': str(e)[:200]}))
