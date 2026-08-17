@@ -30,6 +30,37 @@
           }
         }
       }
+    },
+    "inferx": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "inferx",
+      "options": {
+        "baseURL": "https://api.inferx.com/v1",
+        "apiKey": "ix_84c30cde313ce341a76eda32bb6826e03c23b86f789d0db3931dfaec43fa8c5f",
+        "includeUsage": true
+      },
+      "models": {
+        "deepseek-v4-flash": {
+          "name": "deepseek-v4-flash",
+          "reasoning": true,
+          "interleaved": {
+            "field": "reasoning"
+          },
+          "options": {
+            "reasoningEffort": "high"
+          }
+        },
+        "qwen3.6-35b-a3b-fp8": {
+          "name": "qwen3.6-35b-a3b-fp8",
+          "reasoning": true,
+          "interleaved": {
+            "field": "reasoning"
+          },
+          "options": {
+            "reasoningEffort": "high"
+          }
+        }
+      }
     }
   },
   "model": "nous/meituan/longcat-2.0:free",
