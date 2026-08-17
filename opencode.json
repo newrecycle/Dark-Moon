@@ -70,7 +70,8 @@
         "list": "deny",
         "task": "allow",
         "darkmoon_run_workflow": "deny",
-        "darkmoon_execute_command": "deny"
+        "darkmoon_execute_command": "deny",
+        "external_directory": "allow"
       }
     },
     "aws": {
