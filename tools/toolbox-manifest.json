@@ -1646,9 +1646,9 @@
       "class": "go",
       "category": "web",
       "upstream": "projectdiscovery/cvemap",
-      "requested_version": "v1.0.0",
-      "resolved_version": "v1.0.0",
-      "resolved_ref": "v1.0.0",
+      "requested_version": "v2.0.2",
+      "resolved_version": "v2.0.2",
+      "resolved_ref": "v2.0.2",
       "architectures": [
         "amd64",
         "arm64"
@@ -1662,15 +1662,15 @@
         "/usr/local/bin"
       ],
       "data_dirs": [],
-      "checksum_source": "https://github.com/projectdiscovery/cvemap/releases/tag/v1.0.0",
+      "checksum_source": "https://github.com/projectdiscovery/cvemap/releases/tag/v2.0.2",
       "sha256": null,
-      "install_method": "go install github.com/projectdiscovery/cvemap/cmd/vulnx@v1.0.0",
+      "install_method": "go install github.com/projectdiscovery/cvemap/cmd/vulnx@v2.0.2",
       "exposure": "callable",
       "banned": false,
       "requires_runtime": true,
       "probe": "vulnx -h 2>&1 | head -1",
-      "version_assert": "binary present; pinned to cvemap v1.0.0",
-      "notes": "vulnx is a subcommand of the cvemap module (its go.mod declares github.com/projectdiscovery/cvemap); pinned to v1.0.0 for reproducible builds."
+      "version_assert": "binary present; pinned to cvemap v2.0.2",
+      "notes": "vulnx is a subcommand of the cvemap module (its go.mod declares github.com/projectdiscovery/cvemap); pinned to v2.0.2 for reproducible builds."
     },
     {
       "id": "grpcurl",

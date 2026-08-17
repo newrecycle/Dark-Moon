@@ -348,7 +348,7 @@ export LIGHTPANDA_DISABLE_TELEMETRY=true
 msg "vulnx …"
 
 GO111MODULE=on GOTOOLCHAIN=local \
-  go install github.com/projectdiscovery/cvemap/cmd/vulnx@v1.0.0
+  go install github.com/projectdiscovery/vulnx/v2/cmd/vulnx@v2.0.2
 
 VULNX_BIN="$(go env GOPATH)/bin/vulnx"
 

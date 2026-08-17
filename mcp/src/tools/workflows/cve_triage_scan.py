@@ -18,6 +18,10 @@ Combines two layers:
 
 No Shodan integration. No external call ever carries the target host/IP --
 cvemap is queried by product name or CVE ID only.
+
+NOTE: the installed binary is the NEW cvemap `cmd/vulnx` CLI (subcommands
+`id` and `search`), not the legacy `cvemap` flags. We parse the human
+renderer (`EPSS:`, `KEV:`, `POCs:`) which is stable across v1.0.0..v2.x.
 """
 
 import re
@@ -27,7 +31,7 @@ from src.tools.workflows.base import BaseWorkflow
 
 _CVE_RE = re.compile(r"CVE-\d{4}-\d{1,7}", re.I)
 
-# Curated product tokens fed to `cvemap -product` (fingerprint -> CVEs).
+# Curated product tokens fed to `vulnx search --product` (fingerprint -> CVEs).
 # whatweb output is scanned case-insensitively for these substrings.
 _PRODUCT_TOKENS = [
     "apache", "nginx", "microsoft-iis", "tomcat", "jetty", "httpd",
@@ -40,9 +44,7 @@ _PRODUCT_TOKENS = [
 
 
 class CveTriageScanWorkflow(BaseWorkflow):
-    """
-    Local nuclei CVE detection (always) + conditional live cvemap triage.
-    """
+    """Local nuclei CVE detection (always) + conditional live cvemap triage."""
 
     def triage_cves(
         self,
@@ -110,7 +112,7 @@ class CveTriageScanWorkflow(BaseWorkflow):
                 confirmed_cve_ids.add(m.upper())
 
         # ---------------------------------------------------------------
-        # STEP 2 -- Fingerprint (product tokens for cvemap -product)
+        # STEP 2 -- Fingerprint (product tokens for cvemap product triage)
         # ---------------------------------------------------------------
         fingerprint_products = self._fingerprint(targets, scan_timeout)
 
@@ -206,38 +208,70 @@ class CveTriageScanWorkflow(BaseWorkflow):
     def _enrich_cves(
         self, cve_ids: List[str], max_n: int, timeout: int
     ) -> Dict[str, Dict[str, Any]]:
-        """Query `cvemap -cve` for EPSS/KEV per confirmed CVE (bounded)."""
+        """Batch-query `vulnx id CVE1,CVE2,...` and parse EPSS / KEV / PoC.
+
+        Batching (<=100 per call) avoids cvemap's ~10 req/min unauth rate limit.
+        Each result block begins with `[CVE-XXXX]`; we split and parse per block.
+        Renderer tokens (stable across cvemap v1.0.0..v2.x):
+          EPSS: <score>          (e.g. 0.9700)
+          KEV: <check> (CISA)    (✔ = on KEV list, ✘ = not)
+          POCs: <count>          (number of public PoCs)
+        """
         out: Dict[str, Dict[str, Any]] = {}
-        per = max(8, timeout // max(1, min(len(cve_ids), max_n)))
-        for cid in cve_ids[:max_n]:
+        capped = cve_ids[:max_n]
+        if not capped:
+            return out
+        batch_size = 100
+        batches = [capped[i:i + batch_size] for i in range(0, len(capped), batch_size)]
+        per = max(15, timeout // max(1, len(batches)))
+        for batch in batches:
             _, _, raw = self.execute_step(
-                step_name=f"cvemap triage {cid}",
-                command=f"vulnx -cve {cid} 2>/dev/null",
+                step_name=f"cvemap triage ({len(batch)} CVEs)",
+                command=(
+                    f"vulnx id {','.join(batch)} --silent --no-color 2>/dev/null"
+                ),
                 timeout=per,
                 parse_json=False,
             )
             if not raw:
                 continue
-            epss = re.search(r"EPSS[^\d]*([0-9]*\.?[0-9]+)", raw, re.I)
-            kevm = re.search(r"KEV\s*:\s*(yes|true|no|false)", raw, re.I)
-            poc = bool(re.search(r"POC|exploit", raw, re.I))
-            out[cid] = {
-                "epss": float(epss.group(1)) if epss else None,
-                "kev": bool(kevm and kevm.group(1).lower() in ("yes", "true")),
-                "poc": poc,
-            }
+            # Split on the [CVE-XXXX] header that starts each result block.
+            for block in re.split(r"(?=\[CVE-\d{4}-\d{1,7}\])", raw, flags=re.I):
+                m = re.match(r"\[CVE-(\d{4}-\d{1,7})\]", block, re.I)
+                if not m:
+                    continue
+                cid = "CVE-" + m.group(1).upper()
+                epss = re.search(r"EPSS:\s*([0-9]*\.?[0-9]+)", block)
+                kev_line = re.search(r"KEV:\s*(.+)", block)
+                poc = re.search(r"POCs:\s*(\d+)", block)
+                kev_true = bool(kev_line and (
+                    "\u2714" in kev_line.group(1)  # ✔
+                    or "CISA" in kev_line.group(1)
+                ))
+                out[cid] = {
+                    "epss": float(epss.group(1)) if epss else None,
+                    "kev": kev_true,
+                    "poc": bool(poc and int(poc.group(1)) > 0),
+                }
         return out
 
     def _product_triage(
         self, products: List[str], confirmed: set, timeout: int
     ) -> List[Dict[str, Any]]:
-        """For each fingerprinted product, list cvemap CVEs lacking a nuclei match."""
+        """For each fingerprinted product, list cvemap CVEs lacking a nuclei match.
+
+        Uses `vulnx search --product <p> --limit N` (default search --limit is 10,
+        which silently caps results; we override).
+        """
         intel: List[Dict[str, Any]] = []
         per = max(10, timeout // max(1, len(products))) if products else timeout
         for p in products:
             _, _, raw = self.execute_step(
                 step_name=f"cvemap product {p}",
-                command=f"vulnx -product {p} 2>/dev/null",
+                command=(
+                    f"vulnx search --product {p} --silent --no-color "
+                    f"--limit 200 2>/dev/null"
+                ),
                 timeout=per,
                 parse_json=False,
             )
@@ -246,9 +280,14 @@ class CveTriageScanWorkflow(BaseWorkflow):
             for cid in _CVE_RE.findall(raw):
                 cid = cid.upper()
                 if cid not in confirmed:
-                    intel.append({"cve": cid, "product": p, "status": "intel_only_unconfirmed"})
-        seen = set()
-        uniq = []
+                    intel.append({
+                        "cve": cid,
+                        "product": p,
+                        "status": "intel_only_unconfirmed",
+                    })
+        # de-dup (same CVE may appear under multiple products)
+        seen: set = set()
+        uniq: List[Dict[str, Any]] = []
         for i in intel:
             if i["cve"] in seen:
                 continue
