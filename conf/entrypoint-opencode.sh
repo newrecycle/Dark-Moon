@@ -278,6 +278,17 @@ start_mcp_watchdog() {
 start_mcp_watchdog
 
 #######################################
+# Auto-start opencode headless server
+#######################################
+# The server processes sessions (pentest orchestrator + subagents). Without
+# it, sessions are created but never processed. Running it in the background
+# lets the container's main process (bash/TUI) stay in the foreground.
+log "Starting opencode headless server"
+setsid /usr/local/bin/opencode serve --print-logs > /tmp/opencode-serve.log 2>&1 &
+disown 2>/dev/null || true
+log "Opencode server started in background"
+
+#######################################
 # Start main process
 #######################################
 log "Starting main process: $*"
