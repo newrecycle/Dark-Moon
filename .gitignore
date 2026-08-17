@@ -2,7 +2,8 @@ darkmoon-settings/
 data/
 sessions/
 reports/
-workflows/
+# Workflows directory (top-level only).
+/workflows/
 shared/
 .opencode.env
 *.env

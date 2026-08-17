@@ -18,6 +18,11 @@ ALLOWED_TOOLS = {
     "dig", "nslookup", "curl", "wget", "ping", "netexec", "crackmapexec",
     "bloodhound-python", "impacket-smbclient", "kubectl", "kubeletctl",
     "kubescape", "jq", "grep", "awk", "sed",
+    # openresty-lua agent toolchain: web/db/cred/firmware utilities
+    "httpx", "nuclei",
+    "binwalk", "firmwalker",
+    "hashcat", "john", "unshadow",
+    "psql", "mysql", "mysqladmin", "redis-cli", "sqlite3",
     # Internal commands allowed in workflows
     "mkdir", "echo", "cat", "rm", "chmod", "touch", "ls", "cp", "mv",
 }
