@@ -106,513 +106,717 @@
       }
     },
     "aws": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "azure": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "entra-id": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "gcp": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "github": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "gitlab": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "jenkins": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "terraform": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "ansible": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "docker": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "container-registry": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "hashicorp-vault": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "sql-databases": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "messaging-cache": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "firmware": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "sso-idp": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "gitops": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "observability": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "storage": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "edge-proxy": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "vpn-remote-access": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "firewall-network": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "email-infrastructure": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "backup": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "pki-adcs": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "nosql-databases": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "container-platform": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "hypervisor": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "business-platforms": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "mobile": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "mdm": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "active-directory": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "aspnet": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "graphql": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "golang": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "headless-browser": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "kubernetes": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "nest": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "php": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "springboot": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "wordpress": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "prestashop": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "moodle": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "magento": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "joomla": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "drupal": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "flask": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "ruby": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "nodejs-express-angular": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "embedded-gateway": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     },
     "openresty-lua": {
-      "model": "nous/tencent/hy3:free",
+      "model": "inferx/qwen3.6-35b-a3b-fp8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
       },
       "permission": {
         "bash": "deny"
+      },
+      "retry": {
+        "attempts": 5,
+        "delay": 10000
       }
     }
   }
