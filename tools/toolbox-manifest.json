@@ -2274,6 +2274,378 @@
       "probe": "command -v cewl",
       "version_assert": "cewl binary present",
       "notes": "Custom wordlist generator from web content, referenced by gcp agent"
+    },
+    {
+      "id": "responder",
+      "class": "pip",
+      "category": "network",
+      "upstream": "responder",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "responder"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/responder",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "pip",
+      "sha256": null,
+      "install_method": "pip install responder",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v responder",
+      "version_assert": "responder --version",
+      "notes": "LLMNR/NBT-NS/mDNS responder, referenced by embedded-gateway agent"
+    },
+    {
+      "id": "dnschef",
+      "class": "pip",
+      "category": "network",
+      "upstream": "dnschef",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "dnschef"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/dnschef",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "pip",
+      "sha256": null,
+      "install_method": "pip install dnschef",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v dnschef",
+      "version_assert": "dnschef --version",
+      "notes": "DNS proxy for spoofing attacks, referenced by embedded-gateway agent"
+    },
+    {
+      "id": "yersinia",
+      "class": "apt",
+      "category": "network",
+      "upstream": "yersinia",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "yersinia"
+      ],
+      "aliases": [],
+      "install_location": "/usr/sbin/yersinia",
+      "paths": [
+        "/usr/sbin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "apt",
+      "sha256": null,
+      "install_method": "apt install yersinia",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v yersinia",
+      "version_assert": "yersinia --version",
+      "notes": "Network stress/testing tool for DHCP/STP/DTP attacks, referenced by embedded-gateway agent"
+    },
+    {
+      "id": "dhcpig",
+      "class": "apt",
+      "category": "network",
+      "upstream": "dhcpig",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "dhcpig"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/dhcpig",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "apt",
+      "sha256": null,
+      "install_method": "apt install dhcpig",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v dhcpig",
+      "version_assert": "dhcpig --version",
+      "notes": "DHCP exhaustion attack tool, referenced by embedded-gateway agent"
+    },
+    {
+      "id": "ssdp-scan",
+      "class": "git",
+      "category": "iot",
+      "upstream": "ssdp-scan",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "ssdp-scan"
+      ],
+      "aliases": [],
+      "install_location": "/opt/ssdp-scan",
+      "paths": [
+        "/opt/ssdp-scan"
+      ],
+      "data_dirs": [],
+      "checksum_source": "github:MCheli/ssdp-scan",
+      "sha256": null,
+      "install_method": "git clone https://github.com/MCheli/ssdp-scan.git /opt/ssdp-scan",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "test -d /opt/ssdp-scan",
+      "version_assert": "ssdp-scan directory present",
+      "notes": "UPnP SSDP discovery scanner, referenced by embedded-gateway agent"
+    },
+    {
+      "id": "jefferson",
+      "class": "pip",
+      "category": "firmware",
+      "upstream": "jefferson",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "jefferson"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/jefferson",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "pip",
+      "sha256": null,
+      "install_method": "pip install jefferson",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v jefferson",
+      "version_assert": "jefferson --version",
+      "notes": "JFFS2 filesystem extractor, referenced by firmware agent"
+    },
+    {
+      "id": "ubi_reader",
+      "class": "pip",
+      "category": "firmware",
+      "upstream": "ubi_reader",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "ubireader"
+      ],
+      "aliases": [],
+      "install_location": "/usr/local/bin/ubireader",
+      "paths": [
+        "/usr/local/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "pip",
+      "sha256": null,
+      "install_method": "pip install ubi_reader",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v ubireader",
+      "version_assert": "ubireader --version",
+      "notes": "UBI/UBIFS filesystem extractor, referenced by firmware agent"
+    },
+    {
+      "id": "firmware-mod-kit",
+      "class": "git",
+      "category": "firmware",
+      "upstream": "firmware-mod-kit",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "firmware-mod-kit"
+      ],
+      "aliases": [],
+      "install_location": "/opt/firmware-mod-kit",
+      "paths": [
+        "/opt/firmware-mod-kit"
+      ],
+      "data_dirs": [],
+      "checksum_source": "github:rampageX/firmware-mod-kit",
+      "sha256": null,
+      "install_method": "git clone https://github.com/rampageX/firmware-mod-kit.git /opt/firmware-mod-kit",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "test -d /opt/firmware-mod-kit",
+      "version_assert": "firmware-mod-kit directory present",
+      "notes": "Firmware extraction and modification toolkit, referenced by embedded-gateway and firmware agents"
+    },
+    {
+      "id": "firmadyne",
+      "class": "git",
+      "category": "firmware",
+      "upstream": "firmadyne",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "firmadyne"
+      ],
+      "aliases": [],
+      "install_location": "/opt/firmadyne",
+      "paths": [
+        "/opt/firmadyne"
+      ],
+      "data_dirs": [],
+      "checksum_source": "github:dhinakg/firmadyne",
+      "sha256": null,
+      "install_method": "git clone https://github.com/dhinakg/firmadyne.git /opt/firmadyne",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "test -d /opt/firmadyne",
+      "version_assert": "firmadyne directory present",
+      "notes": "Firmware emulation framework, referenced by embedded-gateway and firmware agents"
+    },
+    {
+      "id": "checksec",
+      "class": "apt",
+      "category": "firmware",
+      "upstream": "checksec",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "checksec"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/checksec",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "apt",
+      "sha256": null,
+      "install_method": "apt install checksec",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v checksec",
+      "version_assert": "checksec --version",
+      "notes": "Binary security property checker (NX, PIE, RELRO, etc.), referenced by embedded-gateway and firmware agents"
+    },
+    {
+      "id": "apktool",
+      "class": "apt",
+      "category": "mobile",
+      "upstream": "apktool",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "apktool"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/apktool",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "apt",
+      "sha256": null,
+      "install_method": "apt install apktool",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v apktool",
+      "version_assert": "apktool --version",
+      "notes": "APK decompilation tool, referenced by mobile agent"
+    },
+    {
+      "id": "jadx",
+      "class": "binary",
+      "category": "mobile",
+      "upstream": "jadx",
+      "requested_version": "1.5.0",
+      "resolved_version": "1.5.0",
+      "resolved_ref": "1.5.0",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "jadx"
+      ],
+      "aliases": [],
+      "install_location": "/opt/jadx/bin/jadx",
+      "paths": [
+        "/opt/jadx/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "github:skylux/jadx",
+      "sha256": null,
+      "install_method": "download from GitHub releases",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v jadx",
+      "version_assert": "jadx --version",
+      "notes": "APK/DEX decompiler, referenced by mobile agent"
     }
   ],
   "core_shell_exceptions": [

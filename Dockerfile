@@ -199,8 +199,15 @@ RUN set -eux; \
     && arch="$(dpkg --print-architecture)" \
     && wget -q "https://github.com/onekey-sec/sasquatch/releases/download/${SASQUATCH_TAG}/sasquatch_1.0_${arch}.deb" -O /tmp/sasquatch.deb \
     && dpkg -i /tmp/sasquatch.deb || apt-get install -f -y \
-    && rm -f /tmp/sasquatch.deb; \
-    rm -rf /tmp/*
+    && rm -f /tmp/sasquatch.deb \
+    && apt-get update && apt-get install -y --no-install-recommends \
+       apktool dhcpig checksec yersinia \
+    && rm -rf /var/lib/apt/lists/* \
+    # NOTE: pip3 install moved to after COPY --from=builder (Python env not yet available)
+    # firmware-mod-kit (firmware extraction/modification)
+    && git clone https://github.com/rampageX/firmware-mod-kit.git /opt/firmware-mod-kit \
+    && chmod +x /opt/firmware-mod-kit/*.sh \
+    && rm -rf /tmp/*
 
 # ------------------------------------------------------------
 # Node.js + Playwright (stable project install)
@@ -252,7 +259,12 @@ ENV PATH="/opt/darkmoon/curl/bin:/opt/darkmoon/python/bin:/opt/darkmoon/ruby/bin
     LD_LIBRARY_PATH="/usr/lib/aarch64-linux-gnu:/usr/lib/x86_64-linux-gnu:/opt/darkmoon/curl/lib:/opt/darkmoon/python/lib:/opt/darkmoon/ruby/lib"
 
 RUN ln -s /opt/darkmoon/python/bin/python3 /usr/local/bin/python \
- && ln -s /opt/darkmoon/python/bin/pip3 /usr/local/bin/pip
+ && ln -s /opt/darkmoon/python/bin/pip3 /usr/local/bin/pip \
+ && pip install --no-cache-dir \
+       responder \
+       dnschef \
+       jefferson \
+       ubi_reader
 
 # ------------------------------------------------------------
 # Wordlists & data

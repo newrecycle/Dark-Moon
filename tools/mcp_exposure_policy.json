@@ -910,6 +910,78 @@
         "cewl"
       ]
     },
+    "responder": {
+      "source": "inventory",
+      "records": [
+        "responder"
+      ]
+    },
+    "dnschef": {
+      "source": "inventory",
+      "records": [
+        "dnschef"
+      ]
+    },
+    "yersinia": {
+      "source": "inventory",
+      "records": [
+        "yersinia"
+      ]
+    },
+    "dhcpig": {
+      "source": "inventory",
+      "records": [
+        "dhcpig"
+      ]
+    },
+    "ssdp-scan": {
+      "source": "inventory",
+      "records": [
+        "ssdp-scan"
+      ]
+    },
+    "jefferson": {
+      "source": "inventory",
+      "records": [
+        "jefferson"
+      ]
+    },
+    "ubireader": {
+      "source": "inventory",
+      "records": [
+        "ubi_reader"
+      ]
+    },
+    "firmware-mod-kit": {
+      "source": "inventory",
+      "records": [
+        "firmware-mod-kit"
+      ]
+    },
+    "firmadyne": {
+      "source": "inventory",
+      "records": [
+        "firmadyne"
+      ]
+    },
+    "checksec": {
+      "source": "inventory",
+      "records": [
+        "checksec"
+      ]
+    },
+    "apktool": {
+      "source": "inventory",
+      "records": [
+        "apktool"
+      ]
+    },
+    "jadx": {
+      "source": "inventory",
+      "records": [
+        "jadx"
+      ]
+    },
     "sh": {
       "source": "exception",
       "reason": "core shell"
@@ -1064,8 +1136,8 @@
   "legacy_retained_count": 0,
   "legacy_retained": [],
   "counts": {
-    "allow": 166,
-    "inventory_derived": 151,
+    "allow": 178,
+    "inventory_derived": 163,
     "exception_derived": 15,
     "legacy_retained": 0,
     "blocked": 0,
