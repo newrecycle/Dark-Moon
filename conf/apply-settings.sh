@@ -241,6 +241,17 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
         "darkmoon_list_allowed_tools": true,
         "darkmoon_health_check": true,
         "darkmoon_execute_command": false
+      },
+      "permission": {
+        "bash": "deny",
+        "read": "deny",
+        "glob": "deny",
+        "edit": "deny",
+        "grep": "deny",
+        "list": "deny",
+        "task": "allow",
+        "darkmoon_run_workflow": "deny",
+        "darkmoon_execute_command": "deny"
       }
     },
 
