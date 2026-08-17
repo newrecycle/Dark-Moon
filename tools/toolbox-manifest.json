@@ -920,7 +920,15 @@
         "tstool.py",
         "wmiexec.py",
         "wmipersist.py",
-        "wmiquery.py"
+        "wmiquery.py",
+        "dacledit.py",
+        "reg.py",
+        "dpapidump.py",
+        "exchanger.py",
+        "karmaSMB.py",
+        "kintercept.py",
+        "machine_role.py",
+        "rbcd.py"
       ],
       "aliases": [],
       "install_location": "/opt/darkmoon/python/bin",
@@ -1079,8 +1087,8 @@
       "requires_runtime": true,
       "probe": "sqlmap --version 2>&1 | head -1",
       "version_assert": "import importlib.metadata as m; assert m.version('sqlmap')=='1.10.8'",
-      "notes": "CALLABLE but FORBIDDEN BY DEFAULT at runtime. Agents may not run sqlmap unless the user explicitly authorizes it for a target. Documented in the exposure policy, NOT modeled as 'blocked' (it is installed + allowed).",
-      "runtime_policy": "forbidden_by_default"
+      "notes": "Callable. Previously forbidden-by-default; unlocked by user authorization.",
+      "runtime_policy": "allowed"
     },
     {
       "id": "arjun",
@@ -2204,6 +2212,68 @@
       "probe": "command -v finalrecon",
       "version_assert": "finalrecon wrapper present (v1.1.6)",
       "notes": "Pinned to v1.1.6 (setup_py.sh)."
+    },
+    {
+      "id": "debugfs",
+      "class": "apt",
+      "category": "firmware",
+      "upstream": "e2fsprogs",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "debugfs"
+      ],
+      "aliases": [],
+      "install_location": "/sbin/debugfs",
+      "paths": [
+        "/sbin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "apt",
+      "sha256": null,
+      "install_method": "apt install e2fsprogs",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v debugfs",
+      "version_assert": "debugfs binary present",
+      "notes": "Filesystem debugging tool for ext2/3/4, referenced by firmware agent"
+    },
+    {
+      "id": "cewl",
+      "class": "apt",
+      "category": "web",
+      "upstream": "cewl",
+      "requested_version": "latest",
+      "resolved_version": "latest",
+      "resolved_ref": "latest",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "executables": [
+        "cewl"
+      ],
+      "aliases": [],
+      "install_location": "/usr/bin/cewl",
+      "paths": [
+        "/usr/bin"
+      ],
+      "data_dirs": [],
+      "checksum_source": "apt",
+      "sha256": null,
+      "install_method": "apt install cewl",
+      "exposure": "callable",
+      "banned": false,
+      "requires_runtime": false,
+      "probe": "command -v cewl",
+      "version_assert": "cewl binary present",
+      "notes": "Custom wordlist generator from web content, referenced by gcp agent"
     }
   ],
   "core_shell_exceptions": [

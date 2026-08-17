@@ -172,7 +172,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # cracking + wordlist
     cewl john libcompress-raw-lzma-perl \
     # firmware / IoT
-    binwalk squashfs-tools sqlite3 arp-scan netcat-openbsd nfs-common file \
+    binwalk squashfs-tools sqlite3 arp-scan netcat-openbsd nfs-common file e2fsprogs \
  && rm -rf /var/lib/apt/lists/* \
  && rm -rf /tmp/* /var/tmp/*
 
@@ -193,6 +193,13 @@ RUN set -eux; \
     git -C /opt/firmwalker checkout 23ff299980319b7f1b623817a176e06dda143b45; \
     ln -sf /opt/firmwalker/firmwalker.sh /usr/local/bin/firmwalker; \
     chmod +x /opt/firmwalker/firmwalker.sh; \
+    # sasquatch (firmware SquashFS extraction) - best effort per build
+    apt-get update && apt-get install -y --no-install-recommends wget xz-utils \
+    && SASQUATCH_TAG=sasquatch-v4.5.1-6 \
+    && arch="$(dpkg --print-architecture)" \
+    && wget -q "https://github.com/onekey-sec/sasquatch/releases/download/${SASQUATCH_TAG}/sasquatch_1.0_${arch}.deb" -O /tmp/sasquatch.deb \
+    && dpkg -i /tmp/sasquatch.deb || apt-get install -f -y \
+    && rm -f /tmp/sasquatch.deb; \
     rm -rf /tmp/*
 
 # ------------------------------------------------------------
