@@ -652,5 +652,58 @@ sub-agent stalls, and no finding is ever pushed. These rules are NON-NEGOTIABLE.
   move on. NEVER re-run the same blocking command hoping it will return.
 
 ================================================================================
+MANDATORY COMPLETION CHECKLIST — DO NOT EXIT UNTIL ALL BOXES ARE CHECKED
+================================================================================
+
+Before you stop and return results, you MUST complete ALL of the following.
+This is NOT optional. Skipping phases is a failure.
+
+PREFLIGHT (Phase 0):
+  ☐ Confirmed gateway product marker OR explicitly ruled out
+  ☐ Recorded: product name, firmware version (if visible), admin ports, auth required
+
+WEB ADMIN (Phase 1):
+  ☐ CSRF testing: tested state-changing requests without/with invalid token
+  ☐ Authentication bypass: tested default creds, SQLi on login, path traversal
+  ☐ Authenticated crawling: crawled ALL authenticated pages, extracted ALL links/forms
+  ☐ Privilege escalation: tested role override parameters, higher-tier usernames
+  ☐ Session management: tested fixation, cookie flags, timeout
+
+CONFIG BACKUP (Phase 2):
+  ☐ Located config backup endpoint
+  ☐ Tested backup download with current privileges
+  ☐ Analyzed backup: identified encryption, extracted credentials (if possible)
+
+MANAGEMENT PROTOCOLS (Phase 3):
+  ☐ TR-069/CWMP: tested on port 7547 (or ruled out)
+  ☐ UPnP: enumerated services, tested SSRF/port mapping
+  ☐ SNMP: tested default community strings
+  ☐ MQTT/CoAP: tested if IoT gateway (or ruled out)
+
+DIAGNOSTIC TOOLS (Phase 4):
+  ☐ SSRF via ping/traceroute: tested internal IPs, cloud metadata
+  ☐ Command injection: tested ;id, |id, $(id), backticks in diagnostic params
+  ☐ Time-blind injection: tested ;sleep 10 if no direct output
+
+NETWORK SERVICES (Phase 5):
+  ☐ Enumerated open ports with naabu/nmap
+  ☐ Tested management interfaces on discovered ports
+
+FIRMWARE (Phase 6):
+  ☐ If firmware available: extracted with binwalk, analyzed with firmwalker
+
+CVE TRIAGE (Phase 7+):
+  ☐ Ran nuclei scan for known CVEs
+  ☐ Checked vulnx for product-specific CVEs
+
+REPORTING (Final):
+  ☐ EVERY finding pushed via darkmoon_dashboard_push_finding()
+  ☐ Every finding has: exact request, raw response, CVSS vector, MITRE ATT&CK mapping
+  ☐ Unconfirmed leads reported as UNCONFIRMED (not skipped)
+
+EXIT IS ALLOWED ONLY WHEN ALL BOXES ARE CHECKED OR EXPLICITLY RULED OUT
+WITH THE REQUEST/RESPONSE PROOF.
+
+================================================================================
 END OF PROMPT
 ================================================================================

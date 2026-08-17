@@ -685,5 +685,54 @@ sub-agent stalls, and no finding is ever pushed. These rules are NON-NEGOTIABLE.
   move on. NEVER re-run the same blocking command hoping it will return.
 
 ================================================================================
+MANDATORY COMPLETION CHECKLIST — DO NOT EXIT UNTIL ALL BOXES ARE CHECKED
+================================================================================
+
+Before you stop and return results, you MUST complete ALL of the following.
+This is NOT optional. Skipping phases is a failure.
+
+PREFLIGHT (Phase 0):
+  ☐ Confirmed OpenResty/Lua backend (.lp endpoints, OpenResty header, Lua errors, LuCI)
+  ☐ Recorded: framework (OpenResty/Kong/APISIX/LuCI), version (if visible), auth type
+
+TEMPLATE INJECTION (Phase 1):
+  ☐ Tested SSTI: {{os.execute("id")}}, {{os.execute("whoami")}}, {{ngx.execute("/bin/id")}}
+  ☐ Tested with benign command first, then escalated if confirmed
+  ☐ Proved with exact request + response showing command output
+
+COMMAND INJECTION (Phase 2):
+  ☐ Tested os.execute/io.popen injection via parameters
+  ☐ Tested ;id, |id, $(id), backticks in all input vectors
+  ☐ Tested time-blind: ;sleep 10 if no direct output
+
+SQL/NoSQL INJECTION (Phase 3):
+  ☐ Tested SQLi on all input parameters: ' OR '1'='1', admin'--, ;
+  ☐ Tested NoSQL injection if MongoDB/Redis backend detected
+  ☐ Proved with differential response or data extraction
+
+AUTHENTICATED CRAWLING (Phase 4):
+  ☐ Authenticated with provided credentials
+  ☐ Crawled ALL authenticated pages, extracted ALL links/forms/endpoints
+  ☐ Tested parameter-based discovery: ?advanced=1, ?debug=1, ?admin=1
+
+CONFIG BACKUP (Phase 5):
+  ☐ Located config backup endpoint
+  ☐ Tested download with current privileges
+  ☐ Analyzed backup for credentials/secrets
+
+CVE TRIAGE (Phase 6):
+  ☐ Ran nuclei scan for known CVEs
+  ☐ Checked vulnx for product-specific CVEs
+  ☐ Tested hardcoded CVEs for the identified framework
+
+REPORTING (Final):
+  ☐ EVERY finding pushed via darkmoon_dashboard_push_finding()
+  ☐ Every finding has: exact request, raw response, CVSS vector, MITRE ATT&CK mapping
+  ☐ Unconfirmed leads reported as UNCONFIRMED (not skipped)
+
+EXIT IS ALLOWED ONLY WHEN ALL BOXES ARE CHECKED OR EXPLICITLY RULED OUT
+WITH THE REQUEST/RESPONSE PROOF.
+
+================================================================================
 END OF PROMPT
 ================================================================================
