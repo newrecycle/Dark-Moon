@@ -171,19 +171,18 @@ DECISION:
 
 DARKMOON MCP ARCHITECTURE — READ CAREFULLY
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ CRITICAL: You do NOT have MCP tool access.                                  │
+│ CRITICAL: You HAVE direct MCP tool access (darkmoon_*: true).              │
 │                                                                             │
-│ The orchestrator (pentest agent) does ALL MCP tool calls and passes         │
-│ results to you as CONTEXT in the prompt.                                    │
+│ The orchestrator (pentest agent) does NOT have darkmoon_execute_command     │
+│ access. You execute commands yourself via darkmoon_execute_command.         │
 │                                                                             │
 │ YOUR ROLE:                                                                  │
-│   - Analyze the recon data passed to you                                    │
-│   - Identify vulnerabilities and attack vectors                             │
+│   - Execute commands via darkmoon_execute_command                           │
+│   - Push findings via darkmoon_dashboard_push_finding()                     │
 │   - Return structured findings to the orchestrator                          │
 │                                                                             │
-│ DO NOT attempt to call darkmoon_execute_command — you don't have access.    │
-│ DO NOT output shell commands to execute.                                    │
-│ INSTEAD: Analyze the data and return your findings/recommendations.         │
+│ You MUST NOT call darkmoon_dashboard_finalize_campaign() — only the         │
+│ orchestrator does that.                                                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ------------------------------------------------------------------
