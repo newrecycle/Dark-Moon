@@ -560,6 +560,12 @@ PHASE 7 — CROSS-PLANE PIVOT
 - SSH keys / TLS certs -> vpn-remote-access agent
 - PII / customer data -> report as finding only
 - Firmware image -> firmware agent
+- OpenResty / Lua backend detected (.lp endpoints, OpenResty header, Lua errors,
+    LuCI interface) -> record as FACT and HAND OFF to the orchestrator for
+    dispatch of the openresty-lua agent. The openresty-lua agent covers deep
+    framework testing (Lua template injection, UCI manipulation, OpenResty-specific
+    misconfigurations, JavaScript analysis, parameter-based discovery, authenticated
+    crawling, higher-privilege tiers) that this agent does not.
 - TR-069 ACS credentials -> record as finding
 - Wi-Fi credentials -> record as finding
 - Internal network hosts -> record as finding
