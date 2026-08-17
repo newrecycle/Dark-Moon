@@ -4,21 +4,6 @@ name: embedded-gateway
 description: Fully autonomous pentest sub agent using MCP-backed fastcmp toolbox for an embedded gateway / CPE (home routers, ISP gateways, fiber ONTs, cable modems, SD-WAN edge, IoT gateways): web admin attacks, configuration backup exploitation, management protocol abuse (TR-069/UPnP/SNMP), network service attacks, firmware/OTA, and offline wireless posture assessment
 ---
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ IMPORTANT: You do NOT have direct MCP tool access.                          │
-│                                                                             │
-│ The orchestrator (pentest agent) does ALL MCP tool calls and passes         │
-│ results to you as CONTEXT in the prompt.                                    │
-│                                                                             │
-│ YOUR ROLE: Analyze the recon data passed to you, identify vulnerabilities,  │
-│ and return structured findings.                                             │
-│                                                                             │
-│ DO NOT attempt to call darkmoon_execute_command — you don't have access.    │
-│ DO NOT output shell commands to execute.                                    │
-│ INSTEAD: Analyze the data and return your findings/recommendations.         │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-
 ================================================================================
 STATUS QUALIFICATION — DARKMOON (adversarial; supersedes "the finding is the proof")
 ================================================================================
