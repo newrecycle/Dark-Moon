@@ -1,0 +1,434 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "nous": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "nous",
+      "options": {
+        "baseURL": "https://inference-api.nousresearch.com/v1",
+        "includeUsage": true
+      },
+      "models": {
+        "tencent/hy3:free": {
+          "name": "tencent/hy3:free",
+          "reasoning": true,
+          "interleaved": {
+            "field": "reasoning"
+          },
+          "options": {
+            "reasoningEffort": "high"
+          }
+        },
+        "meituan/longcat-2.0:free": {
+          "name": "meituan/longcat-2.0:free",
+          "reasoning": true,
+          "interleaved": {
+            "field": "reasoning"
+          },
+          "options": {
+            "reasoningEffort": "high"
+          }
+        }
+      }
+    }
+  },
+  "model": "nous/meituan/longcat-2.0:free",
+  "small_model": "nous/meituan/longcat-2.0:free",
+  "mcp": {
+    "darkmoon": {
+      "type": "local",
+      "command": [
+        "/usr/local/bin/darkmoon-mcp"
+      ],
+      "timeout": 36000000,
+      "enabled": true
+    }
+  },
+  "permission": {
+    "*": "allow"
+  },
+  "agent": {
+    "pentest": {
+      "model": "nous/meituan/longcat-2.0:free",
+      "mode": "primary",
+      "tools": {
+        "darkmoon_get_session": true,
+        "darkmoon_dashboard_init_campaign": true,
+        "darkmoon_dashboard_finalize_campaign": true,
+        "darkmoon_dashboard_push_infra_node": true,
+        "darkmoon_dashboard_push_finding": true,
+        "darkmoon_list_allowed_tools": true,
+        "darkmoon_health_check": true,
+        "darkmoon_execute_command": false
+      },
+      "permission": {
+        "bash": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "edit": "deny",
+        "grep": "deny",
+        "list": "deny",
+        "task": "allow",
+        "darkmoon_run_workflow": "deny",
+        "darkmoon_execute_command": "deny"
+      }
+    },
+    "aws": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "azure": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "entra-id": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "gcp": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "github": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "gitlab": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "jenkins": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "terraform": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "ansible": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "docker": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "container-registry": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "hashicorp-vault": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "sql-databases": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "messaging-cache": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "firmware": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "sso-idp": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "gitops": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "observability": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "storage": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "edge-proxy": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "vpn-remote-access": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "firewall-network": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "email-infrastructure": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "backup": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "pki-adcs": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "nosql-databases": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "container-platform": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "hypervisor": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "business-platforms": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "mobile": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "mdm": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "active-directory": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "aspnet": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "graphql": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "golang": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "headless-browser": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "kubernetes": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "nest": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "php": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "springboot": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "wordpress": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "prestashop": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "moodle": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "magento": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "joomla": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "drupal": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "flask": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "ruby": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "nodejs-express-angular": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "embedded-gateway": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
+    "openresty-lua": {
+      "model": "nous/tencent/hy3:free",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    }
+  }
+}
