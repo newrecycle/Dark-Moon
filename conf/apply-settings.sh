@@ -233,14 +233,14 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$FINAL_MODEL",
       "mode": "primary",
       "tools": {
-        "darkmoon_get_session": "allow",
-        "darkmoon_dashboard_init_campaign": "allow",
-        "darkmoon_dashboard_finalize_campaign": "allow",
-        "darkmoon_dashboard_push_infra_node": "allow",
-        "darkmoon_dashboard_push_finding": "allow",
-        "darkmoon_list_allowed_tools": "allow",
-        "darkmoon_health_check": "allow",
-        "darkmoon_execute_command": "deny"
+        "darkmoon_get_session": true,
+        "darkmoon_dashboard_init_campaign": true,
+        "darkmoon_dashboard_finalize_campaign": true,
+        "darkmoon_dashboard_push_infra_node": true,
+        "darkmoon_dashboard_push_finding": true,
+        "darkmoon_list_allowed_tools": true,
+        "darkmoon_health_check": true,
+        "darkmoon_execute_command": false
       }
     },
 
@@ -248,105 +248,105 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "azure": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "entra-id": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "gcp": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "github": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "gitlab": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "jenkins": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "terraform": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "ansible": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "docker": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "container-registry": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "hashicorp-vault": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "sql-databases": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "messaging-cache": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
     "firmware": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -354,7 +354,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -362,7 +362,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -370,7 +370,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -378,7 +378,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -386,7 +386,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -394,7 +394,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -402,7 +402,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -410,7 +410,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -418,7 +418,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -426,7 +426,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -434,7 +434,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -442,7 +442,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -450,7 +450,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -458,7 +458,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -466,7 +466,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -474,7 +474,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -482,7 +482,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -490,7 +490,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -498,7 +498,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -506,7 +506,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -514,7 +514,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -522,7 +522,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -530,7 +530,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -538,7 +538,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -546,7 +546,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -554,7 +554,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -562,7 +562,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -570,7 +570,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -578,7 +578,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -586,7 +586,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -594,7 +594,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -602,7 +602,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -610,7 +610,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     },
 
@@ -618,7 +618,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
       "tools": {
-        "darkmoon_*": "allow"
+        "darkmoon_*": true
       }
     }
   }
