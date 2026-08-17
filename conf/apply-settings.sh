@@ -269,6 +269,13 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
         "darkmoon_*": true
       }
     },
+    "openresty-lua": {
+      "model": "$SUBAGENT_MODEL",
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": true
+      }
+    },
     "azure": {
       "model": "$SUBAGENT_MODEL",
       "mode": "subagent",
