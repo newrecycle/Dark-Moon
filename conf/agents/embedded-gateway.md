@@ -123,6 +123,20 @@ darkmoon_execute_command(command="bash -c 'timeout 30 curl -sk -o /dev/null -w \
 
 darkmoon_execute_command(command="bash -c 'timeout 30 curl -sk http://{{TARGET}}/ 2>&1 | head -c 500; echo; timeout 30 curl -sk https://{{TARGET}}/ 2>&1 | head -c 500'")
 
+STEP 1b — Automated fingerprint & exposure scanning (direct darkmoon_execute_command calls):
+
+  # Tech-stack / CMS / framework fingerprint
+  darkmoon_execute_command(command="bash -lc 'whatweb -a 3 {{TARGET}} 2>&1'")
+
+  # Exposure / misconfig / tech-detect sweep
+  darkmoon_execute_command(command="bash -lc 'nuclei -u {{TARGET}} -duc -rl 10 -c 5 -timeout 8 -retries 0 -vv -tags exposure,misconfig,tech-detect 2>&1'")
+
+  darkmoon_execute_command(command="bash -lc '\''nuclei -u {{TARGET}} -duc -rl 10 -c 5 -timeout 8 -retries 0 -tags exposure,misconfig,tech-detect -jsonl 2>/dev/null | jq -c "{template: .templateID, severity: .info.severity, target: .matched-at}"'\''")
+
+  # CVE / EPSS / KEV triage for the identified product/version
+  darkmoon_execute_command(command="bash -lc 'vulnx id CVE-XXXX 2>&1'")
+  darkmoon_execute_command(command="bash -lc 'vulnx search \"<vendor> <product> <version>\" 2>&1'")
+
 STEP 2 — Fingerprint the product from response bodies and headers:
   - TP-Link: login page with "tplink", "TP-LINK" branding; headers with "TP-LINK"
   - Netgear: "NETGEAR", "Genie" interface; headers with "NETGEAR"

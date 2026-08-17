@@ -400,7 +400,26 @@ def run_workflow(
         # Web crawling
         run_workflow("web_crawler", "crawl_website", {"target": "https://example.com"})
     """
-    return workflow_registry.run_workflow(workflow, method, params)
+    result = workflow_registry.run_workflow(workflow, method, params)
+
+    # Privacy gateway: workflows execute tools via docker_client (ungated), so the
+    # real hosts/IPs in their findings would otherwise reach the model un-tokenized.
+    # Sanitize on the way back using the same per-session vault as execute_command,
+    # so placeholders stay consistent across direct calls and workflow calls.
+    if PRIVACY_ENABLED:
+        try:
+            import json
+
+            vault = _get_vault(None)
+            sanitized = _command_gateway.sanitize_output(
+                json.dumps(result, default=str), vault
+            )
+            result = json.loads(sanitized)
+        except Exception:
+            # Never block a result over sanitization failure; return as-is.
+            pass
+
+    return result
 
 # ============================================================================
 # DASHBOARD EXPORT TOOLS (4 tools)

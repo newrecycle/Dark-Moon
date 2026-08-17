@@ -60,7 +60,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Nuclei templates
 # ------------------------------------------------------------
 RUN install -d ${OUT}/nuclei-templates \
- && git clone --depth 1 --branch v10.4.7 \
+ && git clone --depth 1 \
       https://github.com/projectdiscovery/nuclei-templates.git ${OUT}/nuclei-templates
 
 # ------------------------------------------------------------
@@ -134,13 +134,13 @@ RUN install -d \
 # ============================================================
 # STAGE 2 — CUDA DEVEL (GPU + CPU fallback)
 # ============================================================
-FROM nvidia/cuda:13.1.0-devel-ubuntu22.04
+FROM nvidia/cuda:13.1.0-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     DM_HOME=/opt/darkmoon
 
 # ------------------------------------------------------------
-# Runtime OS dependencies
+# Runtime OS dependencies + hashcat + tools (single layer)
 # ------------------------------------------------------------
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
@@ -150,120 +150,50 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
  && apt-get install -y --no-install-recommends \
     # base runtime
     ca-certificates tzdata bash dnsutils jq curl git \
-    \
-    # libs runtime générales
+    # libs runtime
     libssl3 zlib1g libnghttp2-14 libidn2-0 libpsl5 \
     libkrb5-3 libssh2-1 libyaml-0-2 libreadline8 \
     libffi8 libgmp10 libncursesw6 libpcap0.8 \
     hydra snmp openssh-client inotify-tools acl \
     nmap medusa ncrack \
-    \
-    # requis pour pip / wheels
+    # pip / wheels
     build-essential pkg-config libffi-dev libssl-dev \
-    \
-    # dépendances Chromium / Playwright
-    libnss3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    libpangocairo-1.0-0 \
-    libgtk-3-0 \
-    \
-    # OpenCL loader
-    ocl-icd-libopencl1 \
-    opencl-headers \
-    clinfo \
-    \
-    # GPU backends for hashcat, one per vendor family. The image is built once and
-    # runs on machines we do not control, so every backend ships and the entrypoint
-    # picks whichever the host actually exposes at runtime.
-    #   NVIDIA  -> CUDA comes from the base image; the driver libraries are mounted
-    #              by the container runtime, which needs NVIDIA_DRIVER_CAPABILITIES
-    #              (set below) plus `--gpus all` on the docker/compose side.
-    #   AMD     -> Mesa rusticl/clover: works through /dev/dri without the multi-GB
-    #              ROCm stack. Machines with full ROCm keep using it via /dev/kfd.
-    #   Intel   -> NEO compute runtime for Arc and recent integrated graphics.
-    mesa-opencl-icd \
-    intel-opencl-icd \
-    \
-    # CPU OpenCL backend (last-resort fallback, always present)
-    pocl-opencl-icd \
-    \
+    # Chromium / Playwright
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libx11-xcb1 \
+    libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
+    libasound2 libpangocairo-1.0-0 libgtk-3-0 \
+    # OpenCL
+    ocl-icd-libopencl1 opencl-headers clinfo \
+    mesa-opencl-icd intel-opencl-icd pocl-opencl-icd \
     # tools
-    wget \
-    xz-utils \
-    p7zip-full \
-    zip \
-    unzip \
-    iputils-ping \
-    \
-    # database / cache clients (sql-databases & messaging-cache agents)
-    postgresql-client \
-    default-mysql-client \
-    redis-tools \
-    \
-    # offline cracking + wordlist gen (gcp/storage encrypted-archive chain)
-    cewl \
-    john \
-    libcompress-raw-lzma-perl \
-    \
-    # firmware / IoT analysis (firmware agent)
-    binwalk \
-    squashfs-tools \
-    sqlite3 \
-    arp-scan \
-    netcat-openbsd \
-    nfs-common \
-    file \
- && rm -rf /var/lib/apt/lists/*
+    wget xz-utils p7zip-full zip unzip iputils-ping \
+    # database / cache clients
+    postgresql-client default-mysql-client redis-tools \
+    # cracking + wordlist
+    cewl john libcompress-raw-lzma-perl \
+    # firmware / IoT
+    binwalk squashfs-tools sqlite3 arp-scan netcat-openbsd nfs-common file \
+ && rm -rf /var/lib/apt/lists/* \
+ && rm -rf /tmp/* /var/tmp/*
 
 # ------------------------------------------------------------
-# Install official hashcat (CUDA enabled build)
+# Hashcat + 7z2john + firmwalker + sasquatch (single layer)
 # ------------------------------------------------------------
-RUN wget https://hashcat.net/files/hashcat-6.2.6.7z \
- && 7z x hashcat-6.2.6.7z \
- && mv hashcat-6.2.6 /opt/hashcat \
- && ln -sf /opt/hashcat/hashcat.bin /usr/local/bin/hashcat \
- && rm hashcat-6.2.6.7z
-
-# ------------------------------------------------------------
-# 7z2john for the GCS/storage encrypted-archive crack chain (7-Zip -> hashcat -m 11600)
-# ------------------------------------------------------------
-RUN wget -qO /usr/local/bin/7z2john.pl https://raw.githubusercontent.com/openwall/john/bleeding-jumbo/run/7z2john.pl \
- && printf '#!/bin/sh\nexec perl /usr/local/bin/7z2john.pl "$@"\n' > /usr/local/bin/7z2john \
- && chmod +x /usr/local/bin/7z2john /usr/local/bin/7z2john.pl
-
-# ------------------------------------------------------------
-# firmwalker — automated firmware filesystem secret hunter (firmware agent)
-# ------------------------------------------------------------
-RUN git clone https://github.com/craigz28/firmwalker.git /opt/firmwalker \
- && git -C /opt/firmwalker checkout 23ff299980319b7f1b623817a176e06dda143b45 \
- && ln -sf /opt/firmwalker/firmwalker.sh /usr/local/bin/firmwalker \
- && chmod +x /opt/firmwalker/firmwalker.sh
-# ------------------------------------------------------------
-# sasquatch — vendor-patched unsquashfs for the non-standard LZMA/XZ SquashFS
-# images shipped by embedded vendors (firmware agent).
-# Best-effort on purpose: firmware.md falls back to plain unsquashfs when it is
-# absent, so a dead mirror or a new arch must never break the whole image build.
-# ------------------------------------------------------------
-ARG SASQUATCH_TAG=sasquatch-v4.5.1-6
 RUN set -eux; \
-    ARCH="$(dpkg --print-architecture)"; \
-    URL="https://github.com/onekey-sec/sasquatch/releases/download/${SASQUATCH_TAG}/sasquatch_1.0_${ARCH}.deb"; \
-    if curl -fsSL --retry 2 --max-time 120 "$URL" -o /tmp/sasquatch.deb; then \
-      dpkg -i /tmp/sasquatch.deb || true; \
-      rm -f /tmp/sasquatch.deb; \
-    fi; \
-    if command -v sasquatch >/dev/null 2>&1; then \
-      echo "[OK] sasquatch installed"; \
-    else \
-      echo "[WARN] sasquatch unavailable for ${ARCH} - firmware agent will fall back to unsquashfs"; \
-    fi
+    cd /tmp; \
+    wget https://hashcat.net/files/hashcat-6.2.6.7z; \
+    7z x hashcat-6.2.6.7z; \
+    mv hashcat-6.2.6 /opt/hashcat; \
+    ln -sf /opt/hashcat/hashcat.bin /usr/local/bin/hashcat; \
+    rm hashcat-6.2.6.7z; \
+    wget -qO /usr/local/bin/7z2john.pl https://raw.githubusercontent.com/openwall/john/bleeding-jumbo/run/7z2john.pl; \
+    printf '#!/bin/sh\nexec perl /usr/local/bin/7z2john.pl "$@"\n' > /usr/local/bin/7z2john; \
+    chmod +x /usr/local/bin/7z2john /usr/local/bin/7z2john.pl; \
+    git clone https://github.com/craigz28/firmwalker.git /opt/firmwalker; \
+    git -C /opt/firmwalker checkout 23ff299980319b7f1b623817a176e06dda143b45; \
+    ln -sf /opt/firmwalker/firmwalker.sh /usr/local/bin/firmwalker; \
+    chmod +x /opt/firmwalker/firmwalker.sh; \
+    rm -rf /tmp/*
 
 # ------------------------------------------------------------
 # Node.js + Playwright (stable project install)

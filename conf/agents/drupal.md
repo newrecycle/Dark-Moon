@@ -159,6 +159,12 @@ NUCLEI:
 - Example summarized:
   darkmoon_execute_command(command="bash -lc '\''nuclei -u {{TARGET}} -duc -rl 10 -c 5 -timeout 8 -retries 0 -tags exposure,misconfig,tech-detect -jsonl 2>/dev/null | jq -c "{template: .templateID, severity: .info.severity, target: .matched-at}"'\''")
 
+  # Web tech fingerprint via whatweb (direct darkmoon_execute_command call)
+  darkmoon_execute_command(command="bash -lc 'whatweb -a 3 {{TARGET}} 2>&1'")
+
+  # CVE / EPSS / KEV triage via vulnx (projectdiscovery cvemap binary)
+  darkmoon_execute_command(command="bash -lc 'vulnx id CVE-XXXX 2>&1'")
+
 VULNX:
 - Run bounded + verbose only (no recursion)
 - Never truncate raw output with `head`, `tail`, or `sed -n`

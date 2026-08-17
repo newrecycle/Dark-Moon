@@ -497,11 +497,13 @@ moderate: Advanced thorough pentest checks (MAXIMUM THOROUGHNESS):
   - nuclei -u <target> -tags cve -rate-limit 10 -timeout 20
   - nuclei -u <target> -tags cve,openresty,kong,apisix,nginx,luci,openwrt -rate-limit 10
   - nuclei -u <target> -t nuclei-templates/cves/ -rate-limit 10
-  - vulnx search --query "openresty <version>"
-  - vulnx search --query "kong <version>"
-  - vulnx search --query "apisix <version>"
-  - vulnx search --query "openwrt <version>"
-  - vulnx search --query "nginx <version>"
+  - whatweb -a 3 <target>
+  - whatweb -a 3 <target> | grep -iE "openresty|kong|apisix|nginx|luci|openwrt"
+  - vulnx search "openresty <version>"
+  - vulnx search "kong <version>"
+  - vulnx search "apisix <version>"
+  - vulnx search "openwrt <version>"
+  - vulnx search "nginx <version>"
 
   Advanced Manual Verification (for EACH discovered CVE):
   - Exact version confirmation
