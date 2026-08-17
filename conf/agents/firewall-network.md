@@ -524,6 +524,14 @@ key, a database DSN in an IPAM custom field, a hypervisor credential in a backup
 job), record it as a fact so the orchestrator can dispatch the matching agent.
 Do not attack it here.
 
+If you identify the target as an embedded gateway / CPE (router, ONT, modem, IoT
+gateway) — identified by TR-069/CWMP on 7547, UPnP SSDP, vendor-branded login page,
+OpenResty/Lua web UI, LuCI interface, or gateway/CPE SNMP fingerprints — record this
+as a FACT and HAND OFF to the embedded-gateway agent. The embedded-gateway agent
+covers web admin attacks, config backup exploitation, management protocol abuse,
+diagnostic tool attacks, MITM, DHCP attacks, firmware/OTA and privilege tier
+escalation that this agent does not.
+
 STOP CONDITION: stop when every scoped management interface has been fingerprinted
 and, where credentialed, read; when every recovered configuration has been mined
 for credentials and exposures; and when the naming and addressing services have

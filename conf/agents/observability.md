@@ -521,6 +521,14 @@ If you discover material for another plane (a database DSN, a cloud key, an AD b
 kubeconfig, a registry credential), record it as a fact so the orchestrator dispatches the matching
 agent. Do not attack that plane here.
 
+If you identify the target as an embedded gateway / CPE (router, ONT, modem, IoT
+gateway) — identified by TR-069/CWMP on 7547, UPnP SSDP, vendor-branded login page,
+OpenResty/Lua web UI, LuCI interface, or gateway/CPE SNMP fingerprints — record this
+as a FACT and HAND OFF to the embedded-gateway agent. The embedded-gateway agent
+covers web admin attacks, config backup exploitation, management protocol abuse,
+diagnostic tool attacks, MITM, DHCP attacks, firmware/OTA and privilege tier
+escalation that this agent does not.
+
 STOP CONDITION: stop when every reachable component of the stack has been fingerprinted, its
 credential stores read, and each execution and forgery path proven or ruled out. Do not repeat an
 identical query, and never leave an alert silenced, an agent stopped or a configuration modified.

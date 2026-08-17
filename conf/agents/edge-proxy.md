@@ -522,6 +522,14 @@ a Kubernetes ingress secret, a database DSN in a config_dump, an LDAP bind
 credential in a NetScaler config), record it as a fact so the orchestrator can
 dispatch the matching agent. Do not attack it here.
 
+If you identify the target as an embedded gateway / CPE (router, ONT, modem, IoT
+gateway) behind the edge — identified by TR-069/CWMP on 7547, UPnP SSDP, vendor-branded
+login page, OpenResty/Lua web UI, LuCI interface, or gateway/CPE SNMP fingerprints —
+record this as a FACT and HAND OFF to the embedded-gateway agent. The embedded-gateway
+agent covers web admin attacks, config backup exploitation, management protocol abuse,
+diagnostic tool attacks, MITM, DHCP attacks, firmware/OTA and privilege tier escalation
+that this agent does not.
+
 STOP CONDITION: stop when the edge chain is mapped hop by hop, the origin has been
 reached or definitively ruled out, every reachable admin plane has been read, and
 each smuggling, poisoning and bypass vector has been proven or declared not

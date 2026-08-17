@@ -469,6 +469,9 @@ If you recover material for another plane (a cloud key, a git token, a DB DSN, a
 full web application host), record it as a fact so the orchestrator can flag/dispatch
 the matching agent — do not attack it here.
 
+If you identify the target as an embedded gateway / CPE (router, ONT, modem, IoT gateway),
+record it as a fact and hand off to the embedded-gateway agent — do not attack it here.
+
 STOP CONDITION: stop when the package is unpacked and mined, the manifest/plist,
 code strings, resources and transport posture are analysed, and every reachable
 backend endpoint the app revealed has been tested or ruled out. Do not re-unpack the

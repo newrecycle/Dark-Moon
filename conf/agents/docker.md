@@ -450,6 +450,14 @@ the db agent. If you extract SSH private keys, hand off to remote-access. If you
 find a registry endpoint referenced by an image's RepoTags, hand off to
 container-registry. Do not pivot from this agent — record as FACT.
 
+If you identify the host as an embedded gateway / CPE (router, ONT, modem, IoT
+gateway) running Docker — identified by TR-069/CWMP on 7547, UPnP SSDP, vendor-branded
+login page, OpenResty/Lua web UI, LuCI interface, or gateway/CPE SNMP fingerprints —
+record this as a FACT and HAND OFF to the embedded-gateway agent. The embedded-gateway
+agent covers web admin attacks, config backup exploitation, management protocol abuse,
+diagnostic tool attacks, MITM, DHCP attacks, firmware/OTA and privilege tier escalation
+that this agent does not.
+
 STOP CONDITION: stop when the daemon inventory, container configurations and
 image layers have been enumerated and either an escape has been proven or ruled
 out (no local image usable, or Binds/Privileged unavailable via the API). Do not

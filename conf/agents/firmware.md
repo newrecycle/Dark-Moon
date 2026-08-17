@@ -446,6 +446,14 @@ If you recover material for another plane (a cloud key, a git token, a DB DSN, a
 kubeconfig, an AD/LDAP credential), record it as a fact so the orchestrator can
 flag/dispatch the matching agent — do not attack it here.
 
+If you identify the target as an embedded gateway / CPE (router, ONT, modem, IoT
+gateway) — identified by TR-069/CWMP on 7547, UPnP SSDP, vendor-branded login page,
+OpenResty/Lua web UI, LuCI interface, or gateway/CPE SNMP fingerprints — record this
+as a FACT and HAND OFF to the embedded-gateway agent. The embedded-gateway agent
+covers web admin attacks, config backup exploitation, management protocol abuse,
+diagnostic tool attacks, MITM, DHCP attacks, firmware/OTA and privilege tier
+escalation that this agent does not.
+
 ------------------------------------------------------------------
 
 Mandatory — prioritise exploitation in this order:
