@@ -231,238 +231,395 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
   "agent": {
     "pentest": {
       "model": "$FINAL_MODEL",
-      "mode": "primary"
+      "mode": "primary",
+      "tools": {
+        "darkmoon_get_session": "allow",
+        "darkmoon_dashboard_init_campaign": "allow",
+        "darkmoon_dashboard_finalize_campaign": "allow",
+        "darkmoon_dashboard_push_infra_node": "allow",
+        "darkmoon_dashboard_push_finding": "allow",
+        "darkmoon_list_allowed_tools": "allow",
+        "darkmoon_health_check": "allow",
+        "darkmoon_execute_command": "deny"
+      }
     },
 
     "aws": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "azure": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "entra-id": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "gcp": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "github": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "gitlab": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "jenkins": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "terraform": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "ansible": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "docker": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "container-registry": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "hashicorp-vault": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "sql-databases": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "messaging-cache": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
     "firmware": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "sso-idp": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "gitops": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "observability": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "storage": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "edge-proxy": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "vpn-remote-access": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "firewall-network": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "email-infrastructure": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "backup": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "pki-adcs": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "nosql-databases": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "container-platform": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "hypervisor": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "business-platforms": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "mobile": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "mdm": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "active-directory": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "aspnet": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "flask": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "graphql": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "golang": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "headless-browser": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "kubernetes": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "nest": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "php": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "ruby": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "springboot": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "nodejs-express-angular": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "wordpress": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "prestashop": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "moodle": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "magento": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "joomla": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     },
 
     "drupal": {
       "model": "$SUBAGENT_MODEL",
-      "mode": "subagent"
+      "mode": "subagent",
+      "tools": {
+        "darkmoon_*": "allow"
+      }
     }
   }
 }
