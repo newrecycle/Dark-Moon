@@ -631,6 +631,16 @@ an attack that already returned the same result.
 
 EXECUTION SAFETY — EVERY COMMAND MUST RETURN (NON-BLOCKING, MANDATORY)
 
+⚠️  NATIVE BASH IS NOT AVAILABLE TO YOU. You cannot use the `bash` tool directly.
+ALL command execution MUST go through `darkmoon_execute_command`. This is the ONLY
+way to access the Darkmoon toolbox (nuclei, vulnx, nmap, naabu, whatweb, httpx,
+binwalk, firmwalker, etc.). If you try to run `nuclei` or `vulnx` via a native
+bash tool, they will not be found — they exist ONLY inside the toolbox reached via
+darkmoon_execute_command.
+
+At the start of your assessment, call `darkmoon_list_allowed_tools()` to discover
+the full list of tools available in the toolbox.
+
 A blocked command hangs the whole campaign: the toolbox process never returns, the
 sub-agent stalls, and no finding is ever pushed. These rules are NON-NEGOTIABLE.
 

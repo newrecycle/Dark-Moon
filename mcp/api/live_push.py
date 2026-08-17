@@ -1082,8 +1082,20 @@ def finalize_campaign(
         host = target.get("host", target_id) if target else target_id
         fname = f"pentest_report_{host}_{_today_compact()}-{_time_compact()}.md"
         REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-        (REPORTS_DIR / fname).write_text(report_markdown, encoding="utf-8")
+        report_file = REPORTS_DIR / fname
+        report_file.write_text(report_markdown, encoding="utf-8")
         campaign["report_path"] = f"/reports/{fname}"
+
+        # Auto-copy to the conventional opencode reports location so the
+        # orchestrator (which has no command-execution tool) does not have to.
+        try:
+            from pathlib import Path as _Path
+            conventional_dir = _Path("/root/.local/share/opencode/reports")
+            conventional_dir.mkdir(parents=True, exist_ok=True)
+            conventional_file = conventional_dir / fname
+            conventional_file.write_text(report_markdown, encoding="utf-8")
+        except Exception:
+            pass  # non-fatal; the report still lives under REPORTS_DIR
 
     save_campaign(campaign)
 

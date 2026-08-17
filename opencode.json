@@ -79,6 +79,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "azure": {
@@ -86,6 +89,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "entra-id": {
@@ -93,6 +99,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "gcp": {
@@ -100,6 +109,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "github": {
@@ -107,6 +119,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "gitlab": {
@@ -114,6 +129,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "jenkins": {
@@ -121,6 +139,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "terraform": {
@@ -128,6 +149,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "ansible": {
@@ -135,6 +159,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "docker": {
@@ -142,6 +169,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "container-registry": {
@@ -149,6 +179,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "hashicorp-vault": {
@@ -156,6 +189,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "sql-databases": {
@@ -163,6 +199,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "messaging-cache": {
@@ -170,6 +209,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "firmware": {
@@ -177,6 +219,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "sso-idp": {
@@ -184,6 +229,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "gitops": {
@@ -191,6 +239,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "observability": {
@@ -198,6 +249,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "storage": {
@@ -205,6 +259,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "edge-proxy": {
@@ -212,6 +269,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "vpn-remote-access": {
@@ -219,6 +279,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "firewall-network": {
@@ -226,6 +289,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "email-infrastructure": {
@@ -233,6 +299,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "backup": {
@@ -240,6 +309,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "pki-adcs": {
@@ -247,6 +319,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "nosql-databases": {
@@ -254,6 +329,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "container-platform": {
@@ -261,6 +339,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "hypervisor": {
@@ -268,6 +349,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "business-platforms": {
@@ -275,6 +359,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "mobile": {
@@ -282,6 +369,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "mdm": {
@@ -289,6 +379,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "active-directory": {
@@ -296,6 +389,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "aspnet": {
@@ -303,6 +399,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "graphql": {
@@ -310,6 +409,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "golang": {
@@ -317,6 +419,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "headless-browser": {
@@ -324,6 +429,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "kubernetes": {
@@ -331,6 +439,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "nest": {
@@ -338,6 +449,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "php": {
@@ -345,6 +459,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "springboot": {
@@ -352,6 +469,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "wordpress": {
@@ -359,6 +479,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "prestashop": {
@@ -366,6 +489,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "moodle": {
@@ -373,6 +499,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "magento": {
@@ -380,6 +509,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "joomla": {
@@ -387,6 +519,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "drupal": {
@@ -394,6 +529,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "flask": {
@@ -401,6 +539,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "ruby": {
@@ -408,6 +549,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "nodejs-express-angular": {
@@ -415,6 +559,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "embedded-gateway": {
@@ -422,6 +569,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     },
     "openresty-lua": {
@@ -429,6 +579,9 @@
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
+      },
+      "permission": {
+        "bash": "deny"
       }
     }
   }
