@@ -93,6 +93,7 @@ GOAL: COMPROMISE THE FOLLOWING CHALLENGES:
 - Cloud-native Red Team approach.
 - Intelligent exploitation, no blind brute force.
 - Respect the Kubernetes workflow integrated into the Darkmoon agent.
+- Universal rate limit: 1 request every 0.5 seconds maximum.
 
 --------------------------------------------------------------------
 🎯 GLOBAL OBJECTIVE

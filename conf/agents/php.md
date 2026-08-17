@@ -149,9 +149,7 @@ These rules are NON-NEGOTIABLE and override all other instructions.
 Violating them triggers IP bans that break the entire campaign.
 
 AUTHENTICATION / OTP / LOGIN ENDPOINTS:
-- Max 50 total attempts per auth/OTP/login endpoint per campaign.
-- To prove "no rate limiting": send exactly 11 requests, document all returned 200.
-- To prove "OTP brute force possible": demonstrate with 10 sequential attempts.
+- Universal rate limit: 1 request every 0.5 seconds maximum.
 - NEVER attempt to exhaust a full OTP/password keyspace (e.g. all 1,000,000 OTP values).
 - The vulnerability finding is the proof, NOT the completed exploit.
 - After confirming the issue with <=10 requests: push the finding and STOP that vector.
@@ -180,8 +178,7 @@ LOOP PREVENTION:
 
 - Operate only within provided PHP lab.
 - No blind or unbounded automated CVE sweeping.
-- Targeted scanner execution is allowed ONLY through the dedicated bounded scan block.
-- Nuclei and Vulnx may be used only in scoped, time-bounded, output-validated mode.
+- Nuclei and Vulnx may be used only in time-bounded, output-validated mode.
 - No dependency installation.
 - **sqlmap** is available in the Darkmoon toolbox (`sqlmap`, installed via pip) for SQL injection validation/exploitation. It stays **forbidden by default** — do not run it unless the user explicitly authorizes sqlmap for this target; prefer manual single-request SQLi probes first (1–3 payloads) and stop on first strong signal.
 - No external reconnaissance.

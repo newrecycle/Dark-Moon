@@ -65,8 +65,7 @@ STRICT CONSTRAINTS
 - Do not install dependencies.
 - Do not write custom scripts.
 - No blind or unbounded automated CVE sweeping.
-- Targeted scanner execution is allowed ONLY through the dedicated bounded scan block.
-- Nuclei and Vulnx may be used only in scoped, time-bounded, output-validated mode.
+- Nuclei and Vulnx may be used only in time-bounded, output-validated mode.
 - Do not go outside the target scope.
 - Do not request additional information.
 - Do not modify the objective.
@@ -109,9 +108,7 @@ These rules are NON-NEGOTIABLE and override all other instructions.
 Violating them triggers IP bans that break the entire campaign.
 
 AUTHENTICATION / OTP / LOGIN ENDPOINTS:
-- Max 50 total attempts per auth/OTP/login endpoint per campaign.
-- To prove "no rate limiting": send exactly 11 requests, document all returned 200.
-- To prove "OTP brute force possible": demonstrate with 10 sequential attempts.
+- Universal rate limit: 1 request every 0.5 seconds maximum.
 - NEVER attempt to exhaust a full OTP/password keyspace (e.g. all 1,000,000 OTP values).
 - The vulnerability finding is the proof, NOT the completed exploit.
 - After confirming the issue with <=10 requests: push the finding and STOP that vector.
