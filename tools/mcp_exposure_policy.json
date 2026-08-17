@@ -952,6 +952,12 @@
         "ubi_reader"
       ]
     },
+    "ubi_reader": {
+      "source": "inventory",
+      "records": [
+        "ubi_reader"
+      ]
+    },
     "firmware-mod-kit": {
       "source": "inventory",
       "records": [
@@ -1136,8 +1142,8 @@
   "legacy_retained_count": 0,
   "legacy_retained": [],
   "counts": {
-    "allow": 178,
-    "inventory_derived": 163,
+    "allow": 179,
+    "inventory_derived": 164,
     "exception_derived": 15,
     "legacy_retained": 0,
     "blocked": 0,

@@ -205,8 +205,13 @@ RUN set -eux; \
     && rm -rf /var/lib/apt/lists/* \
     # NOTE: pip3 install moved to after COPY --from=builder (Python env not yet available)
     # firmware-mod-kit (firmware extraction/modification)
-    && git clone https://github.com/rampageX/firmware-mod-kit.git /opt/firmware-mod-kit \
+    && git clone --depth 1 https://github.com/rampageX/firmware-mod-kit.git /opt/firmware-mod-kit \
     && chmod +x /opt/firmware-mod-kit/*.sh \
+    && ln -sf /opt/firmware-mod-kit/extract-firmware.sh /usr/local/bin/firmware-mod-kit-extract \
+    && ln -sf /opt/firmware-mod-kit/build-firmware.sh /usr/local/bin/firmware-mod-kit-build \
+    # firmadyne (firmware emulation framework)
+    && git clone --depth 1 https://github.com/firmadyne/firmadyne.git /opt/firmadyne \
+    && cd /opt/firmadyne && bash ./setup.sh 2>/dev/null || true \
     && rm -rf /tmp/*
 
 # ------------------------------------------------------------
@@ -258,13 +263,20 @@ COPY --from=builder /opt/darkmoon /opt/darkmoon
 ENV PATH="/opt/darkmoon/curl/bin:/opt/darkmoon/python/bin:/opt/darkmoon/ruby/bin:${PATH}" \
     LD_LIBRARY_PATH="/usr/lib/aarch64-linux-gnu:/usr/lib/x86_64-linux-gnu:/opt/darkmoon/curl/lib:/opt/darkmoon/python/lib:/opt/darkmoon/ruby/lib"
 
-RUN ln -s /opt/darkmoon/python/bin/python3 /usr/local/bin/python \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    ln -s /opt/darkmoon/python/bin/python3 /usr/local/bin/python \
  && ln -s /opt/darkmoon/python/bin/pip3 /usr/local/bin/pip \
  && pip install --no-cache-dir \
        responder \
-       dnschef \
        jefferson \
-       ubi_reader
+       ubi_reader \
+ && ln -sf /opt/darkmoon/python/lib/python3.12/site-packages/ubireader/scripts/ubireader_extract_files.py /usr/local/bin/ubi_reader \
+ && ln -sf /opt/darkmoon/python/lib/python3.12/site-packages/ubireader/scripts/ubireader_extract_images.py /usr/local/bin/ubireader_extract_images \
+ && ln -sf /opt/darkmoon/python/lib/python3.12/site-packages/ubireader/scripts/ubireader_list_files.py /usr/local/bin/ubireader_list_files \
+ && git clone --depth 1 https://github.com/iphelix/dnschef.git /opt/dnschef \
+ && ln -sf /opt/dnschef/dnschef.py /usr/local/bin/dnschef \
+ && chmod +x /usr/local/bin/dnschef \
+ && sed -i '1s|^#!/usr/bin/env python|#!/usr/bin/env python3|' /usr/local/bin/dnschef
 
 # ------------------------------------------------------------
 # Wordlists & data

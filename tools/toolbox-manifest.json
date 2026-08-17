@@ -2474,7 +2474,8 @@
         "arm64"
       ],
       "executables": [
-        "ubireader"
+        "ubireader",
+        "ubi_reader"
       ],
       "aliases": [],
       "install_location": "/usr/local/bin/ubireader",
