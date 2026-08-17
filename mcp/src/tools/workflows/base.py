@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 ALLOWED_TOOLS = {
     "naabu", "masscan", "httpx", "nuclei", "ffuf", "dirb", "wafw00f",
     "sqlmap", "arjun", "finalrecon", "subfinder", "waybackurls", "katana",
+    # cve_triage_scan: vulnx = projectdiscovery/cvemap binary; whatweb = fingerprint
+    "vulnx", "whatweb",
     "dig", "nslookup", "curl", "wget", "ping", "netexec", "crackmapexec",
     "bloodhound-python", "impacket-smbclient", "kubectl", "kubeletctl",
     "kubescape", "jq", "grep", "awk", "sed",
