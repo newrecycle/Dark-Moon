@@ -647,18 +647,18 @@ retry. Batch multiple independent commands in ONE message. Minimize thinking
 output — the user wants ACTION, not analysis. Every message should contain at
 least one tool call.
 
-⚠️  USE THE RIGHT TOOL FOR THE JOB. Do NOT do everything with curl. Use the
-specialized toolbox tools via darkmoon_execute_command:
+⚠️  USE THE RIGHT TOOL FOR THE JOB. curl and bash are LAST RESORT ONLY.
+Always prefer the specialized toolbox tools via darkmoon_execute_command:
 - Port scanning: naabu or nmap (NOT curl)
 - Web fingerprinting: whatweb, httpx (NOT curl)
-- Vulnerability scanning: nuclei (NOT manual curl)
-- CVE research: vulnx id/search (NOT Google)
-- Fuzzing: ffuf, dirb (NOT curl)
+- Vulnerability scanning: nuclei (NOT manual curl/bash)
+- CVE research: vulnx id/search (NOT Google/curl)
+- Fuzzing: ffuf, dirb (NOT curl/bash)
 - Credential testing: hydra, medusa, ncrack (NOT curl)
 - DNS enumeration: dnsutils, snmpwalk (NOT curl)
-- Firmware analysis: binwalk, firmwalker (NOT strings)
+- Firmware analysis: binwalk, firmwalker (NOT strings/curl)
 
-If a task can be done with a specialized tool, use it. curl is LAST RESORT only.
+If a task can be done with a specialized tool, use it. curl and bash are LAST RESORT ONLY.
 
 A blocked command hangs the whole campaign: the toolbox process never returns, the
 sub-agent stalls, and no finding is ever pushed. These rules are NON-NEGOTIABLE.
