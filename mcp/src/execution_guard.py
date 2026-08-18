@@ -110,6 +110,11 @@ CRACK_BUDGET_SECONDS = 300
 
 # Any command with no explicit bound gets this ceiling, in seconds.
 DEFAULT_HARD_TIMEOUT = 300
+# Additive buffer: every caller-supplied timeout is extended by this many seconds
+# so short bounds (e.g. the agent's timeout:60 nuclei scan, which exited 124 in
+# bad_session.json) get breathing room without the caller having to raise it.
+# Effective = requested + HARD_TIMEOUT_BUFFER, capped at MAX_HARD_TIMEOUT.
+HARD_TIMEOUT_BUFFER = 120
 # Nothing may ask for more than this, whatever the caller passes.
 MAX_HARD_TIMEOUT = 900
 
@@ -218,7 +223,13 @@ def remediation(command: str, elapsed: float, timeout: int) -> str:
 
 
 def effective_timeout(requested: Optional[int]) -> int:
-    """Clamp a caller-supplied timeout into something that cannot hang a campaign."""
+    """Clamp a caller-supplied timeout into something that cannot hang a campaign.
+
+    The caller's requested value is extended by HARD_TIMEOUT_BUFFER seconds
+    (so a requested bound like 60s becomes 180s), then capped at
+    MAX_HARD_TIMEOUT. If the caller passes nothing, fall back to
+    DEFAULT_HARD_TIMEOUT.
+    """
     if not requested or requested <= 0:
         return DEFAULT_HARD_TIMEOUT
-    return min(int(requested), MAX_HARD_TIMEOUT)
+    return min(int(requested) + HARD_TIMEOUT_BUFFER, MAX_HARD_TIMEOUT)
