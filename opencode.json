@@ -63,8 +63,8 @@
       }
     }
   },
-  "model": "nous/meituan/longcat-2.0:free",
-  "small_model": "nous/meituan/longcat-2.0:free",
+  "model": "nous/tencent/hy3:free",
+  "small_model": "nous/tencent/hy3:free",
   "mcp": {
     "darkmoon": {
       "type": "local",
