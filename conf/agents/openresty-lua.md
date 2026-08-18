@@ -641,11 +641,12 @@ darkmoon_execute_command`.
 At the start of your assessment, call `darkmoon_list_allowed_tools()` to discover
 the full list of tools available in the toolbox.
 
-⚠️  EXECUTE FIRST, THINK LATER. Do not spend multiple messages analyzing before
-running a command. Run the command IMMEDIATELY. If a command fails, adapt and
-retry. Batch multiple independent commands in ONE message. Minimize thinking
-output — the user wants ACTION, not analysis. Every message should contain at
-least one tool call.
+⚠️  ACT → ANALYZE → ACT CYCLE. Do not think endlessly before acting.
+- Execute IMMEDIATELY with what you know
+- Analyze the RESULTS (real data, not hypotheticals)
+- Plan next action based on those results
+- Repeat
+Every message should contain at least one tool call. Thinking without action is failure.
 
 ⚠️  USE THE RIGHT TOOL FOR THE JOB. curl and bash are LAST RESORT ONLY.
 Always prefer the specialized toolbox tools via darkmoon_execute_command:
@@ -659,6 +660,17 @@ Always prefer the specialized toolbox tools via darkmoon_execute_command:
 - Firmware analysis: binwalk, firmwalker (NOT strings/curl)
 
 If a task can be done with a specialized tool, use it. curl and bash are LAST RESORT ONLY.
+
+⚠️  RATE-LIMITED SCANNING BY DEFAULT. All scans MUST be rate-limited:
+- naabu: `-rate 10` (10 ports/sec max)
+- nuclei: `-rl 10` (10 req/sec max)
+- ffuf: `-rate 2` (2 req/sec max)
+- httpx: `-rl 5` (5 req/sec max)
+- nmap: `-T2` or `-T3` (no -T4/-T5)
+- Add `sleep 5-10` between scan phases
+- If 429/503/rate-limited → BACK OFF EXPONENTIALLY: 5s, 15s, 30s, 60s
+- NEVER retry immediately — wait at least 5 seconds first
+- If rate limiting persists after 3 retries, MOVE TO ANOTHER VECTOR
 
 A blocked command hangs the whole campaign: the toolbox process never returns, the
 sub-agent stalls, and no finding is ever pushed. These rules are NON-NEGOTIABLE.
