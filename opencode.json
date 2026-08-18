@@ -35,8 +35,8 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "inferx",
       "options": {
-        "baseURL": "https://api.inferx.com/v1",
-        "apiKey": "ix_84c30cde313ce341a76eda32bb6826e03c23b86f789d0db3931dfaec43fa8c5f",
+        "baseURL": "https://model.inferx.net/endpoints/v1",
+        "apiKey": "ix_5925e7c1759fa945b28af8bcb4d52cebf7209c2c99d5d6671b793953aedc81d7",
         "includeUsage": true
       },
       "models": {
@@ -50,8 +50,8 @@
             "reasoningEffort": "high"
           }
         },
-        "qwen3.6-35b-a3b-fp8": {
-          "name": "qwen3.6-35b-a3b-fp8",
+        "Qwen3.6-35B-A3B-FP8": {
+          "name": "Qwen3.6-35B-A3B-FP8",
           "reasoning": true,
           "interleaved": {
             "field": "reasoning"
@@ -106,7 +106,7 @@
       }
     },
     "aws": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -117,10 +117,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "azure": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -131,10 +134,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "entra-id": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -145,10 +151,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "gcp": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -159,10 +168,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "github": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -173,10 +185,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "gitlab": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -187,10 +202,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "jenkins": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -201,10 +219,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "terraform": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -215,10 +236,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "ansible": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -229,10 +253,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "docker": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -243,10 +270,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "container-registry": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -257,10 +287,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "hashicorp-vault": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -271,10 +304,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "sql-databases": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -285,10 +321,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "messaging-cache": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -299,10 +338,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "firmware": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -313,10 +355,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "sso-idp": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -327,10 +372,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "gitops": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -341,10 +389,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "observability": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -355,10 +406,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "storage": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -369,10 +423,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "edge-proxy": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -383,10 +440,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "vpn-remote-access": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -397,10 +457,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "firewall-network": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -411,10 +474,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "email-infrastructure": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -425,10 +491,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "backup": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -439,10 +508,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "pki-adcs": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -453,10 +525,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "nosql-databases": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -467,10 +542,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "container-platform": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -481,10 +559,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "hypervisor": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -495,10 +576,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "business-platforms": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -509,10 +593,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "mobile": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -523,10 +610,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "mdm": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -537,10 +627,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "active-directory": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -551,10 +644,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "aspnet": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -565,10 +661,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "graphql": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -579,10 +678,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "golang": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -593,10 +695,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "headless-browser": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -607,10 +712,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "kubernetes": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -621,10 +729,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "nest": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -635,10 +746,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "php": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -649,10 +763,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "springboot": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -663,10 +780,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "wordpress": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -677,10 +797,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "prestashop": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -691,10 +814,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "moodle": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -705,10 +831,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "magento": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -719,10 +848,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "joomla": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -733,10 +865,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "drupal": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -747,10 +882,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "flask": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -761,10 +899,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "ruby": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -775,10 +916,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "nodejs-express-angular": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -789,10 +933,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "embedded-gateway": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -803,10 +950,13 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     },
     "openresty-lua": {
-      "model": "inferx/qwen3.6-35b-a3b-fp8",
+      "model": "inferx/Qwen3.6-35B-A3B-FP8",
       "mode": "subagent",
       "tools": {
         "darkmoon_*": true
@@ -817,6 +967,9 @@
       "retry": {
         "attempts": 5,
         "delay": 10000
+      },
+      "options": {
+        "reasoningEffort": "medium"
       }
     }
   }

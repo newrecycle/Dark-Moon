@@ -636,10 +636,29 @@ ALL command execution MUST go through `darkmoon_execute_command`. This is the ON
 way to access the Darkmoon toolbox (nuclei, vulnx, nmap, naabu, whatweb, httpx,
 binwalk, firmwalker, etc.). If you try to run `nuclei` or `vulnx` via a native
 bash tool, they will not be found — they exist ONLY inside the toolbox reached via
-darkmoon_execute_command.
+darkmoon_execute_command`.
 
 At the start of your assessment, call `darkmoon_list_allowed_tools()` to discover
 the full list of tools available in the toolbox.
+
+⚠️  EXECUTE FIRST, THINK LATER. Do not spend multiple messages analyzing before
+running a command. Run the command IMMEDIATELY. If a command fails, adapt and
+retry. Batch multiple independent commands in ONE message. Minimize thinking
+output — the user wants ACTION, not analysis. Every message should contain at
+least one tool call.
+
+⚠️  USE THE RIGHT TOOL FOR THE JOB. Do NOT do everything with curl. Use the
+specialized toolbox tools via darkmoon_execute_command:
+- Port scanning: naabu or nmap (NOT curl)
+- Web fingerprinting: whatweb, httpx (NOT curl)
+- Vulnerability scanning: nuclei (NOT manual curl)
+- CVE research: vulnx id/search (NOT Google)
+- Fuzzing: ffuf, dirb (NOT curl)
+- Credential testing: hydra, medusa, ncrack (NOT curl)
+- DNS enumeration: dnsutils, snmpwalk (NOT curl)
+- Firmware analysis: binwalk, firmwalker (NOT strings)
+
+If a task can be done with a specialized tool, use it. curl is LAST RESORT only.
 
 A blocked command hangs the whole campaign: the toolbox process never returns, the
 sub-agent stalls, and no finding is ever pushed. These rules are NON-NEGOTIABLE.
