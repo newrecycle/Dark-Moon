@@ -1,4 +1,5 @@
 """Provider profiles with encrypted API-key references and explicit application."""
+
 import os
 import re
 import tempfile
@@ -16,54 +17,126 @@ def profile(service, raw):
     if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", name):
         raise ValueError("Provider id must be a single identifier")
     model = str(raw.get("model", ""))
-    if not model or len(model) > 240 or any(c.isspace() or c in '\"\'`$\\' for c in model):
+    if (
+        not model
+        or len(model) > 240
+        or any(c.isspace() or c in "\"'`$\\" for c in model)
+    ):
         raise ValueError("Model must be a single model identifier")
     base = str(raw.get("base_url", ""))
     if mode != "cloud":
         parsed = urlsplit(base)
-        if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
-            raise ValueError("Local/Anthropic mode requires a base URL without embedded credentials")
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username
+            or parsed.password
+        ):
+            raise ValueError(
+                "Local/Anthropic mode requires a base URL without embedded credentials"
+            )
     credential = raw.get("credential_id") or ""
     if credential and not service.store.get("credentials", identifier(credential)):
         raise ValueError("Credential reference was not found")
     if mode == "cloud" and not credential:
-        raise ValueError("Cloud mode requires a saved API-key credential")
-    item = {"id": "provider_"+name, "mode": mode, "provider": name, "model": model, "base_url": base,
-            "credential_id": credential, "created_at": now()}
+        from .opencode import catalog
+
+        if not any(
+            p["id"] == name and p["connected"] for p in catalog(service)["providers"]
+        ):
+            raise ValueError(
+                "Connect this provider in OpenCode or choose a saved API-key credential"
+            )
+    item = {
+        "id": "provider_" + name,
+        "mode": mode,
+        "provider": name,
+        "model": model,
+        "base_url": base,
+        "credential_id": credential,
+        "created_at": now(),
+    }
     return service.store.save("providers", item)
 
 
 def apply(service, profile_id):
+    from .opencode import paths, document, private_write, write_environment, native
+    from api import json_storage as data
+    import json
+
     item = service.store.get("providers", identifier(profile_id))
     if not item:
         raise KeyError(profile_id)
-    token = service.vault.resolve(item["credential_id"]) if item["credential_id"] else ""
-    if any(c in token for c in "\r\n\x00\"'`$\\"):
-        raise ValueError("This key cannot be safely represented by the upstream shell/env parser")
-    values = {}
+    token = (
+        service.vault.resolve(item["credential_id"]) if item["credential_id"] else ""
+    )
+    pid = item["provider"]
+    model = item["model"]
+    if model.startswith(pid + "/"):
+        model = model[len(pid) + 1 :]
     if item["mode"] == "cloud":
-        values = {"OPENROUTER_PROVIDER": item["provider"], "OPENCODE_MODEL": item["model"], "OPENROUTER_API_KEY": token}
+        values = {
+            "OPENROUTER_PROVIDER": pid,
+            "OPENCODE_MODEL": model,
+            "OPENCODE_USE_SAVED_AUTH": "true",
+        }
+        if token:
+            values["OPENROUTER_API_KEY"] = token
     elif item["mode"] == "anthropic":
-        values = {"ANTHROPIC_BASE_URL": item["base_url"], "ANTHROPIC_MODEL": item["model"], "ANTHROPIC_API_KEY": token or "darkmoon-local"}
+        pid = "anthropic"
+        values = {
+            "ANTHROPIC_BASE_URL": item["base_url"],
+            "ANTHROPIC_MODEL": model,
+            "ANTHROPIC_API_KEY": token or "darkmoon-local",
+        }
     else:
-        values = {"OPENCODE_LOCAL_MODE": "true", "OPENCODE_LOCAL_PROVIDER_ID": item["provider"],
-                  "OPENCODE_LOCAL_PROVIDER_NAME": item["provider"], "OPENCODE_LOCAL_BASE_URL": item["base_url"],
-                  "OPENCODE_LOCAL_MODEL": item["model"]}
+        values = {
+            "OPENCODE_LOCAL_MODE": "true",
+            "OPENCODE_LOCAL_PROVIDER_ID": pid,
+            "OPENCODE_LOCAL_PROVIDER_NAME": pid,
+            "OPENCODE_LOCAL_BASE_URL": item["base_url"],
+            "OPENCODE_LOCAL_MODEL": model,
+        }
         if token:
             values["OPENCODE_LOCAL_API_KEY"] = token
-    for value in values.values():
-        if any(c.isspace() or c in "\"'`$\\" for c in value):
-            raise ValueError("Provider values must be safe single-line environment values")
-    target = service.queue.repo / ".opencode.env"
-    fd, temporary = tempfile.mkstemp(dir=target.parent, prefix=".opencode-provider-", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w") as stream:
-            stream.write("# Applied from encrypted community provider profile\n")
-            for key, value in values.items():
-                stream.write(key+"="+value+"\n")
-        os.chmod(temporary, 0o600)
-        os.replace(temporary, target)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
-    return {"applied": item["id"], "restart_required": True, "note": "Recreate the existing OpenCode service to apply its new environment"}
+    config_path, auth_path, env_path = paths(service)
+    with data._file_lock(config_path), data._file_lock(auth_path):
+        config, auth = document(config_path), document(auth_path)
+        config.update(model=pid + "/" + model, small_model=pid + "/" + model)
+        patch = {"model": config["model"], "small_model": config["small_model"]}
+        if item["mode"] != "cloud":
+            provider = config.setdefault("provider", {}).setdefault(pid, {})
+            provider.setdefault("models", {}).setdefault(model, {"name": model})
+            provider.setdefault("options", {}).pop("apiKey", None)
+            provider["options"]["baseURL"] = item["base_url"]
+            if item["mode"] == "local":
+                provider["npm"] = "@ai-sdk/openai-compatible"
+            patch["provider"] = {pid: provider}
+        if token:
+            if any(c.isspace() or c in "\"'`$\\\x00#" for c in token):
+                raise ValueError(
+                    "This key cannot be represented safely by the installer environment parser"
+                )
+            auth[pid] = {"type": "api", "key": token}
+        # Validate and update the installer env before either JSON document.
+        write_environment(env_path, values)
+        private_write(config_path, json.dumps(config, indent=2) + "\n")
+        private_write(auth_path, json.dumps(auth, indent=2) + "\n")
+    live = False
+    warning = ""
+    if os.environ.get("DARKMOON_OPENCODE_URL"):
+        try:
+            if token:
+                native("PUT", "/auth/" + pid, {"type": "api", "key": token})
+            native("PATCH", "/config", patch)
+            live = True
+        except ValueError as exc:
+            warning = str(exc)
+    return {
+        "applied": item["id"],
+        "restart_required": not live,
+        "warning": warning,
+        "note": "OpenCode updated live."
+        if live
+        else "Shared OpenCode files and installer environment updated. Restart the existing OpenCode service to load them.",
+    }

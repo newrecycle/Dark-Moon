@@ -122,7 +122,9 @@ const assert = require("node:assert/strict");
     await page
       .locator("#workspace-form input[name=name]")
       .fill("Fixture vault key");
-    await page.locator("#workspace-form input[name=provider]").fill("fixture");
+    await page
+      .locator("#workspace-form select[name=provider]")
+      .selectOption("generic");
     await page
       .locator("#workspace-form input[name=secret]")
       .fill("this-private-fixture-key-must-be-hidden");
@@ -154,6 +156,115 @@ const assert = require("node:assert/strict");
     await page.locator("[data-doctor]").click();
     await page.locator("#detail[open]").waitFor();
     await page.locator("#detail .close-dialog").click();
+    // The saved OpenCode OAuth login and actual catalog models populate the UI.
+    await page.locator('nav a[href="#settings"]').click();
+    await page
+      .getByText("OpenCode providers and logins", { exact: true })
+      .waitFor();
+    assert.equal(
+      (await page.locator("body").innerText()).includes(
+        "fixture-native-refresh-not-for-ui",
+      ),
+      false,
+    );
+    await page.locator("[data-workspace=provider]").click();
+    assert.equal(
+      await page.locator("#workspace-form select[name=provider]").inputValue(),
+      "openai",
+    );
+    assert.equal(
+      await page.locator("#workspace-form select[name=model] option").count(),
+      3,
+    );
+    await page
+      .locator("#workspace-form select[name=model]")
+      .selectOption("fixture-second");
+    await page.locator("#workspace-form button[type=submit]").click();
+    await page.locator("#workspace-dialog").waitFor({ state: "hidden" });
+    await page.locator("[data-apply-provider]").click();
+    await page.getByText("OpenCode updated live.", { exact: true }).waitFor();
+    await page.locator("#detail .close-dialog").click();
+    // OAuth starts/finishes through the native API, never a fake UI session.
+    await page.locator("[data-workspace=opencode_connect]").click();
+    await page
+      .locator("#workspace-form select[name=auth_method]")
+      .selectOption("1");
+    await page.locator("#workspace-form button[type=submit]").click();
+    await page
+      .getByRole("heading", { name: "Finish OpenCode sign-in" })
+      .waitFor();
+    await page.locator("#workspace-form button[type=submit]").click();
+    await page.locator("#workspace-dialog").waitFor({ state: "hidden" });
+    await page.locator("[data-sync-opencode]").click();
+    await page.locator("[data-updates]").click();
+    await page.getByText("Image update status", { exact: true }).waitFor();
+    await page.locator("#detail .close-dialog").click();
+    await page.screenshot({
+      path: path.join(screenshots, "settings.png"),
+      fullPage: true,
+    });
+    // Dynamic campaign/finding selectors, including a real queued retest.
+    await page.locator('nav a[href="#retests"]').click();
+    await page.locator("[data-workspace=retest]").click();
+    await page
+      .locator("#workspace-form select[name=campaign_id]")
+      .selectOption(fixture.campaign_id);
+    assert.equal(
+      await page
+        .locator("#workspace-form select[name=finding_ids] option")
+        .count(),
+      4,
+    );
+    await page
+      .locator("#workspace-form select[name=finding_ids]")
+      .selectOption(fixture.finding_id);
+    await page.locator("#workspace-form button[type=submit]").click();
+    await page.locator("#workspace-dialog").waitFor({ state: "hidden" });
+    await page.locator("[data-retest-detail]").first().click();
+    await page.getByText("Retest verdicts", { exact: true }).waitFor();
+    await page.locator("#detail .close-dialog").click();
+    // Register/list deliveries/delete; fixture delivery transport cannot egress.
+    await page.locator('nav a[href="#webhooks"]').click();
+    await page.locator("[data-workspace=webhook]").click();
+    await page
+      .locator("#workspace-form input[name=url]")
+      .fill("https://receiver.example.invalid/test");
+    await page
+      .locator("#workspace-form select[name=events]")
+      .selectOption("campaign.completed");
+    await page
+      .locator("#workspace-form input[name=secret]")
+      .fill("offline-signing-secret-at-least-24-characters");
+    await page.locator("#workspace-form button[type=submit]").click();
+    await page.locator("#workspace-dialog").waitFor({ state: "hidden" });
+    await page.locator("[data-webhook-deliveries]").click();
+    await page.getByText("Delivery history", { exact: true }).waitFor();
+    await page.locator("#detail .close-dialog").click();
+    await page.locator("[data-delete-webhook]").click();
+    await page.getByText("No subscriptions", { exact: true }).waitFor();
+    // API-key logins are saved once, shared with OpenCode, and disconnectable.
+    await page.locator('nav a[href="#settings"]').click();
+    await page.locator("[data-workspace=opencode_connect]").click();
+    await page
+      .locator("#workspace-form select[name=provider]")
+      .selectOption("openrouter");
+    await page
+      .locator("#workspace-form input[name=secret]")
+      .fill("offline-browser-api-key-no-real-provider");
+    await page.locator("#workspace-form button[type=submit]").click();
+    await page
+      .getByText("Provider connected in OpenCode.", { exact: true })
+      .waitFor();
+    await page.locator("#detail .close-dialog").click();
+    await page.locator("[data-disconnect-opencode=openrouter]").click();
+    await page.getByText("Provider disconnected.", { exact: true }).waitFor();
+    await page.locator("#detail .close-dialog").click();
+    assert.equal(
+      (await page.locator("body").innerText()).includes(
+        "offline-browser-api-key-no-real-provider",
+      ),
+      false,
+    );
     await page.locator('nav a[href="#findings"]').click();
     await page.locator("#severity-filter").selectOption("high");
     assert.equal(await page.locator("tbody tr").count(), 3);
@@ -169,9 +280,17 @@ const assert = require("node:assert/strict");
       "Finding content must be escaped",
     );
     await page.locator("[data-prepare-fix]").click();
-    await page
-      .locator("#remediation-form input[name=repo]")
-      .fill(fixture.source_repo);
+    await page.locator("#remediation-dialog[open]").waitFor();
+    assert.equal(
+      await page.locator("#remediation-form input[name=repo]").inputValue(),
+      fixture.source_repo,
+    );
+    assert.equal(
+      await page
+        .locator("#remediation-form select[name=source_files] option")
+        .count(),
+      1,
+    );
     await page
       .locator("#remediation-form textarea[name=edits]")
       .fill(
@@ -198,6 +317,26 @@ const assert = require("node:assert/strict");
     await page.locator("#detail .close-dialog").click();
     await page.locator('nav a[href="#campaigns"]').click();
     await page.locator(`[data-campaign="${fixture.campaign_id}"]`).click();
+    await page.locator("[data-report-preview]").click();
+    await page.locator(".report-preview").waitFor();
+    await page.locator("#detail .close-dialog").click();
+    await page.locator(`[data-campaign="${fixture.campaign_id}"]`).click();
+    await page.locator("[data-protected-pdf]").click();
+    await page
+      .locator("#workspace-form input[name=password]")
+      .fill("private-browser-report-password");
+    const protectedDownload = page.waitForEvent("download");
+    await page.locator("#workspace-form button[type=submit]").click();
+    const protectedReport = await protectedDownload;
+    const protectedBytes = await fs.readFile(await protectedReport.path());
+    assert.ok(protectedBytes.includes(Buffer.from("/Encrypt")));
+    await page.locator("#workspace-dialog").waitFor({ state: "hidden" });
+    await page.locator(`[data-campaign="${fixture.campaign_id}"]`).click();
+    for (const format of ["md", "json"]) {
+      const event = page.waitForEvent("download");
+      await page.locator(`[data-export=${format}]`).click();
+      assert.ok((await fs.readFile(await (await event).path())).length > 100);
+    }
     const downloadEvent = page.waitForEvent("download");
     await page.locator("[data-export=pdf]").click();
     const download = await downloadEvent;
@@ -206,6 +345,30 @@ const assert = require("node:assert/strict");
     await page.locator("#detail .close-dialog").click();
     await page.locator('nav a[href="#schedules"]').click();
     await page.locator("#new-schedule").click();
+    await page.locator("#launch-dialog[open]").waitFor();
+    assert.ok(
+      (await page
+        .locator("#launch-form select[name=known_target] option")
+        .count()) >= 4,
+    );
+    assert.ok(
+      await page.locator("#launch-form input[name=target]").inputValue(),
+    );
+    await page
+      .locator("#launch-form select[name=focus]")
+      .selectOption(["sqli", "xss"]);
+    await page
+      .locator("#launch-form select[name=severity]")
+      .selectOption(["high", "critical"]);
+    assert.ok(
+      (await page
+        .locator("#launch-form select[name=assessment_token_id] option")
+        .count()) >= 2,
+    );
+    await page.screenshot({
+      path: path.join(screenshots, "launch.png"),
+      fullPage: true,
+    });
     await page.locator("#launch-form input[name=name]").fill("Future fixture");
     await page.locator("#launch-form input[name=target]").fill("test.example");
     await page
@@ -218,6 +381,7 @@ const assert = require("node:assert/strict");
     await page.locator("[data-delete-schedule]").click();
     await page.getByText("No scheduled assessments", { exact: true }).waitFor();
     await page.locator("#new-campaign").click();
+    await page.locator("#launch-dialog[open]").waitFor();
     await page
       .locator("#launch-form input[name=name]")
       .fill("Fake launcher assessment");
@@ -255,6 +419,32 @@ const assert = require("node:assert/strict");
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.locator("#logout").click();
     await page.locator("#login[open]").waitFor();
+    await page.locator("#login-username").fill("fixture-reader");
+    await page.locator("#token").fill("correct-fixture-reader-password");
+    await page.locator("#login-form button[type=submit]").click();
+    await page.locator("#login").waitFor({ state: "hidden" });
+    assert.equal(await page.locator("#new-campaign").isVisible(), false);
+    assert.equal(
+      await page.locator('nav a[href="#credentials"]').isVisible(),
+      false,
+    );
+    await page.locator('nav a[href="#settings"]').click();
+    await page.getByText("My account", { exact: true }).waitFor();
+    await page.locator("[data-workspace=password]").click();
+    await page
+      .locator("#workspace-form input[name=old_password]")
+      .fill("correct-fixture-reader-password");
+    await page
+      .locator("#workspace-form input[name=new_password]")
+      .fill("rotated-fixture-reader-password");
+    await page.locator("#workspace-form button[type=submit]").click();
+    await page.locator("#login[open]").waitFor();
+    await page.locator("#token").fill("rotated-fixture-reader-password");
+    await page.locator("#login-form button[type=submit]").click();
+    await page.locator("#login").waitFor({ state: "hidden" });
+    await page.getByText("My account", { exact: true }).waitFor();
+    await page.locator("#logout").click();
+    await page.locator("#login[open]").waitFor();
     assert.deepEqual(errors, []);
     console.log(
       JSON.stringify(
@@ -262,6 +452,9 @@ const assert = require("node:assert/strict");
           status: "passed",
           checks: [
             "all routes",
+            "native provider catalog, OAuth, API-key connect/disconnect and live apply",
+            "dynamic targets, checks, severity, credentials, campaigns, findings and source selectors",
+            "webhook and retest lifecycle with offline transports",
             "literal evidence/XSS",
             "filters",
             "3D canvas",

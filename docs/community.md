@@ -71,6 +71,12 @@ from the same schedule prevents overlap. A crash between persisting the next
 occurrence and enqueueing can skip that occurrence; the scheduler favors avoiding
 duplicate assessments over promising exactly-once external effects.
 
+## Provider and login synchronization
+
+See [OpenCode/WebUI setup](opencode-webui.md) for populated selectors, shared
+provider configuration, native API-key/OAuth sign-in, and the optional local
+bridge. Existing OpenCode API/OAuth logins are preserved when profiles switch.
+
 ## API
 
 The extended Pro-style route families, account setup, security profiles and

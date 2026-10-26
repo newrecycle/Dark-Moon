@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OPENCODE_CONFIG_DIR="/root/.config/opencode"
+OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR:-/root/.config/opencode}"
 OPENCODE_CONFIG_FILE="$OPENCODE_CONFIG_DIR/opencode.json"
 
-OPENCODE_AUTH_DIR="/root/.local/share/opencode"
+OPENCODE_AUTH_DIR="${OPENCODE_AUTH_DIR:-/root/.local/share/opencode}"
 OPENCODE_AUTH_FILE="$OPENCODE_AUTH_DIR/auth.json"
 
 fail() { echo "❌ $*" >&2; exit 1; }
@@ -38,6 +38,7 @@ ANTHROPIC_MODEL="${ANTHROPIC_MODEL:-}"
 USE_LOCAL=false
 USE_ANTHROPIC=false
 USE_OPENROUTER=false
+USE_SAVED_AUTH=false
 
 if [ "${OPENCODE_LOCAL_MODE}" = "true" ] && \
    [ -n "${OPENCODE_LOCAL_PROVIDER_ID:-}" ] && \
@@ -50,6 +51,16 @@ elif [ -n "${OPENROUTER_PROVIDER:-}" ] && \
      [ -n "${OPENROUTER_API_KEY:-}" ] && \
      [ -n "${OPENCODE_MODEL:-}" ]; then
   USE_OPENROUTER=true
+elif [ "${OPENCODE_USE_SAVED_AUTH:-false}" = true ] && [ -n "$OPENROUTER_PROVIDER" ] && [ -n "$OPENCODE_MODEL" ] && \
+     python3 - "$OPENCODE_AUTH_FILE" "$OPENROUTER_PROVIDER" <<'PYCHECK'
+import json,sys
+try:
+    item=json.load(open(sys.argv[1])).get(sys.argv[2],{})
+    sys.exit(0 if item.get('key') or item.get('refresh') or item.get('access') else 1)
+except (OSError,ValueError):sys.exit(1)
+PYCHECK
+then
+  USE_SAVED_AUTH=true
 fi
 
 if [ "$USE_LOCAL" = true ]; then
@@ -70,7 +81,7 @@ elif [ "$USE_ANTHROPIC" = true ]; then
   FINAL_MODEL="anthropic/${ANTHROPIC_MODEL}"
   log "Using on-prem Anthropic-compatible endpoint → model: ${FINAL_MODEL}"
   log "Base URL: ${ANTHROPIC_BASE_URL}"
-elif [ "$USE_OPENROUTER" = true ]; then
+elif [ "$USE_OPENROUTER" = true ] || [ "$USE_SAVED_AUTH" = true ]; then
   FINAL_MODEL="$OPENROUTER_PROVIDER/$OPENCODE_MODEL"
   log "Using cloud provider: $FINAL_MODEL"
 else
@@ -516,22 +527,26 @@ echo "✅ OpenCode config written to $OPENCODE_CONFIG_FILE"
 #######################################
 # Write auth.json ONLY for cloud providers
 #######################################
+# Preserve all native API/OAuth logins, including when switching modes. The UI
+# and native OpenCode share this file; a local profile must not log out everyone.
 if [ "$USE_OPENROUTER" = true ]; then
-  cat > "$OPENCODE_AUTH_FILE" <<EOF
-{
-  "$OPENROUTER_PROVIDER": {
-    "type": "api",
-    "key": "$OPENROUTER_API_KEY"
-  }
-}
-EOF
-  echo "✅ OpenCode auth written to $OPENCODE_AUTH_FILE"
-elif [ "$USE_LOCAL" = true ]; then
-  rm -f "$OPENCODE_AUTH_FILE"
-  log "Local provider — no auth.json needed"
+  python3 - "$OPENCODE_AUTH_FILE" <<'PYAUTH'
+import json,os,sys,tempfile
+from pathlib import Path
+path=Path(sys.argv[1])
+auth=json.loads(path.read_text()) if path.exists() else {}
+if not isinstance(auth,dict):raise ValueError('OpenCode auth must be an object')
+auth[os.environ['OPENROUTER_PROVIDER']]={'type':'api','key':os.environ['OPENROUTER_API_KEY']}
+fd,tmp=tempfile.mkstemp(dir=path.parent,prefix='.auth-',suffix='.tmp')
+try:
+    with os.fdopen(fd,'w') as stream:json.dump(auth,stream,indent=2)
+    os.replace(tmp,path)
+finally:
+    if os.path.exists(tmp):os.unlink(tmp)
+PYAUTH
+  echo "✅ Selected OpenCode API login updated; other logins preserved"
 else
-  rm -f "$OPENCODE_AUTH_FILE"
-  log "No auth.json written (fallback model does not require API key)"
+  log "Existing OpenCode logins preserved"
 fi
 
 #######################################
@@ -544,7 +559,7 @@ fi
 
 log "Optional opencode TUI bootstrap (test mode, no kill)"
 
-if command -v /usr/local/bin/opencode >/dev/null 2>&1; then
+if [ "${DARKMOON_SKIP_TUI_BOOTSTRAP:-0}" != 1 ] && command -v /usr/local/bin/opencode >/dev/null 2>&1; then
   (
     # Lancer opencode dans un vrai pseudo-TTY
     script -q -c "/usr/local/bin/opencode --model \"$FINAL_MODEL\"" /dev/null &

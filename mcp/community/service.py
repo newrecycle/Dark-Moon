@@ -77,7 +77,7 @@ class Service:
 
     def identity(self, value):
         if secrets.compare_digest(str(value or ""), "Bearer " + self.token):
-            return {"id": "workspace-owner", "username": "Workspace owner", "role": "admin"}
+            return {"id": "workspace-owner", "username": "Workspace owner", "role": "admin", "authentication": "workspace-token"}
         if str(value or "").startswith("Bearer "):
             return self.accounts.identity(value[7:])
         return None

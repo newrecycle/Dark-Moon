@@ -13,6 +13,7 @@ const badge = (s) =>
 const empty = (title, note = "") =>
   `<div class="empty"><strong>${esc(title)}</strong>${esc(note)}</div>`;
 const date = (d) => (d ? new Date(d).toLocaleString() : "—");
+let identity = null;
 let token = "",
   snapshot = null,
   campaignId = "",
@@ -56,12 +57,18 @@ function fail(error) {
 function lock() {
   token = "";
   snapshot = null;
+  identity = null;
   streamControl?.abort();
   $("#login").showModal();
   $("#content").replaceChildren();
 }
 async function refresh() {
-  snapshot = await api("/api/v1/overview");
+  const [state, who] = await Promise.all([
+    api("/api/v1/overview"),
+    api("/api/v1/auth/me"),
+  ]);
+  snapshot = state;
+  identity = who.user;
   if (!campaignId && snapshot.campaigns.length)
     campaignId = snapshot.campaigns.at(-1).id;
   $("#error").hidden = true;
@@ -135,6 +142,19 @@ function findingsTable(items) {
     );
   return `<div class="table-scroll"><table><thead><tr><th>SEVERITY</th><th>FINDING / ENDPOINT</th><th>CVSS</th><th>STATUS</th><th>MITRE ATT&CK</th></tr></thead><tbody>${items.map((f) => `<tr class="clickable" data-finding="${esc(f.id)}" data-cid="${esc(f.campaign_id)}"><td>${badge(f.severity || "info")}</td><td>${esc(f.title || "Untitled")}<small>${esc(f.endpoint || f.category || "")}</small></td><td>${esc(f.cvss_score ?? "—")}</td><td>${badge(f.status)}</td><td>${esc(f.mitre_attack_id || "—")}</td></tr>`).join("")}</tbody></table></div>`;
 }
+function applyRoles() {
+  const viewer = identity?.role === "viewer",
+    admin = identity?.role === "admin";
+  $("#new-campaign").hidden = viewer;
+  for (const a of document.querySelectorAll(
+    'nav a[href="#credentials"],nav a[href="#webhooks"]',
+  ))
+    a.hidden = !admin;
+  for (const b of document.querySelectorAll(
+    '[data-workspace]:not([data-workspace="password"]),#new-schedule,[data-toggle-schedule],[data-delete-schedule],[data-cancel],[data-prepare-fix],[data-triage],#triage-status,[data-protected-pdf]',
+  ))
+    b.hidden = viewer;
+}
 function render() {
   if (!snapshot) return;
   viewControl?.abort();
@@ -155,6 +175,8 @@ function render() {
     settings: "Settings & accounts",
   };
   if (!headings[route]) route = "overview";
+  if (identity?.role !== "admin" && ["credentials", "webhooks"].includes(route))
+    route = "settings";
   $("#heading").textContent = headings[route];
   document
     .querySelectorAll("nav a")
@@ -235,8 +257,9 @@ function render() {
       `<section class="panel"><h2>Connect your workflow</h2><p class="instructions">The community API uses a local bearer token. The routes below serve metadata for automation and observability. Full assessment evidence is available separately through the campaign API.</p><div class="list-item"><div>n8n / automation<small>Use an HTTP Request node with Bearer authentication.</small></div><code>POST /api/v1/campaigns</code></div><div class="list-item"><div>Grafana / Prometheus<small>Severity counts and queue health; no target labels.</small></div><code>GET /metrics</code></div><div class="list-item"><div>Splunk / SIEM<small>Poll the metadata feed and deduplicate by finding id.</small></div><code>GET /api/v1/integrations/findings</code></div><div class="list-item"><div>Live change notifications<small>Server-sent revision events with bearer authentication.</small></div><code>GET /api/v1/events</code></div><pre>curl -H "Authorization: Bearer $DARKMOON_DASHBOARD_TOKEN" \
   http://127.0.0.1:8780/api/v1/integrations/findings</pre><p class="instructions">These are community endpoints. Existing plugins written for the proprietary Pro API need an adapter; their API compatibility is not assumed.</p></section>`;
   } else if (window.renderWorkspace) {
-    window.renderWorkspace(route).catch(fail);
+    window.renderWorkspace(route).then(applyRoles).catch(fail);
   }
+  applyRoles();
 }
 
 async function showCampaign(id) {
@@ -274,6 +297,7 @@ async function showFinding(id, cid) {
       .join(
         "",
       )}<div class="detail-label">Recorded evidence</div><pre>${esc(evidence || f.evidence_output || "No evidence recorded")}</pre>${f.evidence_commands ? `<pre>${esc(f.evidence_commands)}</pre>` : ""}<div class="detail-label">Remediation guidance</div><div class="detail-text">${esc(f.remediation || "No guidance recorded.")}</div>${["confirmed", "exploited"].includes(f.status) ? `<div class="report-actions"><button class="primary" data-prepare-fix="${esc(id)}" data-cid="${esc(cid)}">Prepare local fix →</button></div>` : ""}<div class="detail-label">Operator triage</div><div class="toolbar"><select id="triage-status">${["unconfirmed", "confirmed", "exploited", "false_positive", "accepted_risk", "remediated", "resolved"].map((x) => `<option value="${x}" ${f.status === x ? "selected" : ""}>${x.replaceAll("_", " ")}</option>`).join("")}</select><button class="secondary" data-triage="${esc(id)}" data-cid="${esc(cid)}">Save triage</button></div><small>Operator triage does not constitute a validated remediation retest.</small>`;
+  applyRoles();
   if (!$("#detail").open) $("#detail").showModal();
 }
 async function exportReport(cid, format) {
@@ -299,9 +323,16 @@ async function showJob(id) {
     headers: { Authorization: `Bearer ${token}` },
   });
   $("#job-log").textContent = await res.text();
+  applyRoles();
   if (!$("#detail").open) $("#detail").showModal();
 }
-function launchDialog(schedule = false) {
+async function launchDialog(schedule = false) {
+  try {
+    await window.populateLaunch();
+  } catch (error) {
+    fail(error);
+    return;
+  }
   scheduleMode = schedule;
   $("#launch-title").textContent = schedule
     ? "New recurring assessment"
@@ -353,6 +384,26 @@ $("#launch-form").addEventListener("submit", async (e) => {
   button.disabled = true;
   try {
     const values = Object.fromEntries(new FormData(e.target));
+    for (const field of ["focus", "exclude", "severity"])
+      values[field] = new FormData(e.target)
+        .getAll(field)
+        .filter(Boolean)
+        .join(",");
+    for (const [field, known] of [
+      ["targets", "known_targets"],
+      ["out_of_scope", "known_out_of_scope"],
+    ]) {
+      values[field] = [
+        ...new Set(
+          [
+            ...new FormData(e.target).getAll(known),
+            ...(values[field] || "").split(",").map((v) => v.trim()),
+          ].filter(Boolean),
+        ),
+      ];
+      delete values[known];
+    }
+    delete values.known_target;
     values.remediate = e.target.elements.remediate.checked;
     if (scheduleMode) {
       values.interval_seconds = Math.round(Number(values.hours) * 3600);
@@ -425,6 +476,7 @@ document.addEventListener("click", async (e) => {
       });
       await refresh();
     } else if (b.dataset.prepareFix) {
+      await window.populateRemediation();
       const form = $("#remediation-form");
       form.elements.campaign_id.value = b.dataset.cid;
       form.elements.finding_id.value = b.dataset.prepareFix;

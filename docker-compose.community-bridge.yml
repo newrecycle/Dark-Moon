@@ -1,0 +1,16 @@
+# Optional authenticated native OpenCode server for WebUI provider/OAuth sync.
+# Review docs/opencode-webui.md before building; this exposes loopback only.
+services:
+  opencode:
+    image: darkmoon-opencode-community:local
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: Dockerfile.opencode
+    command: ["opencode", "serve", "--hostname", "0.0.0.0", "--port", "4096"]
+    environment:
+      OPENCODE_SERVER_PASSWORD: ${OPENCODE_SERVER_PASSWORD:?Set a strong OpenCode bridge password}
+      OPENCODE_SERVER_USERNAME: ${OPENCODE_SERVER_USERNAME:-opencode}
+      DARKMOON_SKIP_TUI_BOOTSTRAP: "1"
+    ports:
+      - "127.0.0.1:4096:4096"

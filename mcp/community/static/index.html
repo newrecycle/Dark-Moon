@@ -83,6 +83,7 @@
         >
       </form>
     </dialog>
+    <datalist id="source-repositories"></datalist>
     <dialog id="launch-dialog">
       <form id="launch-form">
         <div class="dialog-top">
@@ -102,19 +103,34 @@
             maxlength="160"
             placeholder="Staging application review" /></label
         ><label
+          >Saved target<select name="known_target">
+            <option value="">New target…</option>
+          </select></label
+        ><label
           >Target<input
             name="target"
             required
             placeholder="https://staging.example.com"
         /></label>
         <div class="form-grid">
-          <label>Focus<input name="focus" placeholder="sqli,xss,idor" /></label
+          <label
+            >Focus<select
+              name="focus"
+              multiple
+              aria-label="Assessment focus"
+            ></select></label
           ><label
-            >Exclude<input name="exclude" placeholder="dos,bruteforce" /></label
+            >Exclude<select
+              name="exclude"
+              multiple
+              aria-label="Excluded checks"
+            ></select></label
           ><label
-            >Severity<input
+            >Severity<select
               name="severity"
-              placeholder="critical,high,medium" /></label
+              multiple
+              aria-label="Assessment severities"
+            ></select></label
           ><label
             >Noise<select name="noise">
               <option value="">Default</option>
@@ -133,23 +149,33 @@
               <option value="custom">Custom</option>
             </select></label
           ><label
-            >Additional targets (comma-separated)<input
+            >Additional saved targets<select
+              name="known_targets"
+              multiple
+            ></select></label
+          ><label
+            >Additional custom targets (comma-separated)<input
               name="targets"
               placeholder="api.example.com,192.0.2.5"
           /></label>
         </div>
         <label
-          >Out of scope (comma-separated)<input
+          >Exclude saved targets<select
+            name="known_out_of_scope"
+            multiple
+          ></select></label
+        ><label
+          >Other out-of-scope targets (comma-separated)<input
             name="out_of_scope"
             placeholder="payments.example.com" /></label
         ><label
-          >Saved target login credential (optional)<input
+          >Saved target login credential (optional)<select
             name="assessment_credential_id"
-            placeholder="cred_..." /></label
+          ></select></label
         ><label
-          >Saved target API token (optional)<input
+          >Saved target API token (optional)<select
             name="assessment_token_id"
-            placeholder="cred_..." /></label
+          ></select></label
         ><label
           >Engagement rules<textarea name="rules" rows="2"></textarea></label
         ><label
@@ -160,12 +186,11 @@
           <label
             >Local source repository<input
               name="git_repo"
+              list="source-repositories"
               placeholder="/path/to/application" /></label
           ><label
-            >Saved credential reference<input
-              name="credential_id"
-              placeholder="cred_..."
-          /></label>
+            >Saved SCM credential<select name="credential_id"></select
+          ></label>
         </div>
         <div id="schedule-fields" hidden>
           <div class="form-grid">
@@ -209,13 +234,21 @@
         /><label
           >Local source repository<input
             name="repo"
+            list="source-repositories"
             placeholder="/home/user/source/application"
             required /></label
         ><label
           ><input name="generate" type="checkbox" /> Request edits from the
           configured model</label
         ><label
-          >Source files for the model (one relative path per line)<textarea
+          >Tracked source files<select
+            name="source_files"
+            multiple
+          ></select></label
+        ><button type="button" class="secondary" data-source-files="1">
+          Refresh source files</button
+        ><label
+          >Selected or custom source paths (one per line)<textarea
             name="files"
             rows="3"
             placeholder="src/routes/search.py"

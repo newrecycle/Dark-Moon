@@ -721,3 +721,16 @@ nav {
     overflow-y: hidden;
   }
 }
+
+select[multiple] {
+  min-height: 108px;
+  padding: 6px;
+}
+select option {
+  padding: 5px 8px;
+  background: #141b26;
+  color: #e5edf7;
+}
+[hidden] {
+  display: none !important;
+}

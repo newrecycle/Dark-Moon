@@ -1,10 +1,14 @@
 # Reconstructed Pro features on current master
 
 Base: **ASCIT31/Dark-Moon master `b52d4d73c325427e4d2fa5f3cbf87dd889cc6300`**.
-The active branch contains the feature changes only. The previous fork's runtime,
+The original reconstruction contains the feature changes only. Current `pro`
+subsequently merged upstream through `2b65cad`. The UI/provider update intentionally
+extends `conf/apply-settings.sh` to preserve shared logins and support saved
+OAuth authentication; see [OpenCode/WebUI sync](opencode-webui.md). The previous fork's runtime,
 models, agents, image rewrites, toolbox inventory, Hermes/browser experiments and
-build/CI modifications are not imported. Upstream `conf/`, `mcp/src/`, Dockerfiles,
-CLI, installer and setup scripts are byte-for-byte unchanged from this base.
+build/CI modifications are not imported. The original reconstruction left upstream runtime/configuration unchanged.
+The later upstream merge and targeted authentication change above are part of
+the current branch; agent prompts are not edited by the UI update.
 
 The proprietary Pro application source is not among the public repositories
 inspected. The user explicitly selected **reconstruction from documentation**.
@@ -28,7 +32,7 @@ the Gradle wrapper are preserved. See the [import guide](../integrations/upstrea
 | SSO / OIDC | HTTPS discovery, authorization code + PKCE, browser-bound state cookie, nonce, issuer/audience/authorized-party checks and verified RSA/EC ID tokens | Signed-token test with fake provider transport. Authelia or another real IdP still requires deployment configuration/testing. |
 | Encrypted credential store | Fernet-sealed secrets; public list/write responses contain masked metadata and opaque references | Plaintext absent from saved state and list responses. Root key and state files are private. |
 | Authenticated target assessments | Separate target login/token references; local Docker stdin sends secrets to the **existing upstream privacy socket**, then only placeholders enter assessment argv | Fake-transport tests prove no secret in argv and fail-closed behavior if masking fails. Requires the running persistent upstream MCP socket; no plaintext fallback. |
-| LLM provider management | Local, cloud and Anthropic profiles, encrypted API-key references, explicit `.opencode.env` application | Profile/apply tests use temporary repositories. Applying a profile requires recreating the existing OpenCode service; the feature never restarts it silently. |
+| LLM provider management | Local, cloud and Anthropic profiles, encrypted API-key references, explicit `.opencode.env` application | Profile/apply tests use temporary repositories. Applying a profile updates shared files without erasing other logins; the optional authenticated native bridge applies changes live. Without it, restart OpenCode explicitly. Native OAuth is delegated to OpenCode. |
 | REST API and capability discovery | All 15 documented route families: projects, targets, campaigns, vulnerabilities, dashboard, run, scheduler, auth, credentials, pull-requests, system, webhooks, events, retest, metrics | Actual official SDK against our HTTP server, plus HTTP permission/contract tests. `edition=community` is reported honestly. No PR-write or merge API exists. |
 | Safe external integration data | Evidence-free vulnerability lists, evidence counts/booleans, safe PR validation summaries, aggregate metrics | Metadata tests exclude evidence, commands, target hosts and secrets from integration feeds. Full local administrator report/detail routes remain separate. |
 | Live streaming | Run output SSE, terminal events, event journal, monotonically increasing cursors and replay by cursor | Real SSE over local HTTP with a fake assessment launcher; no real scan. |

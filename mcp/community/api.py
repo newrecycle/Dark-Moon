@@ -272,6 +272,43 @@ class API:
             else:
                 return False
             return True
+        if parts == ["source-files"] and method == "GET":
+            if identity.get("role") == "viewer":raise PermissionError("Read-only accounts cannot inspect source repositories")
+            import subprocess
+            from pathlib import Path
+            repo = Path(query.get("repo", "")).expanduser().resolve()
+            if not query.get("repo") or not repo.is_dir():raise ValueError("Choose an existing local source repository")
+            try:
+                result = subprocess.run(["git", "-c", "core.hooksPath=/dev/null", "-C", str(repo), "ls-files", "-z"],capture_output=True,timeout=10)
+            except (OSError,subprocess.TimeoutExpired):raise ValueError("Could not list tracked source files") from None
+            if result.returncode:raise ValueError("Source directory is not a Git repository")
+            files = result.stdout.decode("utf-8",errors="replace").split("\0")
+            files = [f for f in files if f and not any(ord(c)<32 for c in f)]
+            handler.send({"files":files[:5000],"truncated":len(files)>5000})
+            return True
+        if parts == ["options"] and method == "GET":
+            from .opencode import catalog
+            snapshot = self.service.snapshot()
+            handler.send({"targets":snapshot["targets"], "campaigns":snapshot["campaigns"],
+                          "findings":[{k:v.get(k) for k in ("id","campaign_id","title","severity")} for v in snapshot["findings"]],
+                          "credentials":self.service.vault.list() if identity.get("role") != "viewer" else [],
+                          "repositories":sorted({j.get("spec",{}).get("git_repo") for j in self.store.items("jobs") if j.get("spec",{}).get("git_repo")} | {p.get("repo") for p in self.store.items("remediations") if p.get("repo")} | {p for p in os.environ.get("DARKMOON_SOURCE_REPOSITORIES", "").split(os.pathsep) if p}),
+                          "opencode":catalog(self.service) if admin else None})
+            return True
+        if parts[:2] == ["system", "opencode"]:
+            if not admin:raise PermissionError("Administrator access is required")
+            from . import opencode
+            if method == "GET" and len(parts) == 2:
+                handler.send(opencode.catalog(self.service))
+            elif method == "POST" and len(parts) == 3 and parts[2] in {"sync","connect","disconnect","oauth-start","oauth-finish"}:
+                raw = handler.body()
+                if parts[2] == "sync":result = opencode.sync(self.service)
+                elif parts[2] == "connect":result = opencode.connect(self.service,raw)
+                elif parts[2] == "disconnect":result = opencode.disconnect(self.service,raw)
+                else:result = opencode.oauth(self.service,raw,finish=parts[2] == "oauth-finish")
+                handler.send(result)
+            else:return False
+            return True
         if resource == "system" and method == "GET":
             if parts[1:] == ["update-status"]:
                 from .updates import status

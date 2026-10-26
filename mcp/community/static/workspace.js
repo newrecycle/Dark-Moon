@@ -3,11 +3,221 @@
 // rendering helpers from app.js. No third-party scripts or remote assets.
 (() => {
   let formState = null;
+  let choices = null;
+  const checks = [
+    ["sqli", "SQL injection"],
+    ["xss", "Cross-site scripting"],
+    ["idor", "Access control / IDOR"],
+    ["ssrf", "Server-side request forgery"],
+    ["rce", "Remote code execution"],
+    ["lfi", "File inclusion"],
+    ["auth", "Authentication"],
+    ["api", "API security"],
+    ["web", "Web application"],
+    ["configuration", "Configuration"],
+    ["dos", "Denial of service"],
+    ["bruteforce", "Brute force"],
+  ].map(([value, label]) => ({ value, label }));
+  const optionsHtml = (items) =>
+    items
+      .map((x) => {
+        const value = typeof x === "string" ? x : x.value;
+        const label = typeof x === "string" ? x : x.label;
+        return `<option value="${esc(value)}">${esc(label)}</option>`;
+      })
+      .join("");
+  const credentials = () => [
+    { value: "", label: "None / use existing provider login" },
+    ...choices.credentials.map((c) => ({
+      value: c.id,
+      label: `${c.name} (${c.provider})`,
+    })),
+  ];
+  async function loadChoices() {
+    choices = await api("/api/v1/options");
+    return choices;
+  }
+  function providerModels() {
+    const form = $("#workspace-form"),
+      pid = form.elements.provider.value;
+    const provider = choices.opencode?.providers.find((p) => p.id === pid);
+    const model = form.elements.model;
+    if (model) {
+      model.innerHTML = optionsHtml([
+        ...(provider?.models || []).map((m) => ({
+          value: m.id,
+          label: m.name,
+        })),
+        { value: "__custom__", label: "Custom model…" },
+      ]);
+      const active = choices.opencode?.active_model || "";
+      if (
+        active.startsWith(pid + "/") &&
+        [...model.options].some((o) => o.value === active.slice(pid.length + 1))
+      )
+        model.value = active.slice(pid.length + 1);
+      if (form.elements.base_url)
+        form.elements.base_url.value =
+          provider?.base_url ||
+          (pid === "ollama" ? "http://host.docker.internal:11434/v1" : "");
+      form.elements.mode.value = provider?.base_url
+        ? pid === "anthropic"
+          ? "anthropic"
+          : "local"
+        : pid === "ollama" || pid === "local"
+          ? "local"
+          : "cloud";
+    }
+    if (form.elements.auth_method)
+      form.elements.auth_method.innerHTML = optionsHtml([
+        { value: "api", label: "Saved credential / API key" },
+        ...(provider?.methods || [])
+          .filter((m) => m.type === "oauth")
+          .map((m) => ({ value: String(m.index), label: m.label })),
+      ]);
+    customFields();
+  }
+  function customFields() {
+    const f = $("#workspace-form");
+    for (const [select, input] of [
+      ["provider", "custom_provider"],
+      ["model", "custom_model"],
+    ]) {
+      if (f.elements[input]) {
+        const custom = f.elements[select].value === "__custom__";
+        f.elements[input].closest("label").hidden = !custom;
+        f.elements[input].required = custom;
+      }
+    }
+    if (f.elements.auth_method) {
+      const apiKey = f.elements.auth_method.value === "api";
+      for (const key of ["credential_id", "secret"])
+        f.elements[key].closest("label").hidden = !apiKey;
+    }
+  }
+  function retestFindings() {
+    const f = $("#workspace-form");
+    if (!f.elements.finding_ids) return;
+    f.elements.finding_ids.innerHTML = optionsHtml([
+      { value: "", label: "All findings in this assessment" },
+      ...choices.findings
+        .filter((v) => v.campaign_id === f.elements.campaign_id.value)
+        .map((v) => ({ value: v.id, label: `${v.title} (${v.severity})` })),
+    ]);
+  }
+  window.populateLaunch = async () => {
+    await loadChoices();
+    const f = $("#launch-form");
+    f.reset();
+    f.elements.known_target.innerHTML = optionsHtml([
+      { value: "", label: "New target…" },
+      ...choices.targets.map((t) => ({
+        value: t.id,
+        label: t.name || t.host || t.ip,
+      })),
+    ]);
+    for (const key of [
+      "assessment_credential_id",
+      "assessment_token_id",
+      "credential_id",
+    ])
+      f.elements[key].innerHTML = optionsHtml(
+        credentials().map((c, i) =>
+          i
+            ? c
+            : {
+                value: "",
+                label:
+                  key === "credential_id"
+                    ? "No SCM credential"
+                    : key === "assessment_token_id"
+                      ? "No saved target token"
+                      : "No saved target login",
+              },
+        ),
+      );
+    for (const key of ["known_targets", "known_out_of_scope"])
+      f.elements[key].innerHTML = optionsHtml(
+        choices.targets.map((t) => ({
+          value: t.host || t.ip,
+          label: t.name || t.host || t.ip,
+        })),
+      );
+    for (const key of ["focus", "exclude"])
+      f.elements[key].innerHTML = optionsHtml(checks);
+    f.elements.severity.innerHTML = optionsHtml([
+      "critical",
+      "high",
+      "medium",
+      "low",
+      "info",
+    ]);
+    $("#source-repositories").innerHTML = optionsHtml(choices.repositories);
+    if (choices.targets.length) {
+      f.elements.known_target.value = choices.targets[0].id;
+      fillTarget();
+    }
+    f.elements.first_run.value = new Date(
+      Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000,
+    )
+      .toISOString()
+      .slice(0, 16);
+  };
+  async function loadSourceFiles() {
+    const f = $("#remediation-form");
+    if (!f.elements.repo.value) return;
+    const result = await api(
+      "/api/v1/source-files?repo=" + encodeURIComponent(f.elements.repo.value),
+    );
+    f.elements.source_files.innerHTML = optionsHtml(result.files);
+  }
+  window.populateRemediation = async () => {
+    await loadChoices();
+    $("#source-repositories").innerHTML = optionsHtml(choices.repositories);
+    const f = $("#remediation-form");
+    f.reset();
+    const localRepos = choices.repositories.filter(
+      (p) => !p.includes("://") && !p.startsWith("git@"),
+    );
+    if (localRepos.length) {
+      f.elements.repo.value = localRepos[0];
+      await loadSourceFiles();
+    }
+  };
+  function fillTarget() {
+    const f = $("#launch-form"),
+      target = choices.targets.find(
+        (t) => t.id === f.elements.known_target.value,
+      );
+    f.elements.target.value = target?.host || target?.ip || "";
+    f.elements.name.value = target
+      ? `Review: ${target.name || target.host || target.ip}`
+      : "";
+  }
+  document.addEventListener("change", (event) => {
+    const f = event.target.closest("form");
+    if (f?.id === "remediation-form" && event.target.name === "source_files")
+      f.elements.files.value = [...event.target.selectedOptions]
+        .map((o) => o.value)
+        .join("\n");
+    if (f?.id === "remediation-form" && event.target.name === "repo")
+      loadSourceFiles().catch(
+        (error) => ($("#remediation-error").textContent = error.message),
+      );
+    if (f?.id === "launch-form" && event.target.name === "known_target")
+      fillTarget();
+    if (f?.id !== "workspace-form") return;
+    if (event.target.name === "provider") providerModels();
+    if (event.target.name === "model" || event.target.name === "auth_method")
+      customFields();
+    if (event.target.name === "campaign_id") retestFindings();
+  });
+
   const fields = (specs) =>
     specs
       .map(
         ([name, label, type = "text", options = []]) =>
-          `<label>${esc(label)}${type === "select" ? `<select name="${name}">${options.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join("")}</select>` : type === "textarea" ? `<textarea name="${name}" rows="3"></textarea>` : `<input name="${name}" type="${type}" ${type === "checkbox" || label.includes("optional") || name === "base_url" ? "" : "required"} autocomplete="off">`}</label>`,
+          `<label>${esc(label)}${["select", "multiple"].includes(type) ? `<select name="${name}" ${type === "multiple" ? "multiple" : ""}>${optionsHtml(options)}</select>` : type === "textarea" ? `<textarea name="${name}" rows="3"></textarea>` : `<input name="${name}" type="${type}" ${type === "checkbox" || label.includes("optional") || name === "base_url" ? "" : "required"} autocomplete="off">`}</label>`,
       )
       .join("");
   function openForm(kind, title, specs, context = {}) {
@@ -104,14 +314,29 @@
       $("#content").innerHTML =
         `<section class="panel"><div class="section-top"><div><h3>Reassessment and remediation verdicts</h3><p>Absence is reported as not observed. Fixed requires recorded before/after remediation proof.</p></div><button class="primary" data-workspace="retest">+ Retest assessment</button></div>${result.data.map((r) => `<div class="list-item"><div><a class="clickable" data-retest-detail="${esc(r.id)}">${esc(r.base_campaign_id)}</a><small>${esc(date(r.created_at))}</small></div>${badge(r.status)}</div>`).join("") || empty("No retests yet")}</section>`;
     } else if (page === "settings") {
-      const [who, users, providers] = await Promise.all([
-        api("/api/v1/auth/me"),
+      const who = await api("/api/v1/auth/me");
+      if (who.user.role !== "admin") {
+        if (route !== page) return;
+        $("#content").innerHTML =
+          `<section class="panel"><h3>My account</h3><p>${esc(who.user.username)} · ${esc(who.user.role)}</p>${who.user.authentication === "password" ? `<button class="secondary" data-workspace="password">Change my password</button>` : `<p>Manage this sign-in through ${who.user.authentication === "oidc" ? "your SSO provider" : "the workspace recovery token"}.</p>`}<p>Provider logins and installation settings are managed by your administrator.</p></section>`;
+        return;
+      }
+      const [users, providers] = await Promise.all([
         api("/api/v1/auth/users"),
         api("/api/v1/system/providers"),
+        loadChoices(),
       ]);
       if (route !== page) return;
       $("#content").innerHTML =
-        `<section class="panel"><div class="section-top"><div><h3>Accounts and access</h3><p>Signed in as ${esc(who.user.username)} · ${esc(who.user.role)}</p></div><button class="primary" data-workspace="account">+ Add account</button></div>${users.data.map((u) => `<div class="list-item"><div>${esc(u.username)}<small>${esc(u.id)}</small></div>${badge(u.role)}</div>`).join("") || empty("No password accounts", "Create an account here or configure your OIDC provider. The workspace token remains an administrator recovery method.")}<p class="instructions">OIDC uses the configured issuer, client id, redirect URI, PKCE and nonce verification. Local passwords and SSO identities issue short-lived, revocable sessions.</p><button class="secondary" data-workspace="password">Change my password</button></section><section class="panel"><div class="section-top"><div><h3>LLM provider profiles</h3><p>Keys stay encrypted until you explicitly apply a profile to the existing agent environment.</p></div><button class="primary" data-workspace="provider">+ Add provider</button></div>${providers.data.map((p) => `<div class="list-item"><div>${esc(p.provider)} / ${esc(p.model)}<small>${esc(p.mode)} · ${esc(p.base_url)}</small></div><button class="secondary" data-apply-provider="${esc(p.id)}">Apply profile</button></div>`).join("") || empty("No saved provider profiles")}<small>Applying a profile updates .opencode.env. Recreate the existing OpenCode service to load it.</small></section><section class="panel"><div class="section-top"><div><h3>Installation health</h3><p>Inspect dependencies, paths and the operator-controlled integrity guard.</p></div><div><button class="secondary" data-doctor="1">Run diagnostics</button> <button class="secondary" data-updates="1">Check image updates</button></div></div><p class="instructions">Enforcement is opt-in. After reviewing your source and Compose policy, create the integrity baseline with the documented local command. Licensing and vendor activation are not part of this independent implementation.</p></section>`;
+        `<section class="panel"><div class="section-top"><div><h3>Accounts and access</h3><p>Signed in as ${esc(who.user.username)} · ${esc(who.user.role)}</p></div><button class="primary" data-workspace="account">+ Add account</button></div>${users.data.map((u) => `<div class="list-item"><div>${esc(u.username)}<small>${esc(u.id)}</small></div>${badge(u.role)}</div>`).join("") || empty("No password accounts", "Create an account here or configure your OIDC provider. The workspace token remains an administrator recovery method.")}<p class="instructions">OIDC uses the configured issuer, client id, redirect URI, PKCE and nonce verification. Local passwords and SSO identities issue short-lived, revocable sessions.</p>${who.user.authentication === "password" ? `<button class="secondary" data-workspace="password">Change my password</button>` : `<p>Manage this sign-in through ${who.user.authentication === "oidc" ? "your SSO provider" : "the workspace recovery token"}.</p>`}</section><section class="panel"><div class="section-top"><div><h3>OpenCode providers and logins</h3><p>Active model: ${esc(choices.opencode.active_model || "Not configured")} · ${choices.opencode.live ? "Native server connected" : "Shared files; restart required after changes"}</p>${choices.opencode.warning ? `<p role="alert">${esc(choices.opencode.warning)}</p>` : ""}<button class="secondary" data-workspace="opencode_connect">Connect provider</button> <button class="secondary" data-sync-opencode="1">Sync from OpenCode</button></div><button class="primary" data-workspace="provider">+ Add provider</button></div>${choices.opencode.providers
+          .filter((p) => p.connected)
+          .map(
+            (p) =>
+              `<p>${esc(p.name)} · connected (${esc(p.auth_type)}) · ${p.models.length} catalog models <button class="secondary" data-disconnect-opencode="${esc(p.id)}">Disconnect</button></p>`,
+          )
+          .join(
+            "",
+          )}${providers.data.map((p) => `<div class="list-item"><div>${esc(p.provider)} / ${esc(p.model)}<small>${esc(p.mode)} · ${esc(p.base_url)}</small></div><button class="secondary" data-apply-provider="${esc(p.id)}">Apply profile</button></div>`).join("") || empty("No saved provider profiles")}<small>Profiles update shared OpenCode config and preserve native logins. Configure the native server bridge to apply live; otherwise restart OpenCode after applying. <a href="https://github.com/newrecycle/Dark-Moon/blob/pro/docs/opencode-webui.md" target="_blank" rel="noopener noreferrer">Set up native sign-in</a>.</small></section><section class="panel"><div class="section-top"><div><h3>Installation health</h3><p>Inspect dependencies, paths and the operator-controlled integrity guard.</p></div><div><button class="secondary" data-doctor="1">Run diagnostics</button> <button class="secondary" data-updates="1">Check image updates</button></div></div><p class="instructions">Enforcement is opt-in. After reviewing your source and Compose policy, create the integrity baseline with the documented local command. Licensing and vendor activation are not part of this independent implementation.</p></section>`;
     }
   };
   function markdownPreview(markdown) {
@@ -173,6 +398,7 @@
     if (!button) return;
     try {
       const action = button.dataset.workspace;
+      if (button.dataset.sourceFiles) await loadSourceFiles();
       if (action === "account")
         openForm("account", "Create account", [
           ["username", "Username"],
@@ -184,37 +410,149 @@
           ["old_password", "Current password", "password"],
           ["new_password", "New password (at least 12 characters)", "password"],
         ]);
-      if (action === "credential")
+      if (action === "credential") {
+        await loadChoices();
         openForm("credential", "Store encrypted credential", [
           ["name", "Name"],
-          ["provider", "Provider (github, local-model, aws, …)"],
+          [
+            "provider",
+            "Provider",
+            "select",
+            [
+              ...new Set([
+                "generic",
+                "github",
+                "gitlab",
+                "gitea",
+                "target-login",
+                "target-token",
+                "aws",
+                ...(choices.opencode?.providers || []).map((p) => p.id),
+              ]),
+            ],
+          ],
           ["username", "Username (optional)"],
           ["secret", "Secret", "password"],
         ]);
+      }
       if (action === "webhook")
         openForm("webhook", "Register webhook", [
           ["url", "HTTPS receiver URL"],
-          ["events", "Events (comma-separated, or *)"],
+          [
+            "events",
+            "Events (choose one or more)",
+            "multiple",
+            [
+              "*",
+              "campaign.started",
+              "campaign.completed",
+              "campaign.aborted",
+              "finding.discovered",
+              "finding.confirmed",
+              "finding.exploited",
+              "retest.completed",
+              "remediation.updated",
+              "pr.opened",
+              "pr.updated",
+            ],
+          ],
           ["secret", "Signing secret (at least 24 characters)", "password"],
         ]);
-      if (action === "provider")
-        openForm("provider", "Save provider profile", [
-          ["provider", "Provider id"],
-          ["mode", "Mode", "select", ["local", "cloud", "anthropic"]],
-          ["model", "Model id"],
-          ["base_url", "Base URL (local / Anthropic)"],
-          ["credential_id", "Saved credential id (optional for local)"],
-        ]);
+      if (action === "provider" || action === "opencode_connect") {
+        await loadChoices();
+        const providers = [
+          ...(choices.opencode?.providers || []).map((p) => ({
+            value: p.id,
+            label: `${p.name}${p.connected ? " — connected" : ""}`,
+          })),
+          { value: "__custom__", label: "Custom provider…" },
+        ];
+        const specs = [
+          ["provider", "Provider", "select", providers],
+          ["custom_provider", "Custom provider id"],
+        ];
+        if (action === "provider")
+          specs.push(
+            [
+              "mode",
+              "Protocol / mode",
+              "select",
+              ["cloud", "local", "anthropic"],
+            ],
+            ["model", "Model", "select", []],
+            ["custom_model", "Custom model id"],
+            ["base_url", "Base URL (optional for built-in providers)"],
+            [
+              "credential_id",
+              "Saved API key (optional when connected)",
+              "select",
+              credentials(),
+            ],
+          );
+        else
+          specs.push(
+            ["auth_method", "Login method", "select", []],
+            [
+              "credential_id",
+              "Saved API key (optional)",
+              "select",
+              credentials(),
+            ],
+            ["secret", "New API key (optional)", "password"],
+          );
+        openForm(
+          action,
+          action === "provider"
+            ? "Choose OpenCode provider and model"
+            : "Connect OpenCode provider",
+          specs,
+        );
+        const active = choices.opencode?.active_model?.split("/")[0];
+        if (providers.some((p) => p.value === active))
+          $("#workspace-form").elements.provider.value = active;
+        providerModels();
+      }
       if (action === "project")
         openForm("project", "Create project", [
           ["name", "Project name"],
           ["description", "Description", "textarea"],
         ]);
-      if (action === "retest")
+      if (action === "retest") {
+        await loadChoices();
+        if (!choices.campaigns.length)
+          throw new Error("Create an assessment before requesting a retest.");
         openForm("retest", "Retest an assessment", [
-          ["campaign_id", "Base campaign id"],
-          ["finding_ids", "Finding ids (optional, comma-separated)"],
+          [
+            "campaign_id",
+            "Base assessment",
+            "select",
+            choices.campaigns.map((c) => ({
+              value: c.id,
+              label: c.name || c.id,
+            })),
+          ],
+          ["finding_ids", "Findings (optional)", "multiple", []],
         ]);
+        retestFindings();
+      }
+      if (button.dataset.disconnectOpencode) {
+        const r = await api("/api/v1/system/opencode/disconnect", {
+          method: "POST",
+          body: JSON.stringify({ provider: button.dataset.disconnectOpencode }),
+        });
+        await window.renderWorkspace("settings");
+        details(
+          "OpenCode login removed",
+          `<p>${esc(r.restart_required ? "Shared login removed. Restart OpenCode to finish disconnecting." : "Provider disconnected.")}</p>${r.warning ? `<p>${esc(r.warning)}</p>` : ""}`,
+        );
+      }
+      if (button.dataset.syncOpencode) {
+        await api("/api/v1/system/opencode/sync", {
+          method: "POST",
+          body: "{}",
+        });
+        await window.renderWorkspace("settings");
+      }
       if (button.dataset.protectedPdf)
         openForm(
           "protected_pdf",
@@ -278,7 +616,12 @@
           `/api/v1/system/providers/${button.dataset.applyProvider}/apply`,
           { method: "POST", body: "{}" },
         );
-        details("Provider applied", `<p>${esc(r.note)}</p>`);
+        details(
+          r.warning
+            ? "Provider saved; live update failed"
+            : "Provider settings saved",
+          `<p>${esc(r.note)}</p>${r.warning ? `<p role="alert">${esc(r.warning)}</p>` : ""}`,
+        );
       }
       if (button.dataset.updates) {
         const result = await api("/api/v1/system/update-status?check=1");
@@ -325,20 +668,80 @@
           method: "POST",
           body: JSON.stringify(raw),
         });
-      if (kind === "provider")
+      if (kind === "provider") {
+        if (raw.provider === "__custom__") raw.provider = raw.custom_provider;
+        if (raw.model === "__custom__") raw.model = raw.custom_model;
+        delete raw.custom_provider;
+        delete raw.custom_model;
         result = await api("/api/v1/system/providers", {
           method: "POST",
           body: JSON.stringify(raw),
         });
+      }
+      if (kind === "opencode_connect") {
+        if (raw.provider === "__custom__") raw.provider = raw.custom_provider;
+        if (raw.auth_method !== "api") {
+          result = await api("/api/v1/system/opencode/oauth-start", {
+            method: "POST",
+            body: JSON.stringify({
+              provider: raw.provider,
+              method: Number(raw.auth_method),
+            }),
+          });
+          openForm(
+            "opencode_oauth",
+            "Finish OpenCode sign-in",
+            [["code", "Authorization code (optional for automatic login)"]],
+            { provider: raw.provider, method: Number(raw.auth_method) },
+          );
+          $("#workspace-fields").insertAdjacentHTML(
+            "afterbegin",
+            `<p><a href="${esc(result.url)}" target="_blank" rel="noopener noreferrer">Continue with provider →</a></p><p>${esc(result.instructions)}</p>`,
+          );
+          return;
+        }
+        if (!raw.credential_id) {
+          if (!raw.secret)
+            throw new Error("Choose a saved key or enter a new API key.");
+          const key = await api("/api/v1/credentials", {
+            method: "POST",
+            body: JSON.stringify({
+              name: `OpenCode: ${raw.provider}`,
+              provider: raw.provider,
+              secret: raw.secret,
+            }),
+          });
+          raw.credential_id = key.data.id;
+        }
+        result = await api("/api/v1/system/opencode/connect", {
+          method: "POST",
+          body: JSON.stringify({
+            provider: raw.provider,
+            credential_id: raw.credential_id,
+          }),
+        });
+      }
+      if (kind === "opencode_oauth")
+        result = await api("/api/v1/system/opencode/oauth-finish", {
+          method: "POST",
+          body: JSON.stringify({
+            provider: formState.provider,
+            method: formState.method,
+            code: raw.code,
+          }),
+        });
+      if (kind === "opencode_oauth" && !result.connected)
+        throw new Error(
+          "OpenCode has not completed sign-in yet. Complete the provider approval and retry.",
+        );
       if (kind === "project")
         result = await api("/api/v1/projects", {
           method: "POST",
           body: JSON.stringify(raw),
         });
       if (kind === "webhook") {
-        raw.events = raw.events
-          .split(",")
-          .map((x) => x.trim())
+        raw.events = new FormData(event.target)
+          .getAll("events")
           .filter(Boolean);
         result = await api("/api/v1/webhooks", {
           method: "POST",
@@ -346,9 +749,8 @@
         });
       }
       if (kind === "retest") {
-        raw.finding_ids = raw.finding_ids
-          .split(",")
-          .map((x) => x.trim())
+        raw.finding_ids = new FormData(event.target)
+          .getAll("finding_ids")
           .filter(Boolean);
         result = await api("/api/v1/retest", {
           method: "POST",
@@ -377,6 +779,11 @@
       }
       $("#workspace-dialog").close();
       await refresh();
+      if (kind === "opencode_connect")
+        details(
+          "Provider login saved",
+          `<p>${esc(result.restart_required ? "Shared login saved. Restart OpenCode to load it." : "Provider connected in OpenCode.")}</p>${result.warning ? `<p>${esc(result.warning)}</p>` : ""}`,
+        );
     } catch (error) {
       $("#workspace-error").textContent = error.message;
     } finally {

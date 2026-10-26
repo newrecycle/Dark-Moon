@@ -99,7 +99,7 @@ class Accounts:
 
     @staticmethod
     def public(user):
-        return {k: user[k] for k in ("id", "username", "role", "created_at", "must_change_password") if k in user}
+        return {k: user[k] for k in ("id", "username", "role", "created_at", "must_change_password") if k in user} | {"authentication": "password" if user.get("password_hash") else "oidc" if user.get("provider") == "oidc" else "unknown"}
 
     def issue(self, user):
         import jwt
