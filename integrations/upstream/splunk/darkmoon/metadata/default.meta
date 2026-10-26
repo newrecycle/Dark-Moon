@@ -1,0 +1,39 @@
+#
+# Default permissions for the Darkmoon Pentest app.
+# Everything is world-readable within Splunk; writes are admin-only.
+#
+
+[]
+access = read : [ * ], write : [ admin, sc_admin ]
+export = system
+
+[views]
+export = system
+
+[savedsearches]
+export = system
+
+[macros]
+export = system
+
+[transforms]
+export = system
+
+[props]
+export = system
+
+[lookups]
+export = system
+
+[eventtypes]
+export = system
+
+[tags]
+export = system
+
+[alert_actions/darkmoon_campaign]
+export = system
+
+# Non-secret settings conf readable app-wide.
+[darkmoon]
+export = system

@@ -1,0 +1,100 @@
+{
+ "projects_count": 1,
+ "targets_count": 4,
+ "campaigns_count": 6,
+ "total_vulnerabilities": 17,
+ "severity_distribution": {
+  "critical": 4,
+  "high": 6,
+  "medium": 4,
+  "low": 3,
+  "info": 0
+ },
+ "category_distribution": {
+  "sql_injection": 2,
+  "xss": 2,
+  "broken_authentication": 3,
+  "misconfiguration": 3,
+  "broken_access_control": 1,
+  "information_disclosure": 3,
+  "remote_code_execution": 1,
+  "vulnerable_component": 1,
+  "ssrf": 1
+ },
+ "status_distribution": {
+  "exploited": 4,
+  "confirmed": 10,
+  "unconfirmed": 2,
+  "remediated": 1
+ },
+ "recent_campaigns": [
+  {
+   "campaign_id": "camp_demo_06",
+   "target": "api.demo-shop.local",
+   "date": "2026-09-19",
+   "risk": "low",
+   "findings": 1
+  },
+  {
+   "campaign_id": "camp_demo_05",
+   "target": "pay.demo-shop.local",
+   "date": "2026-09-11",
+   "risk": "medium",
+   "findings": 2
+  },
+  {
+   "campaign_id": "camp_demo_04",
+   "target": "demo-shop.local",
+   "date": "2026-09-05",
+   "risk": "critical",
+   "findings": 3
+  },
+  {
+   "campaign_id": "camp_demo_03",
+   "target": "kiosk.demo-shop.local",
+   "date": "2026-08-29",
+   "risk": "critical",
+   "findings": 3
+  },
+  {
+   "campaign_id": "camp_demo_02",
+   "target": "api.demo-shop.local",
+   "date": "2026-08-23",
+   "risk": "critical",
+   "findings": 4
+  },
+  {
+   "campaign_id": "camp_demo_01",
+   "target": "demo-shop.local",
+   "date": "2026-08-20",
+   "risk": "critical",
+   "findings": 4
+  }
+ ],
+ "targets_at_risk": [
+  {
+   "target_id": "tgt_web",
+   "host": "demo-shop.local",
+   "risk_level": "critical",
+   "open_vulns": 6
+  },
+  {
+   "target_id": "tgt_api",
+   "host": "api.demo-shop.local",
+   "risk_level": "high",
+   "open_vulns": 5
+  },
+  {
+   "target_id": "tgt_iot",
+   "host": "kiosk.demo-shop.local",
+   "risk_level": "high",
+   "open_vulns": 3
+  },
+  {
+   "target_id": "tgt_pay",
+   "host": "pay.demo-shop.local",
+   "risk_level": "medium",
+   "open_vulns": 2
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+{
+ "data": {
+  "id": "vuln_148acdf970",
+  "campaign_id": "camp_demo_03",
+  "target_id": "tgt_iot",
+  "project_id": "proj_demoshop",
+  "title": "Unauthenticated firmware upload",
+  "severity": "critical",
+  "status": "exploited",
+  "category": "remote_code_execution",
+  "cve": null,
+  "cwe": null,
+  "cvss_score": 9.9,
+  "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+  "mitre_attack_id": "T1133",
+  "mitre_attack_name": "External Remote Services",
+  "iso27001_control": "A.14.2.5",
+  "endpoint": "/cgi-bin/upgrade",
+  "discovered_by_agent": "iot-firmware",
+  "description": "[SYNTHETIC] Unauthenticated firmware upload on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+  "evidence": {
+   "commands": [
+    "<redacted-in-demo>"
+   ],
+   "payloads": [],
+   "raw_request": "",
+   "raw_response": "",
+   "extracted_data": null,
+   "screenshots": [],
+   "logs": [],
+   "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+  },
+  "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+ }
+}

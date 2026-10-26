@@ -1,0 +1,24 @@
+# Vector OSS (MPL-2.0) as a HEC-compatible receiver for fast/offline sender tests.
+# Validates the exact JSON envelope the forwarder produces without needing Splunk.
+sources:
+  hec:
+    type: splunk_hec
+    address: 0.0.0.0:8088
+    # Token accepted for the test lab. Real deployments use a real HEC token.
+    valid_tokens:
+      - test-hec-token
+
+sinks:
+  out:
+    type: file
+    inputs:
+      - hec
+    path: /output/received-%Y-%m-%d.log
+    encoding:
+      codec: json
+  console:
+    type: console
+    inputs:
+      - hec
+    encoding:
+      codec: json

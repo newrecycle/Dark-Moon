@@ -1,0 +1,33 @@
+{
+ "edition": "pro",
+ "api_version": "1.0.0",
+ "product_version": "demo-fixture",
+ "product_built_at": "2026-09-25T00:00:00Z",
+ "contract_version": "1",
+ "capabilities": [
+  "auth",
+  "campaigns",
+  "credentials",
+  "dashboard",
+  "pull-requests",
+  "run",
+  "scheduler",
+  "system",
+  "targets",
+  "vulnerabilities",
+  "projects",
+  "metrics",
+  "events",
+  "retest",
+  "webhooks"
+ ],
+ "features": {
+  "auth": true,
+  "credentials": true,
+  "scheduler": true,
+  "sse_progress": true,
+  "remediation": true,
+  "privacy_gateway": true,
+  "licensing": true
+ }
+}

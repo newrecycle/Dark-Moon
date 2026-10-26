@@ -1,0 +1,39 @@
+{
+  "name": "darkmoon-action",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Official GitHub Action for Darkmoon autonomous AI penetration testing (OSS + Pro).",
+  "author": "ASC-IT (SARL) — Darkmoon",
+  "license": "MIT",
+  "homepage": "https://github.com/ASCIT31/darkmoon-action#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ASCIT31/darkmoon-action.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ASCIT31/darkmoon-action/issues"
+  },
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "all": "npm run typecheck && npm run test && npm run build"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0",
+    "@darkmoon/client": "file:vendor/darkmoon-client-0.1.0.tgz"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.2"
+  }
+}

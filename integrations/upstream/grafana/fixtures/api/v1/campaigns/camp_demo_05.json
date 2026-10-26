@@ -1,0 +1,93 @@
+{
+ "data": {
+  "id": "camp_demo_05",
+  "project_id": "proj_demoshop",
+  "target_id": "tgt_pay",
+  "session_id": "sess_camp_demo_05",
+  "date": "2026-09-11T00:00:00Z",
+  "status": "completed",
+  "stats": {
+   "total_findings": 2,
+   "critical": 0,
+   "high": 0,
+   "medium": 1,
+   "low": 1,
+   "info": 0,
+   "exploited": 0,
+   "confirmed": 2,
+   "unconfirmed": 0
+  },
+  "overall_risk": "medium",
+  "agents_dispatched": [],
+  "is_subagent": false,
+  "vulnerabilities": [
+   {
+    "id": "vuln_8608d0d298",
+    "campaign_id": "camp_demo_05",
+    "target_id": "tgt_pay",
+    "project_id": "proj_demoshop",
+    "title": "TLS 1.0 enabled on payment endpoint",
+    "severity": "medium",
+    "status": "confirmed",
+    "category": "misconfiguration",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 5.9,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+    "mitre_attack_id": "T1040",
+    "mitre_attack_name": "Network Sniffing",
+    "iso27001_control": "A.10.1.1",
+    "endpoint": "/pay/checkout",
+    "discovered_by_agent": "web-app",
+    "description": "[SYNTHETIC] TLS 1.0 enabled on payment endpoint on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_98b677ece5",
+    "campaign_id": "camp_demo_05",
+    "target_id": "tgt_pay",
+    "project_id": "proj_demoshop",
+    "title": "Directory listing exposes /backup",
+    "severity": "low",
+    "status": "confirmed",
+    "category": "information_disclosure",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 4.3,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+    "mitre_attack_id": "T1083",
+    "mitre_attack_name": "File and Directory Discovery",
+    "iso27001_control": "A.12.4.1",
+    "endpoint": "/backup/",
+    "discovered_by_agent": "web-app",
+    "description": "[SYNTHETIC] Directory listing exposes /backup on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   }
+  ],
+  "open_vuln": 2
+ }
+}

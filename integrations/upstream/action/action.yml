@@ -1,0 +1,179 @@
+name: 'Darkmoon Pentest'
+description: 'Autonomous AI penetration testing in CI. Works with Darkmoon OSS and Pro. Fails builds on findings by severity.'
+author: 'ASC-IT'
+
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  mode:
+    description: 'Edition selection: auto | oss | pro. auto prefers Pro when base-url is reachable, else OSS.'
+    required: false
+    default: 'auto'
+
+  # --- Pro transport ---
+  base-url:
+    description: 'Darkmoon Pro base URL (with or without /api/v1). Required for Pro.'
+    required: false
+    default: ''
+  api-token:
+    description: 'Darkmoon Pro bearer token (JWT). Masked via core.setSecret before first use. Never printed.'
+    required: false
+    default: ''
+  username:
+    description: 'Darkmoon Pro username (alternative to api-token; used to obtain a token).'
+    required: false
+    default: ''
+  password:
+    description: 'Darkmoon Pro password. Masked via core.setSecret. Never printed.'
+    required: false
+    default: ''
+  refuse-insecure-default:
+    description: 'Refuse to run against a Pro admin still on the default password (default true). Set "false" to only warn.'
+    required: false
+    default: 'true'
+  pro-timeout-ms:
+    description: 'Pro HTTP timeout in milliseconds.'
+    required: false
+    default: '15000'
+
+  # --- OSS transport ---
+  oss-data-dir:
+    description: 'OSS: host path containing campaigns/ + vulnerabilities/ (the darkmoon-settings bind mount). Required for OSS.'
+    required: false
+    default: ''
+  oss-reports-dir:
+    description: 'OSS: host path containing pentest_report_*.md reports.'
+    required: false
+    default: ''
+  oss-script-path:
+    description: 'OSS: path to darkmoon.sh (default ~/darkmoon.sh).'
+    required: false
+    default: ''
+  oss-launch-template:
+    description: 'OSS: custom launch argv, comma/newline separated. Any element equal to {PROMPT} is replaced with the built prompt (e.g. "docker,exec,opencode,opencode,run,{PROMPT}").'
+    required: false
+    default: ''
+
+  # --- Attach mode ---
+  campaign-id:
+    description: 'Attach to an EXISTING campaign (evaluate its findings) instead of launching a new assessment. When set, target is optional.'
+    required: false
+    default: ''
+
+  # --- Assessment scope (maps to the Darkmoon prompt DSL) ---
+  target:
+    description: 'Primary assessment target (URL/host/IP), e.g. http://127.0.0.1:3000'
+    required: false
+    default: ''
+  targets:
+    description: 'Additional in-scope assets, comma or newline separated (supports DOMAIN/URL/API/CIDR prefixes and wildcards).'
+    required: false
+    default: ''
+  program:
+    description: 'Program / client name used in the report header.'
+    required: false
+    default: ''
+  focus:
+    description: 'Attack classes to prioritize, comma separated (e.g. sqli,rce,ssrf,idor).'
+    required: false
+    default: ''
+  severity:
+    description: 'Global MAX severity cap for reported findings: critical | high | medium | low.'
+    required: false
+    default: ''
+  exclude:
+    description: 'Attack classes to skip, comma separated (e.g. dom-xss,self-xss,clickjacking). H1 = HackerOne core-ineligible shortcut.'
+    required: false
+    default: ''
+  out-of-scope:
+    description: 'Assets that must never be touched, comma separated (hosts/CIDRs).'
+    required: false
+    default: ''
+  noise:
+    description: 'Discovery aggressiveness: stealth | low | moderate.'
+    required: false
+    default: ''
+  format:
+    description: 'Report style produced by the engine: standard | h1 | bugcrowd | custom.'
+    required: false
+    default: ''
+  safe-harbor:
+    description: 'Declare safe-harbor for the engagement (true/false).'
+    required: false
+    default: 'false'
+  rules:
+    description: 'Engagement rules, semicolon separated (e.g. "POC only;no real user data").'
+    required: false
+    default: ''
+
+  # --- Policy & reporting ---
+  fail-on:
+    description: 'Comma-separated severities that fail the job when present in findings (e.g. critical,high). Empty = never fail on findings. Computed from FINDINGS, not exit code.'
+    required: false
+    default: ''
+  report-format:
+    description: 'Private report artifact format: markdown | json | sarif. SARIF is synthesized for GitHub code scanning.'
+    required: false
+    default: 'markdown'
+  report-dir:
+    description: 'Directory to write the private report artifact into (defaults to RUNNER_TEMP).'
+    required: false
+    default: ''
+  full-report:
+    description: 'When true, fetch the UN-redacted report (rehydrated real values) into the private artifact. Two-key opt-in; default false (redacted).'
+    required: false
+    default: 'false'
+  post-report:
+    description: 'When true, post a REDACTION-SAFE severity summary (aggregate counts only) to the PR/commit. Default false. Full evidence is never posted.'
+    required: false
+    default: 'false'
+  github-token:
+    description: 'Token used only when post-report is true, to comment the severity summary. Needs pull-requests: write (or issues/contents: write).'
+    required: false
+    default: ${{ github.token }}
+  poll-interval-ms:
+    description: 'Polling interval in milliseconds while tracking a campaign.'
+    required: false
+    default: '5000'
+  timeout-ms:
+    description: 'Overall tracking timeout in milliseconds. A run still not terminal past this is treated as FAILURE (never a pass).'
+    required: false
+    default: '7200000'
+
+outputs:
+  campaign-id:
+    description: 'The Darkmoon campaign identifier.'
+  edition:
+    description: 'Detected edition: oss or pro.'
+  overall-risk:
+    description: 'Overall risk: critical | high | medium | low | none.'
+  total-findings:
+    description: 'Total number of findings.'
+  critical:
+    description: 'Count of critical findings.'
+  high:
+    description: 'Count of high findings.'
+  medium:
+    description: 'Count of medium findings.'
+  low:
+    description: 'Count of low findings.'
+  info:
+    description: 'Count of informational findings.'
+  exploited:
+    description: 'Count of findings with status exploited.'
+  confirmed:
+    description: 'Count of findings with status confirmed.'
+  unconfirmed:
+    description: 'Count of findings with status unconfirmed.'
+  remediated:
+    description: 'Count of findings with status remediated.'
+  report-path:
+    description: 'Absolute path to the private report artifact written on the runner.'
+  policy-failed:
+    description: 'true when the fail-on policy tripped, false otherwise.'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'

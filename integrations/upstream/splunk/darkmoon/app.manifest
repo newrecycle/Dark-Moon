@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "2.0.0",
+  "info": {
+    "title": "Darkmoon Pentest",
+    "id": {
+      "group": null,
+      "name": "darkmoon",
+      "version": "1.0.0"
+    },
+    "author": [
+      {
+        "name": "ASC-IT (SARL) / Darkmoon",
+        "email": "mehdi.boutayeb@asc-it.fr",
+        "company": "ASC-IT (SARL)"
+      }
+    ],
+    "releaseDate": null,
+    "description": "SOC ingestion for Darkmoon AI pentest results (HEC) plus an offensive-validation loop that triggers a Darkmoon retest/campaign from a Splunk correlation search. CIM-aligned sourcetypes, SOC dashboards, and a hard-secured alert action. Safe metadata only - never evidence, secrets, or request/response bodies.",
+    "classification": {
+      "intendedAudience": "Security teams / SOC",
+      "categories": ["Security, Fraud & Compliance"],
+      "developmentStatus": "Production/Stable"
+    },
+    "commonInformationModels": {
+      "Vulnerabilities": "5.0.0"
+    },
+    "license": {
+      "name": "MIT",
+      "text": "LICENSE",
+      "uri": null
+    },
+    "privacyPolicy": {
+      "name": null,
+      "text": null,
+      "uri": null
+    },
+    "releaseNotes": {
+      "name": "README",
+      "text": "./README.txt",
+      "uri": null
+    }
+  },
+  "dependencies": null,
+  "tasks": null,
+  "inputGroups": null,
+  "incompatibleApps": null,
+  "platformRequirements": null,
+  "supportedDeployments": ["_standalone", "_distributed", "_search_head_clustering"],
+  "targetWorkloads": ["_search_heads"]
+}

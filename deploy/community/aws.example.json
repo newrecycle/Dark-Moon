@@ -1,0 +1,1 @@
+{"name":"darkmoon-community","image":"ami-REPLACE_WITH_UBUNTU_2404_AMD64","size":"t3.xlarge","subnet":"subnet-REPLACE","security_group":"sg-REPLACE","ssh_key":"existing-key-name"}

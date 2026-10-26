@@ -1,0 +1,39 @@
+# Test lab for darkmoon-splunk.
+#
+#   docker compose up -d splunk      # real Splunk (nightly / confidence)
+#   docker compose up -d vector      # OSS HEC receiver (fast / offline sender tests)
+#
+# Splunk requires the 2025/2026 license + general-terms acceptance flags below.
+# Free 500MB/day, standalone, non-production — legal to run in CI.
+
+services:
+  splunk:
+    image: splunk/splunk:latest
+    container_name: darkmoon-splunk-test
+    hostname: splunk
+    environment:
+      SPLUNK_START_ARGS: "--accept-license"
+      SPLUNK_GENERAL_TERMS: "--accept-sgt-current-at-splunk-com"
+      SPLUNK_PASSWORD: "Changed-Me-123!"
+      SPLUNK_HEC_TOKEN: "test-hec-token"
+    ports:
+      - "18000:8000"  # Splunk Web (host 18000 to avoid conflicts)
+      - "8088:8088"   # HEC
+      - "8089:8089"   # management REST
+    # The app is installed by run_e2e.sh via `docker cp` (a read-only bind mount
+    # breaks Splunk's startup chown; a read-write mount would pollute the repo).
+    healthcheck:
+      test: ["CMD", "curl", "-fk", "https://localhost:8089/services/server/info", "-u", "admin:Changed-Me-123!"]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+
+  vector:
+    image: timberio/vector:latest-alpine
+    container_name: darkmoon-vector-test
+    command: ["--config", "/etc/vector/vector.yaml"]
+    ports:
+      - "18088:8088"  # HEC-compatible receiver
+    volumes:
+      - ./vector.yaml:/etc/vector/vector.yaml:ro
+      - ./vector-output:/output

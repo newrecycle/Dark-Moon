@@ -1,0 +1,35 @@
+{
+ "data": {
+  "id": "vuln_a8902838a2",
+  "campaign_id": "camp_demo_02",
+  "target_id": "tgt_api",
+  "project_id": "proj_demoshop",
+  "title": "JWT 'none' algorithm accepted",
+  "severity": "high",
+  "status": "confirmed",
+  "category": "broken_authentication",
+  "cve": null,
+  "cwe": null,
+  "cvss_score": 8.2,
+  "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N",
+  "mitre_attack_id": "T1550",
+  "mitre_attack_name": "Use Alternate Authentication Material",
+  "iso27001_control": "A.9.4.2",
+  "endpoint": "/api/auth/token",
+  "discovered_by_agent": "api-security",
+  "description": "[SYNTHETIC] JWT 'none' algorithm accepted on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+  "evidence": {
+   "commands": [
+    "<redacted-in-demo>"
+   ],
+   "payloads": [],
+   "raw_request": "",
+   "raw_response": "",
+   "extracted_data": null,
+   "screenshots": [],
+   "logs": [],
+   "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+  },
+  "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+ }
+}

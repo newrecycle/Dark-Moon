@@ -1,0 +1,35 @@
+{
+ "data": {
+  "id": "vuln_0de0902e53",
+  "campaign_id": "camp_demo_02",
+  "target_id": "tgt_api",
+  "project_id": "proj_demoshop",
+  "title": "IDOR on /api/orders/{id}",
+  "severity": "critical",
+  "status": "exploited",
+  "category": "broken_access_control",
+  "cve": null,
+  "cwe": null,
+  "cvss_score": 9.1,
+  "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+  "mitre_attack_id": "T1190",
+  "mitre_attack_name": "Exploit Public-Facing Application",
+  "iso27001_control": "A.9.4.1",
+  "endpoint": "/api/orders/{id}",
+  "discovered_by_agent": "api-security",
+  "description": "[SYNTHETIC] IDOR on /api/orders/{id} on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+  "evidence": {
+   "commands": [
+    "<redacted-in-demo>"
+   ],
+   "payloads": [],
+   "raw_request": "",
+   "raw_response": "",
+   "extracted_data": null,
+   "screenshots": [],
+   "logs": [],
+   "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+  },
+  "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+ }
+}

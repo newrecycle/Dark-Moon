@@ -1,0 +1,159 @@
+{
+ "data": {
+  "id": "camp_demo_02",
+  "project_id": "proj_demoshop",
+  "target_id": "tgt_api",
+  "session_id": "sess_camp_demo_02",
+  "date": "2026-08-23T00:00:00Z",
+  "status": "completed",
+  "stats": {
+   "total_findings": 4,
+   "critical": 1,
+   "high": 1,
+   "medium": 2,
+   "low": 0,
+   "info": 0,
+   "exploited": 1,
+   "confirmed": 2,
+   "unconfirmed": 1
+  },
+  "overall_risk": "critical",
+  "agents_dispatched": [],
+  "is_subagent": false,
+  "vulnerabilities": [
+   {
+    "id": "vuln_0de0902e53",
+    "campaign_id": "camp_demo_02",
+    "target_id": "tgt_api",
+    "project_id": "proj_demoshop",
+    "title": "IDOR on /api/orders/{id}",
+    "severity": "critical",
+    "status": "exploited",
+    "category": "broken_access_control",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 9.1,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+    "mitre_attack_id": "T1190",
+    "mitre_attack_name": "Exploit Public-Facing Application",
+    "iso27001_control": "A.9.4.1",
+    "endpoint": "/api/orders/{id}",
+    "discovered_by_agent": "api-security",
+    "description": "[SYNTHETIC] IDOR on /api/orders/{id} on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_a8902838a2",
+    "campaign_id": "camp_demo_02",
+    "target_id": "tgt_api",
+    "project_id": "proj_demoshop",
+    "title": "JWT 'none' algorithm accepted",
+    "severity": "high",
+    "status": "confirmed",
+    "category": "broken_authentication",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 8.2,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N",
+    "mitre_attack_id": "T1550",
+    "mitre_attack_name": "Use Alternate Authentication Material",
+    "iso27001_control": "A.9.4.2",
+    "endpoint": "/api/auth/token",
+    "discovered_by_agent": "api-security",
+    "description": "[SYNTHETIC] JWT 'none' algorithm accepted on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_30ff56d51a",
+    "campaign_id": "camp_demo_02",
+    "target_id": "tgt_api",
+    "project_id": "proj_demoshop",
+    "title": "Verbose error leaks stack trace",
+    "severity": "medium",
+    "status": "confirmed",
+    "category": "information_disclosure",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 5.3,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+    "mitre_attack_id": "T1592",
+    "mitre_attack_name": "Gather Victim Host Information",
+    "iso27001_control": "A.12.4.1",
+    "endpoint": "/api/checkout",
+    "discovered_by_agent": "api-security",
+    "description": "[SYNTHETIC] Verbose error leaks stack trace on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_f21f092916",
+    "campaign_id": "camp_demo_02",
+    "target_id": "tgt_api",
+    "project_id": "proj_demoshop",
+    "title": "Rate limiting absent on login",
+    "severity": "medium",
+    "status": "unconfirmed",
+    "category": "misconfiguration",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 5.0,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+    "mitre_attack_id": "T1110",
+    "mitre_attack_name": "Brute Force",
+    "iso27001_control": "A.9.4.1",
+    "endpoint": "/api/auth/login",
+    "discovered_by_agent": "api-security",
+    "description": "[SYNTHETIC] Rate limiting absent on login on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   }
+  ],
+  "open_vuln": 4
+ }
+}

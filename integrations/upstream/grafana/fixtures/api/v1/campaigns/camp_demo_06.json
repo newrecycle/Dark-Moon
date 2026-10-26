@@ -1,0 +1,60 @@
+{
+ "data": {
+  "id": "camp_demo_06",
+  "project_id": "proj_demoshop",
+  "target_id": "tgt_api",
+  "session_id": "sess_camp_demo_06",
+  "date": "2026-09-19T00:00:00Z",
+  "status": "running",
+  "stats": {
+   "total_findings": 1,
+   "critical": 0,
+   "high": 0,
+   "medium": 0,
+   "low": 1,
+   "info": 0,
+   "exploited": 0,
+   "confirmed": 0,
+   "unconfirmed": 1
+  },
+  "overall_risk": "low",
+  "agents_dispatched": [],
+  "is_subagent": false,
+  "vulnerabilities": [
+   {
+    "id": "vuln_208478f20d",
+    "campaign_id": "camp_demo_06",
+    "target_id": "tgt_api",
+    "project_id": "proj_demoshop",
+    "title": "GraphQL introspection enabled",
+    "severity": "low",
+    "status": "unconfirmed",
+    "category": "information_disclosure",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 3.7,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+    "mitre_attack_id": "T1592",
+    "mitre_attack_name": "Gather Victim Host Information",
+    "iso27001_control": "A.12.4.1",
+    "endpoint": "/graphql",
+    "discovered_by_agent": "api-security",
+    "description": "[SYNTHETIC] GraphQL introspection enabled on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   }
+  ],
+  "open_vuln": 1
+ }
+}

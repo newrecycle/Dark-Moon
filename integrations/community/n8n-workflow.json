@@ -1,0 +1,10 @@
+{
+  "name": "DarkMoon Community - poll finding metadata",
+  "active": false,
+  "nodes": [
+    {"id":"manual","name":"Run manually","type":"n8n-nodes-base.manualTrigger","typeVersion":1,"position":[200,300],"parameters":{}},
+    {"id":"findings","name":"Community finding metadata","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[450,300],"parameters":{"method":"GET","url":"http://127.0.0.1:8780/api/v1/integrations/findings","authentication":"genericCredentialType","genericAuthType":"httpHeaderAuth","options":{}}}
+  ],
+  "connections":{"Run manually":{"main":[[{"node":"Community finding metadata","type":"main","index":0}]]}},
+  "settings":{"executionOrder":"v1"}
+}

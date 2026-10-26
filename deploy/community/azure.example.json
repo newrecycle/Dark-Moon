@@ -1,0 +1,1 @@
+{"name":"darkmoon-community","resource_group":"YOUR_EXISTING_RESOURCE_GROUP","size":"Standard_D4s_v5","security_group":"YOUR_EXISTING_NSG","ssh_public_key":"/path/to/id_ed25519.pub"}

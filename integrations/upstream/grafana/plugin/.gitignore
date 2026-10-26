@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Local npm auth (never commit)
+.npmrc
+
+# Local caches
+.eslintcache
+*.log
+/test-results/
+/playwright-report/
+
+# Built plugin zip (shipped as a GitHub release artifact)
+*.zip
+
+# Built frontend+backend (shipped as a release zip, not committed)
+dist/

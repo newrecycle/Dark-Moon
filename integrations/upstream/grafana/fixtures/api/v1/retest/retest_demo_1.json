@@ -1,0 +1,56 @@
+{
+ "retest_id": "retest_demo_1",
+ "base_campaign_id": "camp_demo_01",
+ "new_campaign_id": "camp_demo_04",
+ "target_id": "tgt_web",
+ "run_id": "run_demo_retest",
+ "status": "completed",
+ "verdicts_summary": {
+  "fixed": 3,
+  "still_present": 1,
+  "regressed": 0,
+  "new": 1
+ },
+ "findings": [
+  {
+   "finding_id": "vuln_ef0ddafabc",
+   "title": "SQL Injection in /product?id",
+   "severity": "critical",
+   "verdict": "fixed",
+   "base_status": "exploited",
+   "new_status": "remediated"
+  },
+  {
+   "finding_id": "vuln_e82e8698de",
+   "title": "Reflected XSS in search box",
+   "severity": "high",
+   "verdict": "still_present",
+   "base_status": "confirmed",
+   "new_status": "confirmed"
+  },
+  {
+   "finding_id": "vuln_06d0cd2057",
+   "title": "WordPress admin weak password",
+   "severity": "high",
+   "verdict": "fixed",
+   "base_status": "exploited",
+   "new_status": null
+  },
+  {
+   "finding_id": "vuln_7ccedd03c6",
+   "title": "Missing security headers (CSP/HSTS)",
+   "severity": "low",
+   "verdict": "fixed",
+   "base_status": "confirmed",
+   "new_status": null
+  },
+  {
+   "finding_id": "vuln_0ecd4ed590",
+   "title": "Server-Side Request Forgery in webhook",
+   "severity": "high",
+   "verdict": "new",
+   "base_status": null,
+   "new_status": "confirmed"
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+# Build artifacts
+dist/*.tar.gz
+dist/*.spl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Splunk app runtime dirs that must never be packaged
+darkmoon/local/
+darkmoon/local.meta
+darkmoon/metadata/local.meta
+darkmoon/lookups/*.csv.tmp
+
+# Test scratch
+test/vector-output/
+test/fixtures/darkmoon-export.json
+
+# OS
+.DS_Store

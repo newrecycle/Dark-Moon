@@ -1,0 +1,222 @@
+{
+  "name": "darkmoon-vscode",
+  "displayName": "Darkmoon",
+  "description": "Browse Darkmoon pentest campaigns, vulnerabilities and reports (OSS CLI + Pro REST) inside VS Code.",
+  "version": "0.1.3",
+  "publisher": "Darkmoon",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing",
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "security",
+    "pentest",
+    "vulnerabilities",
+    "darkmoon"
+  ],
+  "icon": "resources/icon.png",
+  "homepage": "https://github.com/ASCIT31/Dark-Moon",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ASCIT31/darkmoon-vscode"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Browsing campaigns, findings and reports works in untrusted workspaces. Launching an OSS campaign runs the local Darkmoon CLI and requires a trusted workspace."
+    }
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "darkmoon",
+          "title": "Darkmoon",
+          "icon": "resources/darkmoon.svg"
+        }
+      ]
+    },
+    "views": {
+      "darkmoon": [
+        {
+          "id": "darkmoon.campaigns",
+          "name": "Campaigns",
+          "icon": "resources/darkmoon.svg"
+        },
+        {
+          "id": "darkmoon.vulnerabilities",
+          "name": "Vulnerabilities",
+          "type": "webview"
+        },
+        {
+          "id": "darkmoon.reports",
+          "name": "Reports"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "darkmoon.campaigns",
+        "contents": "No Darkmoon data yet.\n[Refresh](command:darkmoon.refresh)\n[Launch a campaign](command:darkmoon.launchCampaign)\nSet the mode and base URL in [settings](command:workbench.action.openSettings?%22darkmoon%22)."
+      }
+    ],
+    "commands": [
+      {
+        "command": "darkmoon.refresh",
+        "title": "Darkmoon: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "darkmoon.launchCampaign",
+        "title": "Darkmoon: Launch Campaign",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "darkmoon.openFinding",
+        "title": "Darkmoon: Open Finding"
+      },
+      {
+        "command": "darkmoon.openReport",
+        "title": "Darkmoon: Open Report (Redacted)"
+      },
+      {
+        "command": "darkmoon.openReportFull",
+        "title": "Darkmoon: Open Full Report (Local)",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "darkmoon.setToken",
+        "title": "Darkmoon: Set Pro API Token"
+      },
+      {
+        "command": "darkmoon.setLicense",
+        "title": "Darkmoon: Set License Key"
+      },
+      {
+        "command": "darkmoon.clearSecrets",
+        "title": "Darkmoon: Clear Stored Secrets"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "darkmoon.openFinding",
+          "when": "false"
+        },
+        {
+          "command": "darkmoon.openReport",
+          "when": "false"
+        },
+        {
+          "command": "darkmoon.openReportFull",
+          "when": "darkmoon.cap.rehydratedReports && !remoteName"
+        },
+        {
+          "command": "darkmoon.launchCampaign",
+          "when": "darkmoon.cap.launchCampaign"
+        },
+        {
+          "command": "darkmoon.setToken",
+          "when": "darkmoon.edition == pro || darkmoon.edition == none"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "darkmoon.refresh",
+          "when": "view == darkmoon.campaigns",
+          "group": "navigation"
+        },
+        {
+          "command": "darkmoon.launchCampaign",
+          "when": "view == darkmoon.campaigns && darkmoon.cap.launchCampaign",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "darkmoon.openReportFull",
+          "when": "view == darkmoon.reports && viewItem == darkmoon.report && darkmoon.cap.rehydratedReports && !remoteName",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Darkmoon",
+      "properties": {
+        "darkmoon.mode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "oss",
+            "pro"
+          ],
+          "default": "auto",
+          "description": "Which Darkmoon edition to talk to. 'auto' lets the client detect OSS (local CLI/data) vs Pro (REST)."
+        },
+        "darkmoon.baseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Darkmoon Pro REST base URL (e.g. `https://darkmoon.example.com`). Use https unless targeting localhost."
+        },
+        "darkmoon.dataDir": {
+          "type": "string",
+          "default": "",
+          "description": "OSS mode: directory containing Darkmoon campaigns/vulns/reports."
+        },
+        "darkmoon.cliPath": {
+          "type": "string",
+          "default": "",
+          "description": "OSS mode: path to the Darkmoon CLI entrypoint used to launch campaigns."
+        },
+        "darkmoon.reports.redactByDefault": {
+          "type": "boolean",
+          "default": true,
+          "description": "Redact real infrastructure values in reports and findings until explicitly revealed (local only)."
+        },
+        "darkmoon.dev.useFixtures": {
+          "type": "boolean",
+          "default": false,
+          "description": "Developer/demo mode: serve bundled sample data instead of a live Darkmoon backend."
+        },
+        "darkmoon.growthCta.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a one-time, non-intrusive prompt to star Darkmoon on GitHub after it first delivers findings in VS Code. Set to false to never show it (the DARKMOON_DISABLE_GROWTH_CTA environment variable also disables it)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node esbuild.js",
+    "package": "node esbuild.js --production",
+    "compile-tests": "tsc -p ./tsconfig.test.json",
+    "watch": "node esbuild.js --watch",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "pretest": "npm run compile-tests && npm run compile",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@darkmoon/client": "file:vendor/darkmoon-client-0.1.0.tgz",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^2.4.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.20.0",
+    "eslint": "^8.57.0",
+    "mocha": "^10.3.0",
+    "typescript": "^5.4.0"
+  }
+}

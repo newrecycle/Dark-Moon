@@ -1,0 +1,41 @@
+<dashboard version="1.1" theme="dark" script="setup.js" stylesheet="setup.css">
+  <label>Darkmoon — Set up</label>
+  <description>Configure the Darkmoon Pro connection. The API token is stored encrypted in Splunk (storage/passwords) — never in a .conf file.</description>
+  <row>
+    <panel>
+      <html>
+        <div class="dm-setup">
+          <h2>Darkmoon connection</h2>
+          <p>
+            The alert action and this setup call the <b>Darkmoon Pro</b> REST API
+            (Pro feature). The open-source Darkmoon CLI does not expose this API.
+            Ingestion and dashboards work without this configuration.
+          </p>
+
+          <div class="dm-field">
+            <label for="dm_base_url">Base URL</label>
+            <input type="text" id="dm_base_url" placeholder="https://darkmoon.internal:8443" />
+            <span class="dm-help">No trailing slash. HTTPS strongly recommended.</span>
+          </div>
+
+          <div class="dm-field">
+            <label for="dm_verify_tls">Verify TLS certificate</label>
+            <select id="dm_verify_tls">
+              <option value="1">Yes (recommended)</option>
+              <option value="0">No (trusted lab only)</option>
+            </select>
+          </div>
+
+          <div class="dm-field">
+            <label for="dm_token">API token</label>
+            <input type="password" id="dm_token" placeholder="paste Darkmoon Pro token" autocomplete="off" />
+            <span class="dm-help">Stored encrypted in storage/passwords under username "darkmoon". Leave blank to keep the existing token.</span>
+          </div>
+
+          <button id="dm_save" class="btn btn-primary">Save configuration</button>
+          <span id="dm_status" class="dm-status"></span>
+        </div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

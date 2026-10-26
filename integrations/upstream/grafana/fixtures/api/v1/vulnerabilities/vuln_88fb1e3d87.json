@@ -1,0 +1,35 @@
+{
+ "data": {
+  "id": "vuln_88fb1e3d87",
+  "campaign_id": "camp_demo_03",
+  "target_id": "tgt_iot",
+  "project_id": "proj_demoshop",
+  "title": "Hardcoded telnet credentials",
+  "severity": "high",
+  "status": "confirmed",
+  "category": "broken_authentication",
+  "cve": "CVE-2026-2050",
+  "cwe": null,
+  "cvss_score": 8.8,
+  "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+  "mitre_attack_id": "T1078",
+  "mitre_attack_name": "Valid Accounts",
+  "iso27001_control": "A.9.2.4",
+  "endpoint": "telnet://:23",
+  "discovered_by_agent": "iot-firmware",
+  "description": "[SYNTHETIC] Hardcoded telnet credentials on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+  "evidence": {
+   "commands": [
+    "<redacted-in-demo>"
+   ],
+   "payloads": [],
+   "raw_request": "",
+   "raw_response": "",
+   "extracted_data": null,
+   "screenshots": [],
+   "logs": [],
+   "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+  },
+  "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+ }
+}

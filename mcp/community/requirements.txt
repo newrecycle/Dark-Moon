@@ -1,0 +1,6 @@
+# PDF, encrypted credentials, JWT/OIDC and report signing.
+reportlab>=4.0,<5
+cryptography>=41
+PyJWT[crypto]>=2.10,<3
+pypdf[crypto]>=5,<7
+pyHanko>=0.25,<1

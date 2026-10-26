@@ -1,0 +1,3 @@
+target,allow_destructive,authorized_by,note
+demo-shop.local,false,soc@example.com,Synthetic authorized demo target shipped for testing
+staging.example.com,false,soc@example.com,Example allowlisted staging host (edit for your estate)

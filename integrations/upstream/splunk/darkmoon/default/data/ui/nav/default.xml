@@ -1,0 +1,11 @@
+<nav search_view="search" color="#3b82f6">
+  <view name="darkmoon_soc_overview" default="true" />
+  <view name="darkmoon_findings" />
+  <view name="darkmoon_mitre" />
+  <view name="darkmoon_campaigns" />
+  <view name="darkmoon_remediation" />
+  <collection label="Search">
+    <view name="search" />
+  </collection>
+  <view name="darkmoon_setup_help" />
+</nav>

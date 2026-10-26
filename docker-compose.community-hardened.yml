@@ -1,0 +1,22 @@
+# Optional overlay, after reviewing the write paths for your deployed image:
+# docker compose -f docker-compose.yml -f docker-compose.community-hardened.yml up -d
+# This hardens the existing runtime; it does not replace upstream image pins.
+services:
+  opencode:
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    mem_limit: 8g
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=512m
+      - /run:rw,nosuid,nodev,size=64m
+      - /root/.cache:rw,nosuid,nodev,size=512m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    stop_grace_period: 45s

@@ -1,0 +1,169 @@
+name: Darkmoon Pentest (reusable)
+
+# Reusable workflow variant of the Darkmoon action.
+# Call it from another repo/workflow:
+#
+#   jobs:
+#     security:
+#       uses: ASCIT31/darkmoon-action/.github/workflows/darkmoon-reusable.yml@v1
+#       with:
+#         target: http://127.0.0.1:3000
+#         fail-on: critical,high
+#         mode: pro
+#         base-url: https://darkmoon.example.com
+#       secrets:
+#         api-token: ${{ secrets.DARKMOON_API_TOKEN }}
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: 'auto | oss | pro'
+        type: string
+        required: false
+        default: 'auto'
+      target:
+        description: 'Primary target URL/host/IP'
+        type: string
+        required: false
+        default: ''
+      targets:
+        description: 'Additional in-scope assets (comma/newline)'
+        type: string
+        required: false
+        default: ''
+      campaign-id:
+        description: 'Attach to an existing campaign instead of launching'
+        type: string
+        required: false
+        default: ''
+      base-url:
+        description: 'Pro base URL (with or without /api/v1)'
+        type: string
+        required: false
+        default: ''
+      oss-data-dir:
+        description: 'OSS host data dir (campaigns/ + vulnerabilities/)'
+        type: string
+        required: false
+        default: ''
+      oss-reports-dir:
+        description: 'OSS host reports dir'
+        type: string
+        required: false
+        default: ''
+      oss-launch-template:
+        description: 'OSS custom launch argv (comma/newline; {PROMPT} placeholder)'
+        type: string
+        required: false
+        default: ''
+      program:
+        type: string
+        required: false
+        default: ''
+      focus:
+        type: string
+        required: false
+        default: ''
+      severity:
+        type: string
+        required: false
+        default: ''
+      exclude:
+        type: string
+        required: false
+        default: ''
+      out-of-scope:
+        type: string
+        required: false
+        default: ''
+      noise:
+        type: string
+        required: false
+        default: ''
+      fail-on:
+        description: 'Severities that fail the job (e.g. critical,high). Empty = non-blocking.'
+        type: string
+        required: false
+        default: ''
+      report-format:
+        description: 'markdown | json | sarif'
+        type: string
+        required: false
+        default: 'markdown'
+      post-report:
+        description: 'Post redaction-safe severity summary to the PR/commit'
+        type: boolean
+        required: false
+        default: false
+      runs-on:
+        description: 'Runner label(s) — often a self-hosted runner co-located with Darkmoon'
+        type: string
+        required: false
+        default: 'ubuntu-latest'
+      upload-artifact:
+        description: 'Upload the private report as a workflow artifact'
+        type: boolean
+        required: false
+        default: true
+    secrets:
+      api-token:
+        description: 'Darkmoon Pro API token (JWT)'
+        required: false
+      password:
+        description: 'Darkmoon Pro password (alternative to api-token)'
+        required: false
+    outputs:
+      campaign-id:
+        description: 'Campaign id'
+        value: ${{ jobs.darkmoon.outputs.campaign-id }}
+      total-findings:
+        description: 'Total findings'
+        value: ${{ jobs.darkmoon.outputs.total-findings }}
+      policy-failed:
+        description: 'Whether the fail-on policy tripped'
+        value: ${{ jobs.darkmoon.outputs.policy-failed }}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  darkmoon:
+    runs-on: ${{ inputs.runs-on }}
+    outputs:
+      campaign-id: ${{ steps.scan.outputs.campaign-id }}
+      total-findings: ${{ steps.scan.outputs.total-findings }}
+      policy-failed: ${{ steps.scan.outputs.policy-failed }}
+    steps:
+      - name: Darkmoon assessment
+        id: scan
+        uses: ASCIT31/darkmoon-action@v1
+        with:
+          mode: ${{ inputs.mode }}
+          target: ${{ inputs.target }}
+          targets: ${{ inputs.targets }}
+          campaign-id: ${{ inputs.campaign-id }}
+          base-url: ${{ inputs.base-url }}
+          api-token: ${{ secrets.api-token }}
+          password: ${{ secrets.password }}
+          oss-data-dir: ${{ inputs.oss-data-dir }}
+          oss-reports-dir: ${{ inputs.oss-reports-dir }}
+          oss-launch-template: ${{ inputs.oss-launch-template }}
+          program: ${{ inputs.program }}
+          focus: ${{ inputs.focus }}
+          severity: ${{ inputs.severity }}
+          exclude: ${{ inputs.exclude }}
+          out-of-scope: ${{ inputs.out-of-scope }}
+          noise: ${{ inputs.noise }}
+          fail-on: ${{ inputs.fail-on }}
+          report-format: ${{ inputs.report-format }}
+          post-report: ${{ inputs.post-report }}
+
+      - name: Upload report artifact
+        if: ${{ inputs.upload-artifact && steps.scan.outputs.report-path != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: darkmoon-report-${{ steps.scan.outputs.campaign-id }}
+          path: ${{ steps.scan.outputs.report-path }}
+          if-no-files-found: warn

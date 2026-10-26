@@ -1,0 +1,113 @@
+[
+  {
+    "path": "integrations/upstream/client",
+    "repository": "https://github.com/ASCIT31/darkmoon-client.git",
+    "commit": "4d33ebe92b381cd75dad93d47f1742ef002a9eb6",
+    "license": "MIT",
+    "modified": false,
+    "excluded": [
+      ".github",
+      "docs/screenshots",
+      "test/screenshots"
+    ]
+  },
+  {
+    "path": "integrations/upstream/n8n",
+    "repository": "https://github.com/ASCIT31/darkmoon-n8n.git",
+    "commit": "1c1dfc8cab4f002cbefdbe5059eb7bd45f09b1c7",
+    "license": "MIT",
+    "modified": true,
+    "excluded": [
+      ".github",
+      "docs/screenshots",
+      "test/screenshots"
+    ],
+    "adaptation": "Require HMAC v2 plus timestamp window and persisted event-id deduplication in the webhook receiver"
+  },
+  {
+    "path": "integrations/upstream/grafana",
+    "repository": "https://github.com/ASCIT31/darkmoon-grafana.git",
+    "commit": "cde53644977bf06d681e955dcf1d84d62d9ae806",
+    "license": "MIT",
+    "modified": false,
+    "excluded": [
+      ".github",
+      "docs/screenshots",
+      "test/screenshots"
+    ]
+  },
+  {
+    "path": "integrations/upstream/action",
+    "repository": "https://github.com/ASCIT31/darkmoon-action.git",
+    "commit": "962b62a17c02bb989ef3b19bcda1b0c99968ba12",
+    "license": "MIT",
+    "modified": false,
+    "excluded": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/example-usage.yml",
+      "docs/screenshots",
+      "dist"
+    ]
+  },
+  {
+    "path": "integrations/upstream/gitlab",
+    "repository": "https://github.com/ASCIT31/darkmoon-gitlab.git",
+    "commit": "872477ff47de35dd49c5b15b4dad42863c6fd4c0",
+    "license": "MIT",
+    "modified": false,
+    "excluded": [
+      ".github",
+      "docs/screenshots",
+      "test/screenshots"
+    ]
+  },
+  {
+    "path": "integrations/upstream/jenkins",
+    "repository": "https://github.com/ASCIT31/darkmoon-jenkins.git",
+    "commit": "f934086e01fac5220bd02ca225c334270e9b3789",
+    "license": "MIT",
+    "modified": false,
+    "excluded": [
+      ".github",
+      "docs/screenshots",
+      "test/screenshots"
+    ]
+  },
+  {
+    "path": "integrations/upstream/vscode",
+    "repository": "https://github.com/ASCIT31/darkmoon-vscode.git",
+    "commit": "75d0743cf6b3b0eeec5abe66ddbfbe1e636a50e7",
+    "license": "MIT",
+    "modified": false,
+    "excluded": [
+      ".github",
+      "docs/screenshots",
+      "test/screenshots"
+    ]
+  },
+  {
+    "path": "integrations/upstream/jetbrains",
+    "repository": "https://github.com/ASCIT31/darkmoon-jetbrains.git",
+    "commit": "8e54c5375261f9c0243e5cb3c63e79ad2ad7289d",
+    "license": "MIT",
+    "modified": false,
+    "excluded": [
+      ".github",
+      "docs/screenshots",
+      "test/screenshots"
+    ]
+  },
+  {
+    "path": "integrations/upstream/splunk",
+    "repository": "https://github.com/ASCIT31/darkmoon-splunk.git",
+    "commit": "8c5c8667eccaad9768232e2cf4065b7aabdcf642",
+    "license": "MIT",
+    "modified": false,
+    "excluded": [
+      ".github",
+      "docs/screenshots",
+      "test/screenshots",
+      "docs/listing-images"
+    ]
+  }
+]

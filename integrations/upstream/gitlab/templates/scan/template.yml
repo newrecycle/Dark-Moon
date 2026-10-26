@@ -1,0 +1,211 @@
+# GENERATED FILE — do not edit by hand.
+# Source: templates/scan/template.yml.in + src/darkmoon_gitlab_report.py
+# Regenerate with: python3 build/render_template.py
+spec:
+  inputs:
+    # --- placement ---
+    job-name:
+      default: darkmoon_scan
+      description: "Name of the generated job."
+    stage:
+      default: test
+      description: "Pipeline stage for the job. Must exist in the including pipeline."
+    image:
+      default: "node:20-slim"
+      description: >-
+        Container image for docker-executor runners. Must provide the
+        `darkmoon-ci` CLI (Node >= 18) and `python3` (>= 3.8), or set
+        `bootstrap-url` to install the CLI at runtime. Shell-executor runners
+        ignore this value.
+
+    # --- what to scan ---
+    target:
+      description: "REQUIRED. Target URL/host (FOCUS=/SEVERITY= folded in via the inputs below)."
+    mode:
+      default: auto
+      options: [auto, oss, pro]
+      description: "auto = Pro if a Pro URL/token are present, else OSS."
+    pro-url:
+      default: ""
+      description: "Darkmoon Pro REST API base URL (maps to --pro-url; env DARKMOON_PRO_URL)."
+    focus:
+      default: ""
+      description: "Comma-separated attack focus, folded into the target as FOCUS=."
+    severity:
+      default: ""
+      description: "Max severity cap, folded into the target as SEVERITY=. Empty = no cap."
+    fail-on:
+      default: "critical,high"
+      description: >-
+        Comma-separated SET of severities that fail the build (Darkmoon fail
+        policy). e.g. 'critical,high'. Empty string = never fail on findings.
+    timeout:
+      default: ""
+      description: "Hard timeout in seconds for the run (maps to --timeout)."
+
+    # --- OSS backend location (optional; for runners with bind-mounted data) ---
+    oss-data-dir:
+      default: ""
+      description: "OSS data dir with campaigns/ + vulnerabilities/ (maps to --oss-data-dir)."
+    oss-reports-dir:
+      default: ""
+      description: "OSS reports dir (maps to --oss-reports-dir)."
+    oss-script:
+      default: ""
+      description: "Path to the OSS launcher script darkmoon.sh (maps to --oss-script)."
+
+    # --- reports & artifacts ---
+    output-dir:
+      default: darkmoon
+      description: "Working directory for intermediate CLI outputs."
+    sast-report:
+      type: boolean
+      default: true
+      description: "Also emit a GitLab SAST report (gl-sast-report.json)."
+    expose-full-report:
+      type: boolean
+      default: false
+      description: >-
+        Attach the full (redacted) markdown report and the normalized findings
+        JSON as internal artifacts. Off by default (threat model §4): shared
+        surfaces carry only the redaction-safe finding titles.
+    artifacts-expire-in:
+      default: "1 week"
+      description: "Expiry for the emitted artifacts."
+
+    # --- blocking / non-blocking ---
+    allow_failure_exit_codes:
+      type: array
+      default: [250]
+      description: >-
+        Exit codes for which the job is allowed to fail. Default [250] (a code
+        darkmoon-ci never emits) => the job BLOCKS on findings. Set to [2] for a
+        NON-BLOCKING findings gate: findings warn but do not fail the pipeline,
+        while genuine tool/usage errors (exit 1) still fail it.
+
+    # --- CLI install (optional) ---
+    bootstrap-url:
+      default: ""
+      description: >-
+        If darkmoon-ci is absent, download & run this installer (curl | sh)
+        before scanning. Leave empty when the image already bundles the CLI.
+
+---
+
+"$[[ inputs.job-name ]]":
+  stage: $[[ inputs.stage ]]
+  image: $[[ inputs.image ]]
+  variables:
+    DM_MODE: "$[[ inputs.mode ]]"
+    DM_TARGET: "$[[ inputs.target ]]"
+    DM_PRO_URL: "$[[ inputs.pro-url ]]"
+    DM_FOCUS: "$[[ inputs.focus ]]"
+    DM_SEVERITY: "$[[ inputs.severity ]]"
+    DM_FAIL_ON: "$[[ inputs.fail-on ]]"
+    DM_TIMEOUT: "$[[ inputs.timeout ]]"
+    DM_OSS_DATA_DIR: "$[[ inputs.oss-data-dir ]]"
+    DM_OSS_REPORTS_DIR: "$[[ inputs.oss-reports-dir ]]"
+    DM_OSS_SCRIPT: "$[[ inputs.oss-script ]]"
+    DM_OUTPUT_DIR: "$[[ inputs.output-dir ]]"
+    DM_EMIT_SAST: "$[[ inputs.sast-report ]]"
+    DM_EXPOSE_FULL: "$[[ inputs.expose-full-report ]]"
+    DM_BOOTSTRAP_URL: "$[[ inputs.bootstrap-url ]]"
+  script:
+    - |
+      # Darkmoon GitLab component — scan job.
+      # Secrets (DARKMOON_LICENSE_KEY / DARKMOON_PRO_TOKEN / DARKMOON_PRO_USER /
+      # DARKMOON_PRO_PASS / OPENROUTER_API_KEY …) come from masked+protected
+      # CI/CD variables via the environment. This script never prints them and
+      # never puts them on the command line.
+      set -eu
+      MAPPER_B64='IyEvdXNyL2Jpbi9lbnYgcHl0aG9uMwoiIiJNYXAgRGFya21vb24gYGRhcmttb29uLWNpIGZpbmRpbmdzIC4uLiAtLWpzb25gIG91dHB1dCB0byBHaXRMYWIgcmVwb3J0IGZvcm1hdHMuCgpDb25zdW1lcyB0aGUgbm9ybWFsaXplZCwgcmVkYWN0aW9uLXNhZmUgZmluZGluZ3MgZW1pdHRlZCBieSB0aGUgcG9ydGFibGUKYGRhcmttb29uLWNpYCBDTEkgKGEgSlNPTiBhcnJheSwgb3IgYW4gb2JqZWN0IHdpdGggYSBgZmluZGluZ3NgIC8gYGRhdGFgIGFycmF5IOKAlApzZWUgQ09OVFJBQ1QubWQpIGFuZCBlbWl0czoKICAtIGdsLWNvZGUtcXVhbGl0eS1yZXBvcnQuanNvbiAgKENvZGVDbGltYXRlLCBhcnRpZmFjdHM6cmVwb3J0czpjb2RlcXVhbGl0eSkKICAtIGdsLXNhc3QtcmVwb3J0Lmpzb24gICAgICAgICAgKEdpdExhYiBTQVNUIHNlY3VyaXR5LXJlcG9ydC1zY2hlbWFzKQoKVGhyZWF0IG1vZGVsICjCpzQpOiBvbmx5IHJlZGFjdGlvbi1zYWZlIHRleHQgKHRoZSBmaW5kaW5nIFRJVExFICsgZ2VuZXJpYwptZXRhZGF0YSkgcmVhY2hlcyB0aGVzZSBzaGFyZWQgcmVwb3J0cy4gVGhlIGZpbmRpbmcgYGRlc2NyaXB0aW9uYC9gZXZpZGVuY2VgCih3aGljaCBjYW4gcXVvdGUgdGFyZ2V0IGluZnJhc3RydWN0dXJlKSBpcyBORVZFUiBjb3BpZWQgaGVyZSDigJQgdGhlIGZ1bGwgcmVwb3J0IGlzCm9idGFpbmVkIHNlcGFyYXRlbHkgdmlhIGBkYXJrbW9vbi1jaSByZXBvcnQgLS1mdWxsIC0tcHJpdmF0ZWAgYXMgYW4gaW50ZXJuYWwsCm9wdC1pbiBhcnRpZmFjdC4KClN0ZGxpYiBvbmx5OyBkZWdyYWRlcyBncmFjZWZ1bGx5IChtaXNzaW5nL2ludmFsaWQgaW5wdXQgLT4gdmFsaWQgZW1wdHkgcmVwb3J0cykuClRoaXMgaXMgcGFydCBvZiB0aGUgR2l0TGFiIGNvbXBvbmVudCwgbm90IHRoZSBkYXJrbW9vbi1jaSBDTEkuCiIiIgpmcm9tIF9fZnV0dXJlX18gaW1wb3J0IGFubm90YXRpb25zCgppbXBvcnQgYXJncGFyc2UKaW1wb3J0IGRhdGV0aW1lIGFzIF9kdAppbXBvcnQgaGFzaGxpYgppbXBvcnQganNvbgppbXBvcnQgcmUgYXMgX3JlCmltcG9ydCBzeXMKZnJvbSB0eXBpbmcgaW1wb3J0IEFueSwgRGljdCwgTGlzdAoKIyBTQVNUIHNjaGVtYSB2ZXJzaW9uIHRoaXMgbWFwcGVyIHdhcyB3cml0dGVuIGFnYWluc3QgKHJlYWQgbGl2ZSBhdCBidWlsZC90ZXN0CiMgZnJvbSBzZWN1cml0eS1yZXBvcnQtc2NoZW1hczsgb3ZlcnJpZGFibGUgd2l0aCAtLXNhc3Qtc2NoZW1hLXZlcnNpb24pLgpERUZBVUxUX1NBU1RfU0NIRU1BX1ZFUlNJT04gPSAiMTUuMi41IgoKIyBuYXRpdmUgKGxvd2VyY2FzZSkgc2V2ZXJpdHkgLT4gQ29kZUNsaW1hdGUgc2V2ZXJpdHkKQ1FfU0VWRVJJVFkgPSB7CiAgICAiaW5mbyI6ICJpbmZvIiwgImxvdyI6ICJtaW5vciIsICJtZWRpdW0iOiAibWFqb3IiLAogICAgImhpZ2giOiAiY3JpdGljYWwiLCAiY3JpdGljYWwiOiAiYmxvY2tlciIsCn0KIyBuYXRpdmUgc2V2ZXJpdHkgLT4gR2l0TGFiIFNBU1Qgc2V2ZXJpdHkgKFRpdGxlLWNhc2UsIHBlciBsaXZlIHNjaGVtYSBlbnVtKQpTQVNUX1NFVkVSSVRZID0gewogICAgImluZm8iOiAiSW5mbyIsICJsb3ciOiAiTG93IiwgIm1lZGl1bSI6ICJNZWRpdW0iLAogICAgImhpZ2giOiAiSGlnaCIsICJjcml0aWNhbCI6ICJDcml0aWNhbCIsCn0KCiMgRGFya21vb24gY2F0ZWdvcnkgc2x1ZyAtPiAoQ1dFLCBPV0FTUCkgZW5yaWNobWVudCBmb3IgaWRlbnRpZmllcnMuCkNBVF9FTlJJQ0ggPSB7CiAgICAic3FsX2luamVjdGlvbiI6ICgiQ1dFLTg5IiwgIkEwMzoyMDIxLUluamVjdGlvbiIpLAogICAgInNxbGkiOiAoIkNXRS04OSIsICJBMDM6MjAyMS1JbmplY3Rpb24iKSwKICAgICJ4c3MiOiAoIkNXRS03OSIsICJBMDM6MjAyMS1JbmplY3Rpb24iKSwKICAgICJzc3JmIjogKCJDV0UtOTE4IiwgIkExMDoyMDIxLVNTUkYiKSwKICAgICJyY2UiOiAoIkNXRS05NCIsICJBMDM6MjAyMS1JbmplY3Rpb24iKSwKICAgICJjb21tYW5kX2luamVjdGlvbiI6ICgiQ1dFLTc3IiwgIkEwMzoyMDIxLUluamVjdGlvbiIpLAogICAgImlkb3IiOiAoIkNXRS02MzkiLCAiQTAxOjIwMjEtQnJva2VuIEFjY2VzcyBDb250cm9sIiksCiAgICAiYnJva2VuX2FjY2Vzc19jb250cm9sIjogKCJDV0UtMjg0IiwgIkEwMToyMDIxLUJyb2tlbiBBY2Nlc3MgQ29udHJvbCIpLAogICAgImF1dGhfYnlwYXNzIjogKCJDV0UtMjg3IiwgIkEwNzoyMDIxLUlkZW50aWZpY2F0aW9uIGFuZCBBdXRoZW50aWNhdGlvbiBGYWlsdXJlcyIpLAogICAgInNlY3JldF9leHBvc3VyZSI6ICgiQ1dFLTUyMiIsICJBMDc6MjAyMS1JZGVudGlmaWNhdGlvbiBhbmQgQXV0aGVudGljYXRpb24gRmFpbHVyZXMiKSwKICAgICJpbmZvX2Rpc2Nsb3N1cmUiOiAoIkNXRS0yMDAiLCAiQTA1OjIwMjEtU2VjdXJpdHkgTWlzY29uZmlndXJhdGlvbiIpLAogICAgIm1pc2NvbmZpZ3VyYXRpb24iOiAoIkNXRS0xNiIsICJBMDU6MjAyMS1TZWN1cml0eSBNaXNjb25maWd1cmF0aW9uIiksCn0KCgpkZWYgX3dhcm4obXNnOiBzdHIpIC0+IE5vbmU6CiAgICBzeXMuc3RkZXJyLndyaXRlKCJkYXJrbW9vbi1naXRsYWItcmVwb3J0OiAlc1xuIiAlIG1zZykKCgpkZWYgX25vdygpIC0+IHN0cjoKICAgIHJldHVybiBfZHQuZGF0ZXRpbWUubm93KF9kdC50aW1lem9uZS51dGMpLnN0cmZ0aW1lKCIlWS0lbS0lZFQlSDolTTolUyIpCgoKZGVmIF9zYXN0X3RpbWUodmFsdWU6IEFueSkgLT4gc3RyOgogICAgIiIiR2l0TGFiIFNBU1Qgc2NoZW1hIHJlcXVpcmVzICd5eXl5LW1tLWRkVGhoOm1tOnNzJyAobm8gdGltZXpvbmUgc3VmZml4KS4iIiIKICAgIG0gPSBfcmUubWF0Y2gociIoXGR7NH0tXGR7Mn0tXGR7Mn1UXGR7Mn06XGR7Mn06XGR7Mn0pIiwgc3RyKHZhbHVlIG9yICIiKSkKICAgIHJldHVybiBtLmdyb3VwKDEpIGlmIG0gZWxzZSBfbm93KCkKCgpkZWYgX25vcm1fc2V2KHZhbHVlOiBBbnkpIC0+IHN0cjoKICAgIHMgPSBzdHIodmFsdWUgb3IgIiIpLnN0cmlwKCkubG93ZXIoKQogICAgcmV0dXJuIHMgaWYgcyBpbiBDUV9TRVZFUklUWSBlbHNlICJpbmZvIgoKCmRlZiBfZW5kcG9pbnRfdG9fcGF0aChlbmRwb2ludDogQW55KSAtPiBzdHI6CiAgICAiIiInUE9TVCAvcmVzdC91c2VyL2xvZ2luJyAtPiAncmVzdC91c2VyL2xvZ2luJyAocmVkYWN0aW9uLXNhZmUgbG9jdXMpLiIiIgogICAgZSA9IHN0cihlbmRwb2ludCBvciAiIikuc3RyaXAoKQogICAgaWYgbm90IGU6CiAgICAgICAgcmV0dXJuICIuZGFya21vb24vcmVwb3J0Lm1kIgogICAgIyBkcm9wIGEgbGVhZGluZyBIVFRQIG1ldGhvZAogICAgZSA9IF9yZS5zdWIociJeKEdFVHxQT1NUfFBVVHxQQVRDSHxERUxFVEV8SEVBRHxPUFRJT05TKVxzKyIsICIiLCBlLCBmbGFncz1fcmUuSSkKICAgIGUgPSBfcmUuc3ViKHIiXlthLXpBLVpdKzovLyIsICIiLCBlKSAgICMgc2NoZW1lCiAgICBlID0gX3JlLnN1YihyIl5bXi9dKyIsICIiLCBlKSBpZiAiOi8vIiBpbiBzdHIoZW5kcG9pbnQpIGVsc2UgZSAgIyBob3N0IGlmIGFueQogICAgZSA9IGUuc3BsaXQoIj8iKVswXS5zdHJpcCgpLmxzdHJpcCgiLyIpCiAgICByZXR1cm4gZSBvciAiLmRhcmttb29uL3JlcG9ydC5tZCIKCgpkZWYgX2ZpbmdlcnByaW50KGY6IERpY3Rbc3RyLCBBbnldLCBwYXRoOiBzdHIpIC0+IHN0cjoKICAgIGJhc2lzID0gInwiLmpvaW4oW3N0cihmLmdldCgiaWQiKSBvciAiIiksIHBhdGgsIHN0cihmLmdldCgidGl0bGUiKSBvciAiIildKQogICAgcmV0dXJuIGhhc2hsaWIuc2hhMjU2KGJhc2lzLmVuY29kZSgidXRmLTgiKSkuaGV4ZGlnZXN0KCkKCgpkZWYgX3NoYXJlZF90ZXh0KGY6IERpY3Rbc3RyLCBBbnldKSAtPiBzdHI6CiAgICAiIiJSZWRhY3Rpb24tc2FmZTogdGhlIGZpbmRpbmcgVElUTEUgb25seSAobmV2ZXIgZGVzY3JpcHRpb24vZXZpZGVuY2UpLiIiIgogICAgcmV0dXJuIChzdHIoZi5nZXQoInRpdGxlIikgb3IgIiIpLnN0cmlwKCkgb3Igc3RyKGYuZ2V0KCJpZCIpIG9yICJEYXJrbW9vbiBmaW5kaW5nIikpWzoxMDAwXQoKCmRlZiBsb2FkX2ZpbmRpbmdzKHBhdGg6IHN0cikgLT4gTGlzdFtEaWN0W3N0ciwgQW55XV06CiAgICB0cnk6CiAgICAgICAgd2l0aCBvcGVuKHBhdGgsICJyIiwgZW5jb2Rpbmc9InV0Zi04IikgYXMgZmg6CiAgICAgICAgICAgIGRhdGEgPSBqc29uLmxvYWQoZmgpCiAgICBleGNlcHQgRmlsZU5vdEZvdW5kRXJyb3I6CiAgICAgICAgX3dhcm4oImZpbmRpbmdzIGZpbGUgbm90IGZvdW5kOiAlcyAtPiBlbXB0eSByZXBvcnRzIiAlIHBhdGgpCiAgICAgICAgcmV0dXJuIFtdCiAgICBleGNlcHQgKE9TRXJyb3IsIFZhbHVlRXJyb3IpIGFzIGV4YzoKICAgICAgICBfd2FybigiY2Fubm90IHBhcnNlIGZpbmRpbmdzICglcykgLT4gZW1wdHkgcmVwb3J0cyIgJSBleGMpCiAgICAgICAgcmV0dXJuIFtdCiAgICBpZiBpc2luc3RhbmNlKGRhdGEsIGxpc3QpOgogICAgICAgIGFyciA9IGRhdGEKICAgIGVsaWYgaXNpbnN0YW5jZShkYXRhLCBkaWN0KToKICAgICAgICBhcnIgPSBkYXRhLmdldCgiZmluZGluZ3MiKSBvciBkYXRhLmdldCgiZGF0YSIpIG9yIFtdCiAgICBlbHNlOgogICAgICAgIGFyciA9IFtdCiAgICByZXR1cm4gW2YgZm9yIGYgaW4gYXJyIGlmIGlzaW5zdGFuY2UoZiwgZGljdCldCgoKZGVmIHRvX2NvZGVfcXVhbGl0eShmaW5kaW5nczogTGlzdFtEaWN0W3N0ciwgQW55XV0pIC0+IExpc3RbRGljdFtzdHIsIEFueV1dOgogICAgb3V0OiBMaXN0W0RpY3Rbc3RyLCBBbnldXSA9IFtdCiAgICBmb3IgZiBpbiBmaW5kaW5nczoKICAgICAgICBwYXRoID0gX2VuZHBvaW50X3RvX3BhdGgoZi5nZXQoImVuZHBvaW50IikpCiAgICAgICAgc2V2ID0gX25vcm1fc2V2KGYuZ2V0KCJzZXZlcml0eSIpKQogICAgICAgIGNhdGVnb3J5ID0gc3RyKGYuZ2V0KCJjYXRlZ29yeSIpIG9yICJmaW5kaW5nIikuc3RyaXAoKSBvciAiZmluZGluZyIKICAgICAgICBjdnNzID0gZi5nZXQoImN2c3NTY29yZSIpCiAgICAgICAgdGFnID0gIiBbRGFya21vb24gJXMlc10iICUgKAogICAgICAgICAgICBjYXRlZ29yeSwgKCIgwrcgQ1ZTUyAlLjFmIiAlIGN2c3MpIGlmIGlzaW5zdGFuY2UoY3ZzcywgKGludCwgZmxvYXQpKSBlbHNlICIiKQogICAgICAgIG91dC5hcHBlbmQoewogICAgICAgICAgICAiZGVzY3JpcHRpb24iOiBfc2hhcmVkX3RleHQoZikgKyB0YWcsCiAgICAgICAgICAgICJjaGVja19uYW1lIjogImRhcmttb29uLyVzIiAlIGNhdGVnb3J5LAogICAgICAgICAgICAiZmluZ2VycHJpbnQiOiBfZmluZ2VycHJpbnQoZiwgcGF0aCksCiAgICAgICAgICAgICJzZXZlcml0eSI6IENRX1NFVkVSSVRZW3Nldl0sCiAgICAgICAgICAgICJsb2NhdGlvbiI6IHsicGF0aCI6IHBhdGgsICJsaW5lcyI6IHsiYmVnaW4iOiAxfX0sCiAgICAgICAgfSkKICAgIHJldHVybiBvdXQKCgpkZWYgX2lkZW50aWZpZXJzKGY6IERpY3Rbc3RyLCBBbnldKSAtPiBMaXN0W0RpY3Rbc3RyLCBBbnldXToKICAgIGlkczogTGlzdFtEaWN0W3N0ciwgQW55XV0gPSBbXQogICAgY2F0ZWdvcnkgPSBzdHIoZi5nZXQoImNhdGVnb3J5Iikgb3IgImZpbmRpbmciKS5zdHJpcCgpIG9yICJmaW5kaW5nIgogICAgaWRzLmFwcGVuZCh7InR5cGUiOiAiZGFya21vb25fY2F0ZWdvcnkiLAogICAgICAgICAgICAgICAgIm5hbWUiOiAiRGFya21vb246ICVzIiAlIGNhdGVnb3J5LCAidmFsdWUiOiBjYXRlZ29yeX0pCiAgICBjd2UsIG93YXNwID0gQ0FUX0VOUklDSC5nZXQoY2F0ZWdvcnksIChOb25lLCBOb25lKSkKICAgIGlmIGN3ZToKICAgICAgICBudW0gPSBjd2UucmVwbGFjZSgiQ1dFLSIsICIiKQogICAgICAgIGlkcy5hcHBlbmQoeyJ0eXBlIjogImN3ZSIsICJuYW1lIjogY3dlLCAidmFsdWUiOiBudW0sCiAgICAgICAgICAgICAgICAgICAgInVybCI6ICJodHRwczovL2N3ZS5taXRyZS5vcmcvZGF0YS9kZWZpbml0aW9ucy8lcy5odG1sIiAlIG51bX0pCiAgICBjdmUgPSBzdHIoZi5nZXQoImN2ZSIpIG9yICIiKS5zdHJpcCgpCiAgICBpZiBjdmUgYW5kIGN2ZS5sb3dlcigpICE9ICJudWxsIjoKICAgICAgICBpZHMuYXBwZW5kKHsidHlwZSI6ICJjdmUiLCAibmFtZSI6IGN2ZSwgInZhbHVlIjogY3ZlfSkKICAgIG1pdHJlID0gc3RyKGYuZ2V0KCJtaXRyZUF0dGFja0lkIikgb3IgIiIpLnN0cmlwKCkKICAgIGlmIG1pdHJlOgogICAgICAgIGlkcy5hcHBlbmQoeyJ0eXBlIjogImRhcmttb29uX21pdHJlIiwKICAgICAgICAgICAgICAgICAgICAibmFtZSI6IHN0cihmLmdldCgibWl0cmVBdHRhY2tOYW1lIikgb3IgbWl0cmUpLCAidmFsdWUiOiBtaXRyZX0pCiAgICByZXR1cm4gaWRzCgoKZGVmIHRvX3Nhc3QoZmluZGluZ3M6IExpc3RbRGljdFtzdHIsIEFueV1dLCBzY2hlbWFfdmVyc2lvbjogc3RyLAogICAgICAgICAgICB0b29sX3ZlcnNpb246IHN0ciwgZWRpdGlvbjogc3RyKSAtPiBEaWN0W3N0ciwgQW55XToKICAgIHZ1bG5zOiBMaXN0W0RpY3Rbc3RyLCBBbnldXSA9IFtdCiAgICBmb3IgZiBpbiBmaW5kaW5nczoKICAgICAgICBwYXRoID0gX2VuZHBvaW50X3RvX3BhdGgoZi5nZXQoImVuZHBvaW50IikpCiAgICAgICAgc2V2ID0gX25vcm1fc2V2KGYuZ2V0KCJzZXZlcml0eSIpKQogICAgICAgIHZ1bG4gPSB7CiAgICAgICAgICAgICJpZCI6IF9maW5nZXJwcmludChmLCBwYXRoKSwKICAgICAgICAgICAgIm5hbWUiOiBfc2hhcmVkX3RleHQoZilbOjI1NV0sCiAgICAgICAgICAgICJkZXNjcmlwdGlvbiI6IF9zaGFyZWRfdGV4dChmKSwgICMgcmVkYWN0aW9uLXNhZmUgdGl0bGUgb25seQogICAgICAgICAgICAic2V2ZXJpdHkiOiBTQVNUX1NFVkVSSVRZW3Nldl0sCiAgICAgICAgICAgICJpZGVudGlmaWVycyI6IF9pZGVudGlmaWVycyhmKSwKICAgICAgICAgICAgImxvY2F0aW9uIjogeyJmaWxlIjogcGF0aCwgInN0YXJ0X2xpbmUiOiAxfSwKICAgICAgICB9CiAgICAgICAgc29sdXRpb24gPSBzdHIoZi5nZXQoInJlbWVkaWF0aW9uIikgb3IgIiIpLnN0cmlwKCkKICAgICAgICBpZiBzb2x1dGlvbjoKICAgICAgICAgICAgdnVsblsic29sdXRpb24iXSA9IHNvbHV0aW9uCiAgICAgICAgdnVsbnMuYXBwZW5kKHZ1bG4pCiAgICB2ZW5kb3IgPSB7Im5hbWUiOiAiQVNDLUlUIOKAlCBEYXJrbW9vbiJ9CiAgICBlbmdpbmUgPSB7ImlkIjogImRhcmttb29uIiwgIm5hbWUiOiAiRGFya21vb24iLCAidmVyc2lvbiI6IHRvb2xfdmVyc2lvbiwgInZlbmRvciI6IHZlbmRvcn0KICAgIG5vdyA9IF9ub3coKQogICAgcmV0dXJuIHsKICAgICAgICAidmVyc2lvbiI6IHNjaGVtYV92ZXJzaW9uLAogICAgICAgICJzY2FuIjogewogICAgICAgICAgICAidHlwZSI6ICJzYXN0IiwgInN0YXR1cyI6ICJzdWNjZXNzIiwKICAgICAgICAgICAgInN0YXJ0X3RpbWUiOiBub3csICJlbmRfdGltZSI6IG5vdywKICAgICAgICAgICAgImFuYWx5emVyIjogZGljdChlbmdpbmUpLCAic2Nhbm5lciI6IGRpY3QoZW5naW5lKSwKICAgICAgICB9LAogICAgICAgICJ2dWxuZXJhYmlsaXRpZXMiOiB2dWxucywKICAgIH0KCgpkZWYgX3dyaXRlKHBhdGg6IHN0ciwgb2JqOiBBbnkpIC0+IE5vbmU6CiAgICB3aXRoIG9wZW4ocGF0aCwgInciLCBlbmNvZGluZz0idXRmLTgiKSBhcyBmaDoKICAgICAgICBqc29uLmR1bXAob2JqLCBmaCwgaW5kZW50PTIsIGVuc3VyZV9hc2NpaT1GYWxzZSkKICAgICAgICBmaC53cml0ZSgiXG4iKQoKCmRlZiBtYWluKGFyZ3Y6IExpc3Rbc3RyXSkgLT4gaW50OgogICAgYXAgPSBhcmdwYXJzZS5Bcmd1bWVudFBhcnNlcihkZXNjcmlwdGlvbj0iTWFwIERhcmttb29uIGZpbmRpbmdzIHRvIEdpdExhYiByZXBvcnRzIikKICAgIGFwLmFkZF9hcmd1bWVudCgiLS1maW5kaW5ncyIsIHJlcXVpcmVkPVRydWUpCiAgICBhcC5hZGRfYXJndW1lbnQoIi0tY29kZXF1YWxpdHkiLCByZXF1aXJlZD1UcnVlKQogICAgYXAuYWRkX2FyZ3VtZW50KCItLXNhc3QiLCBkZWZhdWx0PSIiKQogICAgYXAuYWRkX2FyZ3VtZW50KCItLXNhc3Qtc2NoZW1hLXZlcnNpb24iLCBkZWZhdWx0PURFRkFVTFRfU0FTVF9TQ0hFTUFfVkVSU0lPTikKICAgIGFwLmFkZF9hcmd1bWVudCgiLS10b29sLXZlcnNpb24iLCBkZWZhdWx0PSJ1bmtub3duIikKICAgIGFwLmFkZF9hcmd1bWVudCgiLS1lZGl0aW9uIiwgZGVmYXVsdD0ib3NzIikKICAgIGFyZ3MgPSBhcC5wYXJzZV9hcmdzKGFyZ3YpCgogICAgZmluZGluZ3MgPSBsb2FkX2ZpbmRpbmdzKGFyZ3MuZmluZGluZ3MpCgogICAgY3EgPSB0b19jb2RlX3F1YWxpdHkoZmluZGluZ3MpCiAgICBfd3JpdGUoYXJncy5jb2RlcXVhbGl0eSwgY3EpCiAgICBfd2Fybigid3JvdGUgJWQgY29kZS1xdWFsaXR5IGVudHJpZXMgLT4gJXMiICUgKGxlbihjcSksIGFyZ3MuY29kZXF1YWxpdHkpKQoKICAgIGlmIGFyZ3Muc2FzdDoKICAgICAgICBzYXN0ID0gdG9fc2FzdChmaW5kaW5ncywgYXJncy5zYXN0X3NjaGVtYV92ZXJzaW9uLCBhcmdzLnRvb2xfdmVyc2lvbiwgYXJncy5lZGl0aW9uKQogICAgICAgIF93cml0ZShhcmdzLnNhc3QsIHNhc3QpCiAgICAgICAgX3dhcm4oIndyb3RlICVkIFNBU1QgdnVsbmVyYWJpbGl0aWVzIC0+ICVzIiAlIChsZW4oc2FzdFsidnVsbmVyYWJpbGl0aWVzIl0pLCBhcmdzLnNhc3QpKQogICAgcmV0dXJuIDAKCgppZiBfX25hbWVfXyA9PSAiX19tYWluX18iOgogICAgcmFpc2UgU3lzdGVtRXhpdChtYWluKHN5cy5hcmd2WzE6XSkpCg=='
+      : "${DM_TARGET:?[darkmoon] ERROR: the 'target' input is required}"
+
+      if [ -n "${DM_BOOTSTRAP_URL:-}" ] && ! command -v darkmoon-ci >/dev/null 2>&1; then
+        echo "[darkmoon] bootstrapping darkmoon-ci"
+        curl -fsSL "$DM_BOOTSTRAP_URL" -o /tmp/dm-install.sh
+        sh /tmp/dm-install.sh
+      fi
+      command -v darkmoon-ci >/dev/null 2>&1 || { echo "[darkmoon] ERROR: darkmoon-ci not on PATH (use an image that bundles it or set bootstrap-url)"; exit 1; }
+      command -v python3 >/dev/null 2>&1 || { echo "[darkmoon] ERROR: python3 (>=3.8) required for report mapping"; exit 1; }
+
+      mkdir -p "$DM_OUTPUT_DIR"
+      printf '%s' "$MAPPER_B64" | python3 -c "import sys,base64;open('$DM_OUTPUT_DIR/dm_report.py','wb').write(base64.b64decode(sys.stdin.read()))"
+
+      # Fold focus/severity into the Darkmoon target line.
+      T="$DM_TARGET"
+      [ -n "${DM_FOCUS:-}" ]    && T="$T FOCUS=$DM_FOCUS"
+      [ -n "${DM_SEVERITY:-}" ] && T="$T SEVERITY=$DM_SEVERITY"
+
+      # Run the CLI with the shared backend flags appended (space-safe, no eval).
+      # Every subcommand (run/findings/report) must carry the same backend flags.
+      dm() {
+        _sub=$1; shift
+        set -- "$_sub" "$@"
+        [ -n "${DM_MODE:-}" ]            && set -- "$@" --mode "$DM_MODE"
+        [ -n "${DM_PRO_URL:-}" ]         && set -- "$@" --pro-url "$DM_PRO_URL"
+        [ -n "${DM_TIMEOUT:-}" ]         && set -- "$@" --timeout "$DM_TIMEOUT"
+        [ -n "${DM_OSS_DATA_DIR:-}" ]    && set -- "$@" --oss-data-dir "$DM_OSS_DATA_DIR"
+        [ -n "${DM_OSS_REPORTS_DIR:-}" ] && set -- "$@" --oss-reports-dir "$DM_OSS_REPORTS_DIR"
+        [ -n "${DM_OSS_SCRIPT:-}" ]      && set -- "$@" --oss-script "$DM_OSS_SCRIPT"
+        darkmoon-ci "$@"
+      }
+
+      echo "[darkmoon] launching scan (mode=$DM_MODE, fail-on=$DM_FAIL_ON)"
+      set +e
+      dm run --target "$T" --json --fail-on "$DM_FAIL_ON" > "$DM_OUTPUT_DIR/run.json"
+      rc=$?
+      set -e
+      echo "[darkmoon] darkmoon-ci run exit code: $rc"
+
+      # Pull the campaign id from the verdict, then fetch redaction-safe findings.
+      CID=$(python3 - "$DM_OUTPUT_DIR/run.json" <<'PY'
+      import json, sys
+      try:
+          print(json.load(open(sys.argv[1])).get("campaignId", ""))
+      except Exception:
+          print("")
+      PY
+      )
+      if [ -n "$CID" ]; then
+        dm findings "$CID" --json > "$DM_OUTPUT_DIR/findings.json" || echo "[]" > "$DM_OUTPUT_DIR/findings.json"
+        if [ "${DM_EXPOSE_FULL}" = "true" ]; then
+          dm report "$CID" --out "$DM_OUTPUT_DIR/darkmoon-report.md" || true
+        fi
+      else
+        echo "[]" > "$DM_OUTPUT_DIR/findings.json"
+      fi
+
+      # Map to GitLab reports (always; empty input -> valid empty reports).
+      if [ "${DM_EMIT_SAST}" = "true" ]; then
+        python3 "$DM_OUTPUT_DIR/dm_report.py" --findings "$DM_OUTPUT_DIR/findings.json" \
+          --codequality gl-code-quality-report.json --sast gl-sast-report.json --edition "$DM_MODE" \
+          || echo "[darkmoon] WARN: mapping produced no reports"
+      else
+        python3 "$DM_OUTPUT_DIR/dm_report.py" --findings "$DM_OUTPUT_DIR/findings.json" \
+          --codequality gl-code-quality-report.json --edition "$DM_MODE" \
+          || echo "[darkmoon] WARN: mapping produced no reports"
+        python3 "$DM_OUTPUT_DIR/dm_report.py" --findings /dev/null \
+          --codequality /tmp/_dm_cq_ignore.json --sast gl-sast-report.json || true
+      fi
+
+      # Threat model §4: withhold the full report + raw findings unless opted in.
+      if [ "${DM_EXPOSE_FULL}" != "true" ]; then
+        rm -f "$DM_OUTPUT_DIR/findings.json" "$DM_OUTPUT_DIR/run.json" "$DM_OUTPUT_DIR/darkmoon-report.md" 2>/dev/null || true
+      fi
+      rm -f "$DM_OUTPUT_DIR/dm_report.py" /tmp/_dm_cq_ignore.json 2>/dev/null || true
+
+      # Propagate the CLI's exit code: 0 pass, 2 findings-gate, 1 tool/usage error.
+      exit $rc
+  artifacts:
+    when: always
+    expire_in: $[[ inputs.artifacts-expire-in ]]
+    reports:
+      codequality: gl-code-quality-report.json
+      sast: gl-sast-report.json
+    paths:
+      - gl-code-quality-report.json
+      - gl-sast-report.json
+      - "$[[ inputs.output-dir ]]/"
+  allow_failure:
+    exit_codes: $[[ inputs.allow_failure_exit_codes ]]

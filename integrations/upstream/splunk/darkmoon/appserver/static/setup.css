@@ -1,0 +1,10 @@
+.dm-setup { max-width: 640px; padding: 8px 4px; line-height: 1.5; }
+.dm-setup h2 { margin-top: 0; }
+.dm-field { margin: 16px 0; display: flex; flex-direction: column; }
+.dm-field label { font-weight: 600; margin-bottom: 4px; }
+.dm-field input, .dm-field select { max-width: 420px; padding: 6px 8px; }
+.dm-help { color: #8a94a6; font-size: 12px; margin-top: 4px; }
+.dm-status { margin-left: 12px; font-weight: 600; }
+.dm-status.ok { color: #53a051; }
+.dm-status.err { color: #dc4e41; }
+#dm_save { margin-top: 8px; }

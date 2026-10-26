@@ -18,7 +18,11 @@ Directory layout:
         └── *.md
 """
 
+import fcntl
 import json
+import tempfile
+import threading
+from contextlib import contextmanager
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -26,7 +30,7 @@ from typing import Any, Dict, List, Optional
 # Resolve data directory — use opencode's standard data dir so it lands in the
 # volume-mounted path (e.g. ./darkmoon-settings or ./reports on the host).
 _OPENDATA_DIR = Path.home() / ".local" / "share" / "opencode"
-DATA_DIR = _OPENDATA_DIR
+DATA_DIR = Path(os.environ.get("DARKMOON_DATA_DIR", str(_OPENDATA_DIR))).resolve()
 
 PROJECTS_FILE = DATA_DIR / "projects.json"
 TARGETS_FILE = DATA_DIR / "targets.json"
@@ -60,10 +64,39 @@ def _read_json(path: Path) -> Any:
 
 
 def _write_json(path: Path, data: Any) -> None:
-    """Write data as pretty-printed JSON."""
+    """Atomic writes keep the dashboard and concurrent agents on one snapshot."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix="." + path.name, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(data, stream, indent=2, ensure_ascii=False)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+_file_locks = {}
+_file_locks_guard = threading.Lock()
+
+
+@contextmanager
+def _file_lock(path):
+    """Serialize community/agent read-modify-write operations across processes."""
+    path = Path(path)
+    with _file_locks_guard:
+        lock = _file_locks.setdefault(str(path.resolve()), threading.Lock())
+    with lock:
+        sidecar = path.with_suffix(path.suffix + ".lock")
+        sidecar.parent.mkdir(parents=True, exist_ok=True)
+        with sidecar.open("a") as stream:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
 
 
 # ---------------------------------------------------------------------------
@@ -85,14 +118,15 @@ def load_project(project_id: str) -> Optional[Dict[str, Any]]:
 
 def save_project(project: Dict[str, Any]) -> None:
     """Upsert a project into projects.json."""
-    projects = load_projects()
-    for i, p in enumerate(projects):
-        if p.get("id") == project.get("id"):
-            projects[i] = project
-            _write_json(PROJECTS_FILE, projects)
-            return
-    projects.append(project)
-    _write_json(PROJECTS_FILE, projects)
+    with _file_lock(PROJECTS_FILE):
+        projects = load_projects()
+        for i, p in enumerate(projects):
+            if p.get("id") == project.get("id"):
+                projects[i] = project
+                _write_json(PROJECTS_FILE, projects)
+                return
+        projects.append(project)
+        _write_json(PROJECTS_FILE, projects)
 
 
 # ---------------------------------------------------------------------------
@@ -114,14 +148,15 @@ def load_target(target_id: str) -> Optional[Dict[str, Any]]:
 
 def save_target(target: Dict[str, Any]) -> None:
     """Upsert a target into targets.json."""
-    targets = load_targets()
-    for i, t in enumerate(targets):
-        if t.get("id") == target.get("id"):
-            targets[i] = target
-            _write_json(TARGETS_FILE, targets)
-            return
-    targets.append(target)
-    _write_json(TARGETS_FILE, targets)
+    with _file_lock(TARGETS_FILE):
+        targets = load_targets()
+        for i, t in enumerate(targets):
+            if t.get("id") == target.get("id"):
+                targets[i] = target
+                _write_json(TARGETS_FILE, targets)
+                return
+        targets.append(target)
+        _write_json(TARGETS_FILE, targets)
 
 
 # ---------------------------------------------------------------------------

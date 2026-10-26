@@ -1,0 +1,26 @@
+// Declarative pipeline: scan OWASP Juice Shop with Darkmoon OSS and gate the build.
+pipeline {
+    agent any
+    stages {
+        stage('Darkmoon security scan') {
+            steps {
+                darkmoonScan(
+                    target: 'http://juice-shop:3000',
+                    mode: 'oss',
+                    failOn: 'high',
+                    unstableOn: 'medium',
+                    credentialsId: 'darkmoon-token',
+                    recordIssues: true,
+                    archiveReport: true,
+                    timeout: 1800
+                )
+                // Publish the SARIF the step produced. enabledForFailure is required
+                // because darkmoonScan may already have failed the build.
+                recordIssues(
+                    enabledForFailure: true,
+                    tools: [sarif(pattern: 'darkmoon-reports/darkmoon.sarif')]
+                )
+            }
+        }
+    }
+}

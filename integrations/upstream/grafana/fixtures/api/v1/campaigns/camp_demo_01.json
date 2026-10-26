@@ -1,0 +1,159 @@
+{
+ "data": {
+  "id": "camp_demo_01",
+  "project_id": "proj_demoshop",
+  "target_id": "tgt_web",
+  "session_id": "sess_camp_demo_01",
+  "date": "2026-08-20T00:00:00Z",
+  "status": "stopped",
+  "stats": {
+   "total_findings": 4,
+   "critical": 1,
+   "high": 2,
+   "medium": 0,
+   "low": 1,
+   "info": 0,
+   "exploited": 2,
+   "confirmed": 2,
+   "unconfirmed": 0
+  },
+  "overall_risk": "critical",
+  "agents_dispatched": [],
+  "is_subagent": false,
+  "vulnerabilities": [
+   {
+    "id": "vuln_ef0ddafabc",
+    "campaign_id": "camp_demo_01",
+    "target_id": "tgt_web",
+    "project_id": "proj_demoshop",
+    "title": "SQL Injection in /product?id",
+    "severity": "critical",
+    "status": "exploited",
+    "category": "sql_injection",
+    "cve": "CVE-2026-1001",
+    "cwe": null,
+    "cvss_score": 9.8,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+    "mitre_attack_id": "T1190",
+    "mitre_attack_name": "Exploit Public-Facing Application",
+    "iso27001_control": "A.14.2.5",
+    "endpoint": "/product?id=",
+    "discovered_by_agent": "web-app",
+    "description": "[SYNTHETIC] SQL Injection in /product?id on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_e82e8698de",
+    "campaign_id": "camp_demo_01",
+    "target_id": "tgt_web",
+    "project_id": "proj_demoshop",
+    "title": "Reflected XSS in search box",
+    "severity": "high",
+    "status": "confirmed",
+    "category": "xss",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 7.4,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+    "mitre_attack_id": "T1059",
+    "mitre_attack_name": "Command and Scripting Interpreter",
+    "iso27001_control": "A.14.2.5",
+    "endpoint": "/search?q=",
+    "discovered_by_agent": "web-app",
+    "description": "[SYNTHETIC] Reflected XSS in search box on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_06d0cd2057",
+    "campaign_id": "camp_demo_01",
+    "target_id": "tgt_web",
+    "project_id": "proj_demoshop",
+    "title": "WordPress admin weak password",
+    "severity": "high",
+    "status": "exploited",
+    "category": "broken_authentication",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 8.1,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+    "mitre_attack_id": "T1110",
+    "mitre_attack_name": "Brute Force",
+    "iso27001_control": "A.9.4.3",
+    "endpoint": "/wp-login.php",
+    "discovered_by_agent": "web-app",
+    "description": "[SYNTHETIC] WordPress admin weak password on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_7ccedd03c6",
+    "campaign_id": "camp_demo_01",
+    "target_id": "tgt_web",
+    "project_id": "proj_demoshop",
+    "title": "Missing security headers (CSP/HSTS)",
+    "severity": "low",
+    "status": "confirmed",
+    "category": "misconfiguration",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 3.1,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+    "mitre_attack_id": "T1592",
+    "mitre_attack_name": "Gather Victim Host Information",
+    "iso27001_control": "A.14.1.2",
+    "endpoint": "/",
+    "discovered_by_agent": "web-app",
+    "description": "[SYNTHETIC] Missing security headers (CSP/HSTS) on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   }
+  ],
+  "open_vuln": 4
+ }
+}

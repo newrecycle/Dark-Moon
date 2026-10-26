@@ -1,0 +1,126 @@
+{
+ "data": {
+  "id": "camp_demo_03",
+  "project_id": "proj_demoshop",
+  "target_id": "tgt_iot",
+  "session_id": "sess_camp_demo_03",
+  "date": "2026-08-29T00:00:00Z",
+  "status": "completed",
+  "stats": {
+   "total_findings": 3,
+   "critical": 1,
+   "high": 1,
+   "medium": 1,
+   "low": 0,
+   "info": 0,
+   "exploited": 1,
+   "confirmed": 2,
+   "unconfirmed": 0
+  },
+  "overall_risk": "critical",
+  "agents_dispatched": [],
+  "is_subagent": false,
+  "vulnerabilities": [
+   {
+    "id": "vuln_148acdf970",
+    "campaign_id": "camp_demo_03",
+    "target_id": "tgt_iot",
+    "project_id": "proj_demoshop",
+    "title": "Unauthenticated firmware upload",
+    "severity": "critical",
+    "status": "exploited",
+    "category": "remote_code_execution",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 9.9,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+    "mitre_attack_id": "T1133",
+    "mitre_attack_name": "External Remote Services",
+    "iso27001_control": "A.14.2.5",
+    "endpoint": "/cgi-bin/upgrade",
+    "discovered_by_agent": "iot-firmware",
+    "description": "[SYNTHETIC] Unauthenticated firmware upload on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_88fb1e3d87",
+    "campaign_id": "camp_demo_03",
+    "target_id": "tgt_iot",
+    "project_id": "proj_demoshop",
+    "title": "Hardcoded telnet credentials",
+    "severity": "high",
+    "status": "confirmed",
+    "category": "broken_authentication",
+    "cve": "CVE-2026-2050",
+    "cwe": null,
+    "cvss_score": 8.8,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+    "mitre_attack_id": "T1078",
+    "mitre_attack_name": "Valid Accounts",
+    "iso27001_control": "A.9.2.4",
+    "endpoint": "telnet://:23",
+    "discovered_by_agent": "iot-firmware",
+    "description": "[SYNTHETIC] Hardcoded telnet credentials on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_5515a8bed9",
+    "campaign_id": "camp_demo_03",
+    "target_id": "tgt_iot",
+    "project_id": "proj_demoshop",
+    "title": "Outdated BusyBox (known CVEs)",
+    "severity": "medium",
+    "status": "confirmed",
+    "category": "vulnerable_component",
+    "cve": "CVE-2022-48174",
+    "cwe": null,
+    "cvss_score": 6.5,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
+    "mitre_attack_id": "T1195",
+    "mitre_attack_name": "Supply Chain Compromise",
+    "iso27001_control": "A.12.6.1",
+    "endpoint": "/",
+    "discovered_by_agent": "iot-firmware",
+    "description": "[SYNTHETIC] Outdated BusyBox (known CVEs) on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   }
+  ],
+  "open_vuln": 3
+ }
+}

@@ -1,0 +1,11 @@
+apiVersion: 1
+
+apps:
+  - type: 'darkmoon-securityposture-app'
+    org_id: 1
+    org_name: 'darkmoon'
+    disabled: false
+    jsonData:
+      apiUrl: http://default-url.com
+    secureJsonData:
+      apiKey: secret-key

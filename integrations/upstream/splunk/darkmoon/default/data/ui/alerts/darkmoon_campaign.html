@@ -1,0 +1,52 @@
+<form class="form-horizontal form-complex">
+  <div class="control-group">
+    <label class="control-label">Target</label>
+    <div class="controls">
+      <splunk-text-input name="action.darkmoon_campaign.param.target" id="darkmoon_campaign_target"></splunk-text-input>
+      <span class="help-block">
+        Host or URL to (re)test. MUST be present in the app's target allowlist
+        (lookups/darkmoon_targets.csv). Leave empty to use the "target"/"dest" field
+        from the triggering result.
+      </span>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">Action</label>
+    <div class="controls">
+      <splunk-select name="action.darkmoon_campaign.param.action_kind" id="darkmoon_campaign_action_kind" value="retest">
+        <option value="retest">Retest (validate a prior finding)</option>
+        <option value="campaign">Campaign (fresh assessment)</option>
+      </splunk-select>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">Safe-harbor profile</label>
+    <div class="controls">
+      <splunk-select name="action.darkmoon_campaign.param.scope_profile" id="darkmoon_campaign_scope_profile" value="non-destructive">
+        <option value="non-destructive">Non-destructive (enforced default)</option>
+        <option value="authorized">Authorized (only if the allowlist row permits it)</option>
+      </splunk-select>
+      <span class="help-block">Destructive testing is refused unless the target's allowlist row opts in.</span>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">Dry run</label>
+    <div class="controls">
+      <splunk-select name="action.darkmoon_campaign.param.dry_run" id="darkmoon_campaign_dry_run" value="1">
+        <option value="1">Yes — validate and log only (recommended first)</option>
+        <option value="0">No — actually launch against Darkmoon</option>
+      </splunk-select>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">Max launches / hour</label>
+    <div class="controls">
+      <splunk-text-input name="action.darkmoon_campaign.param.max_per_hour" id="darkmoon_campaign_max_per_hour" value="6"></splunk-text-input>
+      <span class="help-block">Rate limit (token bucket). Hard-capped by the action.</span>
+    </div>
+  </div>
+</form>

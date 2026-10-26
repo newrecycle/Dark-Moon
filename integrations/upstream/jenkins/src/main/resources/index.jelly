@@ -1,0 +1,6 @@
+<?jelly escape-by-default='true'?>
+<div>
+  Run Darkmoon AI penetration-test campaigns (OSS CLI or Pro REST) from a Jenkins
+  job or declarative pipeline via the <code>darkmoonScan</code> step, publish findings
+  through Warnings Next Generation, and gate the build on severity.
+</div>

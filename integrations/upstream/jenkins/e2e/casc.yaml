@@ -1,0 +1,35 @@
+jenkins:
+  systemMessage: "Darkmoon E2E"
+  securityRealm: "none"
+  authorizationStrategy: "unsecured"
+  numExecutors: 2
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - string:
+              scope: GLOBAL
+              id: "dm-token"
+              secret: "dm-container-secret-XYZ987"
+              description: "Darkmoon token"
+jobs:
+  - script: >
+      pipelineJob('darkmoon-e2e') {
+        definition {
+          cps {
+            sandbox(true)
+            script('''
+              node {
+                darkmoonScan target: 'http://127.0.0.1:3000', mode: 'oss',
+                  failOn: 'high', credentialsId: 'dm-token',
+                  cliPath: 'darkmoon-ci',
+                  ossDataDir: '/var/darkmoon/data',
+                  ossReportsDir: '/var/darkmoon/data/reports',
+                  ossScript: '/opt/engine-standin.sh',
+                  timeout: 90, recordIssues: true, archiveReport: true
+                recordIssues(enabledForFailure: true, tools: [sarif(pattern: 'darkmoon-reports/darkmoon.sarif')])
+              }
+            '''.stripIndent())
+          }
+        }
+      }

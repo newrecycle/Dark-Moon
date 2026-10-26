@@ -1,0 +1,35 @@
+{
+ "data": {
+  "id": "vuln_0ecd4ed590",
+  "campaign_id": "camp_demo_04",
+  "target_id": "tgt_web",
+  "project_id": "proj_demoshop",
+  "title": "Server-Side Request Forgery in webhook",
+  "severity": "high",
+  "status": "confirmed",
+  "category": "ssrf",
+  "cve": null,
+  "cwe": null,
+  "cvss_score": 8.6,
+  "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:L/A:N",
+  "mitre_attack_id": "T1190",
+  "mitre_attack_name": "Exploit Public-Facing Application",
+  "iso27001_control": "A.13.1.3",
+  "endpoint": "/admin/webhook",
+  "discovered_by_agent": "web-app",
+  "description": "[SYNTHETIC] Server-Side Request Forgery in webhook on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+  "evidence": {
+   "commands": [
+    "<redacted-in-demo>"
+   ],
+   "payloads": [],
+   "raw_request": "",
+   "raw_response": "",
+   "extracted_data": null,
+   "screenshots": [],
+   "logs": [],
+   "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+  },
+  "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+ }
+}

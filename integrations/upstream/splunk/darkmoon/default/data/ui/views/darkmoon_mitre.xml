@@ -1,0 +1,73 @@
+<form version="1.1" theme="dark">
+  <label>Darkmoon — MITRE ATT&amp;CK &amp; Technologies</label>
+  <description>ATT&amp;CK coverage and affected technologies derived from Darkmoon findings (safe metadata only).</description>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="tr">
+      <label>Time range</label>
+      <default>
+        <earliest>-30d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <title>MITRE ATT&amp;CK coverage (findings per technique)</title>
+      <table>
+        <search>
+          <query>`darkmoon_findings` mitre_attack_id=* | dedup finding_id sortby -_time | stats dc(finding_id) as findings values(severity) as severities values(title) as example_titles by mitre_attack_id mitre_attack_name | sort - findings</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="count">30</option>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_blank">darkmoon_findings?form.tr.earliest=$tr.earliest$&amp;form.tr.latest=$tr.latest$</link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Top ATT&amp;CK techniques</title>
+      <chart>
+        <search>
+          <query>`darkmoon_findings` mitre_attack_id=* | dedup finding_id sortby -_time | eval technique=mitre_attack_id." ".mitre_attack_name | stats dc(finding_id) as count by technique | sort - count | head 15</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.fieldColors">{"count":0xf1813f}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Affected technologies</title>
+      <chart>
+        <search>
+          <query>`darkmoon_findings` technology=* | dedup finding_id sortby -_time | stats dc(finding_id) as count by technology | sort - count | head 15</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.fieldColors">{"count":0x3b82f6}</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Technique severity heat (technique x severity)</title>
+      <table>
+        <search>
+          <query>`darkmoon_findings` mitre_attack_id=* | dedup finding_id sortby -_time | chart dc(finding_id) over mitre_attack_name by severity</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="count">30</option>
+      </table>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,35 @@
+# Provisioned Darkmoon datasource (Infinity) for Grafana.
+#
+# The FREE path uses the Infinity datasource (yesoreyeram-infinity-datasource,
+# Grafana-Catalog-signed) pointed at the Darkmoon REST API.
+#
+# For the local docker-compose lab this points at the synthetic "Demo Shop" mock.
+# For a REAL Darkmoon deployment:
+#   * set url / the dashboard `darkmoon_url` variable to your Darkmoon API base
+#   * add a Bearer token under secureJsonData.bearerToken (Pro / §2.0 auth token)
+#     and set jsonData.auth_method: bearerToken
+#   * NEVER commit the token — inject it via env (see ${DARKMOON_API_TOKEN}).
+apiVersion: 1
+
+deleteDatasources:
+  - name: Darkmoon
+    orgId: 1
+
+datasources:
+  - name: Darkmoon
+    uid: darkmoon-infinity
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    isDefault: true
+    editable: true
+    jsonData:
+      # Restrict which hosts this datasource may call (SSRF hardening). The mock
+      # + your Darkmoon host. Empty list = allow all (dev only).
+      allowedHosts:
+        - http://darkmoon-mock:8080
+        - http://localhost:8080
+      tlsSkipVerify: false
+      # Uncomment for a real Darkmoon Pro backend with a Bearer token:
+      # auth_method: bearerToken
+    # secureJsonData:
+    #   bearerToken: ${DARKMOON_API_TOKEN}

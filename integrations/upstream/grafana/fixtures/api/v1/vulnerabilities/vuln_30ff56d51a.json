@@ -1,0 +1,35 @@
+{
+ "data": {
+  "id": "vuln_30ff56d51a",
+  "campaign_id": "camp_demo_02",
+  "target_id": "tgt_api",
+  "project_id": "proj_demoshop",
+  "title": "Verbose error leaks stack trace",
+  "severity": "medium",
+  "status": "confirmed",
+  "category": "information_disclosure",
+  "cve": null,
+  "cwe": null,
+  "cvss_score": 5.3,
+  "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+  "mitre_attack_id": "T1592",
+  "mitre_attack_name": "Gather Victim Host Information",
+  "iso27001_control": "A.12.4.1",
+  "endpoint": "/api/checkout",
+  "discovered_by_agent": "api-security",
+  "description": "[SYNTHETIC] Verbose error leaks stack trace on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+  "evidence": {
+   "commands": [
+    "<redacted-in-demo>"
+   ],
+   "payloads": [],
+   "raw_request": "",
+   "raw_response": "",
+   "extracted_data": null,
+   "screenshots": [],
+   "logs": [],
+   "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+  },
+  "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+ }
+}

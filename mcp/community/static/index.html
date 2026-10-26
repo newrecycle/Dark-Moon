@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DarkMoon Community</title>
+    <link rel="stylesheet" href="/app.css" />
+    <script src="/app.js" defer></script>
+    <script src="/workspace.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#overview"
+        ><span class="moon">◒</span
+        ><span>DARKMOON<small>COMMUNITY EDITION</small></span></a
+      >
+      <div class="nav-label">WORKSPACE</div>
+      <nav aria-label="Workspace">
+        <a href="#overview">◈ <span>Overview</span></a
+        ><a href="#campaigns">▤ <span>Campaigns</span></a>
+        <a href="#findings">⌕ <span>Findings</span></a
+        ><a href="#surface">⌘ <span>Attack surface</span></a>
+        <a href="#schedules">◷ <span>Schedules</span></a
+        ><a href="#remediation">⌁ <span>Remediation</span></a>
+        <a href="#integrations">⇄ <span>Integrations</span></a
+        ><a href="#projects">▦ <span>Projects & analytics</span></a
+        ><a href="#retests">↻ <span>Retests</span></a
+        ><a href="#credentials">⚿ <span>Credentials</span></a
+        ><a href="#webhooks">⇢ <span>Webhooks</span></a
+        ><a href="#settings">⚙ <span>Settings & accounts</span></a>
+      </nav>
+      <div class="sidebar-foot">
+        <span class="dot"></span> Local workspace<br /><small
+          >Evidence stays on your infrastructure.</small
+        ><button id="logout" class="text-button">Lock workspace</button>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">SECURITY OPERATIONS / COMMUNITY</div>
+          <h1 id="heading">Overview</h1>
+        </div>
+        <div class="header-actions">
+          <span id="connection" class="subtle">Connecting</span
+          ><button id="new-campaign" class="primary">+ New assessment</button>
+        </div>
+      </header>
+      <div id="error" role="alert" hidden></div>
+      <section id="content" aria-live="polite"></section>
+      <footer>
+        DarkMoon Community · Independent GPLv3 implementation · Local patches,
+        human review.
+      </footer>
+    </main>
+    <dialog id="login">
+      <form id="login-form">
+        <div class="eyebrow">YOUR LOCAL WORKSPACE</div>
+        <h2>Unlock DarkMoon</h2>
+        <p>
+          Enter the access token from the file shown when the dashboard starts.
+        </p>
+        <label
+          >Username (optional)<input
+            id="login-username"
+            autocomplete="username"
+            placeholder="Leave empty to use the workspace token" /></label
+        ><label
+          >Password or workspace token<input
+            id="token"
+            type="password"
+            required
+            autocomplete="off"
+            autofocus /></label
+        ><button id="sso-login" type="button" class="secondary" hidden>
+          Sign in with SSO
+        </button>
+        <p id="login-error" role="alert"></p>
+        <button class="primary" type="submit">Unlock workspace →</button
+        ><small
+          >The token is held in this tab's memory and clears when you
+          reload.</small
+        >
+      </form>
+    </dialog>
+    <dialog id="launch-dialog">
+      <form id="launch-form">
+        <div class="dialog-top">
+          <h2 id="launch-title">New assessment</h2>
+          <button class="icon close-dialog" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <p>
+          Launch the existing DarkMoon agent stack against a target you are
+          authorized to assess.
+        </p>
+        <label
+          >Assessment name<input
+            name="name"
+            required
+            maxlength="160"
+            placeholder="Staging application review" /></label
+        ><label
+          >Target<input
+            name="target"
+            required
+            placeholder="https://staging.example.com"
+        /></label>
+        <div class="form-grid">
+          <label>Focus<input name="focus" placeholder="sqli,xss,idor" /></label
+          ><label
+            >Exclude<input name="exclude" placeholder="dos,bruteforce" /></label
+          ><label
+            >Severity<input
+              name="severity"
+              placeholder="critical,high,medium" /></label
+          ><label
+            >Noise<select name="noise">
+              <option value="">Default</option>
+              <option>low</option>
+              <option>moderate</option>
+              <option>high</option>
+            </select></label
+          >
+        </div>
+        <div class="form-grid">
+          <label
+            >Report format<select name="format">
+              <option value="standard">Standard</option>
+              <option value="h1">HackerOne</option>
+              <option value="bugcrowd">Bugcrowd</option>
+              <option value="custom">Custom</option>
+            </select></label
+          ><label
+            >Additional targets (comma-separated)<input
+              name="targets"
+              placeholder="api.example.com,192.0.2.5"
+          /></label>
+        </div>
+        <label
+          >Out of scope (comma-separated)<input
+            name="out_of_scope"
+            placeholder="payments.example.com" /></label
+        ><label
+          >Saved target login credential (optional)<input
+            name="assessment_credential_id"
+            placeholder="cred_..." /></label
+        ><label
+          >Saved target API token (optional)<input
+            name="assessment_token_id"
+            placeholder="cred_..." /></label
+        ><label
+          >Engagement rules<textarea name="rules" rows="2"></textarea></label
+        ><label
+          ><input name="remediate" type="checkbox" /> Prepare local remediation
+          proposals after completion</label
+        >
+        <div class="form-grid">
+          <label
+            >Local source repository<input
+              name="git_repo"
+              placeholder="/path/to/application" /></label
+          ><label
+            >Saved credential reference<input
+              name="credential_id"
+              placeholder="cred_..."
+          /></label>
+        </div>
+        <div id="schedule-fields" hidden>
+          <div class="form-grid">
+            <label
+              >Repeat every (hours)<input
+                name="hours"
+                type="number"
+                value="24"
+                min="0.017"
+                max="8784"
+                step="any" /></label
+            ><label
+              >First run (local time)<input
+                name="first_run"
+                type="datetime-local"
+            /></label>
+          </div>
+        </div>
+        <p id="launch-error" role="alert"></p>
+        <button class="primary" type="submit" id="launch-submit">
+          Start assessment →
+        </button>
+      </form>
+    </dialog>
+    <dialog id="remediation-dialog">
+      <form id="remediation-form">
+        <div class="dialog-top">
+          <h2>Prepare a local fix</h2>
+          <button class="icon close-dialog" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <p>
+          The source repository must exist on the dashboard host. The original
+          working tree stays intact; the proposal is prepared in a new local
+          worktree.
+        </p>
+        <input name="campaign_id" type="hidden" /><input
+          name="finding_id"
+          type="hidden"
+        /><label
+          >Local source repository<input
+            name="repo"
+            placeholder="/home/user/source/application"
+            required /></label
+        ><label
+          ><input name="generate" type="checkbox" /> Request edits from the
+          configured model</label
+        ><label
+          >Source files for the model (one relative path per line)<textarea
+            name="files"
+            rows="3"
+            placeholder="src/routes/search.py"
+          ></textarea></label
+        ><label
+          >Or supply structured edits (JSON)<textarea
+            name="edits"
+            rows="5"
+            placeholder='[{"path":"src/app.py","old":"exact vulnerable code","new":"replacement code"}]'
+          ></textarea></label
+        ><label
+          ><input name="validate" type="checkbox" /> Validate with the
+          repository's Docker reproduction plan</label
+        >
+        <p id="remediation-error" role="alert"></p>
+        <button class="primary" type="submit">Prepare proposal →</button
+        ><small>No remote branch or pull request is created.</small>
+      </form>
+    </dialog>
+    <dialog id="workspace-dialog">
+      <form id="workspace-form">
+        <div class="dialog-top">
+          <h2 id="workspace-title"></h2>
+          <button class="icon close-dialog" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div id="workspace-fields"></div>
+        <p id="workspace-error" role="alert"></p>
+        <button class="primary" type="submit">Save</button>
+      </form>
+    </dialog>
+    <dialog id="detail">
+      <div class="dialog-top">
+        <h2 id="detail-title"></h2>
+        <button class="icon close-dialog" aria-label="Close">×</button>
+      </div>
+      <div id="detail-body"></div>
+    </dialog>
+  </body>
+</html>

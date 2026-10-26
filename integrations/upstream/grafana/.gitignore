@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+
+# Local docker/test artifacts
+test-results/
+*.log
+
+# Secrets — never commit
+.npmrc
+*.tok
+grafana.url
+grafana.tok
+
+# Plugin build output & deps (see plugin/.gitignore too)
+plugin/node_modules/
+plugin/dist/
+plugin/*.zip

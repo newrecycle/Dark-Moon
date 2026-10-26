@@ -1,0 +1,108 @@
+<form version="1.1" theme="dark">
+  <label>Darkmoon — Findings</label>
+  <description>All Darkmoon findings (current state). Filter by severity, status, category, campaign or target. Click a row for safe detail (no evidence is stored or shown).</description>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="tr">
+      <label>Time range</label>
+      <default>
+        <earliest>-30d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="sev">
+      <label>Severity</label>
+      <choice value="*">Any</choice>
+      <choice value="critical">critical</choice>
+      <choice value="high">high</choice>
+      <choice value="medium">medium</choice>
+      <choice value="low">low</choice>
+      <choice value="info">info</choice>
+      <default>*</default>
+    </input>
+    <input type="dropdown" token="statusf">
+      <label>Status</label>
+      <choice value="*">Any</choice>
+      <choice value="unconfirmed">unconfirmed</choice>
+      <choice value="confirmed">confirmed</choice>
+      <choice value="exploited">exploited</choice>
+      <choice value="remediated">remediated</choice>
+      <default>*</default>
+    </input>
+    <input type="text" token="category_tok">
+      <label>Category (wildcard)</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="target_tok">
+      <label>Target (wildcard)</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="campaign_tok">
+      <label>Campaign (wildcard)</label>
+      <default>*</default>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <title>Severity distribution (matching filter)</title>
+      <chart>
+        <search>
+          <query>`darkmoon_findings` severity="$sev$" category="$category_tok$" target="$target_tok$" campaign_id="$campaign_tok$" | dedup finding_id sortby -_time | search status="$statusf$" | stats dc(finding_id) as count by severity</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.fieldColors">{"count":0x3b82f6}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Status distribution (matching filter)</title>
+      <chart>
+        <search>
+          <query>`darkmoon_findings` severity="$sev$" category="$category_tok$" target="$target_tok$" campaign_id="$campaign_tok$" | dedup finding_id sortby -_time | search status="$statusf$" | stats dc(finding_id) as count by status</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Findings</title>
+      <table>
+        <search>
+          <query>`darkmoon_findings` severity="$sev$" category="$category_tok$" target="$target_tok$" campaign_id="$campaign_tok$" | dedup finding_id sortby -_time | search status="$statusf$" | table _time finding_id title severity status category target endpoint cve cvss_score mitre_attack_id mitre_attack_name campaign_id discovered_by_agent has_evidence | sort - _time | rename _time as time, cvss_score as cvss, mitre_attack_id as mitre_id, mitre_attack_name as mitre</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="count">50</option>
+        <format type="color" field="severity">
+          <colorPalette type="map">{"critical":#dc4e41,"high":#f1813f,"medium":#f8be34,"low":#53a051,"info":#3b82f6}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"exploited":#f1813f,"confirmed":#dc4e41,"unconfirmed":#5cc5c5,"remediated":#53a051}</colorPalette>
+        </format>
+        <drilldown>
+          <set token="sel_finding">$row.finding_id$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+
+  <row depends="$sel_finding$">
+    <panel>
+      <title>Finding detail — $sel_finding$ (safe fields only; no evidence)</title>
+      <table>
+        <search>
+          <query>`darkmoon_findings` finding_id="$sel_finding$" | dedup finding_id sortby -_time | eval discovered=strftime(_time,"%F %T") | table finding_id title severity status category target endpoint cve cvss_score cvss_vector mitre_attack_id mitre_attack_name iso27001_control discovered_by_agent has_evidence campaign_id project_id discovered | transpose column_name="field" | rename "row 1" as value</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "datasource",
+  "name": "Darkmoon Security Posture",
+  "id": "darkmoon-securityposture-datasource",
+  "metrics": true,
+  "backend": true,
+  "executable": "gpx_darkmoon",
+  "info": {
+    "description": "Backend datasource that queries the Darkmoon security platform REST API (overview, campaigns, findings, targets, time series, pull requests, retests). Evidence and raw output are never exposed.",
+    "author": {
+      "name": "ASC-IT / Darkmoon"
+    },
+    "keywords": ["security", "pentest", "darkmoon", "vulnerabilities"],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=10.4.0",
+    "grafanaVersion": "10.4.x",
+    "plugins": []
+  }
+}

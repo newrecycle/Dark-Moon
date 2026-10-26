@@ -223,6 +223,19 @@ curl -fsSL https://portal.dark-moon.org/deploy | bash -s -- aws --license <KEY> 
 
 ---
 
+## Community workspace (this fork)
+
+This branch adds a local web dashboard, authenticated API, infrastructure map,
+accounts/SSO, encrypted credentials, recurring assessments, protected report
+exports and local remediation proposals. Public CI, IDE, n8n, Grafana and Splunk
+integration implementations are imported with pinned source provenance.
+Run `./community.sh` to open the workspace. See the
+[setup and API guide](docs/community.md) and
+[paid-feature/source-history audit](docs/community-feature-audit.md), and
+[complete feature coverage matrix](docs/pro-feature-matrix.md).
+The dashboard prepares local patches. Publication is a separate, explicitly
+gated command and is disabled throughout this work.
+
 ## What is DarkMoon?
 
 DarkMoon is an **open-source AI penetration testing** platform. Point it at a target you are authorized to test, and it runs the whole assessment on its own: it reasons, plans, and dispatches **50 specialist agents** that execute real offensive operations through a controlled MCP layer, then reports every vulnerability with the exact command, the raw output and the proof behind it.

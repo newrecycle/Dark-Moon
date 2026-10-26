@@ -1,0 +1,66 @@
+# CI for THIS repository (the component project itself).
+# - test: verify the component renders, parses, and that the mapper is correct
+#         and validates emitted reports against the LIVE GitLab schemas.
+# - release: on a semantic-version tag, publish the component to the CI/CD
+#            Catalog (requires this to be a public catalog project — human setup).
+
+stages: [test, release]
+
+variables:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+.py: &py
+  image: python:3.12-slim
+  before_script:
+    - pip install --quiet pyyaml jsonschema
+
+test:component:
+  <<: *py
+  stage: test
+  script:
+    # the shipped template must be in sync with src/ + skeleton
+    - cp templates/scan/template.yml /tmp/shipped.yml
+    - python3 build/render_template.py
+    - diff -q /tmp/shipped.yml templates/scan/template.yml || { echo "template.yml is stale — run build/render_template.py"; exit 1; }
+    # it must parse and expose the expected inputs
+    - python3 -c "import yaml; ins=list(yaml.safe_load_all(open('templates/scan/template.yml')))[0]['spec']['inputs']; assert 'default' not in (ins['target'] or {}), 'target must stay required'; print('inputs OK:', sorted(ins))"
+    - python3 test/check_schema_pin.py
+    - python3 test/unit_tests.py
+
+# Optional: validate the component YAML with GitLab's CI Lint (needs a CI job
+# token with api scope; enabled on GitLab instances that expose the lint API).
+lint:ci:
+  <<: *py
+  stage: test
+  allow_failure: true
+  rules:
+    - if: $CI_SERVER_URL
+  script:
+    - pip install --quiet requests
+    - |
+      python3 - <<'PY'
+      import json, os, urllib.request
+      content = open("templates/scan/template.yml").read()
+      url = os.environ["CI_SERVER_URL"] + "/api/v4/projects/" + os.environ["CI_PROJECT_ID"] + "/ci/lint"
+      req = urllib.request.Request(url, method="POST",
+          data=json.dumps({"content": content}).encode(),
+          headers={"Content-Type": "application/json",
+                   "JOB-TOKEN": os.environ.get("CI_JOB_TOKEN", "")})
+      try:
+          r = urllib.request.urlopen(req, timeout=30)
+          print("CI Lint:", r.read().decode()[:500])
+      except Exception as e:
+          print("CI Lint not available in this context:", e)
+      PY
+
+# Publish to the CI/CD Catalog on a semantic-version tag.
+create-release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^\d+\.\d+\.\d+$/
+  script:
+    - echo "Publishing Darkmoon scan component $CI_COMMIT_TAG to the CI/CD Catalog"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    description: "Darkmoon scan component $CI_COMMIT_TAG"

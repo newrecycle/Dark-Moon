@@ -1,0 +1,65 @@
+:root { color-scheme: light dark; }
+body {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  padding: 12px 18px;
+  margin: 0;
+  line-height: 1.5;
+}
+h1 { font-size: 1.4em; margin: 0 0 4px; }
+h2 {
+  font-size: 1.05em;
+  margin: 20px 0 6px;
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.3));
+  padding-bottom: 3px;
+}
+.muted { opacity: 0.7; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.82em;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+.chip {
+  display: inline-block; padding: 2px 9px; border-radius: 10px;
+  font-size: 0.82em; font-weight: 600; text-transform: uppercase; color: #fff;
+}
+.chip.critical { background: #b91c1c; }
+.chip.high { background: #ea580c; }
+.chip.medium { background: #ca8a04; }
+.chip.low { background: #2563eb; }
+.chip.info { background: #6b7280; }
+pre {
+  background: var(--vscode-textCodeBlock-background, rgba(128,128,128,0.12));
+  padding: 8px 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.9em;
+}
+.banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--vscode-inputValidation-warningBackground, rgba(202,138,4,0.15));
+  border: 1px solid var(--vscode-inputValidation-warningBorder, #ca8a04);
+  padding: 6px 10px; border-radius: 4px; margin: 10px 0;
+}
+button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none; padding: 4px 12px; border-radius: 3px; cursor: pointer;
+  font-size: var(--vscode-font-size);
+}
+button:hover { background: var(--vscode-button-hoverBackground); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.remediation {
+  background: var(--vscode-inputValidation-infoBackground, rgba(37,99,235,0.12));
+  border-left: 3px solid var(--vscode-inputValidation-infoBorder, #2563eb);
+  padding: 8px 12px; border-radius: 0 4px 4px 0;
+}
+ul { margin: 4px 0; padding-left: 20px; }

@@ -1,0 +1,14 @@
+# Provision the Darkmoon dashboards from JSON files.
+apiVersion: 1
+
+providers:
+  - name: Darkmoon
+    orgId: 1
+    folder: Darkmoon
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

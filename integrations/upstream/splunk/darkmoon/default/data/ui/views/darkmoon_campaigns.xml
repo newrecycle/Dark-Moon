@@ -1,0 +1,82 @@
+<form version="1.1" theme="dark">
+  <label>Darkmoon — Campaigns</label>
+  <description>Darkmoon assessment campaigns and their outcomes. Click a campaign for its findings.</description>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="tr">
+      <label>Time range</label>
+      <default>
+        <earliest>-90d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <title>Campaigns</title>
+      <table>
+        <search>
+          <query>`darkmoon_campaigns` | stats latest(status) as status latest(overall_risk) as risk latest(target) as target latest(project_id) as project latest(total_findings) as findings latest(critical) as critical latest(high) as high latest(exploited) as exploited latest(duration_seconds) as duration_s latest(_time) as last by campaign_id | eval last=strftime(last,"%F %T"), duration_min=round(duration_s/60,1) | table campaign_id target project last duration_min risk findings critical high exploited status | sort - last</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="count">50</option>
+        <option name="drilldown">row</option>
+        <format type="color" field="risk">
+          <colorPalette type="map">{"critical":#dc4e41,"high":#f1813f,"medium":#f8be34,"low":#53a051,"none":#d1d5db}</colorPalette>
+        </format>
+        <format type="color" field="status">
+          <colorPalette type="map">{"completed":#53a051,"running":#f8be34,"aborted":#8c8c8c,"stopped":#8c8c8c}</colorPalette>
+        </format>
+        <drilldown>
+          <set token="sel_campaign">$row.campaign_id$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+
+  <row depends="$sel_campaign$">
+    <panel>
+      <title>Campaign $sel_campaign$ — severity mix</title>
+      <chart>
+        <search>
+          <query>`darkmoon_findings` campaign_id="$sel_campaign$" | dedup finding_id sortby -_time | stats dc(finding_id) as count by severity</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.fieldColors">{"count":0x3b82f6}</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Campaign $sel_campaign$ — findings</title>
+      <table>
+        <search>
+          <query>`darkmoon_findings` campaign_id="$sel_campaign$" | dedup finding_id sortby -_time | table finding_id title severity status category target endpoint cve mitre_attack_id | sort severity</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="count">50</option>
+        <format type="color" field="severity">
+          <colorPalette type="map">{"critical":#dc4e41,"high":#f1813f,"medium":#f8be34,"low":#53a051,"info":#3b82f6}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Campaign volume over time</title>
+      <chart>
+        <search>
+          <query>`darkmoon_campaigns` event=campaign.completed | timechart count as campaigns</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.fieldColors">{"campaigns":0x3b82f6}</option>
+      </chart>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,17 @@
+{
+ "vuln_id": "vuln_f21f092916",
+ "has_evidence": true,
+ "counts": {
+  "commands": 1,
+  "payloads": 0,
+  "screenshots": 0,
+  "logs": 0,
+  "requests": 0
+ },
+ "command_names": [
+  "<redacted>"
+ ],
+ "has_screenshot": false,
+ "has_extracted_data": false,
+ "redacted": true
+}

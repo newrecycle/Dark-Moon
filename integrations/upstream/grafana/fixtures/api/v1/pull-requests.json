@@ -1,0 +1,62 @@
+{
+ "data": [
+  {
+   "id": "pr_demo_1",
+   "campaign_id": "camp_demo_04",
+   "provider": "github",
+   "repo": "ASCIT31/demo-shop",
+   "number": 128,
+   "state": "open",
+   "url": "https://github.com/ASCIT31/demo-shop/pull/128",
+   "title": "fix(sql): parameterize /product query (Darkmoon)",
+   "finding_ids": [
+    "vuln_ef0ddafabc"
+   ],
+   "diff_stat": {
+    "files": 2,
+    "additions": 14,
+    "deletions": 6
+   },
+   "validation": {
+    "reproduced": true,
+    "confidence": 0.92,
+    "gates": [
+     "exploit",
+     "regression"
+    ],
+    "passed": true
+   },
+   "created_at": "2026-09-05T10:00:00Z",
+   "created_by_agent": "remediation"
+  },
+  {
+   "id": "pr_demo_2",
+   "campaign_id": "camp_demo_04",
+   "provider": "github",
+   "repo": "ASCIT31/demo-shop",
+   "number": 131,
+   "state": "merged",
+   "url": "https://github.com/ASCIT31/demo-shop/pull/131",
+   "title": "fix(headers): add CSP + HSTS (Darkmoon)",
+   "finding_ids": [
+    "vuln_7ccedd03c6"
+   ],
+   "diff_stat": {
+    "files": 1,
+    "additions": 9,
+    "deletions": 0
+   },
+   "validation": {
+    "reproduced": true,
+    "confidence": 0.99,
+    "gates": [
+     "regression"
+    ],
+    "passed": true
+   },
+   "created_at": "2026-09-04T09:00:00Z",
+   "created_by_agent": "remediation"
+  }
+ ],
+ "total": 2
+}

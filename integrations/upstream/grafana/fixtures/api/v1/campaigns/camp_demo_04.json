@@ -1,0 +1,126 @@
+{
+ "data": {
+  "id": "camp_demo_04",
+  "project_id": "proj_demoshop",
+  "target_id": "tgt_web",
+  "session_id": "sess_camp_demo_04",
+  "date": "2026-09-05T00:00:00Z",
+  "status": "completed",
+  "stats": {
+   "total_findings": 3,
+   "critical": 1,
+   "high": 2,
+   "medium": 0,
+   "low": 0,
+   "info": 0,
+   "exploited": 0,
+   "confirmed": 2,
+   "unconfirmed": 0
+  },
+  "overall_risk": "critical",
+  "agents_dispatched": [],
+  "is_subagent": false,
+  "vulnerabilities": [
+   {
+    "id": "vuln_7db7b1e18d",
+    "campaign_id": "camp_demo_04",
+    "target_id": "tgt_web",
+    "project_id": "proj_demoshop",
+    "title": "SQL Injection in /product?id",
+    "severity": "critical",
+    "status": "remediated",
+    "category": "sql_injection",
+    "cve": "CVE-2026-1001",
+    "cwe": null,
+    "cvss_score": 9.8,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+    "mitre_attack_id": "T1190",
+    "mitre_attack_name": "Exploit Public-Facing Application",
+    "iso27001_control": "A.14.2.5",
+    "endpoint": "/product?id=",
+    "discovered_by_agent": "web-app",
+    "description": "[SYNTHETIC] SQL Injection in /product?id on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_ce63a525be",
+    "campaign_id": "camp_demo_04",
+    "target_id": "tgt_web",
+    "project_id": "proj_demoshop",
+    "title": "Reflected XSS in search box",
+    "severity": "high",
+    "status": "confirmed",
+    "category": "xss",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 7.4,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+    "mitre_attack_id": "T1059",
+    "mitre_attack_name": "Command and Scripting Interpreter",
+    "iso27001_control": "A.14.2.5",
+    "endpoint": "/search?q=",
+    "discovered_by_agent": "web-app",
+    "description": "[SYNTHETIC] Reflected XSS in search box on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   },
+   {
+    "id": "vuln_0ecd4ed590",
+    "campaign_id": "camp_demo_04",
+    "target_id": "tgt_web",
+    "project_id": "proj_demoshop",
+    "title": "Server-Side Request Forgery in webhook",
+    "severity": "high",
+    "status": "confirmed",
+    "category": "ssrf",
+    "cve": null,
+    "cwe": null,
+    "cvss_score": 8.6,
+    "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:L/A:N",
+    "mitre_attack_id": "T1190",
+    "mitre_attack_name": "Exploit Public-Facing Application",
+    "iso27001_control": "A.13.1.3",
+    "endpoint": "/admin/webhook",
+    "discovered_by_agent": "web-app",
+    "description": "[SYNTHETIC] Server-Side Request Forgery in webhook on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+    "evidence": {
+     "commands": [
+      "<redacted-in-demo>"
+     ],
+     "payloads": [],
+     "raw_request": "",
+     "raw_response": "",
+     "extracted_data": null,
+     "screenshots": [],
+     "logs": [],
+     "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+    },
+    "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+   }
+  ],
+  "open_vuln": 2
+ }
+}

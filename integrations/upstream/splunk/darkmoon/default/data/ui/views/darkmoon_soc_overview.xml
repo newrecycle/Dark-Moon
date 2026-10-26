@@ -1,0 +1,203 @@
+<form version="1.1" theme="dark">
+  <label>Darkmoon — SOC Overview</label>
+  <description>Security posture from Darkmoon AI pentest results. Safe metadata only — no evidence or secrets are ingested. Click a tile or row to drill down.</description>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="tr">
+      <label>Time range</label>
+      <default>
+        <earliest>-30d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="proj" searchWhenChanged="true">
+      <label>Project</label>
+      <choice value="*">All projects</choice>
+      <default>*</default>
+      <fieldForLabel>project_id</fieldForLabel>
+      <fieldForValue>project_id</fieldForValue>
+      <search>
+        <query>`darkmoon_findings` | stats count by project_id | sort project_id</query>
+        <earliest>$tr.earliest$</earliest>
+        <latest>$tr.latest$</latest>
+      </search>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <title>Active campaigns</title>
+      <single>
+        <search>
+          <query>`darkmoon_campaigns` project_id="$proj$" | stats latest(status) as status by campaign_id | where status="running" | stats count</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x53a051","0xf8be34"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Critical (open)</title>
+      <single>
+        <search>
+          <query>`darkmoon_findings` project_id="$proj$" severity=critical | dedup finding_id sortby -_time | search status IN ("unconfirmed","confirmed","exploited") | stats dc(finding_id)</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x53a051","0xdc4e41"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="useColors">1</option>
+        <drilldown>
+          <link target="_blank">darkmoon_findings?form.sev=critical&amp;form.tr.earliest=$tr.earliest$&amp;form.tr.latest=$tr.latest$</link>
+        </drilldown>
+      </single>
+    </panel>
+    <panel>
+      <title>High (open)</title>
+      <single>
+        <search>
+          <query>`darkmoon_findings` project_id="$proj$" severity=high | dedup finding_id sortby -_time | search status IN ("unconfirmed","confirmed","exploited") | stats dc(finding_id)</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x53a051","0xf1813f"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="useColors">1</option>
+        <drilldown>
+          <link target="_blank">darkmoon_findings?form.sev=high&amp;form.tr.earliest=$tr.earliest$&amp;form.tr.latest=$tr.latest$</link>
+        </drilldown>
+      </single>
+    </panel>
+    <panel>
+      <title>Confirmed</title>
+      <single>
+        <search>
+          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | search status=confirmed | stats dc(finding_id)</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0xdc4e41"]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Exploited</title>
+      <single>
+        <search>
+          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | search status=exploited | stats dc(finding_id)</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0x53a051","0xf1813f"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Remediation rate (% of findings remediated)</title>
+      <single>
+        <search>
+          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | stats count(eval(status=="remediated")) as rem dc(finding_id) as tot | eval pct=if(tot&gt;0, round(rem/tot*100,1), 0) | fields pct</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="unit">%</option>
+        <option name="colorBy">value</option>
+        <option name="rangeColors">["0xdc4e41","0xf8be34","0x53a051"]</option>
+        <option name="rangeValues">[40,75]</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Retest verdicts (fixed vs regressed)</title>
+      <chart>
+        <search>
+          <query>`darkmoon_index` sourcetype=darkmoon:retest verdict=* | stats count by verdict</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.seriesColors">[0x53a051,0xdc4e41,0xf1813f,0x3b82f6]</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Status distribution</title>
+      <chart>
+        <search>
+          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | stats dc(finding_id) as count by status</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Findings over time (by severity)</title>
+      <chart>
+        <search>
+          <query>`darkmoon_findings` project_id="$proj$" event=finding.discovered | timechart count by severity</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.fieldColors">{"critical":0xdc4e41,"high":0xf1813f,"medium":0xf8be34,"low":0x53a051,"info":0x3b82f6,"informational":0x3b82f6}</option>
+        <option name="charting.legend.placement">bottom</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Severity distribution (open findings)</title>
+      <chart>
+        <search>
+          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | search status IN ("unconfirmed","confirmed","exploited") | stats dc(finding_id) as count by severity</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.fieldColors">{"count":0x3b82f6}</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Top exploited assets</title>
+      <table>
+        <search>
+          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | search status=exploited | stats dc(finding_id) as exploited_findings values(severity) as severities latest(_time) as last_seen by target | eval last_seen=strftime(last_seen,"%F %T") | sort - exploited_findings</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_blank">darkmoon_findings?form.target_tok=$row.target$&amp;form.tr.earliest=$tr.earliest$&amp;form.tr.latest=$tr.latest$</link>
+        </drilldown>
+      </table>
+    </panel>
+    <panel>
+      <title>Open vs remediated over time</title>
+      <chart>
+        <search>
+          <query>`darkmoon_findings` project_id="$proj$" | eval bucket=if(status=="remediated","remediated","open") | timechart dc(finding_id) by bucket</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.fieldColors">{"open":0xdc4e41,"remediated":0x53a051}</option>
+      </chart>
+    </panel>
+  </row>
+</form>

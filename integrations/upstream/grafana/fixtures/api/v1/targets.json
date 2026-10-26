@@ -1,0 +1,103 @@
+{
+ "data": [
+  {
+   "id": "tgt_web",
+   "host": "demo-shop.local",
+   "ip": "10.10.0.11",
+   "status": "compromised",
+   "risk_level": "critical",
+   "technologies": [
+    {
+     "name": "nginx",
+     "version": "1.18.0",
+     "category": "webserver"
+    },
+    {
+     "name": "PHP",
+     "version": "7.4",
+     "category": "language"
+    },
+    {
+     "name": "WordPress",
+     "version": "6.2",
+     "category": "cms"
+    }
+   ],
+   "project_id": "proj_demoshop",
+   "open_vuln": 6,
+   "last_seen": "2026-09-05T00:00:00Z"
+  },
+  {
+   "id": "tgt_api",
+   "host": "api.demo-shop.local",
+   "ip": "10.10.0.12",
+   "status": "vulnerable",
+   "risk_level": "high",
+   "technologies": [
+    {
+     "name": "Node.js",
+     "version": "18.16",
+     "category": "runtime"
+    },
+    {
+     "name": "Express",
+     "version": "4.18",
+     "category": "framework"
+    },
+    {
+     "name": "PostgreSQL",
+     "version": "14",
+     "category": "database"
+    }
+   ],
+   "project_id": "proj_demoshop",
+   "open_vuln": 5,
+   "last_seen": "2026-09-19T00:00:00Z"
+  },
+  {
+   "id": "tgt_iot",
+   "host": "kiosk.demo-shop.local",
+   "ip": "10.10.0.30",
+   "status": "vulnerable",
+   "risk_level": "high",
+   "technologies": [
+    {
+     "name": "BusyBox",
+     "version": "1.30",
+     "category": "os"
+    },
+    {
+     "name": "lighttpd",
+     "version": "1.4",
+     "category": "webserver"
+    }
+   ],
+   "project_id": "proj_demoshop",
+   "open_vuln": 3,
+   "last_seen": "2026-08-29T00:00:00Z"
+  },
+  {
+   "id": "tgt_pay",
+   "host": "pay.demo-shop.local",
+   "ip": "10.10.0.13",
+   "status": "scanned",
+   "risk_level": "medium",
+   "technologies": [
+    {
+     "name": "Java",
+     "version": "17",
+     "category": "runtime"
+    },
+    {
+     "name": "Spring Boot",
+     "version": "3.1",
+     "category": "framework"
+    }
+   ],
+   "project_id": "proj_demoshop",
+   "open_vuln": 2,
+   "last_seen": "2026-09-11T00:00:00Z"
+  }
+ ],
+ "total": 4
+}

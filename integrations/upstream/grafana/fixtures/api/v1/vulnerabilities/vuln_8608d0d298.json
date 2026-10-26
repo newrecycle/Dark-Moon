@@ -1,0 +1,35 @@
+{
+ "data": {
+  "id": "vuln_8608d0d298",
+  "campaign_id": "camp_demo_05",
+  "target_id": "tgt_pay",
+  "project_id": "proj_demoshop",
+  "title": "TLS 1.0 enabled on payment endpoint",
+  "severity": "medium",
+  "status": "confirmed",
+  "category": "misconfiguration",
+  "cve": null,
+  "cwe": null,
+  "cvss_score": 5.9,
+  "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+  "mitre_attack_id": "T1040",
+  "mitre_attack_name": "Network Sniffing",
+  "iso27001_control": "A.10.1.1",
+  "endpoint": "/pay/checkout",
+  "discovered_by_agent": "web-app",
+  "description": "[SYNTHETIC] TLS 1.0 enabled on payment endpoint on the Demo Shop estate. This description is intentionally present so tests can prove the Grafana dashboards never render it on a shared surface.",
+  "evidence": {
+   "commands": [
+    "<redacted-in-demo>"
+   ],
+   "payloads": [],
+   "raw_request": "",
+   "raw_response": "",
+   "extracted_data": null,
+   "screenshots": [],
+   "logs": [],
+   "explanation": "SYNTHETIC demo evidence \u2014 never rendered by any dashboard."
+  },
+  "remediation": "Apply the documented fix; re-run a Darkmoon retest to verify."
+ }
+}

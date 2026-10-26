@@ -1,0 +1,7 @@
+# test/CI runtime artifacts
+gl-code-quality-report.json
+gl-sast-report.json
+/darkmoon/
+builds/
+*.pyc
+__pycache__/

@@ -1,0 +1,40 @@
+<dashboard version="1.1" theme="dark">
+  <label>Darkmoon — Setup &amp; Help</label>
+  <description>How to feed Darkmoon events into Splunk and how the "Send to Darkmoon" alert action is secured.</description>
+  <row>
+    <panel>
+      <html>
+        <div style="padding:12px 16px; line-height:1.55;">
+          <h2>1. Ingest Darkmoon events (HEC)</h2>
+          <ol>
+            <li>Settings &#8594; Data inputs &#8594; HTTP Event Collector &#8594; New Token. Name it <code>darkmoon</code>, set the app context to <b>Darkmoon Pentest</b>, and (optionally) route to an index named <code>darkmoon</code>.</li>
+            <li>Point a producer at <code>https://&lt;splunk&gt;:8088/services/collector/event</code>:
+              <ul>
+                <li><b>Pro (recommended):</b> register a Darkmoon webhook targeting the HEC URL (safe-field envelope, HMAC-signed).</li>
+                <li><b>Anyone:</b> run the bundled <code>forwarder/darkmoon-to-hec.py</code> to poll the Darkmoon REST API / read a JSON export and push safe events.</li>
+              </ul>
+            </li>
+            <li>Events land as sourcetypes <code>darkmoon:campaign</code>, <code>darkmoon:finding</code>, <code>darkmoon:retest</code>, <code>darkmoon:pr</code> — parsed and CIM-aligned by this app.</li>
+          </ol>
+
+          <h2>2. Configure the connection (for the alert action)</h2>
+          <p>Run the app <b>Set up</b> page (Manage Apps &#8594; Darkmoon Pentest &#8594; Set up). It stores the base URL in <code>darkmoon.conf</code> and the API token <b>encrypted in storage/passwords</b> — never in a .conf file, log or dashboard.</p>
+
+          <h2>3. "Send to Darkmoon" alert action — safety model</h2>
+          <ul>
+            <li><b>Target allowlist:</b> only hosts in <code>lookups/darkmoon_targets.csv</code> can ever be sent. Everything else is refused.</li>
+            <li><b>Safe-harbor:</b> non-destructive profile enforced unless a target row explicitly opts in.</li>
+            <li><b>Auth:</b> token pulled from storage/passwords at runtime via the session key.</li>
+            <li><b>Rate limit:</b> token bucket (max launches/hour), hard-capped in the script.</li>
+            <li><b>TLS verified</b> on the outbound call; result rows treated as untrusted (strict host/IP validation).</li>
+            <li><b>Dry-run ON by default</b> — nothing is launched until you set dry_run=0.</li>
+          </ul>
+
+          <h2>Edition note</h2>
+          <p>Ingestion + dashboards work with any Darkmoon edition that can emit events. The alert action and setup call the <b>Darkmoon Pro</b> REST API and are Pro-only. The open-source Darkmoon CLI does not expose that API.</p>
+          <p><b>Privacy:</b> events carry safe metadata only (ids, severity, status, target ref, MITRE, technology, timestamps). Evidence, secrets, credentials, tokens and request/response bodies are never ingested.</p>
+        </div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

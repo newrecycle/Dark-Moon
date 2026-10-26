@@ -1,0 +1,137 @@
+{
+ "data": [
+  {
+   "id": "camp_demo_01",
+   "project_id": "proj_demoshop",
+   "target_id": "tgt_web",
+   "session_id": "sess_camp_demo_01",
+   "date": "2026-08-20T00:00:00Z",
+   "status": "stopped",
+   "stats": {
+    "total_findings": 4,
+    "critical": 1,
+    "high": 2,
+    "medium": 0,
+    "low": 1,
+    "info": 0,
+    "exploited": 2,
+    "confirmed": 2,
+    "unconfirmed": 0
+   },
+   "overall_risk": "critical",
+   "agents_dispatched": [],
+   "is_subagent": false
+  },
+  {
+   "id": "camp_demo_02",
+   "project_id": "proj_demoshop",
+   "target_id": "tgt_api",
+   "session_id": "sess_camp_demo_02",
+   "date": "2026-08-23T00:00:00Z",
+   "status": "completed",
+   "stats": {
+    "total_findings": 4,
+    "critical": 1,
+    "high": 1,
+    "medium": 2,
+    "low": 0,
+    "info": 0,
+    "exploited": 1,
+    "confirmed": 2,
+    "unconfirmed": 1
+   },
+   "overall_risk": "critical",
+   "agents_dispatched": [],
+   "is_subagent": false
+  },
+  {
+   "id": "camp_demo_03",
+   "project_id": "proj_demoshop",
+   "target_id": "tgt_iot",
+   "session_id": "sess_camp_demo_03",
+   "date": "2026-08-29T00:00:00Z",
+   "status": "completed",
+   "stats": {
+    "total_findings": 3,
+    "critical": 1,
+    "high": 1,
+    "medium": 1,
+    "low": 0,
+    "info": 0,
+    "exploited": 1,
+    "confirmed": 2,
+    "unconfirmed": 0
+   },
+   "overall_risk": "critical",
+   "agents_dispatched": [],
+   "is_subagent": false
+  },
+  {
+   "id": "camp_demo_04",
+   "project_id": "proj_demoshop",
+   "target_id": "tgt_web",
+   "session_id": "sess_camp_demo_04",
+   "date": "2026-09-05T00:00:00Z",
+   "status": "completed",
+   "stats": {
+    "total_findings": 3,
+    "critical": 1,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 0,
+    "exploited": 0,
+    "confirmed": 2,
+    "unconfirmed": 0
+   },
+   "overall_risk": "critical",
+   "agents_dispatched": [],
+   "is_subagent": false
+  },
+  {
+   "id": "camp_demo_05",
+   "project_id": "proj_demoshop",
+   "target_id": "tgt_pay",
+   "session_id": "sess_camp_demo_05",
+   "date": "2026-09-11T00:00:00Z",
+   "status": "completed",
+   "stats": {
+    "total_findings": 2,
+    "critical": 0,
+    "high": 0,
+    "medium": 1,
+    "low": 1,
+    "info": 0,
+    "exploited": 0,
+    "confirmed": 2,
+    "unconfirmed": 0
+   },
+   "overall_risk": "medium",
+   "agents_dispatched": [],
+   "is_subagent": false
+  },
+  {
+   "id": "camp_demo_06",
+   "project_id": "proj_demoshop",
+   "target_id": "tgt_api",
+   "session_id": "sess_camp_demo_06",
+   "date": "2026-09-19T00:00:00Z",
+   "status": "running",
+   "stats": {
+    "total_findings": 1,
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 1,
+    "info": 0,
+    "exploited": 0,
+    "confirmed": 0,
+    "unconfirmed": 1
+   },
+   "overall_risk": "low",
+   "agents_dispatched": [],
+   "is_subagent": false
+  }
+ ],
+ "total": 6
+}

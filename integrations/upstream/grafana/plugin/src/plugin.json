@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "app",
+  "name": "Darkmoon Security Posture",
+  "id": "darkmoon-securityposture-app",
+  "info": {
+    "keywords": ["security", "pentest", "darkmoon", "vulnerabilities"],
+    "description": "Grafana app for the Darkmoon security platform. Bundles a backend datasource to visualize security posture: campaigns, findings, targets, time series and remediation pull requests. Sensitive evidence is never surfaced.",
+    "author": {
+      "name": "ASC-IT / Darkmoon"
+    },
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "screenshots": [
+      { "name": "Overview", "path": "img/screenshots/overview.png" },
+      { "name": "Findings", "path": "img/screenshots/findings.png" }
+    ],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "includes": [
+    {
+      "type": "datasource",
+      "name": "Darkmoon Security Posture",
+      "path": "datasource/plugin.json"
+    },
+    {
+      "type": "page",
+      "name": "Overview",
+      "path": "/a/%PLUGIN_ID%/one",
+      "addToNav": true,
+      "defaultNav": true
+    },
+    {
+      "type": "page",
+      "icon": "cog",
+      "name": "Configuration",
+      "path": "/plugins/%PLUGIN_ID%",
+      "role": "Admin",
+      "addToNav": true
+    }
+  ],
+  "dependencies": {
+    "grafanaDependency": ">=10.4.0",
+    "grafanaVersion": "10.4.x",
+    "plugins": []
+  }
+}

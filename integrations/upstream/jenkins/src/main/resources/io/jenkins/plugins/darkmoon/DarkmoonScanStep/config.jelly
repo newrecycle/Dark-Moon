@@ -1,0 +1,68 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+
+  <f:entry title="Target (URL or host)" field="target">
+    <f:textbox default="http://localhost:3000"/>
+  </f:entry>
+
+  <f:entry title="Edition / mode" field="mode">
+    <f:select/>
+  </f:entry>
+
+  <f:entry title="Pro API URL" field="apiUrl">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry title="Token credential (Secret text)" field="credentialsId">
+    <c:select/>
+  </f:entry>
+
+  <f:entry title="License credential (Secret text)" field="licenseCredentialsId">
+    <c:select/>
+  </f:entry>
+
+  <f:entry title="Fail build on severity" field="failOn">
+    <f:select/>
+  </f:entry>
+
+  <f:entry title="Mark unstable on severity" field="unstableOn">
+    <f:select/>
+  </f:entry>
+
+  <f:entry title="Publish findings (SARIF for Warnings NG)" field="recordIssues">
+    <f:checkbox default="true"/>
+  </f:entry>
+
+  <f:entry title="Archive report artifact" field="archiveReport">
+    <f:checkbox default="true"/>
+  </f:entry>
+
+  <f:entry title="Also archive full (un-redacted) report" field="includeFullReport">
+    <f:checkbox default="false"/>
+  </f:entry>
+
+  <f:advanced>
+    <f:entry title="darkmoon-ci path" field="cliPath">
+      <f:textbox default="darkmoon-ci"/>
+    </f:entry>
+    <f:entry title="Output directory (workspace-relative)" field="outputDir">
+      <f:textbox default="darkmoon-reports"/>
+    </f:entry>
+    <f:entry title="Timeout (seconds, 0 = CLI default)" field="timeout">
+      <f:number default="0"/>
+    </f:entry>
+    <f:entry title="Extra darkmoon-ci arguments" field="extraArgs">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="OSS data dir" field="ossDataDir">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="OSS reports dir" field="ossReportsDir">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="OSS launch script" field="ossScript">
+      <f:textbox/>
+    </f:entry>
+  </f:advanced>
+
+</j:jelly>

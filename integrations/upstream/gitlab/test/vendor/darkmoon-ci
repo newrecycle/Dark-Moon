@@ -1,0 +1,3 @@
+#!/bin/sh
+# Real Darkmoon CI CLI launcher (delegates to the built @darkmoon/client binary).
+exec node /home/mehdi/darkmoon-client/dist/cli/darkmoon-ci.cjs "$@"
