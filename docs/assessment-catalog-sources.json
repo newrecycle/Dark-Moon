@@ -1,0 +1,40 @@
+{
+  "retrieved_on": "2026-10-26",
+  "sources": [
+    {
+      "repository": "ASCIT31/Dark-Moon",
+      "ref": "master",
+      "path": "README.md",
+      "blob_sha": "08490cf3923c03bd3995cb0418e2000e4ed93be0"
+    },
+    {
+      "repository": "ASCIT31/Dark-Moon",
+      "ref": "master",
+      "path": "docs/full.md",
+      "blob_sha": "0d06e31f84573fe3db13541c3e7b0b4aa3c39bbd"
+    },
+    {
+      "repository": "ASCIT31/Dark-Moon",
+      "ref": "master",
+      "path": "docs/n8n-integration.md",
+      "blob_sha": "52c907f1b6fed13321ba7b2c5f11b3be9caf3d81"
+    },
+    {
+      "repository": "ASCIT31/Dark-Moon",
+      "path": "docs/remediation-agent.md",
+      "blob_sha": "d6ade557aefcb0135f74653d6cf9d8321c88e403"
+    },
+    {
+      "repository": "ASCIT31/Darkmoon-Benchmarks",
+      "path": "README.md",
+      "blob_sha": "31eef196c7d8dd237f6d13a223e6c7b98a9af53a"
+    },
+    {
+      "repository": "ASCIT31/darkmoon-n8n",
+      "path": "README.md",
+      "blob_sha": "cc26d9ce2c1bd31ec2d8aebfb27741749bcca394"
+    }
+  ],
+  "additional_reference": "https://docs.dark-moon.org",
+  "note": "Curated scope/integration choices; benchmark findings are not imported as local assessment results."
+}

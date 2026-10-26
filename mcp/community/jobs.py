@@ -44,6 +44,11 @@ def launch_spec(raw):
         if value and not re.fullmatch(r"[A-Za-z0-9_,./:-]{1,500}", value):
             raise ValueError(f"Invalid {key}: use comma-separated tokens")
         flags[key] = value
+    from .assessment_catalog import NOISE_LEVELS, SEVERITY_CAPS
+    if flags["noise"] and flags["noise"] not in NOISE_LEVELS:
+        raise ValueError("Noise must be stealth, low or moderate")
+    if flags["severity"] and flags["severity"] not in SEVERITY_CAPS:
+        raise ValueError("Choose one maximum severity cap: critical, high, medium or low")
     name = str(raw.get("name") or raw.get("program") or "Assessment")[:160].strip() or "Assessment"
     result = {"target": target, "name": name, **flags}
     for key in ("targets", "out_of_scope"):
@@ -57,6 +62,7 @@ def launch_spec(raw):
                 raise ValueError(f"Invalid target in {key}")
         result[key] = values
     result["format"] = str(raw.get("format") or "standard")
+    result["format"] = {"markdown": "standard", "hackerone": "h1"}.get(result["format"], result["format"])
     if result["format"] not in {"standard", "markdown", "h1", "hackerone", "bugcrowd", "custom"}:
         raise ValueError("Unsupported report format")
     for key in ("rules", "safe_harbor"):
@@ -64,6 +70,9 @@ def launch_spec(raw):
         if not isinstance(value, str) or len(value) > 8000:
             raise ValueError(f"{key} must be text of at most 8000 characters")
         result[key] = value
+    result["safe_harbor_applies"] = str(raw.get("safe_harbor_applies") or "")
+    if result["safe_harbor_applies"] not in {"", "yes", "no"}:
+        raise ValueError("Safe harbor applies must be yes or no")
     if raw.get("credentials") or raw.get("tokens"):
         raise ValueError("Store secrets in the credential vault and pass credential_id; raw launch secrets are unsupported")
     for key in ("remediate", "create_repo"):
@@ -84,6 +93,15 @@ def launch_spec(raw):
 
 def prompt_for(spec, campaign_id):
     flags = " ".join(f"{k.upper()}={v}" for k, v in spec.items() if k in {"focus", "exclude", "severity", "noise", "format"} and v)
+    flags += " PROGRAM=" + json.dumps(spec["name"])
+    if spec.get("targets"):
+        flags += " TARGETS=" + ",".join(spec["targets"])
+    if spec.get("out_of_scope"):
+        flags += " OUT=" + ",".join(spec["out_of_scope"])
+    if spec.get("rules"):
+        flags += " RULES=" + json.dumps(spec["rules"])
+    if spec.get("safe_harbor_applies"):
+        flags += " SAFE_HARBOR=" + spec["safe_harbor_applies"]
     context = json.dumps({"campaign_id": identifier(campaign_id), "campaign_name": spec["name"],
                           "additional_targets": spec.get("targets", []), "out_of_scope": spec.get("out_of_scope", []),
                           "rules": spec.get("rules", ""), "safe_harbor": spec.get("safe_harbor", "")})

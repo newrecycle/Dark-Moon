@@ -4,20 +4,6 @@
 (() => {
   let formState = null;
   let choices = null;
-  const checks = [
-    ["sqli", "SQL injection"],
-    ["xss", "Cross-site scripting"],
-    ["idor", "Access control / IDOR"],
-    ["ssrf", "Server-side request forgery"],
-    ["rce", "Remote code execution"],
-    ["lfi", "File inclusion"],
-    ["auth", "Authentication"],
-    ["api", "API security"],
-    ["web", "Web application"],
-    ["configuration", "Configuration"],
-    ["dos", "Denial of service"],
-    ["bruteforce", "Brute force"],
-  ].map(([value, label]) => ({ value, label }));
   const optionsHtml = (items) =>
     items
       .map((x) => {
@@ -144,14 +130,17 @@
         })),
       );
     for (const key of ["focus", "exclude"])
-      f.elements[key].innerHTML = optionsHtml(checks);
+      f.elements[key].innerHTML = optionsHtml(choices.assessment[key]);
     f.elements.severity.innerHTML = optionsHtml([
-      "critical",
-      "high",
-      "medium",
-      "low",
-      "info",
+      { value: "", label: "Runtime default" },
+      ...choices.assessment.severity_caps,
     ]);
+    f.elements.noise.innerHTML = optionsHtml(choices.assessment.noise);
+    f.elements.noise.value = "moderate";
+    f.elements.format.innerHTML = optionsHtml(choices.assessment.formats);
+    f.elements.preset.innerHTML = optionsHtml(
+      choices.assessment.presets.map((p) => ({ value: p.id, label: p.label })),
+    );
     $("#source-repositories").innerHTML = optionsHtml(choices.repositories);
     if (choices.targets.length) {
       f.elements.known_target.value = choices.targets[0].id;
@@ -162,6 +151,85 @@
     )
       .toISOString()
       .slice(0, 16);
+    updateLaunchPreview();
+  };
+  window.launchValues = (form) => {
+    const data = new FormData(form),
+      values = Object.fromEntries(data);
+    for (const key of ["focus", "exclude"])
+      values[key] = [
+        ...new Set(
+          [
+            ...data.getAll(key),
+            ...(values[key + "_extra"] || "").split(",").map((x) => x.trim()),
+          ].filter(Boolean),
+        ),
+      ].join(",");
+    for (const [key, known] of [
+      ["targets", "known_targets"],
+      ["out_of_scope", "known_out_of_scope"],
+    ])
+      values[key] = [
+        ...new Set(
+          [
+            ...data.getAll(known),
+            ...(values[key] || "").split(",").map((x) => x.trim()),
+          ].filter(Boolean),
+        ),
+      ];
+    for (const key of [
+      "focus_extra",
+      "exclude_extra",
+      "known_targets",
+      "known_out_of_scope",
+      "known_target",
+      "preset",
+    ])
+      delete values[key];
+    values.remediate = form.elements.remediate.checked;
+    return values;
+  };
+  function updateLaunchPreview() {
+    const f = $("#launch-form"),
+      v = window.launchValues(f);
+    const parts = [
+      "TARGET: " + (v.target || "<choose a target>"),
+      "PROGRAM=" + JSON.stringify(v.name || "Assessment"),
+    ];
+    for (const key of ["focus", "exclude", "noise", "severity", "format"])
+      if (v[key]) parts.push(key.toUpperCase() + "=" + v[key]);
+    if (v.targets.length) parts.push("TARGETS=" + v.targets.join(","));
+    if (v.out_of_scope.length) parts.push("OUT=" + v.out_of_scope.join(","));
+    if (v.rules) parts.push("RULES=" + JSON.stringify(v.rules));
+    if (v.safe_harbor_applies)
+      parts.push("SAFE_HARBOR=" + v.safe_harbor_applies);
+    $("#launch-preview").textContent = parts.join(" ");
+  }
+  document.addEventListener("input", (e) => {
+    if (e.target.closest("#launch-form")) updateLaunchPreview();
+  });
+  document.addEventListener("change", (e) => {
+    if (!e.target.closest("#launch-form")) return;
+    if (e.target.name === "preset") {
+      const f = $("#launch-form"),
+        preset = choices.assessment.presets.find(
+          (p) => p.id === f.elements.preset.value,
+        );
+      for (const key of ["focus", "exclude"])
+        for (const o of f.elements[key].options)
+          o.selected = preset[key].includes(o.value);
+      for (const key of ["noise", "format"])
+        f.elements[key].value = preset[key];
+      f.elements.focus_extra.value = "";
+      f.elements.exclude_extra.value = "";
+    }
+    updateLaunchPreview();
+  });
+  window.renderIntegrations = async () => {
+    await loadChoices();
+    if (route !== "integrations") return;
+    $("#content").innerHTML =
+      `<section class="panel"><h2>Connect your workflow</h2><p>Create a dedicated account in Settings for external clients. Use this installation’s URL, <code>${esc(location.origin)}</code>, rather than the upstream Pro port 8000. For Docker-hosted clients, use a hostname reachable from that container; localhost there refers to the client container. n8n supports username/password login at <code>POST /api/v1/auth/login</code>; the workspace bearer token is an administrator recovery credential.</p><p>Campaigns, findings, reports, retests and metrics are available. Proposal APIs are read-only. Publishing remains a separate operator action.</p><p><a href="#webhooks">Signed webhook delivery and event subscriptions →</a></p><p>n8n: install <code>n8n-nodes-darkmoon</code>, configure a Darkmoon API credential, test the connection, then choose Run Pentest or a read-only operation. Wait for completion polls the run; local proposals do not imply a published PR. A launch severity cap differs from a CI/n8n minimum reporting threshold.</p>${choices.assessment.integrations.map((i) => `<div class="list-item"><div><a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a><small>${esc(i.usage)}</small></div></div>`).join("")}<p>Imported packages are available under <code>integrations/upstream</code>; installation compatibility still depends on the host product.</p><p><a href="${esc(choices.assessment.sources.benchmark)}" target="_blank" rel="noopener noreferrer">Benchmark methodology and recorded lab runs</a> · <a href="${esc(choices.assessment.sources.scope)}" target="_blank" rel="noopener noreferrer">Upstream scope reference</a></p></section>`;
   };
   async function loadSourceFiles() {
     const f = $("#remediation-form");
@@ -193,6 +261,7 @@
     f.elements.name.value = target
       ? `Review: ${target.name || target.host || target.ip}`
       : "";
+    updateLaunchPreview();
   }
   document.addEventListener("change", (event) => {
     const f = event.target.closest("form");
@@ -314,7 +383,7 @@
       const result = await api("/api/v1/retest");
       if (route !== page) return;
       $("#content").innerHTML =
-        `<section class="panel"><div class="section-top"><div><h3>Reassessment and remediation verdicts</h3><p>Absence is reported as not observed. Fixed requires recorded before/after remediation proof.</p></div><button class="primary" data-workspace="retest">+ Retest assessment</button></div>${result.data.map((r) => `<div class="list-item"><div><a class="clickable" data-retest-detail="${esc(r.id)}">${esc(r.base_campaign_id)}</a><small>${esc(date(r.created_at))}</small></div>${badge(r.status)}</div>`).join("") || empty("No retests yet")}</section>`;
+        `<section class="panel"><div class="section-top"><div><h3>Reassessment and remediation verdicts</h3><p>Absence remains not observed. Local proposal validation does not prove deployment to the assessed target.</p></div><button class="primary" data-workspace="retest">+ Retest assessment</button></div>${result.data.map((r) => `<div class="list-item"><div><a class="clickable" data-retest-detail="${esc(r.id)}">${esc(r.base_campaign_id)}</a><small>${esc(date(r.created_at))}</small></div>${badge(r.status)}</div>`).join("") || empty("No retests yet")}</section>`;
     } else if (page === "settings") {
       const who = await api("/api/v1/auth/me");
       if (who.user.role !== "admin") {

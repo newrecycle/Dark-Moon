@@ -112,6 +112,19 @@ const assert = require("node:assert/strict");
           fullPage: true,
         });
       }
+      if (route === "integrations") {
+        await page
+          .getByText("Connect your workflow", { exact: true })
+          .waitFor();
+        await page
+          .locator('a[href="https://github.com/ASCIT31/darkmoon-n8n"]')
+          .waitFor();
+        assert.ok(
+          (await page.locator("#content").textContent()).includes(
+            "POST /api/v1/auth/login",
+          ),
+        );
+      }
     }
     await page.locator('nav a[href="#projects"]').click();
     await page.locator("[data-project-analytics]").first().click();
@@ -487,11 +500,42 @@ const assert = require("node:assert/strict");
       await page.locator("#launch-form input[name=target]").inputValue(),
     );
     await page
+      .locator("#launch-form select[name=preset]")
+      .selectOption("bounty");
+    assert.equal(
+      await page.locator("#launch-form select[name=noise]").inputValue(),
+      "low",
+    );
+    assert.equal(
+      await page.locator("#launch-form select[name=format]").inputValue(),
+      "h1",
+    );
+    assert.ok(
+      await page
+        .locator("#launch-form select[name=exclude]")
+        .evaluate((e) => [...e.selectedOptions].some((o) => o.value === "H1")),
+    );
+    assert.equal(
+      await page
+        .locator("#launch-form select[name=severity]")
+        .getAttribute("multiple"),
+      null,
+    );
+    await page.locator("#launch-form input[name=focus_extra]").fill("CWE-89");
+    await page
+      .locator("#launch-form select[name=safe_harbor_applies]")
+      .selectOption("yes");
+    assert.match(
+      await page.locator("#launch-preview").textContent(),
+      /SAFE_HARBOR=yes/,
+    );
+    assert.match(await page.locator("#launch-preview").textContent(), /CWE-89/);
+    await page
       .locator("#launch-form select[name=focus]")
       .selectOption(["sqli", "xss"]);
     await page
       .locator("#launch-form select[name=severity]")
-      .selectOption(["high", "critical"]);
+      .selectOption("high");
     assert.ok(
       (await page
         .locator("#launch-form select[name=assessment_token_id] option")

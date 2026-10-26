@@ -96,6 +96,7 @@
           Launch the existing DarkMoon agent stack against a target you are
           authorized to assess.
         </p>
+        <label>Engagement preset<select name="preset"></select></label>
         <label
           >Assessment name<input
             name="name"
@@ -126,19 +127,34 @@
               aria-label="Excluded checks"
             ></select></label
           ><label
-            >Severity<select
+            >Maximum severity cap<select
               name="severity"
-              multiple
-              aria-label="Assessment severities"
+              aria-label="Maximum severity cap"
             ></select></label
           ><label
             >Noise<select name="noise">
               <option value="">Default</option>
+              <option>stealth</option>
               <option>low</option>
-              <option>moderate</option>
-              <option>high</option>
+              <option selected>moderate</option>
             </select></label
           >
+        </div>
+        <p class="instructions">
+          The severity cap limits assessment severity; it is not a minimum
+          findings filter. Presets never choose a target or assert
+          authorization.
+        </p>
+        <div class="form-grid">
+          <label
+            >Additional focus tokens<input
+              name="focus_extra"
+              placeholder="custom-check,CWE-89" /></label
+          ><label
+            >Additional exclusion tokens<input
+              name="exclude_extra"
+              placeholder="custom-exclusion"
+          /></label>
         </div>
         <div class="form-grid">
           <label
@@ -179,6 +195,17 @@
         ><label
           >Engagement rules<textarea name="rules" rows="2"></textarea></label
         ><label
+          >Safe harbor applies<select name="safe_harbor_applies">
+            <option value="">Not specified</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select></label
+        ><label
+          >Additional safe-harbor terms<textarea
+            name="safe_harbor"
+            rows="2"
+          ></textarea></label
+        ><label
           ><input name="remediate" type="checkbox" /> Prepare local remediation
           proposals after completion</label
         >
@@ -209,6 +236,14 @@
             /></label>
           </div>
         </div>
+        <details>
+          <summary>Scope preview</summary>
+          <pre id="launch-preview"></pre>
+          <small
+            >Saved target secrets are injected through the privacy gateway at
+            launch. Remediation stays local until separately published.</small
+          >
+        </details>
         <p id="launch-error" role="alert"></p>
         <button class="primary" type="submit" id="launch-submit">
           Start assessment →

@@ -8,6 +8,8 @@ on:
       - 'conf/**'
       - 'mcp/**'
       - 'tools/validate-community-runtime.py'
+      - 'tools/analyze-community-lab.py'
+      - 'tools/lab/**'
       - 'docker-compose*.yml'
       - '.github/workflows/community-runtime.yml'
 permissions:
@@ -35,4 +37,34 @@ jobs:
           path: |
             runtime-validation.json
             runtime-validation.container.log
+          if-no-files-found: warn
+
+  owned-lab-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install analysis dependencies
+        run: |
+          python3 -m venv /tmp/darkmoon-analysis-venv
+          /tmp/darkmoon-analysis-venv/bin/pip install -r mcp/requirements.txt -r mcp/community/requirements.txt
+      - name: Build disposable toolbox
+        run: docker build --file tools/lab/Dockerfile --tag darkmoon-ui-lab .
+      - name: Analyze owned loopback target through real DarkMoon
+        run: PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tools/analyze-community-lab.py --output-dir lab-analysis
+      - name: Preserve real analysis data and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owned-lab-analysis
+          path: |
+            lab-analysis/analysis.json
+            lab-analysis/data/campaigns/
+            lab-analysis/data/targets.json
+            lab-analysis/data/projects.json
+            lab-analysis/data/vulnerabilities/
+            lab-analysis/data/infrastructure/
+            lab-analysis/reports/
           if-no-files-found: warn

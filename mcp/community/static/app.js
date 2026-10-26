@@ -253,9 +253,7 @@ function render() {
   --repo /path/to/target-source --campaign-id CAMPAIGN_ID \
   --finding-id FINDING_ID --edits /path/to/edits.json --validate</pre>${s.remediations.length ? s.remediations.map((r) => `<div class="list-item"><div><a class="clickable" data-remediation="${esc(r.id)}">${esc(r.title || r.finding_id)}</a><small>${esc(r.branch || r.id)} · ${esc(date(r.created_at))}</small></div>${badge(r.status)}</div>`).join("") : empty("No proposals yet", "Proposals appear here when the local remediation command completes.")}</section>`;
   } else if (route === "integrations") {
-    $("#content").innerHTML =
-      `<section class="panel"><h2>Connect your workflow</h2><p class="instructions">The community API uses a local bearer token. The routes below serve metadata for automation and observability. Full assessment evidence is available separately through the campaign API.</p><div class="list-item"><div>n8n / automation<small>Use an HTTP Request node with Bearer authentication.</small></div><code>POST /api/v1/campaigns</code></div><div class="list-item"><div>Grafana / Prometheus<small>Severity counts and queue health; no target labels.</small></div><code>GET /metrics</code></div><div class="list-item"><div>Splunk / SIEM<small>Poll the metadata feed and deduplicate by finding id.</small></div><code>GET /api/v1/integrations/findings</code></div><div class="list-item"><div>Live change notifications<small>Server-sent revision events with bearer authentication.</small></div><code>GET /api/v1/events</code></div><pre>curl -H "Authorization: Bearer $DARKMOON_DASHBOARD_TOKEN" \
-  http://127.0.0.1:8780/api/v1/integrations/findings</pre><p class="instructions">These are community endpoints. Existing plugins written for the proprietary Pro API need an adapter; their API compatibility is not assumed.</p></section>`;
+    window.renderIntegrations().catch(fail);
   } else if (window.renderWorkspace) {
     window.renderWorkspace(route).then(applyRoles).catch(fail);
   }
@@ -267,7 +265,7 @@ async function showCampaign(id) {
   const c = await api(`/api/v1/campaigns/${encodeURIComponent(id)}`);
   $("#detail-title").textContent = c.name || c.id;
   $("#detail-body").innerHTML =
-    `${badge(c.status)} <span class="subtle">${esc(c.target?.host || "")} · ${esc(date(c.date))}</span><div class="report-actions">${["md", "pdf", "json"].map((format) => `<button class="secondary" data-export="${format}" data-cid="${esc(id)}">Download ${format.toUpperCase()}</button>`).join("")}<button class="secondary" data-report-preview="${esc(id)}">Preview report</button><button class="secondary" data-protected-pdf="${esc(id)}">Signed / encrypted PDF</button><button class="secondary" id="open-map">Explore surface →</button></div><p class="detail-text">${esc(c.executive_summary || "No executive summary recorded yet.")}</p>${findingsTable(c.findings)}`;
+    `${badge(c.status)} ${c.analysis_origin?.kind === "owned-loopback-lab" ? `<span class="badge">Owned loopback lab · no LLM</span>` : ""} <span class="subtle">${esc(c.target?.host || "")} · ${esc(date(c.date))}</span><div class="report-actions">${["md", "pdf", "json"].map((format) => `<button class="secondary" data-export="${format}" data-cid="${esc(id)}">Download ${format.toUpperCase()}</button>`).join("")}<button class="secondary" data-report-preview="${esc(id)}">Preview report</button><button class="secondary" data-protected-pdf="${esc(id)}">Signed / encrypted PDF</button><button class="secondary" id="open-map">Explore surface →</button></div><p class="detail-text">${esc(c.executive_summary || "No executive summary recorded yet.")}</p>${findingsTable(c.findings)}`;
   $("#detail").showModal();
 }
 async function showFinding(id, cid) {
@@ -383,27 +381,7 @@ $("#launch-form").addEventListener("submit", async (e) => {
   const button = $("#launch-submit");
   button.disabled = true;
   try {
-    const values = Object.fromEntries(new FormData(e.target));
-    for (const field of ["focus", "exclude", "severity"])
-      values[field] = new FormData(e.target)
-        .getAll(field)
-        .filter(Boolean)
-        .join(",");
-    for (const [field, known] of [
-      ["targets", "known_targets"],
-      ["out_of_scope", "known_out_of_scope"],
-    ]) {
-      values[field] = [
-        ...new Set(
-          [
-            ...new FormData(e.target).getAll(known),
-            ...(values[field] || "").split(",").map((v) => v.trim()),
-          ].filter(Boolean),
-        ),
-      ];
-      delete values[known];
-    }
-    delete values.known_target;
+    const values = window.launchValues(e.target);
     values.remediate = e.target.elements.remediate.checked;
     if (scheduleMode) {
       values.interval_seconds = Math.round(Number(values.hours) * 3600);

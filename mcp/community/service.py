@@ -104,6 +104,8 @@ class Service:
             import fnmatch
             targets = [spec["target"], *spec.get("targets", [])]
             for value in targets:
+                if value.upper().startswith("API:"):
+                    value = value[4:]
                 if "/" in value and "://" not in value:
                     import ipaddress
                     try:
@@ -140,7 +142,7 @@ class Service:
             campaign = data.load_campaign(initialized["campaign_id"])
             campaign["name"] = spec["name"]
             campaign["report_format"] = spec["format"]
-            campaign["scope"] = {k: spec[k] for k in ("targets", "out_of_scope", "rules", "safe_harbor")}
+            campaign["scope"] = {k: spec[k] for k in ("targets", "out_of_scope", "rules", "safe_harbor", "safe_harbor_applies")}
             data.save_campaign(campaign)
             try:
                 return self.queue.enqueue(spec, initialized["campaign_id"], key, schedule_id)

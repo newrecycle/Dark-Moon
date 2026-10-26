@@ -289,7 +289,8 @@ class API:
         if parts == ["options"] and method == "GET":
             from .opencode import catalog
             snapshot = self.service.snapshot()
-            handler.send({"targets":snapshot["targets"], "campaigns":snapshot["campaigns"],
+            from .assessment_catalog import catalog as assessment_catalog
+            handler.send({"assessment":assessment_catalog(), "targets":snapshot["targets"], "campaigns":snapshot["campaigns"],
                           "findings":[{k:v.get(k) for k in ("id","campaign_id","title","severity")} for v in snapshot["findings"]],
                           "credentials":self.service.vault.list() if identity.get("role") != "viewer" else [],
                           "repositories":sorted({j.get("spec",{}).get("git_repo") for j in self.store.items("jobs") if j.get("spec",{}).get("git_repo")} | {p.get("repo") for p in self.store.items("remediations") if p.get("repo")} | {p for p in os.environ.get("DARKMOON_SOURCE_REPOSITORIES", "").split(os.pathsep) if p}),

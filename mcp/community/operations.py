@@ -202,7 +202,7 @@ class Operations:
         scope = campaign.get("scope") or {}
         spec = {k: original[k] for k in ("assessment_credential_id", "assessment_token_id") if original.get(k)}
         spec.update({k: scope.get(k, original.get(k, [] if k in {"targets", "out_of_scope"} else ""))
-                     for k in ("targets", "out_of_scope", "rules", "safe_harbor")})
+                     for k in ("targets", "out_of_scope", "rules", "safe_harbor", "safe_harbor_applies")})
         # Preserve the original engagement boundaries; an integration may add
         # restrictions, but does not erase the earlier safe-harbor terms.
         if raw.get("safe_harbor"):

@@ -30,6 +30,8 @@ def markdown(campaign):
              "", "## Executive summary", "", literal(campaign.get("executive_summary") or "No executive summary recorded."),
              "", "## Findings summary", "", "| Severity | Count |", "|---|---:|"]
     lines += [f"| {severity.upper()} | {sum(str(f.get('severity', 'info')).lower() == severity for f in findings)} |" for severity in order]
+    if campaign.get("analysis_origin", {}).get("kind") == "owned-loopback-lab":
+        lines += ["", "Analysis origin: owned loopback lab, real DarkMoon workflow/toolbox probes; no LLM-driven assessment or script-execution claim.", ""]
     lines += ["", "Confirmation labels are agent observations; validated remediation probes are recorded separately.", ""]
     for index, finding in enumerate(findings, 1):
         lines += [f"## {index}. {literal(finding.get('title') or finding.get('id'))}", "", "| Field | Value |", "|---|---|"]
