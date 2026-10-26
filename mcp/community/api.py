@@ -250,7 +250,7 @@ class API:
                     raw = handler.body()
                     if set(raw) != {"enabled"} or not isinstance(raw["enabled"], bool):
                         raise ValueError("PATCH accepts an enabled boolean")
-                    handler.send({"data": self.store.save("schedules", item | raw)})
+                    handler.send({"data": self.service.scheduler.set_enabled(parts[1], raw["enabled"])})
             else:
                 return False
             return True

@@ -122,6 +122,31 @@ def apply(service, profile_id):
     config_path, auth_path, env_path = paths(service)
     with data._file_lock(config_path), data._file_lock(auth_path):
         config, auth = document(config_path), document(auth_path)
+        if item["mode"] != "cloud" and not token:
+            # Native authentication is keyed by provider id, not endpoint URL.
+            # Do not silently reuse another profile's key (or delete its login).
+            saved_key = (
+                config.get("provider", {}).get(pid, {}).get("options", {}).get("apiKey")
+            )
+            connected = bool(auth.get(pid) or saved_key)
+            if not connected and os.environ.get("DARKMOON_OPENCODE_URL"):
+                # "Connected" includes configured keyless providers. Permit an
+                # idempotent apply to their existing endpoint, but require an
+                # explicit credential before redirecting a live provider id.
+                if pid in native("GET", "/provider").get("connected", []):
+                    current = native("GET", "/config")
+                    endpoint = (
+                        current.get("provider", {})
+                        .get(pid, {})
+                        .get("options", {})
+                        .get("baseURL")
+                    )
+                    connected = endpoint != item["base_url"]
+            if connected:
+                raise ValueError(
+                    "This custom provider id already has authentication or a different active endpoint. Select an explicit saved API key, "
+                    "or use a distinct provider id for a keyless endpoint; the existing login was left unchanged"
+                )
         config.update(model=pid + "/" + model, small_model=pid + "/" + model)
         patch = {"model": config["model"], "small_model": config["small_model"]}
         if item["mode"] != "cloud":

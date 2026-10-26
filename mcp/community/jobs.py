@@ -289,33 +289,51 @@ class Scheduler:
                 "interval_seconds": interval, "next_run": next_run, "one_shot": bool(raw.get("one_shot", False)), "created_at": now()}
         return self.store.save("schedules", item)
 
+    def set_enabled(self, schedule_id, enabled):
+        def change(state):
+            item = state.get("schedules", {}).get(identifier(schedule_id))
+            if item is None:
+                raise KeyError(schedule_id)
+            item["enabled"] = enabled
+            return item
+        return self.store.update(change)
+
     def tick(self, clock=None):
         clock = clock or datetime.now(timezone.utc)
-        # One scheduler process owns the store (enforced by server lock). Persist
-        # advancement BEFORE launch: a crash cannot trigger a duplicate scan.
-        for item in self.store.items("schedules"):
-            if not item["enabled"] or instant(item["next_run"]) > clock:
+        for candidate in self.store.items("schedules"):
+            if not candidate["enabled"] or instant(candidate["next_run"]) > clock:
                 continue
-            active = any(j.get("schedule_id") == item["id"] and j["status"] in ACTIVE for j in self.store.items("jobs"))
-            due = item["next_run"]
-            item["next_run"] = (clock + timedelta(seconds=item["interval_seconds"])).isoformat()
-            item["last_tick"] = clock.isoformat()
-            item["last_error"] = None
-            item["last_disposition"] = "skipped_overlap" if active else "launching"
-            if item.get("one_shot") and not active:
-                item["enabled"] = False
-            self.store.save("schedules", item)
-            if active:
+            def claim(state):
+                item = state.get("schedules", {}).get(candidate["id"])
+                if not item or not item["enabled"] or instant(item["next_run"]) > clock:
+                    return None
+                active = any(j.get("schedule_id") == item["id"] and j["status"] in ACTIVE
+                             for j in state.get("jobs", {}).values())
+                due = item["next_run"]
+                item.update(next_run=(clock + timedelta(seconds=item["interval_seconds"])).isoformat(),
+                            last_tick=clock.isoformat(), last_error=None,
+                            last_disposition="skipped_overlap" if active else "launching")
+                if item.get("one_shot") and not active:
+                    item["enabled"] = False
+                return {"item": item, "due": due, "active": active}
+            # Recheck existence/enabled state and advance atomically, so an HTTP
+            # pause/delete cannot be undone by this tick's stale snapshot.
+            claimed = self.store.update(claim)
+            if not claimed or claimed["active"]:
                 continue
+            item = claimed["item"]
             try:
-                # A stable key handles retries of the same occurrence.
                 import hashlib
-                key = "schedule_" + hashlib.sha256((item["id"] + due).encode()).hexdigest()[:32]
+                key = "schedule_" + hashlib.sha256((item["id"] + claimed["due"]).encode()).hexdigest()[:32]
                 job = self.launch(item["spec"], key=key, schedule_id=item["id"])
-                item.update(last_job_id=job["id"], last_disposition="queued")
+                completion = {"last_job_id": job["id"], "last_disposition": "queued"}
             except Exception as exc:
-                item.update(last_error=str(exc), last_disposition="failed")
-            self.store.save("schedules", item)
+                completion = {"last_error": str(exc), "last_disposition": "failed"}
+            def finish(state):
+                current = state.get("schedules", {}).get(item["id"])
+                if current and current.get("next_run") == item["next_run"] and current.get("last_tick") == item["last_tick"]:
+                    current.update(completion)
+            self.store.update(finish)
 
     def start(self):
         def loop():

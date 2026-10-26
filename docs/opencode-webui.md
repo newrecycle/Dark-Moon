@@ -118,6 +118,13 @@ Profiles can be named, edited, duplicated and deleted independently of the nativ
 provider login and active model. Naming a new profile creates a separate record,
 so several models/endpoints for the same provider no longer overwrite each other.
 Deleting a saved profile has a review step and retains the running configuration.
+Custom endpoint profiles must explicitly select their saved API key when the
+shared provider id already has authentication, or when redirecting a connected
+native provider id to a different endpoint.
+For a keyless endpoint, choose a distinct provider id. This prevents an existing
+provider login from being silently sent to another endpoint; rejected activation
+leaves the existing configuration and login unchanged. Built-in cloud profiles
+can continue to use their existing native login.
 
 Discover endpoint models queries an OpenAI-compatible `/models` endpoint (or
 Anthropic `/v1/models`) using the selected encrypted key reference. It returns

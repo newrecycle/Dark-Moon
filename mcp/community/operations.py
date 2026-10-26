@@ -261,10 +261,9 @@ class Operations:
             if campaign.get("status") == "completed":
                 before = [v for v in data.load_vulnerabilities(record["base_campaign_id"]) if v.get("id") in record["before_ids"]]
                 record.update(status="completed", verdicts=compare_retest(before, data.load_vulnerabilities(record["campaign_id"])), finished_at=now())
-                validated = {p.get("finding_id") for p in snapshot["remediations"] if p.get("status") == "validated"}
-                for verdict in record["verdicts"]:
-                    if verdict["verdict"] == "not_observed" and verdict["finding_id"] in validated:
-                        verdict.update(verdict="fixed", basis="Absent from reassessment and local before/after remediation probes passed")
+                # A validated local worktree is not proof that a patch was
+                # deployed to this target. Preserve the comparison verdict;
+                # even a same-campaign proposal cannot establish a live fix.
                 record["findings"] = record["verdicts"]
                 record["verdicts_summary"] = dict(Counter(v["verdict"] for v in record["verdicts"]))
                 self.store.save("retests", record)

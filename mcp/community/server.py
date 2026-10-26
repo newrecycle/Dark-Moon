@@ -209,8 +209,7 @@ def handler_for(service, allowed_hosts):
                     raw = self.body()
                     if set(raw) != {"enabled"} or not isinstance(raw["enabled"], bool):
                         raise ValueError("PATCH accepts only {enabled: true/false}")
-                    item["enabled"] = raw["enabled"]
-                    return self.send(service.store.save("schedules", item))
+                    return self.send(service.scheduler.set_enabled(parts[1], raw["enabled"]))
                 if method == "DELETE":
                     def remove(state):
                         state["schedules"].pop(item["id"], None)
