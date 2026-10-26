@@ -734,3 +734,16 @@ select option {
 [hidden] {
   display: none !important;
 }
+
+.provider-profile {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}

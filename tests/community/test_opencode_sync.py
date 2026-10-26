@@ -145,9 +145,14 @@ class SharedStateTests(fixtures.Fixture):
     def test_native_catalog_oauth_and_live_apply_contract(self):
         self.seed()
         calls = []
+        native_config = {}
 
         def native(method, path, body=None):
             calls.append((method, path, body))
+            if path == "/config":
+                if method == "PATCH":
+                    native_config.update(body)
+                return dict(native_config)
             if path == "/provider":
                 return {
                     "all": [

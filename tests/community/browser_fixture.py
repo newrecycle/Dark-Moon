@@ -141,7 +141,9 @@ class NativeHandler(BaseHTTPRequestHandler):
             self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}"
         )
         result = True
-        if self.command == "GET" and self.path == "/config":
+        if self.command == "GET" and self.path == "/global/health":
+            result = {"healthy": True, "version": "fixture-native"}
+        elif self.command == "GET" and self.path == "/config":
             result = config
         elif self.command == "GET" and self.path == "/provider":
             result = {
@@ -203,6 +205,33 @@ class NativeHandler(BaseHTTPRequestHandler):
     do_DELETE = handle_request
 
 
+class ModelHandler(BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+    def do_GET(self):
+        if self.path == "/slow/models":
+            __import__("time").sleep(0.3)
+        if self.path not in {"/v1/models", "/slow/models"}:
+            self.send_response(404)
+            self.end_headers()
+            return
+        content = json.dumps(
+            {
+                "data": [
+                    {"id": "available-one", "name": "Available one"},
+                    {"id": "available-two", "name": "Available two"},
+                ]
+            }
+        ).encode()
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
+
+model_server = ThreadingHTTPServer(("127.0.0.1", 0), ModelHandler)
+threading.Thread(target=model_server.serve_forever, daemon=True).start()
 native_server = ThreadingHTTPServer(("127.0.0.1", 0), NativeHandler)
 threading.Thread(target=native_server.serve_forever, daemon=True).start()
 os.environ["DARKMOON_OPENCODE_URL"] = "http://127.0.0.1:" + str(
@@ -231,6 +260,9 @@ print(
     json.dumps(
         {
             "port": server.server_port,
+            "model_endpoint": "http://127.0.0.1:"
+            + str(model_server.server_port)
+            + "/v1",
             "token": service.token,
             "source_repo": str(repo),
             "campaign_id": data.load_campaigns()[0]["id"],
@@ -242,6 +274,8 @@ print(
 try:
     server.serve_forever()
 finally:
+    model_server.shutdown()
+    model_server.server_close()
     native_server.shutdown()
     native_server.server_close()
     service.close()

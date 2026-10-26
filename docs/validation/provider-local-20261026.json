@@ -1,0 +1,50 @@
+{
+  "checks": [
+    {
+      "check": "compose_base",
+      "status": "passed"
+    },
+    {
+      "check": "compose_bridge",
+      "status": "passed"
+    },
+    {
+      "check": "compose_hardened-bridge",
+      "status": "passed"
+    },
+    {
+      "check": "openrouter_public_models",
+      "status": "passed",
+      "models": 466,
+      "credential_verified": false,
+      "inference_performed": false
+    },
+    {
+      "check": "docker_engine",
+      "status": "blocked",
+      "reason": "No usable Docker daemon in this environment"
+    },
+    {
+      "check": "native_opencode_binary",
+      "status": "failed",
+      "model_readback_verified": false,
+      "small_model_readback_verified": false,
+      "reason": "Config PATCH accepted, but readback did not confirm the requested model settings",
+      "version": "1.19.4",
+      "providers": 232,
+      "auth_method_providers": 0,
+      "checks": [
+        "Basic-auth rejection",
+        "health",
+        "provider catalog",
+        "login-method discovery",
+        "config patch/readback",
+        "API-key write/delete"
+      ],
+      "inference_performed": false,
+      "real_account_oauth": "not_run_no_account_configured"
+    }
+  ],
+  "inference_performed": false,
+  "real_provider_account_validation": "not_run_no_account_configured"
+}

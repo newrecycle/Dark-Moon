@@ -9,6 +9,7 @@ import os
 import re
 import tempfile
 import urllib.request
+import urllib.error
 from pathlib import Path
 from urllib.parse import urlsplit, quote
 
@@ -151,6 +152,14 @@ def native(method, path, body=None):
         if len(raw) > 16 * 1024 * 1024:
             raise ValueError("OpenCode response too large")
         return json.loads(raw) if raw else True
+    except urllib.error.HTTPError as exc:
+        code = exc.code
+        exc.close()
+        raise ValueError(
+            "OpenCode server rejected the request (HTTP "
+            + str(code)
+            + "); check its authentication and API version"
+        ) from None
     except (OSError, ValueError):
         raise ValueError(
             "OpenCode server request failed; check its URL, authentication and version"

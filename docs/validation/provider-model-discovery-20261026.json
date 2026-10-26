@@ -1,0 +1,10 @@
+{
+  "truncated": false,
+  "latency_ms": 5050,
+  "checked_at": "2026-10-26T16:45:02+00:00",
+  "credential_sent": false,
+  "inference_performed": false,
+  "note": "A successful model list is a connectivity check, not proof of inference access or account entitlement.",
+  "models": 466,
+  "endpoint": "OpenRouter public model catalog"
+}

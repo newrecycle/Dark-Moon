@@ -89,7 +89,7 @@ OIDC identities.
 
 ## Verification
 
-The community suite now has **99 passing tests**, including shared-state sync,
+The community suite now has **108 passing tests**, including shared-state sync,
 API/OAuth login preservation, key rotation, saved OAuth startup, safe environment
 application, invalid JSON handling, metadata redaction, native route contracts,
 permission checks and restart/failure reporting. **117 upstream MCP tests** and
@@ -108,3 +108,27 @@ disabled. The protected PDF is actually encrypted and signed.
 A real Docker boot, real provider/subscription OAuth, live inference, production
 OIDC, external deliveries, and headset VR still require the operator's deployed
 environment. Those are not asserted as tested or equivalent to private Pro code.
+
+## Profile management and connection checks
+
+Profiles can be named, edited, duplicated and deleted independently of the native
+provider login and active model. Naming a new profile creates a separate record,
+so several models/endpoints for the same provider no longer overwrite each other.
+Deleting a saved profile has a review step and retains the running configuration.
+
+Discover endpoint models queries an OpenAI-compatible `/models` endpoint (or
+Anthropic `/v1/models`) using the selected encrypted key reference. It returns
+only bounded model IDs/names, rejects embedded credentials/query/fragment URLs
+and redirects, and does not perform inference. API error bodies are not echoed.
+Failed discovery preserves existing form choices. Apply registers the saved
+model catalog for custom providers.
+
+Check bridge reports native server health, version and latency. Check on a
+profile stores a timestamped, explicit result: custom endpoint reachability and
+selected-model presence, or native catalog/login presence for built-in providers.
+A public model list does not prove a key is valid or that inference is available.
+Live apply now reads back both model settings and reports unverified activation
+rather than success if the native server accepts PATCH without retaining them.
+
+[Live validation evidence and Docker workflow](provider-validation.md) distinguish
+actual native/provider responses, local test fixtures, and pending account tests.

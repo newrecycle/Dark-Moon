@@ -309,6 +309,30 @@ class API:
                 handler.send(result)
             else:return False
             return True
+        if parts == ["system", "provider-models"] and method == "POST":
+            if not admin:raise PermissionError("Administrator access is required")
+            from .provider_checks import endpoint_models
+            handler.send(endpoint_models(self.service,handler.body()))
+            return True
+        if parts == ["system", "opencode-health"] and method == "GET":
+            if not admin:raise PermissionError("Administrator access is required")
+            from .provider_checks import bridge_health
+            handler.send(bridge_health())
+            return True
+        if parts[:2] == ["system", "providers"] and (len(parts)==3 or parts[3:]==["check"]):
+            if not admin:raise PermissionError("Administrator access is required")
+            from .configuration import profile,remove
+            current=self.store.get("providers",identifier(parts[2]))
+            if not current:raise KeyError(parts[2])
+            if len(parts)==3 and method=="GET":handler.send({"data":current})
+            elif len(parts)==3 and method in {"PATCH","PUT"}:handler.send({"data":profile(self.service,current|handler.body(),parts[2])})
+            elif len(parts)==3 and method=="DELETE":handler.send(remove(self.service,parts[2]))
+            elif parts[3:]==["check"] and method=="POST":
+                handler.body()
+                from .provider_checks import check_profile
+                handler.send(check_profile(self.service,parts[2]))
+            else:return False
+            return True
         if resource == "system" and method == "GET":
             if parts[1:] == ["update-status"]:
                 from .updates import status

@@ -265,6 +265,138 @@ const assert = require("node:assert/strict");
       ),
       false,
     );
+    await page.locator('nav a[href="#settings"]').click();
+    await page.locator("[data-bridge-health]").click();
+    await page.getByText("OpenCode bridge health", { exact: true }).waitFor();
+    assert.match(await page.locator("#detail-body").innerText(), /healthy/);
+    await page.locator("#detail .close-dialog").click();
+    await page.locator("[data-workspace=provider]").click();
+    await page
+      .locator("#workspace-form input[name=name]")
+      .fill("Discovered local profile");
+    await page
+      .locator("#workspace-form select[name=provider]")
+      .selectOption("__custom__");
+    await page
+      .locator("#workspace-form input[name=custom_provider]")
+      .fill("validation-local");
+    await page
+      .locator("#workspace-form select[name=mode]")
+      .selectOption("local");
+    await page
+      .locator("#workspace-form input[name=base_url]")
+      .fill(fixture.model_endpoint);
+    await page.locator("[data-discover-models]").click();
+    await page
+      .locator("#model-discovery-status")
+      .filter({ hasText: "2 models found" })
+      .waitFor();
+    assert.equal(
+      await page.locator("#workspace-form select[name=model]").inputValue(),
+      "available-one",
+    );
+    await page
+      .locator("#workspace-form input[name=base_url]")
+      .fill(fixture.model_endpoint + "/missing");
+    await page.locator("[data-discover-models]").click();
+    await page
+      .locator("#model-discovery-status")
+      .filter({ hasText: "HTTP 404" })
+      .waitFor();
+    assert.equal(
+      await page.locator("#workspace-form select[name=model] option").count(),
+      3,
+    );
+    await page
+      .locator("#workspace-form input[name=base_url]")
+      .fill(fixture.model_endpoint);
+    await page.screenshot({
+      path: path.join(screenshots, "provider-discovery.png"),
+      fullPage: true,
+    });
+    await page.locator("#workspace-form button[type=submit]").click();
+    await page.locator("#workspace-dialog").waitFor({ state: "hidden" });
+    let profileRow = page
+      .locator(".provider-profile")
+      .filter({ hasText: "Discovered local profile" });
+    await profileRow.locator("[data-check-provider]").click();
+    await page.getByText("Provider check", { exact: true }).waitFor();
+    assert.match(
+      await page.locator("#detail-body").innerText(),
+      /model_listed/,
+    );
+    assert.match(
+      await page.locator("#detail-body").innerText(),
+      /"inference_performed": false/,
+    );
+    await page.locator("#detail .close-dialog").click();
+    await profileRow.locator("[data-edit-provider]").click();
+    assert.equal(
+      await page.locator("#workspace-form input[name=name]").inputValue(),
+      "Discovered local profile",
+    );
+    assert.equal(
+      await page.locator("#workspace-form input[name=base_url]").inputValue(),
+      fixture.model_endpoint,
+    );
+    await page
+      .locator("#workspace-form input[name=name]")
+      .fill("Edited local profile");
+    await page
+      .locator("#workspace-form select[name=model]")
+      .selectOption("available-two");
+    await page.locator("#workspace-form button[type=submit]").click();
+    await page.locator("#workspace-dialog").waitFor({ state: "hidden" });
+    profileRow = page
+      .locator(".provider-profile")
+      .filter({ hasText: "Edited local profile" });
+    await profileRow.locator("[data-copy-provider]").click();
+    await page
+      .locator("#workspace-form input[name=name]")
+      .fill("Duplicate local profile");
+    await page.locator("#workspace-form button[type=submit]").click();
+    await page.locator("#workspace-dialog").waitFor({ state: "hidden" });
+    await page
+      .locator(".provider-profile")
+      .filter({ hasText: "Duplicate local profile" })
+      .waitFor();
+    assert.equal(await page.locator(".provider-profile").count(), 3);
+    for (const name of ["Duplicate local profile", "Edited local profile"]) {
+      await page
+        .locator(".provider-profile")
+        .filter({ hasText: name })
+        .locator("[data-delete-provider]")
+        .click();
+      await page
+        .getByRole("heading", { name: "Delete saved profile" })
+        .waitFor();
+      await page.locator("#workspace-form button[type=submit]").click();
+      await page.locator("#workspace-dialog").waitFor({ state: "hidden" });
+      await page
+        .locator(".provider-profile")
+        .filter({ hasText: name })
+        .waitFor({ state: "hidden" });
+    }
+    await page.locator("[data-workspace=provider]").click();
+    await page
+      .locator("#workspace-form select[name=mode]")
+      .selectOption("local");
+    await page
+      .locator("#workspace-form input[name=base_url]")
+      .fill(fixture.model_endpoint.replace("/v1", "/slow"));
+    const discoveryFinished = page.waitForResponse((r) =>
+      r.url().endsWith("/api/v1/system/provider-models"),
+    );
+    await page.locator("[data-discover-models]").click();
+    await page.locator("#workspace-dialog .close-dialog").click();
+    await (await discoveryFinished).finished();
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
+    assert.equal(await page.locator("#workspace-dialog").isVisible(), false);
     await page.locator('nav a[href="#findings"]').click();
     await page.locator("#severity-filter").selectOption("high");
     assert.equal(await page.locator("tbody tr").count(), 3);
@@ -452,6 +584,7 @@ const assert = require("node:assert/strict");
           status: "passed",
           checks: [
             "all routes",
+            "custom model discovery, bridge health, named profile edit/duplicate/check/delete",
             "native provider catalog, OAuth, API-key connect/disconnect and live apply",
             "dynamic targets, checks, severity, credentials, campaigns, findings and source selectors",
             "webhook and retest lifecycle with offline transports",

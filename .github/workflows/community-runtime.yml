@@ -1,0 +1,38 @@
+name: Community runtime validation
+on:
+  workflow_dispatch:
+  push:
+    branches: [pro]
+    paths:
+      - Dockerfile.opencode
+      - 'conf/**'
+      - 'mcp/**'
+      - 'tools/validate-community-runtime.py'
+      - 'docker-compose*.yml'
+      - '.github/workflows/community-runtime.yml'
+permissions:
+  contents: read
+concurrency:
+  group: community-runtime-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  docker-native-provider-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the actual branch image
+        run: docker build --progress plain --file Dockerfile.opencode --tag darkmoon-community-validation .
+      - name: Boot isolated image and validate native provider API
+        run: python3 tools/validate-community-runtime.py --docker-image darkmoon-community-validation --output runtime-validation.json
+      - name: Preserve validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: community-runtime-evidence
+          path: |
+            runtime-validation.json
+            runtime-validation.container.log
+          if-no-files-found: warn

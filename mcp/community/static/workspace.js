@@ -225,6 +225,8 @@
     $("#workspace-title").textContent = title;
     $("#workspace-fields").innerHTML = fields(specs);
     $("#workspace-error").textContent = "";
+    $("#workspace-form button[type=submit]").textContent =
+      kind === "provider_delete" ? "Delete profile" : "Save";
     if ($("#detail").open) $("#detail").close();
     $("#workspace-dialog").showModal();
   }
@@ -328,7 +330,7 @@
       ]);
       if (route !== page) return;
       $("#content").innerHTML =
-        `<section class="panel"><div class="section-top"><div><h3>Accounts and access</h3><p>Signed in as ${esc(who.user.username)} · ${esc(who.user.role)}</p></div><button class="primary" data-workspace="account">+ Add account</button></div>${users.data.map((u) => `<div class="list-item"><div>${esc(u.username)}<small>${esc(u.id)}</small></div>${badge(u.role)}</div>`).join("") || empty("No password accounts", "Create an account here or configure your OIDC provider. The workspace token remains an administrator recovery method.")}<p class="instructions">OIDC uses the configured issuer, client id, redirect URI, PKCE and nonce verification. Local passwords and SSO identities issue short-lived, revocable sessions.</p>${who.user.authentication === "password" ? `<button class="secondary" data-workspace="password">Change my password</button>` : `<p>Manage this sign-in through ${who.user.authentication === "oidc" ? "your SSO provider" : "the workspace recovery token"}.</p>`}</section><section class="panel"><div class="section-top"><div><h3>OpenCode providers and logins</h3><p>Active model: ${esc(choices.opencode.active_model || "Not configured")} · ${choices.opencode.live ? "Native server connected" : "Shared files; restart required after changes"}</p>${choices.opencode.warning ? `<p role="alert">${esc(choices.opencode.warning)}</p>` : ""}<button class="secondary" data-workspace="opencode_connect">Connect provider</button> <button class="secondary" data-sync-opencode="1">Sync from OpenCode</button></div><button class="primary" data-workspace="provider">+ Add provider</button></div>${choices.opencode.providers
+        `<section class="panel"><div class="section-top"><div><h3>Accounts and access</h3><p>Signed in as ${esc(who.user.username)} · ${esc(who.user.role)}</p></div><button class="primary" data-workspace="account">+ Add account</button></div>${users.data.map((u) => `<div class="list-item"><div>${esc(u.username)}<small>${esc(u.id)}</small></div>${badge(u.role)}</div>`).join("") || empty("No password accounts", "Create an account here or configure your OIDC provider. The workspace token remains an administrator recovery method.")}<p class="instructions">OIDC uses the configured issuer, client id, redirect URI, PKCE and nonce verification. Local passwords and SSO identities issue short-lived, revocable sessions.</p>${who.user.authentication === "password" ? `<button class="secondary" data-workspace="password">Change my password</button>` : `<p>Manage this sign-in through ${who.user.authentication === "oidc" ? "your SSO provider" : "the workspace recovery token"}.</p>`}</section><section class="panel"><div class="section-top"><div><h3>OpenCode providers and logins</h3><p>Active model: ${esc(choices.opencode.active_model || "Not configured")} · ${choices.opencode.live ? "Native server connected" : "Shared files; restart required after changes"}</p>${choices.opencode.warning ? `<p role="alert">${esc(choices.opencode.warning)}</p>` : ""}<button class="secondary" data-workspace="opencode_connect">Connect provider</button> <button class="secondary" data-sync-opencode="1">Sync from OpenCode</button> <button class="secondary" data-bridge-health="1">Check bridge</button></div><button class="primary" data-workspace="provider">+ Add provider</button></div>${choices.opencode.providers
           .filter((p) => p.connected)
           .map(
             (p) =>
@@ -336,9 +338,93 @@
           )
           .join(
             "",
-          )}${providers.data.map((p) => `<div class="list-item"><div>${esc(p.provider)} / ${esc(p.model)}<small>${esc(p.mode)} · ${esc(p.base_url)}</small></div><button class="secondary" data-apply-provider="${esc(p.id)}">Apply profile</button></div>`).join("") || empty("No saved provider profiles")}<small>Profiles update shared OpenCode config and preserve native logins. Configure the native server bridge to apply live; otherwise restart OpenCode after applying. <a href="https://github.com/newrecycle/Dark-Moon/blob/pro/docs/opencode-webui.md" target="_blank" rel="noopener noreferrer">Set up native sign-in</a>.</small></section><section class="panel"><div class="section-top"><div><h3>Installation health</h3><p>Inspect dependencies, paths and the operator-controlled integrity guard.</p></div><div><button class="secondary" data-doctor="1">Run diagnostics</button> <button class="secondary" data-updates="1">Check image updates</button></div></div><p class="instructions">Enforcement is opt-in. After reviewing your source and Compose policy, create the integrity baseline with the documented local command. Licensing and vendor activation are not part of this independent implementation.</p></section>`;
+          )}${providers.data.map((p) => `<div class="list-item provider-profile"><div><strong>${esc(p.name || p.provider)}</strong><small>${esc(p.provider)} / ${esc(p.model)} · ${esc(p.mode)} · ${esc(p.base_url)}</small>${p.last_check ? `<small>Last check: ${esc(p.last_check.status)} · ${esc(date(p.last_check.checked_at))}</small>` : ""}</div><div class="profile-actions"><button class="secondary" data-check-provider="${esc(p.id)}">Check</button><button class="secondary" data-edit-provider="${esc(p.id)}">Edit</button><button class="secondary" data-copy-provider="${esc(p.id)}">Duplicate</button><button class="secondary" data-delete-provider="${esc(p.id)}">Delete</button><button class="secondary" data-apply-provider="${esc(p.id)}">Apply profile</button></div></div>`).join("") || empty("No saved provider profiles")}<small>Profiles update shared OpenCode config and preserve native logins. Configure the native server bridge to apply live; otherwise restart OpenCode after applying. <a href="https://github.com/newrecycle/Dark-Moon/blob/pro/docs/opencode-webui.md" target="_blank" rel="noopener noreferrer">Set up native sign-in</a>.</small></section><section class="panel"><div class="section-top"><div><h3>Installation health</h3><p>Inspect dependencies, paths and the operator-controlled integrity guard.</p></div><div><button class="secondary" data-doctor="1">Run diagnostics</button> <button class="secondary" data-updates="1">Check image updates</button></div></div><p class="instructions">Enforcement is opt-in. After reviewing your source and Compose policy, create the integrity baseline with the documented local command. Licensing and vendor activation are not part of this independent implementation.</p></section>`;
     }
   };
+  async function providerForm(
+    kind = "provider",
+    profile = null,
+    duplicate = false,
+  ) {
+    await loadChoices();
+    const providers = [
+      ...(choices.opencode?.providers || []).map((p) => ({
+        value: p.id,
+        label: `${p.name}${p.connected ? " — connected" : ""}`,
+      })),
+      { value: "__custom__", label: "Custom provider…" },
+    ];
+    const specs = [
+      ["name", "Profile name (optional)"],
+      ["provider", "Provider", "select", providers],
+      ["custom_provider", "Custom provider id"],
+      ["mode", "Protocol / mode", "select", ["cloud", "local", "anthropic"]],
+      ["model", "Model", "select", []],
+      ["custom_model", "Custom model id"],
+      ["base_url", "Base URL (optional for built-in providers)"],
+      [
+        "credential_id",
+        "Saved API key (optional when connected)",
+        "select",
+        credentials(),
+      ],
+    ];
+    openForm(
+      kind,
+      profile
+        ? duplicate
+          ? "Duplicate provider profile"
+          : "Edit provider profile"
+        : "Choose OpenCode provider and model",
+      specs,
+      {
+        profileId: profile && !duplicate ? profile.id : null,
+        models: profile?.models || [],
+      },
+    );
+    const f = $("#workspace-form"),
+      pid = profile?.provider || choices.opencode?.active_model?.split("/")[0];
+    f.elements.provider.value = providers.some((p) => p.value === pid)
+      ? pid
+      : "__custom__";
+    providerModels();
+    if (profile) {
+      f.elements.name.value = duplicate
+        ? (profile.name || profile.provider) + " (copy)"
+        : profile.name || "";
+      if (f.elements.provider.value === "__custom__")
+        f.elements.custom_provider.value = profile.provider;
+      if (profile.models?.length)
+        f.elements.model.innerHTML = optionsHtml([
+          ...profile.models.map((m) => ({ value: m.id, label: m.name })),
+          { value: "__custom__", label: "Custom model…" },
+        ]);
+      const model = profile.model.startsWith(pid + "/")
+        ? profile.model.slice(pid.length + 1)
+        : profile.model;
+      if ([...f.elements.model.options].some((o) => o.value === model))
+        f.elements.model.value = model;
+      else {
+        f.elements.model.value = "__custom__";
+        f.elements.custom_model.value = model;
+      }
+      for (const key of ["mode", "base_url", "credential_id"])
+        f.elements[key].value = profile[key] || "";
+      customFields();
+    }
+    $("#workspace-fields").insertAdjacentHTML(
+      "beforeend",
+      '<button class="secondary" type="button" data-discover-models="1">Discover endpoint models</button><p class="instructions">Queries the selected endpoint’s model list using the chosen saved key. No inference request is sent.</p><p id="model-discovery-status" role="status"></p>',
+    );
+  }
+  function providerValues(form) {
+    const raw = Object.fromEntries(new FormData(form));
+    if (raw.provider === "__custom__") raw.provider = raw.custom_provider;
+    if (raw.model === "__custom__") raw.model = raw.custom_model;
+    delete raw.custom_provider;
+    delete raw.custom_model;
+    return raw;
+  }
   function markdownPreview(markdown) {
     const root = document.createElement("div");
     root.className = "report-preview";
@@ -398,6 +484,80 @@
     if (!button) return;
     try {
       const action = button.dataset.workspace;
+      if (button.dataset.editProvider || button.dataset.copyProvider) {
+        const id = button.dataset.editProvider || button.dataset.copyProvider;
+        const r = await api(
+          `/api/v1/system/providers/${encodeURIComponent(id)}`,
+        );
+        await providerForm(
+          "provider",
+          r.data,
+          Boolean(button.dataset.copyProvider),
+        );
+      }
+      if (button.dataset.deleteProvider) {
+        const r = await api(
+          `/api/v1/system/providers/${encodeURIComponent(button.dataset.deleteProvider)}`,
+        );
+        openForm("provider_delete", "Delete saved profile", [], {
+          profileId: r.data.id,
+        });
+        $("#workspace-fields").innerHTML =
+          `<p>Remove ${esc(r.data.name || r.data.provider)}? Your active OpenCode model and provider login will be retained.</p>`;
+      }
+      if (button.dataset.checkProvider) {
+        button.disabled = true;
+        try {
+          const r = await api(
+            `/api/v1/system/providers/${encodeURIComponent(button.dataset.checkProvider)}/check`,
+            { method: "POST", body: "{}" },
+          );
+          await window.renderWorkspace("settings");
+          details(
+            "Provider check",
+            `<pre>${esc(JSON.stringify(r, null, 2))}</pre>`,
+          );
+        } finally {
+          button.disabled = false;
+        }
+      }
+      if (button.dataset.bridgeHealth) {
+        const r = await api("/api/v1/system/opencode-health");
+        details(
+          "OpenCode bridge health",
+          `<pre>${esc(JSON.stringify(r, null, 2))}</pre>`,
+        );
+      }
+      if (button.dataset.discoverModels) {
+        const requestedForm = formState;
+        button.disabled = true;
+        try {
+          const r = await api("/api/v1/system/provider-models", {
+            method: "POST",
+            body: JSON.stringify(providerValues($("#workspace-form"))),
+          });
+          if (formState !== requestedForm || !$("#workspace-dialog").open)
+            return;
+          const f = $("#workspace-form"),
+            previous = f.elements.model.value;
+          formState.models = r.models;
+          f.elements.model.innerHTML = optionsHtml([
+            ...r.models.map((m) => ({ value: m.id, label: m.name })),
+            { value: "__custom__", label: "Custom model…" },
+          ]);
+          if (r.models.some((m) => m.id === previous))
+            f.elements.model.value = previous;
+          customFields();
+          $("#model-discovery-status").textContent =
+            `${r.models.length} models found${r.truncated ? " (list truncated)" : ""} · ${r.latency_ms} ms. ${r.note}`;
+        } catch (error) {
+          if (formState === requestedForm && $("#model-discovery-status"))
+            $("#model-discovery-status").textContent = error.message;
+        } finally {
+          button.disabled = false;
+        }
+      }
+
       if (button.dataset.sourceFiles) await loadSourceFiles();
       if (action === "account")
         openForm("account", "Create account", [
@@ -458,7 +618,8 @@
           ],
           ["secret", "Signing secret (at least 24 characters)", "password"],
         ]);
-      if (action === "provider" || action === "opencode_connect") {
+      if (action === "provider") await providerForm();
+      if (action === "opencode_connect") {
         await loadChoices();
         const providers = [
           ...(choices.opencode?.providers || []).map((p) => ({
@@ -471,35 +632,16 @@
           ["provider", "Provider", "select", providers],
           ["custom_provider", "Custom provider id"],
         ];
-        if (action === "provider")
-          specs.push(
-            [
-              "mode",
-              "Protocol / mode",
-              "select",
-              ["cloud", "local", "anthropic"],
-            ],
-            ["model", "Model", "select", []],
-            ["custom_model", "Custom model id"],
-            ["base_url", "Base URL (optional for built-in providers)"],
-            [
-              "credential_id",
-              "Saved API key (optional when connected)",
-              "select",
-              credentials(),
-            ],
-          );
-        else
-          specs.push(
-            ["auth_method", "Login method", "select", []],
-            [
-              "credential_id",
-              "Saved API key (optional)",
-              "select",
-              credentials(),
-            ],
-            ["secret", "New API key (optional)", "password"],
-          );
+        specs.push(
+          ["auth_method", "Login method", "select", []],
+          [
+            "credential_id",
+            "Saved API key (optional)",
+            "select",
+            credentials(),
+          ],
+          ["secret", "New API key (optional)", "password"],
+        );
         openForm(
           action,
           action === "provider"
@@ -668,15 +810,21 @@
           method: "POST",
           body: JSON.stringify(raw),
         });
+      if (kind === "provider_delete")
+        result = await api(
+          `/api/v1/system/providers/${encodeURIComponent(formState.profileId)}`,
+          { method: "DELETE" },
+        );
       if (kind === "provider") {
-        if (raw.provider === "__custom__") raw.provider = raw.custom_provider;
-        if (raw.model === "__custom__") raw.model = raw.custom_model;
-        delete raw.custom_provider;
-        delete raw.custom_model;
-        result = await api("/api/v1/system/providers", {
-          method: "POST",
-          body: JSON.stringify(raw),
-        });
+        const values = providerValues(event.target);
+        values.models = formState.models || [];
+        const id = formState.profileId;
+        result = await api(
+          id
+            ? `/api/v1/system/providers/${encodeURIComponent(id)}`
+            : "/api/v1/system/providers",
+          { method: id ? "PATCH" : "POST", body: JSON.stringify(values) },
+        );
       }
       if (kind === "opencode_connect") {
         if (raw.provider === "__custom__") raw.provider = raw.custom_provider;

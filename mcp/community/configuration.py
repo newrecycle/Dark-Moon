@@ -2,14 +2,13 @@
 
 import os
 import re
-import tempfile
-from pathlib import Path
+import uuid
 from urllib.parse import urlsplit
 
 from .store import identifier, now
 
 
-def profile(service, raw):
+def profile(service, raw, profile_id=None):
     mode = raw.get("mode")
     if mode not in {"cloud", "local", "anthropic"}:
         raise ValueError("Provider mode must be cloud, local or anthropic")
@@ -31,6 +30,8 @@ def profile(service, raw):
             or not parsed.hostname
             or parsed.username
             or parsed.password
+            or parsed.query
+            or parsed.fragment
         ):
             raise ValueError(
                 "Local/Anthropic mode requires a base URL without embedded credentials"
@@ -47,14 +48,33 @@ def profile(service, raw):
             raise ValueError(
                 "Connect this provider in OpenCode or choose a saved API-key credential"
             )
+    title = str(raw.get("name") or "").strip()
+    if len(title) > 160:
+        raise ValueError("Profile name must be at most 160 characters")
+    selected_id = (
+        identifier(profile_id)
+        if profile_id
+        else "profile_" + uuid.uuid4().hex[:16]
+        if title
+        else "provider_" + name
+    )
+    existing = service.store.get("providers", selected_id)
+    from .provider_checks import model_records
+
+    models = []
+    if raw.get("models"):
+        models, _ = model_records(raw["models"])
     item = {
-        "id": "provider_" + name,
+        "id": selected_id,
+        "name": title or name + " / " + model,
+        "models": models,
         "mode": mode,
         "provider": name,
         "model": model,
         "base_url": base,
         "credential_id": credential,
-        "created_at": now(),
+        "created_at": existing.get("created_at", now()) if existing else now(),
+        "updated_at": now(),
     }
     return service.store.save("providers", item)
 
@@ -106,6 +126,10 @@ def apply(service, profile_id):
         patch = {"model": config["model"], "small_model": config["small_model"]}
         if item["mode"] != "cloud":
             provider = config.setdefault("provider", {}).setdefault(pid, {})
+            for record in item.get("models", []):
+                provider.setdefault("models", {}).setdefault(
+                    record["id"], {"name": record["name"]}
+                )
             provider.setdefault("models", {}).setdefault(model, {"name": model})
             provider.setdefault("options", {}).pop("apiKey", None)
             provider["options"]["baseURL"] = item["base_url"]
@@ -129,6 +153,15 @@ def apply(service, profile_id):
             if token:
                 native("PUT", "/auth/" + pid, {"type": "api", "key": token})
             native("PATCH", "/config", patch)
+            observed = native("GET", "/config")
+            if (
+                not isinstance(observed, dict)
+                or observed.get("model") != patch["model"]
+                or observed.get("small_model") != patch["small_model"]
+            ):
+                raise ValueError(
+                    "OpenCode accepted the update but did not confirm both model settings on readback; live activation was not verified"
+                )
             live = True
         except ValueError as exc:
             warning = str(exc)
@@ -140,3 +173,17 @@ def apply(service, profile_id):
         if live
         else "Shared OpenCode files and installer environment updated. Restart the existing OpenCode service to load them.",
     }
+
+
+def remove(service, profile_id):
+    identifier(profile_id)
+
+    def delete(state):
+        if state.setdefault("providers", {}).pop(profile_id, None) is None:
+            raise KeyError(profile_id)
+        return {
+            "deleted": profile_id,
+            "note": "Saved profile removed; active OpenCode configuration and provider login retained.",
+        }
+
+    return service.store.update(delete)
