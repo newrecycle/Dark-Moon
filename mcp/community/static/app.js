@@ -268,15 +268,42 @@ async function showCampaign(id) {
     `${badge(c.status)} ${c.analysis_origin?.kind === "owned-loopback-lab" ? `<span class="badge">Owned loopback lab · no LLM</span>` : ""} <span class="subtle">${esc(c.target?.host || "")} · ${esc(date(c.date))}</span><div class="report-actions">${["md", "pdf", "json"].map((format) => `<button class="secondary" data-export="${format}" data-cid="${esc(id)}">Download ${format.toUpperCase()}</button>`).join("")}<button class="secondary" data-report-preview="${esc(id)}">Preview report</button><button class="secondary" data-protected-pdf="${esc(id)}">Signed / encrypted PDF</button><button class="secondary" id="open-map">Explore surface →</button></div><p class="detail-text">${esc(c.executive_summary || "No executive summary recorded yet.")}</p>${findingsTable(c.findings)}`;
   $("#detail").showModal();
 }
+function evidenceMarkup(evidence) {
+  const pretty = (value) => {
+    const text =
+      typeof value === "string"
+        ? value
+        : Array.isArray(value)
+          ? value
+              .map((v) =>
+                typeof v === "string" ? v : JSON.stringify(v, null, 2),
+              )
+              .join("\n")
+          : JSON.stringify(value, null, 2);
+    return (text || "")
+      .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")
+      .replace(/\r+\n/g, "\n")
+      .replace(/\r/g, "\n");
+  };
+  if (!evidence || typeof evidence !== "object" || Array.isArray(evidence))
+    return `<pre>${esc(pretty(evidence) || "No evidence recorded")}</pre>`;
+  return (
+    Object.entries(evidence)
+      .filter(([, value]) => value != null && value !== "")
+      .map(
+        ([key, value]) =>
+          `<div class="detail-label">${esc(key.replaceAll("_", " "))}</div><pre data-evidence-field="${esc(key)}">${esc(pretty(value))}</pre>`,
+      )
+      .join("") +
+    `<details><summary>Raw evidence JSON</summary><pre>${esc(JSON.stringify(evidence, null, 2))}</pre></details>`
+  );
+}
 async function showFinding(id, cid) {
   const c = await api(`/api/v1/campaigns/${encodeURIComponent(cid)}`),
     f = c.findings.find((x) => x.id === id);
   if (!f) throw new Error("Finding not found");
   $("#detail-title").textContent = f.title || f.id;
-  const evidence =
-    typeof f.evidence === "object"
-      ? JSON.stringify(f.evidence, null, 2)
-      : f.evidence;
+  const evidence = evidenceMarkup(f.evidence || f.evidence_output);
   $("#detail-body").innerHTML =
     `${badge(f.severity)} ${badge(f.status)} <span class="subtle">CVSS ${esc(f.cvss_score ?? "—")} · ${esc(f.discovered_by_agent || "")}</span>${[
       ["Endpoint", f.endpoint],
@@ -294,7 +321,7 @@ async function showFinding(id, cid) {
       )
       .join(
         "",
-      )}<div class="detail-label">Recorded evidence</div><pre>${esc(evidence || f.evidence_output || "No evidence recorded")}</pre>${f.evidence_commands ? `<pre>${esc(f.evidence_commands)}</pre>` : ""}<div class="detail-label">Remediation guidance</div><div class="detail-text">${esc(f.remediation || "No guidance recorded.")}</div>${["confirmed", "exploited"].includes(f.status) ? `<div class="report-actions"><button class="primary" data-prepare-fix="${esc(id)}" data-cid="${esc(cid)}">Prepare local fix →</button></div>` : ""}<div class="detail-label">Operator triage</div><div class="toolbar"><select id="triage-status">${["unconfirmed", "confirmed", "exploited", "false_positive", "accepted_risk", "remediated", "resolved"].map((x) => `<option value="${x}" ${f.status === x ? "selected" : ""}>${x.replaceAll("_", " ")}</option>`).join("")}</select><button class="secondary" data-triage="${esc(id)}" data-cid="${esc(cid)}">Save triage</button></div><small>Operator triage does not constitute a validated remediation retest.</small>`;
+      )}<div class="detail-label">Recorded evidence</div>${evidence}${f.evidence_commands ? `<pre>${esc(f.evidence_commands)}</pre>` : ""}<div class="detail-label">Remediation guidance</div><div class="detail-text">${esc(f.remediation || "No guidance recorded.")}</div>${["confirmed", "exploited"].includes(f.status) ? `<div class="report-actions"><button class="primary" data-prepare-fix="${esc(id)}" data-cid="${esc(cid)}">Prepare local fix →</button></div>` : ""}<div class="detail-label">Operator triage</div><div class="toolbar"><select id="triage-status">${["unconfirmed", "confirmed", "exploited", "false_positive", "accepted_risk", "remediated", "resolved"].map((x) => `<option value="${x}" ${f.status === x ? "selected" : ""}>${x.replaceAll("_", " ")}</option>`).join("")}</select><button class="secondary" data-triage="${esc(id)}" data-cid="${esc(cid)}">Save triage</button></div><small>Operator triage does not constitute a validated remediation retest.</small>`;
   applyRoles();
   if (!$("#detail").open) $("#detail").showModal();
 }

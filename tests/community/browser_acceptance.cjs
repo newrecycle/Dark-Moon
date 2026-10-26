@@ -424,6 +424,17 @@ const assert = require("node:assert/strict");
       undefined,
       "Finding content must be escaped",
     );
+    const responseEvidence = await page
+      .locator('[data-evidence-field="raw_response"]')
+      .textContent();
+    assert.ok(
+      responseEvidence.includes("HTTP/1.1 200 OK\nContent-Type: text/html"),
+    );
+    assert.ok(
+      responseEvidence.includes("<script>window.injected=true</script>"),
+    );
+    assert.ok(!responseEvidence.includes("\x1b"));
+    assert.equal(await page.locator("#detail-body script").count(), 0);
     await page.locator("[data-prepare-fix]").click();
     await page.locator("#remediation-dialog[open]").waitFor();
     assert.equal(

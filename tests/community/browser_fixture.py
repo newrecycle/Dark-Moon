@@ -68,6 +68,7 @@ for i, (host, name) in enumerate(
                 "evidence": {
                     "commands": ["python reproduce.py --case search"],
                     "logs": ["Differential response recorded in the isolated fixture."],
+                    "raw_response": "HTTP/1.1 200 OK\r\r\n\x1b[1mContent-Type\x1b[0m: text/html\r\r\n\r\r\n<script>window.injected=true</script>",
                 },
                 "remediation": "Use bound parameters and preserve normal search behavior.",
                 "mitre_attack_id": "T1190",

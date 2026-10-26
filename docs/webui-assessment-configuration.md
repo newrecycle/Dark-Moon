@@ -42,6 +42,10 @@ This is a deterministic workflow/toolbox analysis, not a full LLM-orchestrated
 pentest. It does not assert JavaScript execution, import benchmark findings as
 local results, scan third-party targets, call a model, or publish a remediation.
 The UI and report identify the lab origin explicitly.
+Captured HTTP responses prompted a readable evidence view: terminal color codes
+and carriage-return formatting are normalized for display, while the original
+evidence remains available as raw JSON and in exports. Markup in evidence is
+rendered as literal text, never executed by the dashboard.
 
 Repeat on a Linux Docker host from the repository root, using a fresh output path:
 

@@ -8,6 +8,7 @@ assessment target, operator credentials, Docker socket mounts or user volumes.
 import argparse
 import json
 import os
+import platform
 import threading
 import time
 import uuid
@@ -85,7 +86,9 @@ def main():
             "127.0.0.1",
             project_name="Owned loopback HTTP analysis",
             ports=[{"port": target.server_port, "service": "http"}],
-            technologies=[{"name": "Python http.server", "version": "3.12"}],
+            technologies=[
+                {"name": "Python http.server", "version": platform.python_version()}
+            ],
         )["campaign_id"]
         service_node = next(
             n["id"]
