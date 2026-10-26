@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "native_version": "1.19.4",
+  "catalog_providers": 234,
+  "checks": [
+    "WebUI HTTP catalog from real OpenCode",
+    "profile creation",
+    "shared default live apply and effective readback",
+    "profile check",
+    "profile deletion retains active model"
+  ],
+  "inference_performed": false,
+  "real_provider_account_validation": "not_run_no_account_configured"
+}

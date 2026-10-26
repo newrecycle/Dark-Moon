@@ -11,6 +11,8 @@ target assessment, performs inference, or logs in to an unspecified account.
 | Installed OpenCode 1.19.4 binary: health, Basic-auth rejection, provider catalog, auth API | Native HTTP calls succeeded, including disposable API-key PUT/DELETE. 232 catalog providers; the isolated invocation advertised zero OAuth method providers. No real account OAuth was performed. |
 | Same binary: model PATCH followed by GET | Initial project `/config` PATCH **failed** readback. Updating the shared default through `/global/config` **passed** effective `/config` readback for both model settings. The WebUI uses that endpoint and still detects unverified activation. |
 | Local Docker image build/boot | **Blocked**: no usable daemon/socket; no process capabilities and a read-only cgroup mount. Docker client installation alone is not an engine test. |
+| Actual Docker image in GitHub CI | **Passed** build and boot; all three Compose renders, native health/auth/catalog/login-method discovery, effective model/small-model readback and disposable API-key PUT/DELETE passed. |
+| WebUI HTTP API connected to real isolated OpenCode 1.19.4 | **Passed** live catalog, named profile creation, live apply/readback, profile check and deletion retaining the active model. No account login or inference. |
 | Community suite | 108 tests passed, including real loopback model HTTP requests, profile lifecycle and stale native readback handling. |
 | Browser acceptance | Passed the full dashboard flow, including model discovery/failure preservation, profile edit/duplicate/check/delete, bridge health, existing login/model workflows and report downloads. |
 | Existing MCP/invariant gates | 117 MCP tests and the repository no-regression gate passed. |
@@ -37,8 +39,17 @@ health, unauthenticated rejection, real provider/model/auth-method discovery,
 model config write/readback and disposable API-key write/delete. No images are
 published and no assessment, PR, cloud deployment or inference request is made.
 The container is removed on exit. JSON results and its credential-free logs are
-retained as workflow artifacts. The workflow's actual run result will determine
-image validation status; adding this workflow does not itself establish a pass.
+retained as workflow artifacts.
+
+The [successful image run](https://github.com/newrecycle/Dark-Moon/actions/runs/40370000911)
+tested commit `64a156f99255aea2cfb1a9dc49a7ee3dda4078b7`. Both the image build and
+every requested runtime check passed. Its native catalog contained 232 providers;
+three providers advertised login methods. Both effective model settings matched
+the shared-default update. The exact JSON report is preserved in
+[docker-provider-ci-20261026.json](validation/docker-provider-ci-20261026.json),
+and the run's `community-runtime-evidence` artifact includes the original JSON
+and container logs. This establishes actual image/API validation, not real-account
+OAuth or inference entitlement.
 
 The [initial image run](https://github.com/newrecycle/Dark-Moon/actions/runs/40363087162)
 built and booted the actual branded image successfully. It discovered 232 providers
@@ -48,12 +59,20 @@ endpoint, reproducing the native-binary issue. Inspection of the pinned source
 found `Config.update()` writes project `config.json`, while project loading uses
 `opencode.json`/`opencode.jsonc`. Shared defaults now use `/global/config`, followed
 by effective `/config` readback, which also catches project overrides. The native
-retest passed. The rerun of the actual image is pending.
+retest and actual image rerun passed.
 
 The initial runner also rejected the Compose invocation. The probe now resolves
 its required env file in a disposable project directory, avoiding dependence on
 the newer `--no-env-resolution` flag and any operator env file. All three Compose
 configurations passed the local retest with this invocation.
+
+The additional live WebUI adapter check launched the actual dashboard HTTP handler
+and a stock OpenCode 1.19.4 child process in disposable directories. It created a
+profile through the WebUI API, applied it, confirmed the effective active model
+through the synchronized catalog, checked the profile, and deleted it while
+confirming the active model remained selected. This uses a real native process,
+separate from the browser suite's deterministic native-server fixture. Its result
+is [webui-native-adapter-20261026.json](validation/webui-native-adapter-20261026.json).
 
 To repeat on a Docker host:
 

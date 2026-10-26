@@ -1,0 +1,43 @@
+{
+  "checks": [
+    {
+      "check": "compose_base",
+      "status": "passed"
+    },
+    {
+      "check": "compose_bridge",
+      "status": "passed"
+    },
+    {
+      "check": "compose_hardened-bridge",
+      "status": "passed"
+    },
+    {
+      "check": "docker_engine",
+      "status": "passed",
+      "reason": ""
+    },
+    {
+      "check": "docker_opencode_image",
+      "status": "passed",
+      "model_readback_verified": true,
+      "small_model_readback_verified": true,
+      "reason": "",
+      "version": "opencode-darkmoon-1.3.0",
+      "providers": 232,
+      "auth_method_providers": 3,
+      "checks": [
+        "Basic-auth rejection",
+        "health",
+        "provider catalog",
+        "login-method discovery",
+        "config patch/readback",
+        "API-key write/delete"
+      ],
+      "inference_performed": false,
+      "real_account_oauth": "not_run_no_account_configured"
+    }
+  ],
+  "inference_performed": false,
+  "real_provider_account_validation": "not_run_no_account_configured"
+}
