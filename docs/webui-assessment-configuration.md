@@ -57,3 +57,9 @@ PYTHONPATH=mcp .venv/bin/python tools/analyze-community-lab.py --output-dir /tmp
 Install `mcp/requirements.txt` and `mcp/community/requirements.txt` in that venv
 first. CI build/probe results determine actual analysis status; the presence of
 this script alone is not evidence of a successful run.
+
+The [completed analysis and replay instructions](validation/owned-lab-20261026/README.md)
+preserve the actual CI campaign, its two measured findings and native report.
+The source revision and artifact digest are recorded there. Browser acceptance
+also passed with readable evidence, scope presets and integration setup; the
+actual captured CI dataset was independently opened in Chromium and inspected.

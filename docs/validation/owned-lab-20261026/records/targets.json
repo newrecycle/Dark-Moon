@@ -1,0 +1,25 @@
+[
+  {
+    "id": "tgt_9c06e3",
+    "project_id": "proj_8ef5f1",
+    "host": "http://127.0.0.1:42983",
+    "ip": "127.0.0.1",
+    "ports": [
+      {
+        "port": 42983,
+        "service": "http"
+      }
+    ],
+    "technologies": [
+      {
+        "name": "Python http.server",
+        "version": "3.14.4"
+      }
+    ],
+    "os": "",
+    "status": "vulnerable",
+    "risk_level": "medium",
+    "first_seen": "2026-10-26T23:50:02Z",
+    "last_seen": "2026-10-26T23:50:02Z"
+  }
+]

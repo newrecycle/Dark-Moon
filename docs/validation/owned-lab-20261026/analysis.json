@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "campaign_id": "camp_20261026_owned_lab_314772af",
+  "target": "http://127.0.0.1:42983",
+  "engine": "real DarkMoon Docker adapter and BaseWorkflow",
+  "llm_assessment": false,
+  "findings": 2,
+  "private_route_status": 401,
+  "webui_routes_checked": [
+    "/api/v1/campaigns/camp_20261026_owned_lab_314772af",
+    "/api/v1/options",
+    "/api/v1/campaigns/camp_20261026_owned_lab_314772af/graph",
+    "/api/v1/campaigns/camp_20261026_owned_lab_314772af/report.md",
+    "/api/v1/campaigns/camp_20261026_owned_lab_314772af/report.pdf"
+  ],
+  "external_targets_contacted": false,
+  "probes": {
+    "headers": {
+      "commands": [
+        "curl --noproxy '*' --max-time 10 -sS -i 'http://127.0.0.1:42983/'"
+      ],
+      "raw_request": "GET http://127.0.0.1:42983/ HTTP/1.1",
+      "raw_response": "HTTP/1.0 200 OK\r\r\n\u001b[1mServer\u001b[0m: BaseHTTP/0.6 Python/3.14.4\r\r\n\u001b[1mDate\u001b[0m: Mon, 26 Oct 2026 23:50:02 GMT\r\r\n\u001b[1mContent-Type\u001b[0m: text/html; charset=utf-8\r\r\n\u001b[1mContent-Length\u001b[0m: 27\r\r\n\r\r\n<h1>Owned DarkMoon lab</h1>",
+      "logs": [
+        "Real Docker exec via DarkMoon BaseWorkflow and DarkmoonDockerClient"
+      ]
+    },
+    "reflection": {
+      "commands": [
+        "curl --noproxy '*' --max-time 10 -sS -i 'http://127.0.0.1:42983/reflect?value=%3Cstrong%3Edm-probe%3C%2Fstrong%3E'"
+      ],
+      "raw_request": "GET http://127.0.0.1:42983/reflect?value=%3Cstrong%3Edm-probe%3C%2Fstrong%3E HTTP/1.1",
+      "raw_response": "HTTP/1.0 200 OK\r\r\n\u001b[1mServer\u001b[0m: BaseHTTP/0.6 Python/3.14.4\r\r\n\u001b[1mDate\u001b[0m: Mon, 26 Oct 2026 23:50:02 GMT\r\r\n\u001b[1mContent-Type\u001b[0m: text/html; charset=utf-8\r\r\n\u001b[1mContent-Length\u001b[0m: 52\r\r\n\r\r\n<h1>Owned DarkMoon lab</h1><strong>dm-probe</strong>",
+      "logs": [
+        "Real Docker exec via DarkMoon BaseWorkflow and DarkmoonDockerClient"
+      ]
+    },
+    "private": {
+      "commands": [
+        "curl --noproxy '*' --max-time 10 -sS -i 'http://127.0.0.1:42983/private'"
+      ],
+      "raw_request": "GET http://127.0.0.1:42983/private HTTP/1.1",
+      "raw_response": "HTTP/1.0 401 Unauthorized\r\r\n\u001b[1mServer\u001b[0m: BaseHTTP/0.6 Python/3.14.4\r\r\n\u001b[1mDate\u001b[0m: Mon, 26 Oct 2026 23:50:02 GMT\r\r\n\u001b[1mContent-Type\u001b[0m: text/html; charset=utf-8\r\r\n\u001b[1mContent-Length\u001b[0m: 27\r\r\n\r\r\n<h1>Owned DarkMoon lab</h1>",
+      "logs": [
+        "Real Docker exec via DarkMoon BaseWorkflow and DarkmoonDockerClient"
+      ]
+    }
+  }
+}

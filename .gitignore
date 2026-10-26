@@ -31,3 +31,6 @@ __pycache__/
 .pytest_cache/
 /deploy-output/
 /integrations/upstream/action/dist/
+
+# Disposable CI lab output includes private dashboard control state.
+/lab-analysis/

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "vuln_lab_headers",
+    "title": "Lab omits browser hardening headers",
+    "severity": "low",
+    "status": "confirmed",
+    "category": "configuration",
+    "discovered_by_agent": "owned-lab-workflow",
+    "node_id": "svc_tgt_9c06e3_42983_tcp",
+    "endpoint": "http://127.0.0.1:42983",
+    "description": "CSP and X-Content-Type-Options were absent from the measured lab response. This is a hardening observation, not proof of exploitation.",
+    "evidence": {
+      "commands": [
+        "curl --noproxy '*' --max-time 10 -sS -i 'http://127.0.0.1:42983/'"
+      ],
+      "raw_request": "GET http://127.0.0.1:42983/ HTTP/1.1",
+      "raw_response": "HTTP/1.0 200 OK\r\r\n\u001b[1mServer\u001b[0m: BaseHTTP/0.6 Python/3.14.4\r\r\n\u001b[1mDate\u001b[0m: Mon, 26 Oct 2026 23:50:02 GMT\r\r\n\u001b[1mContent-Type\u001b[0m: text/html; charset=utf-8\r\r\n\u001b[1mContent-Length\u001b[0m: 27\r\r\n\r\r\n<h1>Owned DarkMoon lab</h1>",
+      "logs": [
+        "Real Docker exec via DarkMoon BaseWorkflow and DarkmoonDockerClient"
+      ]
+    },
+    "remediation": "Set an appropriate CSP and X-Content-Type-Options: nosniff.",
+    "campaign_id": "camp_20261026_owned_lab_314772af",
+    "project_id": "proj_8ef5f1",
+    "target_id": "tgt_9c06e3"
+  },
+  {
+    "id": "vuln_lab_html",
+    "title": "Lab reflects unescaped inert HTML",
+    "severity": "medium",
+    "status": "confirmed",
+    "category": "html-injection",
+    "discovered_by_agent": "owned-lab-workflow",
+    "node_id": "svc_tgt_9c06e3_42983_tcp",
+    "endpoint": "http://127.0.0.1:42983/reflect",
+    "description": "An inert strong element was reflected literally into text/html. JavaScript execution and XSS were not tested or asserted.",
+    "evidence": {
+      "commands": [
+        "curl --noproxy '*' --max-time 10 -sS -i 'http://127.0.0.1:42983/reflect?value=%3Cstrong%3Edm-probe%3C%2Fstrong%3E'"
+      ],
+      "raw_request": "GET http://127.0.0.1:42983/reflect?value=%3Cstrong%3Edm-probe%3C%2Fstrong%3E HTTP/1.1",
+      "raw_response": "HTTP/1.0 200 OK\r\r\n\u001b[1mServer\u001b[0m: BaseHTTP/0.6 Python/3.14.4\r\r\n\u001b[1mDate\u001b[0m: Mon, 26 Oct 2026 23:50:02 GMT\r\r\n\u001b[1mContent-Type\u001b[0m: text/html; charset=utf-8\r\r\n\u001b[1mContent-Length\u001b[0m: 52\r\r\n\r\r\n<h1>Owned DarkMoon lab</h1><strong>dm-probe</strong>",
+      "logs": [
+        "Real Docker exec via DarkMoon BaseWorkflow and DarkmoonDockerClient"
+      ]
+    },
+    "remediation": "HTML-escape untrusted values before rendering.",
+    "campaign_id": "camp_20261026_owned_lab_314772af",
+    "project_id": "proj_8ef5f1",
+    "target_id": "tgt_9c06e3"
+  }
+]

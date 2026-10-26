@@ -230,7 +230,8 @@ accounts/SSO, encrypted credentials, recurring assessments, protected report
 exports and local remediation proposals. Public CI, IDE, n8n, Grafana and Splunk
 integration implementations are imported with pinned source provenance.
 Run `./community.sh` to open the workspace. See the
-[setup and API guide](docs/community.md) and
+[setup and API guide](docs/community.md),
+[assessment presets and real lab analysis](docs/webui-assessment-configuration.md),
 [paid-feature/source-history audit](docs/community-feature-audit.md), and
 [complete feature coverage matrix](docs/pro-feature-matrix.md).
 The dashboard prepares local patches. Publication is a separate, explicitly

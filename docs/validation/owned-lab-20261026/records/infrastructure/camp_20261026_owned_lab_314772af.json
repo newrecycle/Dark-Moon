@@ -1,0 +1,41 @@
+[
+  {
+    "id": "target_tgt_9c06e3",
+    "node_type": "target",
+    "label": "http://127.0.0.1:42983",
+    "title": "http://127.0.0.1:42983",
+    "host": "http://127.0.0.1:42983",
+    "ip": "127.0.0.1",
+    "campaign_id": "camp_20261026_owned_lab_314772af",
+    "project_id": "proj_8ef5f1",
+    "target_id": "tgt_9c06e3"
+  },
+  {
+    "id": "svc_tgt_9c06e3_42983_tcp",
+    "node_type": "service",
+    "label": "42983/tcp - http",
+    "title": "42983/tcp - http",
+    "port": 42983,
+    "protocol": "tcp",
+    "service": "http",
+    "product": "",
+    "version": "",
+    "parent_node_id": "target_tgt_9c06e3",
+    "campaign_id": "camp_20261026_owned_lab_314772af",
+    "project_id": "proj_8ef5f1",
+    "target_id": "tgt_9c06e3"
+  },
+  {
+    "id": "tech_tgt_9c06e3_python_http_server_3_14_4",
+    "node_type": "technology",
+    "label": "Python http.server 3.14.4",
+    "title": "Python http.server 3.14.4",
+    "name": "Python http.server",
+    "version": "3.14.4",
+    "category": "technology",
+    "parent_node_id": "target_tgt_9c06e3",
+    "campaign_id": "camp_20261026_owned_lab_314772af",
+    "project_id": "proj_8ef5f1",
+    "target_id": "tgt_9c06e3"
+  }
+]
