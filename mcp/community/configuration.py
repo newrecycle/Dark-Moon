@@ -152,7 +152,10 @@ def apply(service, profile_id):
         try:
             if token:
                 native("PUT", "/auth/" + pid, {"type": "api", "key": token})
-            native("PATCH", "/config", patch)
+            # Profiles select the shared default, not a directory-specific config.
+            # The project PATCH endpoint writes config.json, which the pinned
+            # fork does not reload as a project configuration.
+            native("PATCH", "/global/config", patch)
             observed = native("GET", "/config")
             if (
                 not isinstance(observed, dict)

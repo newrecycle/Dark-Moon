@@ -164,7 +164,7 @@ class NativeHandler(BaseHTTPRequestHandler):
                     {"type": "oauth", "label": "Browser sign-in (fixture)"},
                 ]
             }
-        elif self.command == "PATCH" and self.path == "/config":
+        elif self.command == "PATCH" and self.path == "/global/config":
             config.update(body)
             (config_dir / "opencode.json").write_text(json.dumps(config))
         elif self.command == "PUT" and self.path.startswith("/auth/"):

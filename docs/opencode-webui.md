@@ -35,10 +35,13 @@ configured saved API/OAuth login via `OPENCODE_USE_SAVED_AUTH=true`.
 
 File-based sync works without a server. Native OAuth and live model changes need
 an authenticated OpenCode HTTP server reachable by the dashboard. The adapter
-uses the documented `/provider`, `/provider/auth`, `/config`, `/auth/{id}` and
+uses the documented `/provider`, `/provider/auth`, `/config`, `/global/config`, `/auth/{id}` and
 provider OAuth routes. It targets the shared-file OpenCode generation built by
 this repository. A server version with a different API/storage contract requires
 compatibility validation; this is not an opaque proxy to arbitrary endpoints.
+Provider profiles update `/global/config` because they select the shared default.
+The adapter then verifies the effective `/config` model and small model; a project
+override or stale readback is reported instead of claiming successful activation.
 
 For the existing Compose stack, the optional overlay builds this branch's
 OpenCode image (including the login-preserving startup script), runs its native

@@ -149,7 +149,7 @@ class SharedStateTests(fixtures.Fixture):
 
         def native(method, path, body=None):
             calls.append((method, path, body))
-            if path == "/config":
+            if path in {"/config", "/global/config"}:
                 if method == "PATCH":
                     native_config.update(body)
                 return dict(native_config)
@@ -208,7 +208,7 @@ class SharedStateTests(fixtures.Fixture):
         self.assertIn(
             (
                 "PATCH",
-                "/config",
+                "/global/config",
                 {"model": "openai/native-only", "small_model": "openai/native-only"},
             ),
             calls,

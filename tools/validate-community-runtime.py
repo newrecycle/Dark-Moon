@@ -64,12 +64,18 @@ def main():
             argv = compose[:]
             for file in files:
                 argv += ["-f", str(repo / file)]
-            r = command(
-                argv + ["config", "--no-env-resolution", "--format", "json"],
-                env=dict(
-                    os.environ, OPENCODE_SERVER_PASSWORD="compose-validation-only"
-                ),
-            )
+            # Resolve required env files in a disposable project directory.
+            # This works with Compose versions predating --no-env-resolution
+            # and never reads or creates an operator's .opencode.env.
+            with tempfile.TemporaryDirectory(prefix="darkmoon-compose-") as project:
+                (Path(project) / ".opencode.env").write_text("")
+                r = command(
+                    argv
+                    + ["--project-directory", project, "config", "--format", "json"],
+                    env=dict(
+                        os.environ, OPENCODE_SERVER_PASSWORD="compose-validation-only"
+                    ),
+                )
             if r.returncode:
                 raise ValueError("Compose rejected the configuration")
             config = json.loads(r.stdout)
@@ -174,7 +180,7 @@ def main():
             (mid for mid in candidates if mid != config.get("model")), candidates[0]
         )
         changed = request(
-            base, "/config", "PATCH", {"model": model, "small_model": model}
+            base, "/global/config", "PATCH", {"model": model, "small_model": model}
         )
         assert changed.get("model") == model, (
             "Config PATCH did not return the requested model"

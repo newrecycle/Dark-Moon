@@ -9,7 +9,7 @@ target assessment, performs inference, or logs in to an unspecified account.
 | Compose: authenticated bridge and hardened bridge | Passed merge/validation, loopback binding and read-only policy checks. |
 | OpenRouter public `/api/v1/models` | Passed; 466 models returned at validation time. No key or inference entitlement verified. |
 | Installed OpenCode 1.19.4 binary: health, Basic-auth rejection, provider catalog, auth API | Native HTTP calls succeeded, including disposable API-key PUT/DELETE. 232 catalog providers; the isolated invocation advertised zero OAuth method providers. No real account OAuth was performed. |
-| Same binary: model PATCH followed by GET | **Failed**: PATCH accepted the model settings but GET did not confirm them. The WebUI now detects this and reports unverified live activation with restart required. |
+| Same binary: model PATCH followed by GET | Initial project `/config` PATCH **failed** readback. Updating the shared default through `/global/config` **passed** effective `/config` readback for both model settings. The WebUI uses that endpoint and still detects unverified activation. |
 | Local Docker image build/boot | **Blocked**: no usable daemon/socket; no process capabilities and a read-only cgroup mount. Docker client installation alone is not an engine test. |
 | Community suite | 108 tests passed, including real loopback model HTTP requests, profile lifecycle and stale native readback handling. |
 | Browser acceptance | Passed the full dashboard flow, including model discovery/failure preservation, profile edit/duplicate/check/delete, bridge health, existing login/model workflows and report downloads. |
@@ -20,6 +20,8 @@ The machine-readable local result is
 and blocked statuses are intentional evidence, not successful Docker/account
 validation. The installed upstream binary is separate from DarkMoon's branded
 fork image; their results must not be conflated.
+The successful native retest is recorded separately in
+[provider-global-config-20261026.json](validation/provider-global-config-20261026.json).
 
 ## Actual image validation in CI
 
@@ -37,6 +39,21 @@ published and no assessment, PR, cloud deployment or inference request is made.
 The container is removed on exit. JSON results and its credential-free logs are
 retained as workflow artifacts. The workflow's actual run result will determine
 image validation status; adding this workflow does not itself establish a pass.
+
+The [initial image run](https://github.com/newrecycle/Dark-Moon/actions/runs/40363087162)
+built and booted the actual branded image successfully. It discovered 232 providers
+and three providers advertising login methods, and passed Basic-auth rejection and
+disposable API-key write/delete. It failed model readback via the project config
+endpoint, reproducing the native-binary issue. Inspection of the pinned source
+found `Config.update()` writes project `config.json`, while project loading uses
+`opencode.json`/`opencode.jsonc`. Shared defaults now use `/global/config`, followed
+by effective `/config` readback, which also catches project overrides. The native
+retest passed. The rerun of the actual image is pending.
+
+The initial runner also rejected the Compose invocation. The probe now resolves
+its required env file in a disposable project directory, avoiding dependence on
+the newer `--no-env-resolution` flag and any operator env file. All three Compose
+configurations passed the local retest with this invocation.
 
 To repeat on a Docker host:
 
