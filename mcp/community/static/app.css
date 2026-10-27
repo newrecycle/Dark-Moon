@@ -762,3 +762,30 @@ select option {
 .map-info details { margin: 14px 0; }
 .map-info .list-item strong { display: block; margin-top: 8px; overflow-wrap: anywhere; }
 .finding-score { float: right; font-size: 11px; }
+
+
+/* Keep the map, step controls and inspector visible together. */
+.surface-stage { position: relative; min-width: 0; }
+.map-layout > * { min-width: 0; }
+.map-info { border-left: 1px solid var(--line); max-height: 650px; }
+.map-info h3, .map-info h4, .map-info .secondary { overflow-wrap: anywhere; }
+.map-info .report-actions { gap: 8px; }
+.map-info .secondary { white-space: normal; }
+#surface-tour-card { position: absolute; left: 16px; bottom: 50px; width: min(420px, calc(100% - 32px)); box-sizing: border-box; background: var(--panel, #101620); border-radius: 8px; box-shadow: 0 10px 32px #0008; }
+#surface-tour-card .toolbar { flex-wrap: wrap; margin-bottom: 0; }
+@media (max-width: 1050px) and (min-width: 721px) {
+  .map-info { border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 720px) {
+  .map-info { border-left: 0; max-height: none; }
+  .map-info.has-selection { position: fixed; z-index: 20; inset: auto 8px 8px; max-height: 48vh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel, #101620); box-shadow: 0 -12px 36px #0008; }
+  #surface-tour-card { position: static; width: auto; margin-top: 12px; }
+}
+.map-info button.list-item { display: block; box-sizing: border-box; background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 8px 0; font: inherit; cursor: pointer; }
+.map-info button.list-item:hover { background: #1b2433; }
+.map-info button.list-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.map-info button.list-item small { display: block; margin-top: 5px; }
+
+.report-sections { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+.report-sections .secondary { max-width: 100%; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.report-preview :is(h1,h2,h3,h4,h5,h6) { scroll-margin-top: 16px; }

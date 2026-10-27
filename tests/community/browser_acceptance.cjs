@@ -131,6 +131,29 @@ const assert = require("node:assert/strict");
         assert.equal(await page.locator("#surface-tour-card").isVisible(), false);
 
 
+        await page.locator("#surface-node").selectOption(await asset.getAttribute("value"));
+        const linked = page.locator("#map-info [data-surface-finding]").first();
+        if (await linked.count()) {
+          await linked.click();
+          await page.locator("#surface-finding-title").waitFor();
+          assert.equal(await page.locator("#detail").isVisible(), false);
+          assert.equal(await page.locator("#map-info [data-report-preview]").getAttribute("data-report-preview"), await page.locator("#campaign-select").inputValue());
+          await page.screenshot({path:path.join(screenshots,"surface-finding.png"),fullPage:true});
+          await page.locator("#surface-back").click();
+          assert.equal(await page.locator("#map-info [data-surface-finding]").first().evaluate(el=>document.activeElement === el),true);
+        }
+        await page.screenshot({path:path.join(screenshots,"surface-inspector.png"),fullPage:true});
+        await page.locator("#surface-tour").click();
+        await page.screenshot({path:path.join(screenshots,"surface-tour.png"),fullPage:true});
+        await page.locator("#surface-free").click();
+        await page.setViewportSize({width:390,height:844});
+        await page.locator("#surface-node").selectOption(await asset.getAttribute("value"));
+        assert.equal(await page.locator("#surface-close").isVisible(),true);
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true);
+        await page.screenshot({path:path.join(screenshots,"surface-mobile.png"),fullPage:true});
+        await page.locator("#surface-close").click();
+        await page.setViewportSize({width:1440,height:1000});
+
         await page
           .locator("#surface-canvas")
           .dispatchEvent("wheel", { deltaY: -100 });
@@ -502,6 +525,12 @@ const assert = require("node:assert/strict");
     await page.locator(`[data-campaign="${fixture.campaign_id}"]`).click();
     await page.locator("[data-report-preview]").click();
     await page.locator(".report-preview").waitFor();
+    const section = page.locator('.report-sections button').last();
+    const sectionId = await section.getAttribute('aria-controls');
+    await section.click();
+    assert.equal(await page.locator('#'+sectionId).evaluate(el=>document.activeElement===el),true);
+    assert.equal(await page.evaluate(()=>window.injected),undefined);
+    await page.screenshot({path:path.join(screenshots,'report-navigation.png'),fullPage:true});
     await page.locator("#detail .close-dialog").click();
     await page.locator(`[data-campaign="${fixture.campaign_id}"]`).click();
     await page.locator("[data-protected-pdf]").click();

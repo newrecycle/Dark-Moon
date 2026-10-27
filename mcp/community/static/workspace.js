@@ -544,6 +544,27 @@
         root.append(p);
       }
     }
+    const headings = [...root.querySelectorAll("h1,h2,h3,h4,h5,h6")];
+    if (headings.length) {
+      const navigation = document.createElement("nav");
+      navigation.className = "report-sections";
+      navigation.setAttribute("aria-label", "Report sections");
+      for (const [index, heading] of headings.entries()) {
+        heading.id = `report-section-${index}`;
+        heading.tabIndex = -1;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "secondary";
+        button.textContent = heading.textContent;
+        button.setAttribute("aria-controls", heading.id);
+        button.addEventListener("click", () => {
+          heading.scrollIntoView({block: "start"});
+          heading.focus({preventScroll: true});
+        });
+        navigation.append(button);
+      }
+      root.prepend(navigation);
+    }
     return root;
   }
   document.addEventListener("click", async (event) => {

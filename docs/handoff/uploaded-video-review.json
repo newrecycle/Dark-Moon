@@ -4,7 +4,7 @@
   "archive_sha256": "19181363fc5b9a42f80100151483f2771cca7e7df9eee0dca7c4d8d58486c78f",
   "verified_file_hashes": 635,
   "method": "All 475 supplied two-second samples inspected in chronological contact sheets. Pro tour samples at 46,120,128,136 seconds also inspected at full resolution. Not continuous playback, audio review, or inspection of every encoded frame.",
-  "storyboards": "107 sheets acquired and hash-verified; not individually visually reviewed. Higher resolution video samples used for the visual pass.",
+  "storyboards": "All 107 sheets individually visually inspected in follow-up; see full-track-review.json.",
   "sources": [
     {
       "id": "zQE95bVLZgM",
@@ -2758,5 +2758,6 @@
         }
       ]
     }
-  ]
+  ],
+  "follow_up_review": "full-track-review.json"
 }

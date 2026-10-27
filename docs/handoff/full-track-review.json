@@ -1,0 +1,662 @@
+{
+  "review_date": "2026-10-27 America/Edmonton",
+  "method": {
+    "audio": "Complete audio tracks converted to mono 16 kHz PCM; faster-whisper 1.2.1 base.en int8 with VAD, beam 5; all generated speech segments reviewed. No detected speech in older demo; absence of detection is not proof of silence. ASR timestamps and technical words are approximate.",
+    "video": "Both complete streams decoded with ffmpeg -xerror. All 107 native storyboard sheets individually displayed and visually inspected, in addition to the prior 475 two-second samples. High-threshold scene change pass adds 20 inspected transition frames; it primarily found title transitions and older-demo notifications.",
+    "limits": "This is not direct continuous audiovisual playback or visual inspection of every encoded frame. Native thumbnail text cannot establish exact settings. Narrated claims are not proof of real execution."
+  },
+  "sources": [
+    {
+      "source": "cloud-deployment__2B_q_4IkE1A",
+      "video_sha256": "c01fe6e3ed2c114537d56a82ce6a15257b20849234e81ca8a3ce5b5727e5cfbe",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 54.315,
+      "speech_segments_reviewed": 16,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "274369fffdf9d7b6a8a8a578d6ee2781ed022043adeb5b74b0ef0721d608c294",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "5697e3bf512b580eeed920e7b831f83b0488b2e2ee3f3e356881eecfeac6779f",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "bd1061eeceed789b0719e4a5632a8f042eb1aaa705e8d200f09082fda3508624",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "63e6f54a4630157fd81574108bba4b55cb62fb61b52dbbff1d22bf97427e1af8",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "fa35d1984bdf12b37c767c48e41417ebc05876feedfdc7cdb2f929dc3978251f",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "8db05ab84ba383139e74d7bf0247b85d99fb2cc5c7a88418d3970517957bef3d",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "8412a6403f0e236e90618ddd01ed6a25006ff5b409929f7348f9b81db143a3bc",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "github-actions__e67klNk79vg",
+      "video_sha256": "011c4a50dc584f749c143467a438fbf9e2f06e43832e42c71e84c9fb80e62534",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 63.509,
+      "speech_segments_reviewed": 11,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "67382f716394cb1516db0bedfa7c3d8965eec48510079a62be61908431ca89a6",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "5cbb99d5bc8d775aaeb2366b1ef2216d110620fad32987ff4be408729af8ebaf",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "e50669df2a3360b304f03f647ecfe12d1d9ec5142e8b50ae80311368e6483470",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "87068cad65e805ceb7911c7183043ad811113215b3c8f0bb40785982a99a3a73",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "69f29ba8111b13d39629eceb0b1a8eedb452bc6d952e6a65d19742bab8b284b1",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "98685f93816cdbfc609a3a31fa78dce147cb8158b27945ad33b1ab0aea8dcc42",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "f848aef8f6913e3ef584a9443eeb7f939f0f4fae2abf6db4a06836b8cbfa27c9",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0007.jpg",
+          "sha256": "642cd7839a4e0a83ca24777e1f5e64652e768c1677da6c6ad1841dd48311a79c",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "gitlab__ui7NHD41cMM",
+      "video_sha256": "337b2cc13782daaee86974fa054d8b19f2afe5591ca3579aed7435f8bc388c29",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 61.312,
+      "speech_segments_reviewed": 10,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "a888b195410890ef5eab14c8bcb1387667c2c2b83337c174b597c6bd9e6aa68d",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "eef02e703209d67a5b765a41732b160df23229d47298569c05e6e281480ce4bd",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "3d580a242431cda3dbf612676ccdd7464b204e7293a7178d952079a5bf5cd604",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "e6de914f7f0dd30515bfca31c1785eb84151a05c19ccd1a5353923046a868428",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "6b6a2437ce7db2157219bd2222cd45c586d397da4ba5d7eeedfaffbf7fbba19f",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "ca1c9d5950c63ba9a58add22222e5ed24a52cbfcc44776163ff5899ec5556980",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "6b69e2ff7c2b0be0149449400b9247c1aff45acca76f50962fd8ec91e5e12c8c",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "grafana__L7K-y0HPudk",
+      "video_sha256": "92a2a5f8f855444b7a612b6121cf2e4f76e0de4612d7b0465dbac992c4aba7de",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 53.717,
+      "speech_segments_reviewed": 7,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "8805779a3fe6f7e05c04e57a3c4a598c4169bef5d78e5d4372183385dfbc1393",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "5539dbda87aab109f7aceaeaeeba04e2e86dd5cca5fc8053cbba22260dba8ab7",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "dd6f0ab51be9760d1815f2df3c562e01e21ca628ffffbb0c902c40b835ee35bc",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "4073cb982386643199ff56b1e9458f1a9cf9fd9cdec165be95ed2ccaffd1ce41",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "94b28f977f1406f0d45f64cd3465f79d27adfe50bfcfb17a2e0b5645d3a97a35",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "cdcb593e57d755f45232ec5e1f11ae59cde17febd53390ab575805113d0c3ead",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "4adf0b98d832719dbde70708db137110b21213e03dd26022f0e00940f8de894e",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "jenkins__G0TgyGpVLZ8",
+      "video_sha256": "a5f20b81cfa77ef71ea7aedda0660eb22535cec7ef2936f2cb0619f1ccfc2370",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 65.301,
+      "speech_segments_reviewed": 11,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "4faa8c382bf34cbdf99be56e5d4d64b35302b2696d9a2ca5a94db31f6f7efcc5",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "433781afd13654b4d60a6db211aadc33073942b629e60057e5d5306405fc1235",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "8c99fa4260eba2494434bba5e22e2f5d61813af21626fefec014869c2795937a",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "e33daae84be23064a21589d8a6dbfdefaeb9a35dc2a6b2ffa042492bd9bc0f5d",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "bcb5afd911089d8ac59803a6e4b31d1cf20fcf82acb43c523c164c99efdd04d2",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "4e1e3454101b7cb69e2a3f0bde7de0252a9e3cd26bb580c536e1e0ef460d269f",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "f8ae3c9ed1750e8520f781f951420579cc5a69b96f5f57e7f244fda5e6dce2a2",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0007.jpg",
+          "sha256": "fe59f8a0406661e84a6a8b994b2ceb89f8dafe4848cd1e056f22533d9a28899c",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "jetbrains__obUUrbTN3Jg",
+      "video_sha256": "d01b37da9c277b4791588b8826b621dc0a2cadf5ce063ccc4aee849a3ad3f5b1",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 53.909,
+      "speech_segments_reviewed": 9,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "5feb2c5cb7505bc2686edc837e3454ef038d9c7db37c3675022a110e875fe1d7",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "f55111aab7bedbffeaedb30d82709ea15d167580c5d556536aa033d946f242cf",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "a8135044eb3c84edfcc3cedc91eafd4ab8afa2547a296098558bccd13613b0ff",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "c4b063e3819c85a4699ccda5cfd27b545258097e2102bdae0ec4d7feee20b6d3",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "e266cd8fae6c823457e0dbeb980bdbfc41bb4c857a1985e27488846713a75f1a",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "0330ce8686d480a1c860c5f2343619642f7b20525ed75ec7490028977a651fb9",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "b8e5d2f77a497002eb830853b726364b0e516e891497b81ea5d32bd12fa4e7aa",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "n8n__3htg8kh7Dr8",
+      "video_sha256": "458e030ed36687cf1b498808180bde3282bc8b1630f17169f2815c6390a5e954",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 53.12,
+      "speech_segments_reviewed": 12,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "b6796ef4fa775bb7bf3f2b473d84de9aa286d1534e5dbfbaedd879c3a16b16f8",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "bb391504ecddcc8f351aeb7a9d63922345dd1eb413b8aa57e9adafbb5233fd0c",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "0af9be354e9607295bb0049813892c7deeb1ca3dc36ab4937678def838942984",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "f327eb1f103ce3c085cedba0c8cec610d7b3005ad87728de601365c2242043cf",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "7b28210275eeb67e038b6b794791cdb308f73896d623764eb232bad233d5ab6a",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "0e921c8fed8603a5b1c46323abe48910155f271233d599e76b60394479eb94d8",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "fffbb5d48ac231f4b523b35530466b9879c2666a0a70e7545ac13b83bf22943a",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "older-demo__1bFRVuMkZzY",
+      "video_sha256": "4976a5a51569b6d60d93344be6e495255b06f27d1a4525401742c02538d78159",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 119.573,
+      "speech_segments_reviewed": 0,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "9d781ec89c2f7263586690e81d9d2bf71b76a022c2926466dd573b8a93886685",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "05dde6d6f8cda8deb9cf1ab656f53568a0552001ea6aaaf49fed8d3601a39ec2",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "2384653e416dde554ff80b9fb80349e93a76e19b142b2c475b84dbdfcded389d",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "97f8cb734358bff77b4be7be604951c67c4d105a63d14ee853b032b4f0b8e60d",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "5e0c360cc0f0dc55635ce1d1336dd0bb62378db247152d5824d30d5636aa4f34",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "81fc6bb5e7292cb1e92981be28d0b132a72fdac0710b03992069dcf04ff01957",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "d58d12a2e3949f51b11691e2186568b81db5454ea1c5cda3810ae587cc71eba3",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0007.jpg",
+          "sha256": "755d3a2cde34e29f410c25af1533acbad8cb9190b28bd6ce7ecd77600fe661c1",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0008.jpg",
+          "sha256": "2d074585368d8fbfc58c3ff7c40b72d9d029865a0464b92e454967a8a0dbb689",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0009.jpg",
+          "sha256": "6e9e183b9729a9f39991b8b19ebeff68bd9085cf174e9a54fad46e5383b773ef",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0010.jpg",
+          "sha256": "a2a38c3475a5b7a88d8a1df5e9dd8adf13bee9b3d7276c3eca6373bd01360f6a",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0011.jpg",
+          "sha256": "bdf8f051b403ce60bffdc54f69a7f9773c1ca1df57124f17454cbc57cf9ccd6d",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0012.jpg",
+          "sha256": "740381e20f11d46e3430d6a5017eeb6c88989431c99a327d76c2b843b1f0bc77",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0013.jpg",
+          "sha256": "a6afec9593f007b12f0cb3c9589439675ba69bee8d6c3715473969f41c91dea8",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "oss-context__3Qv1luvW99E",
+      "video_sha256": "bb13f5b1043dc4069e0eb5f1b0475b6e6c1f3f232c4dc87e9a081a6ad62308f8",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 109.12,
+      "speech_segments_reviewed": 29,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "060aa5935f083ab9cc6c0bd0bee3b737044b632d1e947958df0bc0409d49e4fb",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "51a39c1f2bdf4c185818ca73b1f8be64d81cd802708767680d396a078d56229f",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "1f4718cf463814cd4c4c9571819b40106fb04644a819d69f8afa6f39e73785f7",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "ef532d64ce260e605cede85d21edfafc504d61df0fcbc26e5491c6dd3779bba2",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "3119254a7c8e2282dc85b1b60c8c2d01bdbd89549013ea752918cdc9583e7a19",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "07eeb624e055bfc0724aebff352137fc20ef0285b684c3d2cbaeac49c757df46",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "620bcd7056d81eb122388cec4561c6bb2dac03b45e0443dcf9e3a6f81c2f2ff2",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0007.jpg",
+          "sha256": "3b98fc841d16123cf999a4c6d19a60e163dfa04a732202774f76429bc36f7de8",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0008.jpg",
+          "sha256": "814a858191fb72b9bda42804f26a7aff744393b2692caca6711e23adc4e74948",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0009.jpg",
+          "sha256": "457d2a8f113ffbdecfda10d04f3ffdb01bac7ecae63a597be6a7804302a3e6e3",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0010.jpg",
+          "sha256": "2f01cc86b63bac575fa6577a6db3c1e076a0d73f6f3e0129f4b0422cfa5e584f",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0011.jpg",
+          "sha256": "7dd7f3eae4269c43a3d34ab6b199d49d9044c496e2370c6e40998f21e7be5b28",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0012.jpg",
+          "sha256": "49606d070cd8049cd78d15f9cf0cce17cbc54c147bb119d805cdaa5f371c00b2",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "pro-tour__zQE95bVLZgM",
+      "video_sha256": "334b721d1d42563d35b6c60ca9a707c9dc578d44378ab357ff5e2d8bab747ff7",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 143.104,
+      "speech_segments_reviewed": 30,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "688c42cf7bf7d4af028809088716f22eb10aa90d2d2aaf743262a9a7e0b146b6",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "f13fd207e3c2cfb787c83c4d0138867d6ab8c0e9755e41fdad44302682941731",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "e99b33b317dcbb35740b3f6cf6d7c9fd77c30247bbefcd717fdf5e68cb2931c5",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "35bc14227e12b4ad72e78a79216b23a727962ff72a9bcd8ee0dd9c9a0fbb8694",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "6fe82fe612310239f1473a99ccaf4cbcfdc4aa950c5dd1aa06413a90f1ff0ae6",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "691c42411b60940d6a6cd580170f722ed7c7c91d5b9c99280bf4b8720a14b666",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "e1e9b4a77fc575b79157afe410e5ec3e0ceb83499a1ec0fd229df2491ff3a8ca",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0007.jpg",
+          "sha256": "dc7bd6566f4b94f60e8d8c8260562916569e4bbada6302389b1926ae1a73b687",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0008.jpg",
+          "sha256": "f6ca6aaa7530b81658cb85674e8835ec80d66ee04d5e84efaad6f2a91d151c5c",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "sdk-cli__jMIMvV8yEK8",
+      "video_sha256": "b60d4f53515d91790e9d026a29ffe7310b57af0425d31e04873add753787a2c8",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 52.117,
+      "speech_segments_reviewed": 11,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "18f785c924294019185c18379a3e52264668b95aaa75a7b9688c56459e6367cf",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "16881b764b6bf31c696fbba8f71ff149d48f0d8e984f75b29f4a33279cd3cca0",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "999b64a693cdaf617fbd8ae8d20d9f3868fc84daaaa6cce10e9e8f7021bf8b7b",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "e88492cbb9d69f432a8b50fc13044e31e55447bfc76a256b97f807c7ccec9360",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "5ad1893db992a1b93eddffd88ba9168b2f24904b9d41f874b6252c008be8f96e",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "ea67a881a2a9ffaa69c38a004a379c27bea861996aea3812b54a067f6160427d",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "splunk__8w2i8nEBdQQ",
+      "video_sha256": "30864677902ec221b2c7ffcb42c6408fda8f8924b64d40794e76da31c42eb008",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 54.101,
+      "speech_segments_reviewed": 12,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "91651184bb5193266ba8098cf435cb85278e85fa32b920df08c58283bc3a1da0",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "7513421f06e842ab915567b0106dbf3464ec173842133e81126d9e927d1f9051",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "35b4639a2c5bed0fb64596d4a7ef5c59212f1d91038bbc17d69a83164f2b30e8",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "f942ab7efba7ee97690d78eca98a37e6b9da79ce5428df650f65d1433879b8f7",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "29504695ae9acd413c5769684b0e0a16277606ff31cff48da8e08c4ac88e3e68",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "0bce919bc2e80f3f53bcfe1301ce80945c564a8d8cd1c22940f849c604138d5e",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "9d52eb5b721ad722d2d8266949141a6bbc93c91703187c5948c26295eebfaac9",
+          "individually_inspected": true
+        }
+      ]
+    },
+    {
+      "source": "vscode__GY7YOnYpteQ",
+      "video_sha256": "6061c929128f054fffae2f331685722d1881c57f9fb5390dcc4300c538240a92",
+      "full_audio_video_decode_exit": 0,
+      "audio_duration_seconds": 61.12,
+      "speech_segments_reviewed": 10,
+      "storyboard_sheets": [
+        {
+          "file": "sheet-0000.jpg",
+          "sha256": "57572c1e7fb934800fd7f31c9de577a83d25cc9b500198265dff357c3f701ba3",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0001.jpg",
+          "sha256": "bf6ecb9f825c89742b1fd45de73bd2d7dc7ca4ad7beedecce10cbc906ce93f7f",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0002.jpg",
+          "sha256": "5413db26da8318a511e15c42a07c9648d63aafa7e95382152408745d9fb8738d",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0003.jpg",
+          "sha256": "3ff3ccf84bbd66b4ad231e328a4ff750ed85ddf6d17b800c4691ced3a8205e4c",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0004.jpg",
+          "sha256": "a175d4d9555fd6b2e496fe838baea85b2978ff941f6e584b7fd1020bfd583c04",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0005.jpg",
+          "sha256": "cd992d1dde994300643fde5e6a392ed6da488a3b1df1dbf1d92e7ae0a47d5e3f",
+          "individually_inspected": true
+        },
+        {
+          "file": "sheet-0006.jpg",
+          "sha256": "b7bd012b56c13e9513db09ef52e7f13ddcbfe50db8444c32d8f6c79dc55f6e90",
+          "individually_inspected": true
+        }
+      ]
+    }
+  ]
+}

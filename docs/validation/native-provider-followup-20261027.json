@@ -1,0 +1,46 @@
+{
+  "checks": [
+    {
+      "check": "compose_base",
+      "status": "blocked",
+      "reason": "[Errno 2] No such file or directory: 'docker'"
+    },
+    {
+      "check": "compose_bridge",
+      "status": "blocked",
+      "reason": "[Errno 2] No such file or directory: 'docker'"
+    },
+    {
+      "check": "compose_hardened-bridge",
+      "status": "blocked",
+      "reason": "[Errno 2] No such file or directory: 'docker'"
+    },
+    {
+      "check": "docker_engine",
+      "status": "blocked",
+      "reason": "No usable Docker client/daemon in this environment"
+    },
+    {
+      "check": "native_opencode_binary",
+      "status": "passed",
+      "model_readback_verified": true,
+      "small_model_readback_verified": true,
+      "reason": "",
+      "version": "1.19.4",
+      "providers": 232,
+      "auth_method_providers": 0,
+      "checks": [
+        "Basic-auth rejection",
+        "health",
+        "provider catalog",
+        "login-method discovery",
+        "config patch/readback",
+        "API-key write/delete"
+      ],
+      "inference_performed": false,
+      "real_account_oauth": "not_run_no_account_configured"
+    }
+  ],
+  "inference_performed": false,
+  "real_provider_account_validation": "not_run_no_account_configured"
+}

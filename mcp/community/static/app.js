@@ -242,7 +242,7 @@ function render() {
         )}</select><span class="subtle">${items.length} findings</span></div><section class="panel flush">${findingsTable(items)}</section>`;
   } else if (route === "surface") {
     $("#content").innerHTML =
-      `<div class="toolbar">${campaignSelect()}<button class="secondary" id="vr-button" disabled>Checking VR…</button><button class="secondary" id="surface-tour">Tour finding locations</button></div><div class="panel"><div class="map-layout"><div><div id="surface-controls"></div><canvas id="surface-canvas" class="surface" aria-label="Interactive three dimensional infrastructure graph"></canvas><div id="surface-tour-card" hidden></div><p class="map-caption">Drag to orbit · Scroll to zoom · Select a node to inspect. Lines show recorded containment and connections.</p></div><div class="map-info" id="map-info">Choose an assessment to explore its infrastructure.</div></div></div>`;
+      `<div class="toolbar">${campaignSelect()}<button class="secondary" id="vr-button" disabled>Checking VR…</button><button class="secondary" id="surface-tour">Tour finding locations</button></div><div class="panel"><div class="map-layout"><div class="surface-stage"><div id="surface-controls"></div><canvas id="surface-canvas" class="surface" aria-label="Interactive three dimensional infrastructure graph"></canvas><div id="surface-tour-card" hidden></div><p class="map-caption">Drag to orbit · Scroll to zoom · Select a node to inspect. Lines show recorded containment and connections.</p></div><div class="map-info" id="map-info">Choose an assessment to explore its infrastructure.</div></div></div>`;
     if (campaignId) drawSurface(campaignId, viewControl.signal).catch(fail);
   } else if (route === "schedules") {
     $("#content").innerHTML =
@@ -742,6 +742,7 @@ async function drawSurface(cid, signal) {
   function selectNode(n, fromTour = false) {
     if (!fromTour && !card.hidden) stopTour(false);
     inspectorVersion++;
+    info.classList.add("has-selection");
     selected = n.id;
     picker.value = n.id;
     const metadata = Object.fromEntries(Object.entries(n).filter(([k]) => !["p", "screen", "depth", "linked", "risk"].includes(k)));
@@ -754,6 +755,7 @@ async function drawSurface(cid, signal) {
       inspectorVersion++;
       if (!card.hidden) stopTour(false);
       selected = "";
+      info.classList.remove("has-selection");
       picker.value = "";
       info.innerHTML = `<p class="instructions">Select an asset to inspect its metadata and linked findings.</p>`;
       picker.focus();
@@ -766,7 +768,8 @@ async function drawSurface(cid, signal) {
     if (!n || !n.linked.some(f => f.id === findingId)) return;
     if (!card.hidden) stopTour(false);
     const version = ++inspectorVersion;
-    info.innerHTML = '<p role="status">Loading finding…</p>';
+    info.innerHTML = '<button class="secondary" id="surface-loading-back">Back to asset</button><p role="status">Loading finding…</p>';
+    $("#surface-loading-back").addEventListener("click", () => {selectNode(n); picker.focus();}, {signal});
     try {
       const campaign = await api(`/api/v1/campaigns/${encodeURIComponent(cid)}`);
       if (signal.aborted || version !== inspectorVersion) return;

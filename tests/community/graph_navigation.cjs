@@ -7,7 +7,7 @@ const controller = source.slice(source.indexOf('async function drawSurface('), s
 async function run(graph, options = {}) {
   const elements = new Map(); let focused;
   function element(id) {
-    const el = {hidden: id === '#surface-tour-card', disabled:false, value:'', events:{}, textContent:'',
+    const el = {hidden: id === '#surface-tour-card', disabled:false, value:'', events:{}, textContent:'', classList:{add(){},remove(){}},
       addEventListener(type, fn) { this.events[type] = fn; },
       focus() { focused = id; },
       querySelectorAll() { return []; },

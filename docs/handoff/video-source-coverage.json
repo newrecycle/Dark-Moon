@@ -302,5 +302,6 @@
     }
   ],
   "current_visual_review": "uploaded-video-review.json",
-  "current_review_date": "2026-10-27 America/Edmonton"
+  "current_review_date": "2026-10-27 America/Edmonton",
+  "follow_up_review": "full-track-review.json"
 }

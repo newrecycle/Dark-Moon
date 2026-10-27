@@ -25,8 +25,16 @@ jobs:
           /tmp/darkmoon-browser-node/node_modules/.bin/playwright install --with-deps chromium
       - name: Verify graph navigation and web UI
         env:
+          DARKMOON_SCREENSHOTS: browser-screenshots
           DARKMOON_PYTHON: /tmp/darkmoon-browser-python/bin/python
           CODEX_PRIMARY_RUNTIME_NODE_MODULES: /tmp/darkmoon-browser-node/node_modules
         run: |
           node tests/community/graph_navigation.cjs
           node tests/community/browser_acceptance.cjs
+      - name: Preserve fixture UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: community-browser-screenshots
+          path: browser-screenshots/
+          if-no-files-found: warn
