@@ -4,9 +4,9 @@ Baseline: `newrecycle/Dark-Moon`, branch `pro`, commit **630e0900a9b2f79a497b95b
 
 ## Read this first
 
-This is a functional handoff from **English captions for all 12 current official tutorials**, including one OSS contextual tutorial, plus direct inspection of four published Pro UI screenshots and a sampled frame review of the publisher’s 9.1-second infrastructure animation. **It is not a completed frame-by-frame video design audit.** Public video metadata/captions were accessible, but stream and storyboard downloads returned HTML “Site Unavailable” responses. They were verified as unusable rather than mistaken for video/image content. The older linked demo had metadata but no English caption track. YouTube animation, spacing, hover states, transition timing and unspoken controls remain unverified. The 27 October retry added bounded graph-animation evidence; see [frame review and acquisition outcomes](frame-review-retry.md). Ticket V00 is required to close that gap.
+The uploaded archive has resolved media acquisition for all 13 linked videos. **All 475 supplied two-second samples have now been visually reviewed**, with four Pro-tour samples inspected at full resolution. This is a sampled visual pass, not continuous playback or a review of every encoded frame. See [uploaded video analysis](uploaded-video-analysis.md) and [exact sample/hash manifest](uploaded-video-review.json). The original captions and four screenshots remain supporting evidence; earlier acquisition failures are historical.
 
-Evidence labels: **C** = reviewed caption/narration (a statement, not independent proof of a working feature); **S** = inspected published screenshot; **A** = inspected sampled frames from the publisher’s README animation (not YouTube footage); **B** = inspected baseline source; **P** = proposed implementation decision. No transcript or acquired video media is redistributed; the animated reference already exists in the repository. Narration is paraphrased; timestamp ranges link back to the originals.
+Evidence labels: **V** = inspected uploaded video sample; **C** = reviewed caption/narration (a statement, not independent proof of a working feature); **S** = inspected published screenshot; **A** = inspected sampled frames from the publisher’s README animation (not YouTube footage); **B** = inspected baseline source; **P** = proposed implementation decision. No transcript or acquired video media is redistributed; the animated reference already exists in the repository. Narration is paraphrased; timestamp ranges link back to the originals.
 
 Deliverables: this handoff, [source/coverage manifest](video-source-coverage.json), and [machine-readable backlog](pro-video-backlog.json). Captions’ SHA-256 hashes and video durations are recorded in the manifest. All current tutorial links from the official docs carousel and README were deduplicated; legacy `full.md` demo is tracked separately. This scope is bounded to those linked videos, not every upload on the channel.
 
@@ -58,7 +58,7 @@ Each acceptance statement below is required, not an optional QA suggestion. “P
 
 ### V00 — Resolve video visual coverage (P0)
 
-Baseline: **Partial visual evidence; YouTube coverage blocked**. Evidence: A: 13 timestamped sampled animation frames; local CDN, browser and hosted YouTube attempts unsuccessful. See [retry record](frame-review-retry.md).
+Baseline: **Acquisition resolved; sampled review complete**. Evidence: V: all 475 supplied samples across 13 videos. See [uploaded review](uploaded-video-analysis.md).
 
 Collect accessible recordings for all 11 current Pro-related tutorials and the legacy demo. Record frame timestamps, viewport, interactions and states. Do not claim visual parity before this step. Use the animation observations as bounded graph requirements; do not substitute them for the linked YouTube recordings.
 
@@ -168,7 +168,7 @@ Acceptance: Selecting an asset yields exactly its node-linked findings; missing 
 
 ### G02 — Evidence-backed attack-path tours (P1)
 
-Baseline: **Gap**. Evidence: Pro 01:55–02:18; A: infra-orbital.gif sampled frames across 0–181, only tour steps 1/4 and 2/4 observed.
+Baseline: **Gap**. Evidence: Pro 01:55–02:18; A: infra-orbital.gif sampled frames across 0–181, animation showed steps 1/4 and 2/4; uploaded Pro video also shows steps 3/4 and 4/4 at 120s and 128s.
 
 Introduce persisted observed path records with ordered node/edge references and evidence IDs. Add stepwise playback. Keep current finding-location tour separate when no verified path exists. Present a numbered tour card with Back/Next, step indicators, Technical details where relevant, and Explore freely. Reframe the camera with reduced-motion support. Do not invent unseen steps 3/4 or label illustrative topology as an observed attack path.
 
@@ -353,6 +353,6 @@ Use separate commits per vertical behavior, preserve old route contracts, and up
 
 ## Open evidence gaps and continuation instructions
 
-All 11 current Pro-related tutorials were reviewed through captions; OSS tutorial is contextual. The older demo cannot be content-reviewed from metadata alone. YouTube frame-level review remains blocked after local CDN, browser and hosted-runner retries. Four public screenshots and 13 sampled frames of the README animation now provide bounded visual references. The animation is not one of the linked YouTube tutorials. To close V00, supply accessible recordings/captures, then inspect the whole timeline and add timestamped differences; do not treat this handoff as proof that no additional controls exist.
+All 11 current Pro-related tutorials, the OSS tutorial and the older demo now have acquired footage and a completed two-second sample review. Earlier blocked status is superseded by uploaded-video-analysis.md. Exact hover/focus behavior, brief states between samples, headset interactions and live host integration behavior remain unverified. Use the acquired originals for denser inspection as needed; do not infer implemented parity from a demonstration.
 
 Do not redistribute complete caption tracks or video files. Keep source URLs, timestamped paraphrases and source hashes. The implementer should begin by reading `video-source-coverage.json`, the current feature matrix and the regression tests; then inspect `pro` for changes after this baseline before editing.

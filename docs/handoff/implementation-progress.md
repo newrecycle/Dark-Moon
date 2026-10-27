@@ -1,6 +1,6 @@
 # Visual handoff implementation progress
 
-Updated 27 October 2026. Source: the sampled publisher README animation in `frame-review-retry.md`. No newly acquired YouTube stream/storyboard was available in the workspace or located through file search during this implementation. YouTube coverage remains blocked; this work does not close V00.
+Updated 27 October 2026. **Superseded coverage:** all 13 videos are now acquired and all 475 supplied samples reviewed; see [uploaded review](uploaded-video-analysis.md). The sections below retain the earlier increment history. Source: the sampled publisher README animation in `frame-review-retry.md`. No newly acquired YouTube stream/storyboard was available in the workspace or located through file search during this implementation. YouTube coverage remains blocked; this work does not close V00.
 
 ## Implementation list
 
@@ -16,3 +16,5 @@ Updated 27 October 2026. Source: the sampled publisher README animation in `fram
 `node tests/community/graph_navigation.cjs` passed: actual graph controller exercised with two linked assets plus an empty asset, step boundaries, finding isolation, focus restoration, exit and empty graph controls. JavaScript syntax and whitespace checks passed.
 
 The existing Chromium acceptance suite now includes tour and inspector navigation assertions. It could not run here: Chromium was absent, and the Playwright download returned invalid ZIP content. These assertions remain pending a functioning browser environment. No external scan, provider login, remediation publication or PR was performed.
+
+Current increment: structured graph asset summary, severity counts, CVSS/category/status rows, metadata disclosure and Finish action implemented. See uploaded-video-analysis.md for current acceptance and remaining work.

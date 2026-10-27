@@ -29,7 +29,7 @@ async function run(graph) {
   return {el,click,focus:()=>focused,abort};
 }
 (async()=>{
-  const graph={nodes:[{id:'a',label:'Asset A'},{id:'b',label:'Asset B'},{id:'c',label:'Empty asset'}],edges:[],findings:[{id:'f1',node_id:'a',title:'Finding A',severity:'high'},{id:'f2',node_id:'b',title:'Finding B',severity:'low'}]};
+  const graph={nodes:[{id:'a',label:'Asset A',node_type:'service',ip_address:'192.0.2.1',technology:'<script>test</script>'},{id:'b',label:'Asset B'},{id:'c',label:'Empty asset'}],edges:[],findings:[{id:'f1',node_id:'a',title:'Finding A',severity:'high',cvss_score:0,category:'test-category',status:'confirmed'},{id:'f2',node_id:'b',title:'Finding B',severity:'low'}]};
   const {el,click,focus,abort}=await run(graph);
   el('#surface-node').value='c'; el('#surface-node').events.change();
   assert.match(el('#map-info').innerHTML,/No linked findings/);
@@ -38,10 +38,12 @@ async function run(graph) {
   assert.match(el('#surface-tour-card').innerHTML,/Step 1 of 2/);
   assert.match(el('#map-info').innerHTML,/Finding A/);assert.doesNotMatch(el('#map-info').innerHTML,/Finding B/);
   assert.equal(el('#surface-prev').disabled,true);
+  assert.match(el('#map-info').innerHTML,/192.0.2.1/);assert.match(el('#map-info').innerHTML,/CVSS 0/);assert.match(el('#map-info').innerHTML,/test-category/);assert.doesNotMatch(el('#map-info').innerHTML,/<script>/);
   click('#surface-next');assert.match(el('#surface-tour-card').innerHTML,/Step 2 of 2/);
-  assert.equal(el('#surface-next').disabled,true);assert.equal(focus(),'#surface-free');
+  assert.match(el('#surface-tour-card').innerHTML,/>Finish<\/button>/);assert.equal(focus(),'#surface-next');
   click('#surface-prev');assert.match(el('#surface-tour-card').innerHTML,/Step 1 of 2/);
   click('#surface-free');assert.equal(el('#surface-tour-card').hidden,true);assert.equal(focus(),'#surface-tour');
+  click('#surface-tour');click('#surface-next');click('#surface-next');assert.equal(el('#surface-tour-card').hidden,true);assert.equal(focus(),'#surface-tour');
   abort.abort();
   const empty=await run({nodes:[],edges:[],findings:[]});
   assert.equal(empty.el('#surface-node').disabled,true);assert.equal(empty.el('#surface-tour').disabled,true);

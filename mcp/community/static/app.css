@@ -754,3 +754,11 @@ select option {
 #surface-tour-card[hidden] { display: none; }
 .map-info .list-item { width: 100%; text-align: left; white-space: normal; }
 .map-info pre { overflow-wrap: anywhere; white-space: pre-wrap; }
+
+.asset-fields { display: grid; gap: 10px; }
+.asset-fields dt { color: var(--muted); font-size: 11px; }
+.asset-fields dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+.asset-severities { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+.map-info details { margin: 14px 0; }
+.map-info .list-item strong { display: block; margin-top: 8px; overflow-wrap: anywhere; }
+.finding-score { float: right; font-size: 11px; }

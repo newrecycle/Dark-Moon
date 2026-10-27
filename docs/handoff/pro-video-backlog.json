@@ -6,13 +6,13 @@
       "id": "V00",
       "priority": "P0",
       "title": "Resolve video visual coverage",
-      "baseline_status": "Partial: publisher animation sampled; YouTube visual coverage blocked",
-      "implementation": "Collect accessible recordings for all 11 current Pro-related tutorials and the legacy demo. Record frame timestamps, viewport, interactions and states. Do not claim visual parity before this step. Use the animation observations as bounded graph requirements; do not substitute them for the linked YouTube recordings.",
+      "baseline_status": "Acquisition resolved; sampled visual pass complete for all 13 sources",
+      "implementation": "Use acquired originals for denser inspection of brief transitions and exact controls when implementing each feature. All supplied two-second samples have been reviewed; continuous frame-by-frame parity is not claimed.",
       "files": [
         "docs/handoff"
       ],
       "acceptance": "Every source has a frame-review record or remains explicitly blocked.",
-      "evidence": "A: infra-orbital.gif, 13 timestamped sampled frames; three YouTube acquisition avenues unsuccessful (frame-review-retry.md)"
+      "evidence": "uploaded-video-review.json and uploaded-video-analysis.md"
     },
     {
       "id": "D01",
@@ -154,21 +154,21 @@
       ],
       "acceptance": "Selecting an asset yields exactly its node-linked findings; missing node linkage is displayed separately. Back restores the selected asset/list context; close and keyboard focus behave predictably; proposal/report links resolve to the selected finding and campaign, and unavailable actions explain their state.",
       "evidence": "Pro 01:45\u201302:18; A: infra-orbital.gif frames 0,49,87,99",
-      "implementation_progress": "Partial implementation: see implementation-progress.md; remaining acceptance is not claimed complete."
+      "implementation_progress": "Asset summary fields, per-asset severity counts, CVSS/category/status rows and metadata disclosure implemented. In-panel finding detail and proposal links remain open."
     },
     {
       "id": "G02",
       "priority": "P1",
       "title": "Evidence-backed attack-path tours",
       "baseline_status": "Gap",
-      "implementation": "Introduce persisted observed path records with ordered node/edge references and evidence IDs. Add stepwise playback. Keep current finding-location tour separate when no verified path exists. Present a numbered tour card with Back/Next, step indicators, Technical details where relevant, and Explore freely. Reframe the camera with reduced-motion support. Do not invent unseen steps 3/4 or label illustrative topology as an observed attack path.",
+      "implementation": "Introduce persisted observed path records with ordered node/edge references and evidence IDs. Add stepwise playback. Keep current finding-location tour separate when no verified path exists. Present a numbered tour card with Back/Next, step indicators, Technical details where relevant, and Explore freely. Reframe the camera with reduced-motion support. Steps 3/4 are now observed as database access and exposed files; derive actual steps from campaign evidence and do not treat illustrative topology as an observed attack path.",
       "files": [
         "service.py",
         "store.py",
         "static/app.js"
       ],
       "acceptance": "Unconnected nodes never become a kill chain; each tour step resolves to supporting evidence; invalid paths are rejected. Card, graph selection and inspector remain usable together; keyboard can move between steps and return to free exploration; reduced motion disables animated reframing.",
-      "evidence": "Pro 01:55\u201302:18; A: infra-orbital.gif sampled frames across 0\u2013181, only tour steps 1/4 and 2/4 observed",
+      "evidence": "Pro 01:55\u201302:18; A: infra-orbital.gif sampled frames across 0\u2013181, only tour steps 1/4 and 2/4 observed; V: Pro tour 120s database step 3, 128s file exposure step 4, Finish action",
       "implementation_progress": "Partial implementation: see implementation-progress.md; remaining acceptance is not claimed complete."
     },
     {

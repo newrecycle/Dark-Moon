@@ -114,7 +114,7 @@ const assert = require("node:assert/strict");
         await page.locator("#surface-tour-card").getByRole("status").waitFor();
         assert.match(await page.locator("#surface-tour-card").innerText(), /Step 1 of/);
         assert.equal(await page.locator("#surface-prev").isDisabled(), true);
-        if (!(await page.locator("#surface-next").isDisabled())) {
+        if ((await page.locator("#surface-next").innerText()) === "Next") {
           await page.locator("#surface-next").click();
           assert.match(await page.locator("#surface-tour-card").innerText(), /Step 2 of/);
           await page.locator("#surface-prev").click();

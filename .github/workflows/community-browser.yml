@@ -1,0 +1,32 @@
+name: Community browser acceptance
+on:
+  workflow_dispatch:
+  push:
+    branches: [pro]
+    paths:
+      - 'mcp/**'
+      - 'tests/community/**'
+      - '.github/workflows/community-browser.yml'
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install isolated test dependencies
+        run: |
+          python3 -m venv /tmp/darkmoon-browser-python
+          /tmp/darkmoon-browser-python/bin/pip install -r mcp/requirements.txt -r mcp/community/requirements.txt
+          npm install --prefix /tmp/darkmoon-browser-node playwright
+          /tmp/darkmoon-browser-node/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify graph navigation and web UI
+        env:
+          DARKMOON_PYTHON: /tmp/darkmoon-browser-python/bin/python
+          CODEX_PRIMARY_RUNTIME_NODE_MODULES: /tmp/darkmoon-browser-node/node_modules
+        run: |
+          node tests/community/graph_navigation.cjs
+          node tests/community/browser_acceptance.cjs

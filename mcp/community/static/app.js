@@ -736,7 +736,11 @@ async function drawSurface(cid, signal) {
     selected = n.id;
     picker.value = n.id;
     const metadata = Object.fromEntries(Object.entries(n).filter(([k]) => !["p", "screen", "depth", "linked", "risk"].includes(k)));
-    info.innerHTML = `<button class="secondary" id="surface-close">Close inspector</button><h3>${esc(n.label || n.id)}</h3><pre>${esc(JSON.stringify(metadata, null, 2))}</pre><h3>${n.linked.length} explicitly linked findings</h3>${n.linked.length ? n.linked.map(f => `<button class="list-item" data-finding="${esc(f.id)}" data-cid="${esc(cid)}">${badge(f.severity)} ${esc(f.title)}<small>${esc([f.mitre_attack_id, f.mitre_attack_name].filter(Boolean).join(" · "))}</small></button>`).join("") : empty("No linked findings", "No findings are explicitly linked to this asset.")}`;
+    const severityOrder = ["critical", "high", "medium", "low", "info"];
+    const totals = severityOrder.map(severity => ({severity, count: n.linked.filter(f => f.severity === severity).length})).filter(item => item.count);
+    const fields = [["Type", n.node_type], ["Address", n.ip_address || n.ip || n.address], ["Endpoint", n.endpoint || n.url], ["Technology", n.technology || n.service || n.os]];
+    const summary = fields.filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(typeof value === "object" ? JSON.stringify(value) : value)}</dd></div>`).join("");
+    info.innerHTML = `<button class="secondary" id="surface-close">Close inspector</button><h3>${esc(n.label || n.id)}</h3><dl class="asset-fields">${summary}</dl><div class="asset-severities" aria-label="Linked findings by severity">${totals.map(item => `<span>${badge(item.severity)} ${item.count}</span>`).join("")}</div><details><summary>Asset metadata</summary><pre>${esc(JSON.stringify(metadata, null, 2))}</pre></details><h3>${n.linked.length} explicitly linked findings</h3>${n.linked.length ? n.linked.map(f => `<button class="list-item" data-finding="${esc(f.id)}" data-cid="${esc(cid)}">${badge(f.severity)} <span class="finding-score">CVSS ${esc(f.cvss_score ?? "—")}</span><strong>${esc(f.title || "Untitled finding")}</strong><small>${esc([f.category, f.status].filter(Boolean).join(" · "))}</small><small>${esc([f.mitre_attack_id, f.mitre_attack_name].filter(Boolean).join(" · "))}</small></button>`).join("") : empty("No linked findings", "No findings are explicitly linked to this asset.")}`;
     $("#surface-close").addEventListener("click", () => {
       selected = "";
       picker.value = "";
@@ -755,9 +759,10 @@ async function drawSurface(cid, signal) {
     card.hidden = false;
     // Manual steps reframe instantly; no timed motion or automatic advance.
     angle = -Math.atan2(n.p[2], n.p[0]) + 0.25;
-    card.innerHTML = `<p role="status">Step ${tourIndex + 1} of ${locations.length} · ${esc(n.label || n.id)}</p><p class="instructions">Finding locations, not an exploitation chain. Each step selects an asset with explicitly linked findings.</p><div class="toolbar"><button class="secondary" id="surface-prev" ${tourIndex === 0 ? "disabled" : ""}>Back</button><button class="secondary" id="surface-next" ${tourIndex === locations.length - 1 ? "disabled" : ""}>Next</button><button class="secondary" id="surface-free">Explore freely</button></div>`;
+    card.innerHTML = `<p role="status">Step ${tourIndex + 1} of ${locations.length} · ${esc(n.label || n.id)}</p><p class="instructions">Finding locations, not an exploitation chain. Each step selects an asset with explicitly linked findings.</p><div class="toolbar"><button class="secondary" id="surface-prev" ${tourIndex === 0 ? "disabled" : ""}>Back</button><button class="secondary" id="surface-next" >${tourIndex === locations.length - 1 ? "Finish" : "Next"}</button><button class="secondary" id="surface-free">Explore freely</button></div>`;
     for (const [id, delta] of [["#surface-prev", -1], ["#surface-next", 1]]) {
       $(id).addEventListener("click", () => {
+        if (delta === 1 && tourIndex === locations.length - 1) return stopTour();
         tourIndex = Math.max(0, Math.min(locations.length - 1, tourIndex + delta));
         showStep();
         const preferred = $(id);
