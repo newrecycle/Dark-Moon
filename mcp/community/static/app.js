@@ -499,9 +499,11 @@ document.addEventListener("click", async (e) => {
       await showFinding(b.dataset.triage, b.dataset.cid);
       await refresh();
     } else if (b.dataset.remediation) {
-      const r = snapshot.remediations.find(
-        (x) => x.id === b.dataset.remediation,
-      );
+      const records = await api("/api/v1/remediations");
+      const r = records.find(x => x.id === b.dataset.remediation);
+      if (!r || (b.dataset.cid && r.campaign_id !== b.dataset.cid) ||
+          (b.dataset.proposalFinding && r.finding_id !== b.dataset.proposalFinding))
+        throw new Error("Proposal is unavailable for this finding and campaign");
       $("#detail-title").textContent = r.title || r.id;
       $("#detail-body").innerHTML =
         `${badge(r.status)} ${r.patch_path ? `<button class="secondary" data-patch="${esc(r.id)}">Download patch</button>` : ""}<pre>${esc(JSON.stringify(r, null, 2))}</pre>`;
@@ -568,7 +570,12 @@ setInterval(() => {
 }, 2000);
 
 async function drawSurface(cid, signal) {
-  const graph = await api(`/api/v1/campaigns/${encodeURIComponent(cid)}/graph`);
+  const [graph, proposalResult] = await Promise.all([
+    api(`/api/v1/campaigns/${encodeURIComponent(cid)}/graph`),
+    api(`/api/v1/pull-requests?campaign_id=${encodeURIComponent(cid)}`).catch(() => null),
+  ]);
+  const proposals = (proposalResult?.data || []).filter(p => p.campaign_id === cid);
+  let inspectorVersion = 0;
   if (signal.aborted) return;
   const canvas = $("#surface-canvas"),
     ctx = canvas.getContext("2d"),
@@ -734,6 +741,7 @@ async function drawSurface(cid, signal) {
   }, { signal });
   function selectNode(n, fromTour = false) {
     if (!fromTour && !card.hidden) stopTour(false);
+    inspectorVersion++;
     selected = n.id;
     picker.value = n.id;
     const metadata = Object.fromEntries(Object.entries(n).filter(([k]) => !["p", "screen", "depth", "linked", "risk"].includes(k)));
@@ -741,8 +749,9 @@ async function drawSurface(cid, signal) {
     const totals = severityOrder.map(severity => ({severity, count: n.linked.filter(f => f.severity === severity).length})).filter(item => item.count);
     const fields = [["Type", n.node_type], ["Address", n.ip_address || n.ip || n.address], ["Endpoint", n.endpoint || n.url], ["Technology", n.technology || n.service || n.os]];
     const summary = fields.filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(typeof value === "object" ? JSON.stringify(value) : value)}</dd></div>`).join("");
-    info.innerHTML = `<button class="secondary" id="surface-close">Close inspector</button><h3>${esc(n.label || n.id)}</h3><dl class="asset-fields">${summary}</dl><div class="asset-severities" aria-label="Linked findings by severity">${totals.map(item => `<span>${badge(item.severity)} ${item.count}</span>`).join("")}</div><details><summary>Asset metadata</summary><pre>${esc(JSON.stringify(metadata, null, 2))}</pre></details><h3>${n.linked.length} explicitly linked findings</h3>${n.linked.length ? n.linked.map(f => `<button class="list-item" data-finding="${esc(f.id)}" data-cid="${esc(cid)}">${badge(f.severity)} <span class="finding-score">CVSS ${esc(f.cvss_score ?? "—")}</span><strong>${esc(f.title || "Untitled finding")}</strong><small>${esc([f.category, f.status].filter(Boolean).join(" · "))}</small><small>${esc([f.mitre_attack_id, f.mitre_attack_name].filter(Boolean).join(" · "))}</small></button>`).join("") : empty("No linked findings", "No findings are explicitly linked to this asset.")}`;
+    info.innerHTML = `<button class="secondary" id="surface-close">Close inspector</button><h3>${esc(n.label || n.id)}</h3><dl class="asset-fields">${summary}</dl><div class="asset-severities" aria-label="Linked findings by severity">${totals.map(item => `<span>${badge(item.severity)} ${item.count}</span>`).join("")}</div><details><summary>Asset metadata</summary><pre>${esc(JSON.stringify(metadata, null, 2))}</pre></details><h3>${n.linked.length} explicitly linked findings</h3>${n.linked.length ? n.linked.map(f => `<button class="list-item" data-surface-finding="${esc(f.id)}">${badge(f.severity)} ${proposals.some(p => (p.finding_ids || []).includes(f.id)) ? '<span class="badge">Proposal recorded</span>' : ""}<span class="finding-score">CVSS ${esc(f.cvss_score ?? "—")}</span><strong>${esc(f.title || "Untitled finding")}</strong><small>${esc([f.category, f.status].filter(Boolean).join(" · "))}</small><small>${esc([f.mitre_attack_id, f.mitre_attack_name].filter(Boolean).join(" · "))}</small></button>`).join("") : empty("No linked findings", "No findings are explicitly linked to this asset.")}`;
     $("#surface-close").addEventListener("click", () => {
+      inspectorVersion++;
       if (!card.hidden) stopTour(false);
       selected = "";
       picker.value = "";
@@ -750,6 +759,33 @@ async function drawSurface(cid, signal) {
       picker.focus();
     }, { signal });
   }
+  info.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-surface-finding]");
+    if (!button) return;
+    const n = ids.get(selected), findingId = button.dataset.surfaceFinding;
+    if (!n || !n.linked.some(f => f.id === findingId)) return;
+    if (!card.hidden) stopTour(false);
+    const version = ++inspectorVersion;
+    info.innerHTML = '<p role="status">Loading finding…</p>';
+    try {
+      const campaign = await api(`/api/v1/campaigns/${encodeURIComponent(cid)}`);
+      if (signal.aborted || version !== inspectorVersion) return;
+      const f = campaign.findings.find(f => f.id === findingId && (f.node_id === n.id || f.infra_node_id === n.id));
+      const related = proposals.filter(p => (p.finding_ids || []).includes(findingId));
+      info.innerHTML = `<button class="secondary" id="surface-back">← Back to ${esc(n.label || n.id)}</button>${f ? `<h3 id="surface-finding-title" tabindex="-1">${esc(f.title || f.id)}</h3>${badge(f.severity)} ${badge(f.status)}<p>CVSS ${esc(f.cvss_score ?? "—")}</p>${[["Endpoint", f.endpoint], ["MITRE ATT&CK", [f.mitre_attack_id, f.mitre_attack_name].filter(Boolean).join(" · ")], ["Description", f.description], ["Remediation", f.remediation]].filter(([, value]) => value).map(([label, value]) => `<h4>${esc(label)}</h4><p class="detail-text">${esc(value)}</p>`).join("")}<h4>Proposals</h4>${related.length ? related.map(p => `<button class="secondary" data-remediation="${esc(p.id)}" data-cid="${esc(cid)}" data-proposal-finding="${esc(f.id)}">Review ${esc(p.title || p.id)} · ${esc(p.status || "unknown")}</button>`).join("") : `<p class="instructions">${proposalResult ? "No proposal recorded for this finding." : "Proposal records could not be loaded. Reopen the graph to retry."}</p>`}<div class="report-actions"><button class="secondary" data-finding="${esc(f.id)}" data-cid="${esc(cid)}">Full finding and evidence</button><button class="secondary" data-report-preview="${esc(cid)}">Campaign report</button></div>` : empty("Finding unavailable", "It was removed or is no longer linked to this asset. Return to the asset list.")}`;
+      $("#surface-back").addEventListener("click", () => {
+        selectNode(n);
+        const row = Array.from(info.querySelectorAll("[data-surface-finding]")).find(b => b.dataset.surfaceFinding === findingId);
+        (row || picker).focus();
+      }, {signal});
+      ($("#surface-finding-title") || $("#surface-back")).focus();
+    } catch (error) {
+      if (signal.aborted || version !== inspectorVersion) return;
+      info.innerHTML = '<button class="secondary" id="surface-back">Back to asset</button><p role="status">Finding could not be loaded. Return to the asset and try again.</p>';
+      $("#surface-back").addEventListener("click", () => { selectNode(n); picker.focus(); }, {signal});
+      $("#surface-back").focus();
+    }
+  }, {signal});
   function stopTour(restoreFocus = true) {
     card.hidden = true;
     tour.textContent = "Tour finding locations";

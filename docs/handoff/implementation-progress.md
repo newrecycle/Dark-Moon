@@ -32,3 +32,10 @@ The audit of commits 7157bbc through 0d1f7bd found documentation traceability er
 Coverage totals in the manifest are 13 sources, 475 reviewed samples and 107 acquired storyboard sheets. The prior review remains a sampled visual pass: individual storyboard inspection, continuous playback/audio, short transitions, exact typography and hover/focus parity are not complete. Browser tests exercise behavior with fixtures; their screenshots were not retained by the workflow for a visual comparison. Native integration-host tests, live external login synchronization and headset tests remain unverified. These are outstanding validation tasks, not evidence that the corresponding features passed.
 
 All 26 backlog tickets remain tracked. The graph increment does not complete G01/G02: in-inspector finding detail/Back, real proposal indicators and campaign-preserving report/proposal navigation, persisted evidence-backed paths, and responsive visual parity remain open. Calendar editing/recurrence, server-side redaction/reveal, onboarding, launch/console/report refinements and native integrations likewise must not be described as fully implemented from this increment.
+
+
+## Finding inspector increment
+
+Implemented in-panel finding detail with Back, endpoint/MITRE/description/remediation, real proposal indicators and campaign-preserving report/proposal actions. Finding selection rechecks the current campaign record; removed or unlinked findings have an explicit unavailable state. Stale asynchronous responses cannot overwrite a newly selected asset. Proposal review verifies the finding/campaign against current records. Focused controller checks cover linkage, absent proposals, deleted findings and response races; all 122 community tests pass.
+
+Media follow-up is in progress: all 13 full audio/video streams decode without errors, and full-track base.en speech-recognition output has been reviewed (12 sources with speech; the older demo produced no detected speech). ASR is approximate and is not direct listening or proof of narrated claims. Individual storyboard inspection and rendered visual comparisons are being recorded in a subsequent checkpoint.
