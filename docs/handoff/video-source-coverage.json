@@ -1,0 +1,186 @@
+{
+  "baseline": "630e0900a9b2f79a497b95bdb8a83dcda4ef9ab2",
+  "review_date_local": "2026-10-26 America/Edmonton",
+  "sources": [
+    "https://github.com/ASCIT31/Dark-Moon/blob/master/README.md",
+    "https://github.com/ASCIT31/Dark-Moon/blob/master/docs/full.md",
+    "https://docs.dark-moon.org/"
+  ],
+  "coverage": [
+    {
+      "id": "zQE95bVLZgM",
+      "url": "https://www.youtube.com/watch?v=zQE95bVLZgM",
+      "title": "Darkmoon Pro \u2014 Install & Full Product Tour (AI Penetration Testing Platform)",
+      "duration_seconds": 143,
+      "topic": "Pro tour",
+      "caption_reviewed": true,
+      "caption_sha256": "6f74a1742087662ff423877315e44db9743c0c3762a9213b6ad2eda8c9d4ae97",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:20\u201300:24; 00:24\u201300:37; 00:37\u201300:58; 00:58\u201301:18; 01:21\u201301:28; 01:45\u201302:18",
+      "paraphrased_scope": "First-use password setup, overview, scoped launches, console, finding evidence, reviewable fix, PDF and graph navigation."
+    },
+    {
+      "id": "2B_q_4IkE1A",
+      "url": "https://www.youtube.com/watch?v=2B_q_4IkE1A",
+      "title": "Deploy Darkmoon in Your Cloud \u2014 AI Pentesting on AWS, Azure, GCP & OVH",
+      "duration_seconds": 54,
+      "topic": "Cloud deployment",
+      "caption_reviewed": true,
+      "caption_sha256": "dbd44255755a150e4c4711c0058cdb1d8042e2857c36f108517409a9be33763f",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:09\u201300:34; 00:34\u201300:47",
+      "paraphrased_scope": "Cloud choices, provisioning progress, runtime diagnostics and opening the dashboard."
+    },
+    {
+      "id": "e67klNk79vg",
+      "url": "https://www.youtube.com/watch?v=e67klNk79vg",
+      "title": "Darkmoon + GitHub Actions \u2014 AI Penetration Testing in Your CI Pipeline",
+      "duration_seconds": 64,
+      "topic": "GitHub Actions",
+      "caption_reviewed": true,
+      "caption_sha256": "da6c43af39b6ebcd4ff0a4e2fa86e5f38a67204fbb12529e3422d9d9e6f16c71",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:11\u201300:30; 00:30\u201300:54",
+      "paraphrased_scope": "Action setup, severity-based gate calculation, job summaries and code-scanning output."
+    },
+    {
+      "id": "ui7NHD41cMM",
+      "url": "https://www.youtube.com/watch?v=ui7NHD41cMM",
+      "title": "Darkmoon + GitLab CI/CD \u2014 AI Pentesting Beyond SAST",
+      "duration_seconds": 61,
+      "topic": "GitLab",
+      "caption_reviewed": true,
+      "caption_sha256": "e58e288d3d00a8b6374d673f3f6a7fc4224f8a5dc9858433a536fad313497738",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:11\u201300:29; 00:30\u201300:53",
+      "paraphrased_scope": "CI component, configured gate thresholds, Code Quality/SAST outputs and merge-request feedback."
+    },
+    {
+      "id": "G0TgyGpVLZ8",
+      "url": "https://www.youtube.com/watch?v=G0TgyGpVLZ8",
+      "title": "Darkmoon + Jenkins \u2014 Add AI Security Testing to Your Builds",
+      "duration_seconds": 65,
+      "topic": "Jenkins",
+      "caption_reviewed": true,
+      "caption_sha256": "845e0365c81de9d127bb87033e407a7b9c8cd7f25d8f73807b19394614946f2a",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:11\u201300:30; 00:32\u201300:57",
+      "paraphrased_scope": "Plugin and pipeline step, separate failure/unstable policies, Warnings-NG and report archiving."
+    },
+    {
+      "id": "GY7YOnYpteQ",
+      "url": "https://www.youtube.com/watch?v=GY7YOnYpteQ",
+      "title": "Darkmoon for VS Code \u2014 AI Pentest Findings in Your Editor",
+      "duration_seconds": 61,
+      "topic": "VS Code",
+      "caption_reviewed": true,
+      "caption_sha256": "688779d18c8de1a547b32f10f3cc10542a2066cab3aa2c92577fa36af46add85",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:10\u201300:29; 00:31\u201300:52",
+      "paraphrased_scope": "Source/fixture configuration, campaign tree, sortable findings, redacted details and explicit local reveal."
+    },
+    {
+      "id": "obUUrbTN3Jg",
+      "url": "https://www.youtube.com/watch?v=obUUrbTN3Jg",
+      "title": "Darkmoon for JetBrains \u2014 AI Security Findings in Your IDE",
+      "duration_seconds": 54,
+      "topic": "JetBrains",
+      "caption_reviewed": true,
+      "caption_sha256": "6a3a2dab336bcb5ef5d2d75c77e9cd5567b192e1b360f00339cbfdf49781b59f",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:11\u201300:21; 00:23\u201300:43",
+      "paraphrased_scope": "Plugin configuration, sortable/filterable findings, evidence/remediation and confirmed local reveal."
+    },
+    {
+      "id": "3htg8kh7Dr8",
+      "url": "https://www.youtube.com/watch?v=3htg8kh7Dr8",
+      "title": "Darkmoon + n8n \u2014 Automate AI Pentesting in Your Workflows",
+      "duration_seconds": 53,
+      "topic": "n8n",
+      "caption_reviewed": true,
+      "caption_sha256": "5cda1f6b2b1baaec083bd0e92654aa7ed9935cbcfd8c7a669f93bcdddea3868f",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:10\u201300:24; 00:28\u201300:43",
+      "paraphrased_scope": "Community-node setup, connection test, campaigns/retests/metrics and event-driven downstream workflows."
+    },
+    {
+      "id": "L7K-y0HPudk",
+      "url": "https://www.youtube.com/watch?v=L7K-y0HPudk",
+      "title": "Darkmoon + Grafana \u2014 Live Security-Posture Dashboards",
+      "duration_seconds": 54,
+      "topic": "Grafana",
+      "caption_reviewed": true,
+      "caption_sha256": "588f874191d1cd8957416a919f18a91e20cd6fbbb9bb73736a4be8687b316a5d",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:10\u201300:21; 00:23\u201300:43",
+      "paraphrased_scope": "Datasource setup, posture metrics, metadata-only tables, distributions, risky targets and MITRE drill-down."
+    },
+    {
+      "id": "8w2i8nEBdQQ",
+      "url": "https://www.youtube.com/watch?v=8w2i8nEBdQQ",
+      "title": "Darkmoon + Splunk \u2014 Send AI Pentest Findings to Your SOC",
+      "duration_seconds": 54,
+      "topic": "Splunk",
+      "caption_reviewed": true,
+      "caption_sha256": "84ede9f3112b128e9ed87a5d985ef7616e385f702fe82fd5b1d577fc53718d44",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:10\u201300:19; 00:23\u201300:44",
+      "paraphrased_scope": "HEC setup, metadata-only ingestion, SOC filters, MITRE coverage and retest action."
+    },
+    {
+      "id": "jMIMvV8yEK8",
+      "url": "https://www.youtube.com/watch?v=jMIMvV8yEK8",
+      "title": "Darkmoon SDK & CLI \u2014 Automate AI Pentesting with Code",
+      "duration_seconds": 52,
+      "topic": "SDK / CLI",
+      "caption_reviewed": true,
+      "caption_sha256": "60491677c8ea4d5c58c569bcdaf3358b314230d35edeb55d97f7a6021927c65c",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:10\u201300:21; 00:23\u201300:42",
+      "paraphrased_scope": "Client setup, edition detection, severity summaries, redacted finding lists and policy exit codes."
+    },
+    {
+      "id": "3Qv1luvW99E",
+      "url": "https://www.youtube.com/watch?v=3Qv1luvW99E",
+      "title": "Darkmoon Open Source \u2014 Install & Run Your First AI Pentest",
+      "duration_seconds": 109,
+      "topic": "OSS context",
+      "caption_reviewed": true,
+      "caption_sha256": "259065c10e45cc63bb3644474366e62f7067a487ac8691ccd4c43b67ed973afb",
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "00:00\u201301:49",
+      "paraphrased_scope": "Installation/model/CLI context; not treated as evidence of Pro UI behavior."
+    },
+    {
+      "id": "1bFRVuMkZzY",
+      "url": "https://www.youtube.com/watch?v=1bFRVuMkZzY",
+      "title": "Darkmoon \u2014 AI-Powered Automated Pentesting",
+      "duration_seconds": 120,
+      "topic": "Older demo",
+      "caption_reviewed": false,
+      "caption_sha256": null,
+      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "relevant_times": "Unavailable",
+      "paraphrased_scope": "Metadata obtained; no English captions and media unavailable. No content-derived requirements assigned."
+    }
+  ],
+  "copyright_note": "Caption text and downloaded media are not redistributed; hashes document source material used for paraphrased review.",
+  "visual_still_references": [
+    {
+      "path": "docs/pics/dashboard.png",
+      "git_blob": "59e000e381418eb13885cf0dcad97b582fa6dd86"
+    },
+    {
+      "path": "docs/pics/vulnerability-1.png",
+      "git_blob": "ec39aec61fd999fe9c225fc1f2bd06f262b0f9c8"
+    },
+    {
+      "path": "docs/pics/scheduler.png",
+      "git_blob": "5e7b6e258cb6e4d51209b1576aca78f3303f6823"
+    },
+    {
+      "path": "docs/pics/markdown-report-1.png",
+      "git_blob": "10c4c05e7e5726c2c3bd633b754dcbea84cc3748"
+    }
+  ]
+}

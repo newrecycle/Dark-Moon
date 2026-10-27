@@ -1,0 +1,366 @@
+{
+  "baseline": "630e090",
+  "scope": "Independent implementation handoff; no production code changed",
+  "tickets": [
+    {
+      "id": "V00",
+      "priority": "P0",
+      "title": "Resolve video visual coverage",
+      "baseline_status": "Unverified",
+      "implementation": "Collect accessible recordings for all 11 current Pro-related tutorials and the legacy demo. Record frame timestamps, viewport, interactions and states. Do not claim visual parity before this step.",
+      "files": [
+        "docs/handoff"
+      ],
+      "acceptance": "Every source has a frame-review record or remains explicitly blocked.",
+      "evidence": "All videos: media blocked"
+    },
+    {
+      "id": "D01",
+      "priority": "P1",
+      "title": "Dashboard information architecture",
+      "baseline_status": "Partial",
+      "implementation": "Add project/target/campaign/finding totals, severity proportions, duration-aware history and risky-target rows. Keep the fork\u2019s evidence-first semantics.",
+      "files": [
+        "mcp/community/static/app.js",
+        "service.py",
+        "operations.py"
+      ],
+      "acceptance": "Zero-data and multi-project totals match records; risky rows navigate to the exact target/campaign.",
+      "evidence": "Pro 00:24\u201300:37; dashboard.png"
+    },
+    {
+      "id": "D02",
+      "priority": "P1",
+      "title": "Consistent design system",
+      "baseline_status": "Partial",
+      "implementation": "Create shared page-header, stat-card, badge, table-toolbar, detail-section and form-section components using repo-native CSS. Maintain responsive keyboard-accessible navigation.",
+      "files": [
+        "mcp/community/static/app.css",
+        "app.js",
+        "workspace.js"
+      ],
+      "acceptance": "Readable at 390 and 1440 px; focus visible; active sidebar state and severity text do not rely on color alone.",
+      "evidence": "Published screenshots; implementation proposal"
+    },
+    {
+      "id": "A01",
+      "priority": "P0",
+      "title": "First-use onboarding",
+      "baseline_status": "Partial",
+      "implementation": "Add first-account setup using the private recovery token; prompt for a strong password and offer model/runtime readiness checks. Preserve OIDC and recovery access. Do not add vendor license checks.",
+      "files": [
+        "mcp/community/auth.py",
+        "api.py",
+        "static/workspace.js"
+      ],
+      "acceptance": "Concurrent setup creates one initial administrator; account data are never public; reload does not expose recovery credentials.",
+      "evidence": "Pro 00:20\u201300:24"
+    },
+    {
+      "id": "C01",
+      "priority": "P1",
+      "title": "Campaign launch completion",
+      "baseline_status": "Partial",
+      "implementation": "Preserve presets, native flag preview and vault references. Add distinct program vs schedule/display names, attack-strategy explanations and explicit remediation prerequisite status.",
+      "files": [
+        "assessment_catalog.py",
+        "jobs.py",
+        "service.py",
+        "static/index.html"
+      ],
+      "acceptance": "Rendered preview equals validated launch scope; severity cap remains distinct from integration failure thresholds.",
+      "evidence": "Pro 00:37\u201300:49; scheduler.png"
+    },
+    {
+      "id": "C02",
+      "priority": "P1",
+      "title": "Live run console",
+      "baseline_status": "Partial",
+      "implementation": "Promote run output to a dedicated campaign view with connection status, reconnect/resume position, bounded history and a cancel action whose scope is accurately stated.",
+      "files": [
+        "server.py run_events",
+        "jobs.py",
+        "static/app.js"
+      ],
+      "acceptance": "Reconnect loses no retained output and does not duplicate it; launcher exit and assessment finalization remain separate statuses.",
+      "evidence": "Pro 00:49\u201300:58"
+    },
+    {
+      "id": "F01",
+      "priority": "P1",
+      "title": "Finding search, filters and sort",
+      "baseline_status": "Partial",
+      "implementation": "Add severity/status/category/campaign/target filters plus stable sorting and pagination or virtualization. Preserve selections in navigation URLs.",
+      "files": [
+        "api.py",
+        "static/app.js findingsTable"
+      ],
+      "acceptance": "Stable ordering for ties; filters compose; empty results clear correctly; large datasets remain usable.",
+      "evidence": "VS Code 00:31\u201300:39; JetBrains 00:23\u201300:32"
+    },
+    {
+      "id": "F02",
+      "priority": "P1",
+      "title": "Finding detail and fix linkage",
+      "baseline_status": "Partial",
+      "implementation": "Add explicit impact, CVSS vector, related asset, remediation disposition and links to local proposal or recorded forge PR. Keep raw HTTP evidence and normalized reading views.",
+      "files": [
+        "static/app.js showFinding",
+        "service.py",
+        "api.py"
+      ],
+      "acceptance": "Only a finding\u2019s own campaign/proposal is linked; absent impact/PR data show unknown or unavailable, never fabricated content.",
+      "evidence": "Pro 01:02\u201301:18; vulnerability-1.png"
+    },
+    {
+      "id": "P01",
+      "priority": "P0",
+      "title": "Default redaction and controlled reveal",
+      "baseline_status": "Gap",
+      "implementation": "Define a server-side redacted projection for findings, reports and logs. Add role-checked, explicit local reveal and expiry/audit behavior. Full raw response data must not already be in a supposedly redacted response.",
+      "files": [
+        "auth.py",
+        "api.py",
+        "server.py",
+        "privacy_audit.py",
+        "static/app.js"
+      ],
+      "acceptance": "Secret sentinels absent from default HTTP responses, SSE, DOM and client logs; reveal requires authorization and is revoked on lock.",
+      "evidence": "VS Code 00:42\u201300:52; JetBrains 00:35\u201300:43"
+    },
+    {
+      "id": "R01",
+      "priority": "P1",
+      "title": "Report review experience",
+      "baseline_status": "Partial",
+      "implementation": "Add executive/technical navigation, findings anchors, impact and remediation roadmap. Keep export formats consistent with stored evidence and distinguish unsigned, signed and encrypted outputs.",
+      "files": [
+        "reports.py",
+        "report_security.py",
+        "static/workspace.js"
+      ],
+      "acceptance": "Navigation reaches correct finding; long HTTP evidence wraps; signature/encryption validated independently; no unrecorded findings appear.",
+      "evidence": "Pro 01:21\u201301:28; markdown-report-1.png"
+    },
+    {
+      "id": "G01",
+      "priority": "P1",
+      "title": "Asset-to-finding-to-proposal navigation",
+      "baseline_status": "Partial",
+      "implementation": "Make graph selection reveal asset identity, risk, measured connections, related findings and their proposals. Navigation must preserve campaign context.",
+      "files": [
+        "service.py graph_for",
+        "static/app.js drawSurface"
+      ],
+      "acceptance": "Selecting an asset yields exactly its node-linked findings; missing node linkage is displayed separately.",
+      "evidence": "Pro 01:45\u201302:18"
+    },
+    {
+      "id": "G02",
+      "priority": "P1",
+      "title": "Evidence-backed attack-path tours",
+      "baseline_status": "Gap",
+      "implementation": "Introduce persisted observed path records with ordered node/edge references and evidence IDs. Add stepwise playback. Keep current finding-location tour separate when no verified path exists.",
+      "files": [
+        "service.py",
+        "store.py",
+        "static/app.js"
+      ],
+      "acceptance": "Unconnected nodes never become a kill chain; each tour step resolves to supporting evidence; invalid paths are rejected.",
+      "evidence": "Pro 01:55\u201302:18"
+    },
+    {
+      "id": "G03",
+      "priority": "P2",
+      "title": "Immersive graph parity",
+      "baseline_status": "Partial/unverified",
+      "implementation": "Retain WebXR capability detection and provide keyboard/non-XR alternatives. Schedule headset testing of picking, locomotion, exit and labels; do not infer exact controls from unavailable video frames.",
+      "files": [
+        "static/app.js startVR",
+        "browser_acceptance.cjs"
+      ],
+      "acceptance": "Unsupported devices degrade gracefully; headset test evidence is required before claiming immersive parity.",
+      "evidence": "Pro graph narration; precise VR interactions unverified"
+    },
+    {
+      "id": "S01",
+      "priority": "P1",
+      "title": "Calendar scheduling and editing",
+      "baseline_status": "Gap beyond intervals",
+      "implementation": "Add edit/duplicate/preview, one-time and calendar recurrence, every-N periods, named timezone and run history. Migrate existing interval schedules without changing their meaning.",
+      "files": [
+        "jobs.py Scheduler",
+        "api.py",
+        "server.py",
+        "static/workspace.js"
+      ],
+      "acceptance": "DST transition cases and monthly boundaries tested; pausing/deleting cannot resurrect schedules; concurrent edits preserve versioned state.",
+      "evidence": "scheduler.png: direct still-image observation"
+    },
+    {
+      "id": "M01",
+      "priority": "P1",
+      "title": "Remediation review workspace",
+      "baseline_status": "Partial",
+      "implementation": "Show branch/base, patch, scope judge, before/after checks, attempts, disposition and finding links. Describe local validation separately from deployed-target verification.",
+      "files": [
+        "remediation.py",
+        "publish.py",
+        "api.py",
+        "static/workspace.js"
+      ],
+      "acceptance": "Unreproduced/rejected/failed states remain visible; a validated local proposal never silently marks the target fixed.",
+      "evidence": "Pro 01:09\u201301:18; current fork review fixes"
+    },
+    {
+      "id": "M02",
+      "priority": "P2",
+      "title": "Operator-controlled publication UI",
+      "baseline_status": "CLI only",
+      "implementation": "If later requested, build a reviewable plan panel around the existing gated forge adapter. Bind approval to exact patch/destination/base; expose recorded PR read-only afterward.",
+      "files": [
+        "publish.py",
+        "api.py",
+        "static/workspace.js"
+      ],
+      "acceptance": "Tests use fake transports; no automatic push, PR or merge; explicit future operator authorization required for real publication.",
+      "evidence": "Pro 01:09\u201301:18; implementation proposal"
+    },
+    {
+      "id": "I01",
+      "priority": "P1",
+      "title": "Integration connection wizard",
+      "baseline_status": "Partial",
+      "implementation": "Provide installation-specific URL, auth method, connectivity test, role/scopes, transport choice and safe template downloads. Keep credentials out of exported workflow JSON.",
+      "files": [
+        "assessment_catalog.py",
+        "integrations.py",
+        "static/workspace.js"
+      ],
+      "acceptance": "No secret embedded in generated templates; localhost/container-network mistakes produce actionable errors; tests do not send external messages.",
+      "evidence": "n8n 00:10\u201300:24; SDK 00:10\u201300:21"
+    },
+    {
+      "id": "I02",
+      "priority": "P1",
+      "title": "n8n end-to-end verification",
+      "baseline_status": "Imported; live host unverified",
+      "implementation": "Validate campaign launch/wait, findings, report, retest, metrics and event-trigger handling in a disposable n8n instance. Connect finding outcomes to safe downstream mappings.",
+      "files": [
+        "integrations/upstream/n8n",
+        "operations.py",
+        "api.py"
+      ],
+      "acceptance": "Persisted replay suppression and HMAC freshness tested across restart; no Slack/Jira/DefectDojo traffic without explicit configuration.",
+      "evidence": "n8n 00:22\u201300:43"
+    },
+    {
+      "id": "I03",
+      "priority": "P1",
+      "title": "GitHub CI experience",
+      "baseline_status": "Imported; host parity unverified",
+      "implementation": "Exercise configurable severity gates, summary tables, SARIF and artifacts against a disposable test workflow. Provide a copyable setup recipe in the WebUI.",
+      "files": [
+        "integrations/upstream/action",
+        "client",
+        "static/workspace.js"
+      ],
+      "acceptance": "Gate is recomputed from findings; infrastructure failure differs from a security-policy failure; reports contain safe fields.",
+      "evidence": "GitHub 00:25\u201300:54"
+    },
+    {
+      "id": "I04",
+      "priority": "P1",
+      "title": "GitLab report contract",
+      "baseline_status": "Imported; live host unverified",
+      "implementation": "Validate component inputs, threshold defaults, Code Quality/SAST exports and merge-request result mapping. Provide a setup recipe without trying to merge anything.",
+      "files": [
+        "integrations/upstream/gitlab"
+      ],
+      "acceptance": "Report schemas and gate exit behavior match the pinned integration version; no external merge action.",
+      "evidence": "GitLab 00:24\u201300:53"
+    },
+    {
+      "id": "I05",
+      "priority": "P2",
+      "title": "Jenkins failure vs unstable policy",
+      "baseline_status": "Imported; host unverified",
+      "implementation": "Build/test HPI, pipeline step, separate fail/unstable policies, Warnings-NG publication and archived reports in an isolated Jenkins host.",
+      "files": [
+        "integrations/upstream/jenkins"
+      ],
+      "acceptance": "Threshold precedence and zero-findings behavior verified; a scanner error cannot masquerade as a clean scan.",
+      "evidence": "Jenkins 00:25\u201300:57"
+    },
+    {
+      "id": "I06",
+      "priority": "P1",
+      "title": "IDE data and reveal parity",
+      "baseline_status": "Imported; hosts unverified",
+      "implementation": "Validate data-directory and fixture modes, campaign tree, search/filter/sort and redacted detail panels in actual VS Code and JetBrains hosts.",
+      "files": [
+        "integrations/upstream/vscode",
+        "jetbrains",
+        "client"
+      ],
+      "acceptance": "Local reveal is explicit and authorized; remote workspaces cannot silently enable it; no real evidence is copied into fixture previews.",
+      "evidence": "VS Code 00:17\u201300:52; JetBrains 00:17\u201300:43"
+    },
+    {
+      "id": "I07",
+      "priority": "P1",
+      "title": "Posture dashboard and metric definitions",
+      "baseline_status": "Partial",
+      "implementation": "Add exploited/confirmed counts, target risk, remediation disposition rates and MITRE breakdown with documented denominators and drill-down. Validate Grafana datasource/plugin separately.",
+      "files": [
+        "operations.py",
+        "service.py",
+        "integrations/upstream/grafana"
+      ],
+      "acceptance": "Rates have explicit cohorts and time windows; no local-validation rate is called deployed remediation; metadata feeds exclude evidence and report bodies.",
+      "evidence": "Grafana 00:17\u201300:43"
+    },
+    {
+      "id": "I08",
+      "priority": "P2",
+      "title": "Splunk SOC flow",
+      "baseline_status": "Imported; host unverified",
+      "implementation": "Validate HEC ingestion, safe-field search dashboards, target/status/severity filters, MITRE aggregation and an authorized retest action.",
+      "files": [
+        "integrations/upstream/splunk",
+        "integrations.py",
+        "operations.py"
+      ],
+      "acceptance": "No evidence/secrets in HEC payloads; retest preserves original exclusions and authorization boundaries.",
+      "evidence": "Splunk 00:10\u201300:44"
+    },
+    {
+      "id": "I09",
+      "priority": "P1",
+      "title": "SDK / CLI compatibility matrix",
+      "baseline_status": "Partially tested",
+      "implementation": "Retest current and vendored clients against this fork, edition detection, summary/list operations, nullable evidence and severity-gate exit contracts.",
+      "files": [
+        "integrations/upstream/client",
+        "tests/community/sdk_contract.cjs"
+      ],
+      "acceptance": "Document supported versions; auth expiry, malformed responses and interrupted runs fail explicitly rather than reporting success.",
+      "evidence": "SDK 00:16\u201300:42"
+    },
+    {
+      "id": "O01",
+      "priority": "P2",
+      "title": "Deployment and readiness workspace",
+      "baseline_status": "Plans/CLI only",
+      "implementation": "Add cloud plan preview, instance requirements, progress/status and diagnostics results. Retain local model/provider selection and operator-owned integrity controls.",
+      "files": [
+        "deploy.py",
+        "integrity.py",
+        "updates.py",
+        "static/workspace.js"
+      ],
+      "acceptance": "No cloud resources or firewall changes on preview; never reuse vendor activation; deployment execution remains separately authorized.",
+      "evidence": "Cloud 00:09\u201300:34; Pro 00:10\u201300:20"
+    }
+  ]
+}
