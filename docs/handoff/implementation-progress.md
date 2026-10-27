@@ -22,4 +22,13 @@ Focused graph-controller checks pass for multi-step navigation, Finish, finding 
 
 [Hosted Chromium acceptance on the video-review commit](https://github.com/newrecycle/Dark-Moon/actions/runs/40576949394) passed. It covers all routes, model/profile discovery, provider/OAuth/API-key flows using offline fixtures, populated selectors, webhook/retest flows, evidence/XSS, filters, graph navigation, local remediation, PDF export, schedules, fake launcher queue and responsive layout. These fixture tests do not establish live external provider or host integration parity.
 
-The [follow-up browser run](https://github.com/newrecycle/Dark-Moon/actions/runs/40577228611) also passed, including the tour-exit fix. Docker/provider and owned-loopback validation are tracked separately in [runtime CI](https://github.com/newrecycle/Dark-Moon/actions/runs/40577228744). Check those run conclusions for current status.
+The [follow-up browser run](https://github.com/newrecycle/Dark-Moon/actions/runs/40577228611) also passed, including the tour-exit fix. Both jobs in [runtime CI](https://github.com/newrecycle/Dark-Moon/actions/runs/40577228744) passed: the actual branch Docker image build/native provider API contract and the owned-loopback analysis. This does not establish live external provider login or a full LLM-driven assessment.
+
+
+## Follow-up audit
+
+The audit of commits 7157bbc through 0d1f7bd found documentation traceability errors: uploaded-video-analysis.md assigned several integrations to the wrong ticket IDs, omitted I09/O01 from its integration/deployment summary, and used M01 (remediation) for posture metrics (I07). Those mappings are corrected. The older-demo inventory no longer claims its media is unavailable, and the backlog scope no longer says no production code changed.
+
+Coverage totals in the manifest are 13 sources, 475 reviewed samples and 107 acquired storyboard sheets. The prior review remains a sampled visual pass: individual storyboard inspection, continuous playback/audio, short transitions, exact typography and hover/focus parity are not complete. Browser tests exercise behavior with fixtures; their screenshots were not retained by the workflow for a visual comparison. Native integration-host tests, live external login synchronization and headset tests remain unverified. These are outstanding validation tasks, not evidence that the corresponding features passed.
+
+All 26 backlog tickets remain tracked. The graph increment does not complete G01/G02: in-inspector finding detail/Back, real proposal indicators and campaign-preserving report/proposal navigation, persisted evidence-backed paths, and responsive visual parity remain open. Calendar editing/recurrence, server-side redaction/reveal, onboarding, launch/console/report refinements and native integrations likewise must not be described as fully implemented from this increment.

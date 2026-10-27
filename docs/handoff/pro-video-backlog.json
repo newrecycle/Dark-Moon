@@ -1,6 +1,6 @@
 {
   "baseline": "630e090",
-  "scope": "Independent implementation handoff; no production code changed",
+  "scope": "Independent implementation backlog; baseline statuses describe 630e090, with later implementation progress recorded separately in implementation-progress.md.",
   "tickets": [
     {
       "id": "V00",

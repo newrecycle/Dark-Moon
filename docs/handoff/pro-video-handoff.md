@@ -34,7 +34,7 @@ Deliverables: this handoff, [source/coverage manifest](video-source-coverage.jso
 | [Splunk](https://www.youtube.com/watch?v=8w2i8nEBdQQ) | 54 s | 00:10–00:19; 00:23–00:44 | HEC setup, metadata-only ingestion, SOC filters, MITRE coverage and retest action. |
 | [SDK / CLI](https://www.youtube.com/watch?v=jMIMvV8yEK8) | 52 s | 00:10–00:21; 00:23–00:42 | Client setup, edition detection, severity summaries, redacted finding lists and policy exit codes. |
 | [OSS context](https://www.youtube.com/watch?v=3Qv1luvW99E) | 109 s | 00:00–01:49 | Installation/model/CLI context; not treated as evidence of Pro UI behavior. |
-| [Older demo](https://www.youtube.com/watch?v=1bFRVuMkZzY) | 120 s | Unavailable | Metadata obtained; no English captions and media unavailable. No content-derived requirements assigned. |
+| [Older demo](https://www.youtube.com/watch?v=1bFRVuMkZzY) | 120 s | 00:00–01:58 (V) | Uploaded samples reviewed: Juice Shop alongside agent terminal, challenge notifications and result text. Context only; no separate Pro dashboard inferred. |
 
 ## Visual reference findings (S, not video frames)
 
