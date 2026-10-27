@@ -732,7 +732,8 @@ async function drawSurface(cid, signal) {
     const n = ids.get(picker.value);
     if (n) selectNode(n);
   }, { signal });
-  function selectNode(n) {
+  function selectNode(n, fromTour = false) {
+    if (!fromTour && !card.hidden) stopTour(false);
     selected = n.id;
     picker.value = n.id;
     const metadata = Object.fromEntries(Object.entries(n).filter(([k]) => !["p", "screen", "depth", "linked", "risk"].includes(k)));
@@ -742,20 +743,21 @@ async function drawSurface(cid, signal) {
     const summary = fields.filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(typeof value === "object" ? JSON.stringify(value) : value)}</dd></div>`).join("");
     info.innerHTML = `<button class="secondary" id="surface-close">Close inspector</button><h3>${esc(n.label || n.id)}</h3><dl class="asset-fields">${summary}</dl><div class="asset-severities" aria-label="Linked findings by severity">${totals.map(item => `<span>${badge(item.severity)} ${item.count}</span>`).join("")}</div><details><summary>Asset metadata</summary><pre>${esc(JSON.stringify(metadata, null, 2))}</pre></details><h3>${n.linked.length} explicitly linked findings</h3>${n.linked.length ? n.linked.map(f => `<button class="list-item" data-finding="${esc(f.id)}" data-cid="${esc(cid)}">${badge(f.severity)} <span class="finding-score">CVSS ${esc(f.cvss_score ?? "—")}</span><strong>${esc(f.title || "Untitled finding")}</strong><small>${esc([f.category, f.status].filter(Boolean).join(" · "))}</small><small>${esc([f.mitre_attack_id, f.mitre_attack_name].filter(Boolean).join(" · "))}</small></button>`).join("") : empty("No linked findings", "No findings are explicitly linked to this asset.")}`;
     $("#surface-close").addEventListener("click", () => {
+      if (!card.hidden) stopTour(false);
       selected = "";
       picker.value = "";
       info.innerHTML = `<p class="instructions">Select an asset to inspect its metadata and linked findings.</p>`;
       picker.focus();
     }, { signal });
   }
-  function stopTour() {
+  function stopTour(restoreFocus = true) {
     card.hidden = true;
     tour.textContent = "Tour finding locations";
-    tour.focus();
+    if (restoreFocus) tour.focus();
   }
   function showStep() {
     const n = locations[tourIndex];
-    selectNode(n);
+    selectNode(n, true);
     card.hidden = false;
     // Manual steps reframe instantly; no timed motion or automatic advance.
     angle = -Math.atan2(n.p[2], n.p[0]) + 0.25;
@@ -769,7 +771,7 @@ async function drawSurface(cid, signal) {
         (preferred.disabled ? $("#surface-free") : preferred).focus();
       }, { signal });
     }
-    $("#surface-free").addEventListener("click", stopTour, { signal });
+    $("#surface-free").addEventListener("click", () => stopTour(), { signal });
   }
   tour.disabled = !locations.length;
   tour.addEventListener("click", () => {

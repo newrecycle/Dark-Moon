@@ -123,6 +123,13 @@ const assert = require("node:assert/strict");
         await page.locator("#surface-free").click();
         assert.equal(await page.locator("#surface-tour-card").isVisible(), false);
         assert.equal(await page.locator("#surface-tour").evaluate(el => document.activeElement === el), true);
+        await page.locator("#surface-tour").click();
+        await page.locator("#surface-node").selectOption(await asset.getAttribute("value"));
+        assert.equal(await page.locator("#surface-tour-card").isVisible(), false);
+        await page.locator("#surface-tour").click();
+        await page.locator("#surface-close").click();
+        assert.equal(await page.locator("#surface-tour-card").isVisible(), false);
+
 
         await page
           .locator("#surface-canvas")

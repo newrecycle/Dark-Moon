@@ -44,6 +44,13 @@ async function run(graph) {
   click('#surface-prev');assert.match(el('#surface-tour-card').innerHTML,/Step 1 of 2/);
   click('#surface-free');assert.equal(el('#surface-tour-card').hidden,true);assert.equal(focus(),'#surface-tour');
   click('#surface-tour');click('#surface-next');click('#surface-next');assert.equal(el('#surface-tour-card').hidden,true);assert.equal(focus(),'#surface-tour');
+  click('#surface-tour');
+  el('#surface-node').value='c';el('#surface-node').events.change();
+  assert.equal(el('#surface-tour-card').hidden,true);
+  assert.equal(el('#surface-tour').textContent,'Tour finding locations');
+  assert.match(el('#map-info').innerHTML,/Empty asset/);
+  click('#surface-tour');click('#surface-close');
+  assert.equal(el('#surface-tour-card').hidden,true);assert.equal(focus(),'#surface-node');
   abort.abort();
   const empty=await run({nodes:[],edges:[],findings:[]});
   assert.equal(empty.el('#surface-node').disabled,true);assert.equal(empty.el('#surface-tour').disabled,true);
