@@ -1,7 +1,6 @@
 import type {
 	IAuthenticateGeneric,
 	Icon,
-	ICredentialTestRequest,
 	ICredentialType,
 	INodeProperties,
 } from 'n8n-workflow';
@@ -16,8 +15,8 @@ import type {
  *     caches the short-lived JWT in memory only.
  *
  * All fields are stored with n8n's credential encryption. Secrets are never logged.
- * The "Test" button calls GET /api/v1/system/info, which confirms the Base URL
- * points at a real Darkmoon API and reports its edition and contract version.
+ * The "Test" button validates token or password credentials against a protected
+ * campaign endpoint, using n8n’s custom credential-test helper.
  */
 export class DarkmoonApi implements ICredentialType {
 	name = 'darkmoonApi';
@@ -93,13 +92,5 @@ export class DarkmoonApi implements ICredentialType {
 		},
 	};
 
-	// The "Test" button confirms the Base URL is a reachable Darkmoon API
-	// (GET /api/v1/system/info returns 200 with edition + contract version).
-	test: ICredentialTestRequest = {
-		request: {
-			baseURL: '={{$credentials.baseUrl}}',
-			url: '/api/v1/system/info',
-			method: 'GET',
-		},
-	};
+	// Both nodes supply a custom credential test that checks protected API access.
 }

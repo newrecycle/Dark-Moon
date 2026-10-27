@@ -1,3 +1,4 @@
+import { testDarkmoonCredential } from './CredentialTest';
 import type {
 	IDataObject,
 	IExecuteFunctions,
@@ -29,6 +30,7 @@ import {
  * and remediation SCM secrets travel only as opaque vault references.
  */
 export class Darkmoon implements INodeType {
+	methods = { credentialTest: { darkmoonCredentialTest: testDarkmoonCredential } };
 	description: INodeTypeDescription = {
 		displayName: 'Darkmoon',
 		name: 'darkmoon',
@@ -46,6 +48,7 @@ export class Darkmoon implements INodeType {
 		credentials: [
 			{
 				name: 'darkmoonApi',
+				testedBy: 'darkmoonCredentialTest',
 				required: true,
 			},
 		],

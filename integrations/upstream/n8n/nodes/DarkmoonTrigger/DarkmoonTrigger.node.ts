@@ -1,3 +1,4 @@
+import { testDarkmoonCredential } from '../Darkmoon/CredentialTest';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type {
 	IDataObject,
@@ -47,6 +48,7 @@ const EVENT_OPTIONS = [
 const asArray = (v: unknown): IDataObject[] => (Array.isArray(v) ? (v as IDataObject[]) : []);
 
 export class DarkmoonTrigger implements INodeType {
+	methods = { credentialTest: { darkmoonCredentialTest: testDarkmoonCredential } };
 	description: INodeTypeDescription = {
 		displayName: 'Darkmoon Trigger',
 		name: 'darkmoonTrigger',
@@ -64,6 +66,7 @@ export class DarkmoonTrigger implements INodeType {
 		credentials: [
 			{
 				name: 'darkmoonApi',
+				testedBy: 'darkmoonCredentialTest',
 				required: true,
 			},
 		],

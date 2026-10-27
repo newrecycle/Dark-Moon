@@ -21,9 +21,8 @@ services:
       - "8000:8000"
 
   n8n:
-    # Plain n8n; the community node is loaded from the custom-extensions dir
-    # (the built dist/, bind-mounted). This is the local-dev loading path and
-    # needs no DB registration. To instead test the published tarball install,
+    # Load the built package through the normal community package directory.
+    # This retains n8n's credential-to-node test bindings. To test a tarball,
     # build n8n.Dockerfile (see its header) and set image: darkmoon-n8n:test.
     image: n8nio/n8n:latest
     depends_on:
@@ -33,7 +32,6 @@ services:
       N8N_PORT: "5678"
       N8N_PROTOCOL: http
       N8N_SECURE_COOKIE: "false"
-      N8N_CUSTOM_EXTENSIONS: /home/node/.n8n/custom
       N8N_COMMUNITY_PACKAGES_ENABLED: "true"
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
@@ -46,7 +44,8 @@ services:
       GENERIC_TIMEZONE: Europe/Paris
       DARKMOON_BASE_URL: http://mock-darkmoon:8000
     volumes:
-      - ../dist:/home/node/.n8n/custom:ro
+      - ../dist:/home/node/.n8n/nodes/node_modules/n8n-nodes-darkmoon/dist:ro
+      - ../package.json:/home/node/.n8n/nodes/node_modules/n8n-nodes-darkmoon/package.json:ro
       - ../templates:/home/node/templates:ro
     ports:
       - "5678:5678"

@@ -44,3 +44,11 @@ Media follow-up is in progress: all 13 full audio/video streams decode without e
 ## Rendered UI and media checkpoint
 
 See [full-track/storyboard/visual review](full-track-review.md). All 107 native storyboards are now individually inspected, all full tracks decode, and speech-recognition output from complete audio tracks has been reviewed. Direct continuous playback remains unclaimed. Desktop/mobile screenshots are stored with the comparison; the visual pass found and fixed the inherited finding-button flex/default-style defect. The tour now overlays the desktop map, mobile selection uses a bottom sheet, and report previews have keyboard section navigation. Local Chromium acceptance and focused controller checks pass for this increment. A real n8n 2.45.4 CLI read-only workflow also passed against our HTTP server; host trigger/editor parity is not claimed.
+
+
+## Native n8n credential validation
+
+Actual n8n 2.45.4 workflow execution and editor credential-test API pass against the disposable DarkMoon HTTP fixture. The imported credential Test previously accepted public `/system/info` reachability without authenticating. It now validates protected campaign access for token and username/password modes; native editor tests accept valid credentials and reject invalid ones. Both base URL forms are exercised. The development Compose lab uses normal package loading to retain n8n's credential-test registry. Node build/unit tests and HMAC/replay checks pass. A dedicated native-integration workflow repeats the host test; its first hosted conclusion is pending publication.
+
+
+Hosted browser and Docker/provider/owned-loopback checks on a11b662 also passed: [browser run](https://github.com/newrecycle/Dark-Moon/actions/runs/40604535323), [runtime run](https://github.com/newrecycle/Dark-Moon/actions/runs/40604535342). Native n8n evidence is recorded in [n8n-native-host-20261027.json](../validation/n8n-native-host-20261027.json).

@@ -1,0 +1,37 @@
+name: Community native integration validation
+on:
+  workflow_dispatch:
+  push:
+    branches: [pro]
+    paths:
+      - 'mcp/community/**'
+      - 'integrations/upstream/n8n/**'
+      - 'tests/community/n8n_host_acceptance.cjs'
+      - 'tests/community/browser_fixture.py'
+      - '.github/workflows/community-integrations.yml'
+permissions:
+  contents: read
+jobs:
+  n8n-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build imported nodes and isolated host
+        run: |
+          python3 -m venv /tmp/darkmoon-host-python
+          /tmp/darkmoon-host-python/bin/pip install -r mcp/requirements.txt -r mcp/community/requirements.txt
+          npm ci --prefix integrations/upstream/n8n
+          npm --prefix integrations/upstream/n8n run build
+          npm install --prefix /tmp/darkmoon-n8n-host --ignore-scripts n8n@2.45.4
+          npm rebuild --prefix /tmp/darkmoon-n8n-host sqlite3
+      - name: Test actual n8n workflow and credential editor
+        env:
+          DARKMOON_PYTHON: /tmp/darkmoon-host-python/bin/python
+          DARKMOON_N8N_CLI: /tmp/darkmoon-n8n-host/node_modules/n8n/bin/n8n
+        run: node tests/community/n8n_host_acceptance.cjs

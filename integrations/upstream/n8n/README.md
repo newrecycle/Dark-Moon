@@ -74,8 +74,7 @@ Create a **Darkmoon API** credential:
 | **Authentication** | `API Token (Bearer)` (recommended) or `Username and Password` (the node logs in and caches the short-lived JWT in memory). |
 | **API Token** / **Username / Password** | Stored with n8n's credential encryption. Secrets are never logged. |
 
-The **Test** button calls `GET /api/v1/system/info` to confirm the Base URL points at
-a real Darkmoon API and reports its edition + contract version.
+The **Test** button verifies the selected token or password login against protected campaign access. Public `/system/info` reachability alone cannot validate a credential. The Base URL may include `/api/v1`. Failed checks return a generic message without credential values.
 
 > **Networked deployments:** Darkmoon's write endpoints (`run/*`, `retest/*`,
 > `webhooks/*`) are destructive. Set `DARKMOON_REQUIRE_AUTH_WRITES=1` on the Pro API
@@ -182,3 +181,19 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 - 📚 **Docs:** https://docs.dark-moon.org
 - 🌐 **Website:** https://dark-moon.org
 - 🔗 **Related integrations:** [darkmoon-client](https://github.com/ASCIT31/darkmoon-client) · [darkmoon-action](https://github.com/ASCIT31/darkmoon-action) 
+
+
+### Fork validation and credential checks
+
+This fork replaces the public-info-only credential test with an authenticated check. Both the action and trigger expose the same test: API tokens must read the protected campaigns API; username/password authentication must log in and then read that API. The base URL accepts an optional `/api/v1` suffix. Generic failures keep credentials out of error messages.
+
+The disposable host test uses n8n 2.45.4's actual workflow engine and editor credential-testing API, not a mocked n8n context:
+
+```bash
+npm run build
+DARKMOON_N8N_CLI=/path/to/n8n/bin/n8n DARKMOON_PYTHON=/path/to/python node ../../../tests/community/n8n_host_acceptance.cjs
+```
+
+Run from this package directory. The test creates an isolated n8n data directory and local DarkMoon fixture, imports encrypted disposable credentials, executes a finding-list workflow into a downstream node, and checks valid/invalid token/password credentials through the real editor API. It sends no third-party messages and performs no real assessment. Other host versions and webhook/poll lifecycle remain separate checks.
+
+Load this package through the normal community package directory. In n8n 2.45.4, loading only `dist/` through `N8N_CUSTOM_EXTENSIONS` omits the credential-to-node registry needed for custom credential tests. The Compose lab now mounts `dist/` and `package.json` under `nodes/node_modules/n8n-nodes-darkmoon`.
