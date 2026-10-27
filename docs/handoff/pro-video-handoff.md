@@ -170,7 +170,7 @@ Acceptance: Selecting an asset yields exactly its node-linked findings; missing 
 
 Baseline: **Gap**. Evidence: Pro 01:55–02:18; A: infra-orbital.gif sampled frames across 0–181, animation showed steps 1/4 and 2/4; uploaded Pro video also shows steps 3/4 and 4/4 at 120s and 128s.
 
-Introduce persisted observed path records with ordered node/edge references and evidence IDs. Add stepwise playback. Keep current finding-location tour separate when no verified path exists. Present a numbered tour card with Back/Next, step indicators, Technical details where relevant, and Explore freely. Reframe the camera with reduced-motion support. Do not invent unseen steps 3/4 or label illustrative topology as an observed attack path.
+Introduce persisted observed path records with ordered node/edge references and evidence IDs. Add stepwise playback. Keep current finding-location tour separate when no verified path exists. Present a numbered tour card with Back/Next, step indicators, Technical details where relevant, and Explore freely. Reframe the camera with reduced-motion support. Uploaded footage now shows database access and exposed-file steps 3/4; derive our actual steps from campaign evidence and do not label illustrative topology as an observed attack path.
 
 Implementation locations: `service.py; store.py; static/app.js`.
 

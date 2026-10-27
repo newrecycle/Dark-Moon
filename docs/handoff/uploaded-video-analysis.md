@@ -47,4 +47,4 @@ The graph uses a large canvas with a persistent right inspector, top campaign co
 
 ## Validation
 
-The focused graph-controller suite exercises multi-step navigation, Finish, empty states, finding isolation, focus restoration, escaped metadata and CVSS zero handling. JavaScript syntax and whitespace checks are required. Browser acceptance assertions are updated, but browser execution remains pending a usable Chromium environment; no claim of screenshot or full interaction parity is made. Full demonstration videos are now available for denser follow-up inspection without reacquisition.
+The focused graph-controller suite exercises multi-step navigation, Finish, empty states, finding isolation, focus restoration, escaped metadata and CVSS zero handling. JavaScript syntax and whitespace checks are required. Hosted Chromium acceptance passed on commit 7157bbc; see implementation-progress.md for the run links. Follow-up assertions cover tour exit on manual asset selection/inspector close. Screenshot or full interaction parity is not claimed. Full demonstration videos are now available for denser follow-up inspection without reacquisition.
