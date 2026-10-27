@@ -1,0 +1,32 @@
+name: Public video reference acquisition
+on:
+  push:
+    branches: [pro]
+    paths:
+      - '.github/workflows/video-reference-review.yml'
+      - 'tools/video-review/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  acquire-public-frames:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install public-media tooling
+        run: |
+          python3 -m venv /tmp/dm-video-venv
+          /tmp/dm-video-venv/bin/pip install yt-dlp Pillow
+          if ! command -v ffmpeg; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
+      - name: Try native public storyboards and video formats
+        run: /tmp/dm-video-venv/bin/python tools/video-review/acquire_public_frames.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-reference-review
+          path: review-media/
+          retention-days: 3
+          if-no-files-found: warn
