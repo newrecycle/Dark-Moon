@@ -104,6 +104,26 @@ const assert = require("node:assert/strict");
       );
       if (route === "surface") {
         await page.locator("#map-info h3").waitFor();
+        const asset = page.locator("#surface-node option").nth(1);
+        await page.locator("#surface-node").selectOption(await asset.getAttribute("value"));
+        await page.locator("#surface-close").click();
+        await page.locator("#surface-node").evaluate(el => {
+          if (document.activeElement !== el) throw new Error("Inspector did not return focus");
+        });
+        await page.locator("#surface-tour").click();
+        await page.locator("#surface-tour-card").getByRole("status").waitFor();
+        assert.match(await page.locator("#surface-tour-card").innerText(), /Step 1 of/);
+        assert.equal(await page.locator("#surface-prev").isDisabled(), true);
+        if (!(await page.locator("#surface-next").isDisabled())) {
+          await page.locator("#surface-next").click();
+          assert.match(await page.locator("#surface-tour-card").innerText(), /Step 2 of/);
+          await page.locator("#surface-prev").click();
+          assert.match(await page.locator("#surface-tour-card").innerText(), /Step 1 of/);
+        }
+        await page.locator("#surface-free").click();
+        assert.equal(await page.locator("#surface-tour-card").isVisible(), false);
+        assert.equal(await page.locator("#surface-tour").evaluate(el => document.activeElement === el), true);
+
         await page
           .locator("#surface-canvas")
           .dispatchEvent("wheel", { deltaY: -100 });

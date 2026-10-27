@@ -153,7 +153,8 @@
         "static/app.js drawSurface"
       ],
       "acceptance": "Selecting an asset yields exactly its node-linked findings; missing node linkage is displayed separately. Back restores the selected asset/list context; close and keyboard focus behave predictably; proposal/report links resolve to the selected finding and campaign, and unavailable actions explain their state.",
-      "evidence": "Pro 01:45\u201302:18; A: infra-orbital.gif frames 0,49,87,99"
+      "evidence": "Pro 01:45\u201302:18; A: infra-orbital.gif frames 0,49,87,99",
+      "implementation_progress": "Partial implementation: see implementation-progress.md; remaining acceptance is not claimed complete."
     },
     {
       "id": "G02",
@@ -167,7 +168,8 @@
         "static/app.js"
       ],
       "acceptance": "Unconnected nodes never become a kill chain; each tour step resolves to supporting evidence; invalid paths are rejected. Card, graph selection and inspector remain usable together; keyboard can move between steps and return to free exploration; reduced motion disables animated reframing.",
-      "evidence": "Pro 01:55\u201302:18; A: infra-orbital.gif sampled frames across 0\u2013181, only tour steps 1/4 and 2/4 observed"
+      "evidence": "Pro 01:55\u201302:18; A: infra-orbital.gif sampled frames across 0\u2013181, only tour steps 1/4 and 2/4 observed",
+      "implementation_progress": "Partial implementation: see implementation-progress.md; remaining acceptance is not claimed complete."
     },
     {
       "id": "G03",

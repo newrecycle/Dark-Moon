@@ -242,7 +242,7 @@ function render() {
         )}</select><span class="subtle">${items.length} findings</span></div><section class="panel flush">${findingsTable(items)}</section>`;
   } else if (route === "surface") {
     $("#content").innerHTML =
-      `<div class="toolbar">${campaignSelect()}<button class="secondary" id="vr-button" disabled>Checking VR…</button><button class="secondary" id="surface-tour">Tour finding locations</button></div><div class="panel"><div class="map-layout"><div><canvas id="surface-canvas" class="surface" aria-label="Interactive three dimensional infrastructure graph"></canvas><p class="map-caption">Drag to orbit · Scroll to zoom · Select a node to inspect. Lines show recorded containment and connections.</p></div><div class="map-info" id="map-info">Choose an assessment to explore its infrastructure.</div></div></div>`;
+      `<div class="toolbar">${campaignSelect()}<button class="secondary" id="vr-button" disabled>Checking VR…</button><button class="secondary" id="surface-tour">Tour finding locations</button></div><div class="panel"><div class="map-layout"><div><div id="surface-controls"></div><canvas id="surface-canvas" class="surface" aria-label="Interactive three dimensional infrastructure graph"></canvas><div id="surface-tour-card" hidden></div><p class="map-caption">Drag to orbit · Scroll to zoom · Select a node to inspect. Lines show recorded containment and connections.</p></div><div class="map-info" id="map-info">Choose an assessment to explore its infrastructure.</div></div></div>`;
     if (campaignId) drawSurface(campaignId, viewControl.signal).catch(fail);
   } else if (route === "schedules") {
     $("#content").innerHTML =
@@ -716,46 +716,65 @@ async function drawSurface(cid, signal) {
             ) < 16,
         );
       if (!n) return;
-      selected = n.id;
-      const linked = n.linked;
-      info.innerHTML = `<h3>${esc(n.label || n.id)}</h3><pre>${esc(JSON.stringify(Object.fromEntries(Object.entries(n).filter(([k]) => !["p", "screen", "depth", "linked", "risk"].includes(k))), null, 2))}</pre><h3>${linked.length} explicitly linked findings</h3>${linked.map((f) => `<div class="list-item clickable" data-finding="${esc(f.id)}" data-cid="${esc(cid)}">${badge(f.severity)} ${esc(f.title)}</div>`).join("")}`;
+      selectNode(n);
     },
     { signal },
   );
-  const tour = $("#surface-tour"),
+  const controls = $("#surface-controls"),
+    card = $("#surface-tour-card"),
+    tour = $("#surface-tour"),
     locations = nodes.filter((n) => n.linked.length);
-  let tourTimer = null,
-    tourIndex = 0;
+  let tourIndex = 0;
+  controls.innerHTML = `<label for="surface-node">Inspect infrastructure</label><select id="surface-node"><option value="">Choose an asset</option>${nodes.map(n => `<option value="${esc(n.id)}">${esc(n.label || n.id)} (${n.linked.length} findings)</option>`).join("")}</select>`;
+  const picker = $("#surface-node");
+  picker.disabled = !nodes.length;
+  picker.addEventListener("change", () => {
+    const n = ids.get(picker.value);
+    if (n) selectNode(n);
+  }, { signal });
+  function selectNode(n) {
+    selected = n.id;
+    picker.value = n.id;
+    const metadata = Object.fromEntries(Object.entries(n).filter(([k]) => !["p", "screen", "depth", "linked", "risk"].includes(k)));
+    info.innerHTML = `<button class="secondary" id="surface-close">Close inspector</button><h3>${esc(n.label || n.id)}</h3><pre>${esc(JSON.stringify(metadata, null, 2))}</pre><h3>${n.linked.length} explicitly linked findings</h3>${n.linked.length ? n.linked.map(f => `<button class="list-item" data-finding="${esc(f.id)}" data-cid="${esc(cid)}">${badge(f.severity)} ${esc(f.title)}<small>${esc([f.mitre_attack_id, f.mitre_attack_name].filter(Boolean).join(" · "))}</small></button>`).join("") : empty("No linked findings", "No findings are explicitly linked to this asset.")}`;
+    $("#surface-close").addEventListener("click", () => {
+      selected = "";
+      picker.value = "";
+      info.innerHTML = `<p class="instructions">Select an asset to inspect its metadata and linked findings.</p>`;
+      picker.focus();
+    }, { signal });
+  }
+  function stopTour() {
+    card.hidden = true;
+    tour.textContent = "Tour finding locations";
+    tour.focus();
+  }
+  function showStep() {
+    const n = locations[tourIndex];
+    selectNode(n);
+    card.hidden = false;
+    // Manual steps reframe instantly; no timed motion or automatic advance.
+    angle = -Math.atan2(n.p[2], n.p[0]) + 0.25;
+    card.innerHTML = `<p role="status">Step ${tourIndex + 1} of ${locations.length} · ${esc(n.label || n.id)}</p><p class="instructions">Finding locations, not an exploitation chain. Each step selects an asset with explicitly linked findings.</p><div class="toolbar"><button class="secondary" id="surface-prev" ${tourIndex === 0 ? "disabled" : ""}>Back</button><button class="secondary" id="surface-next" ${tourIndex === locations.length - 1 ? "disabled" : ""}>Next</button><button class="secondary" id="surface-free">Explore freely</button></div>`;
+    for (const [id, delta] of [["#surface-prev", -1], ["#surface-next", 1]]) {
+      $(id).addEventListener("click", () => {
+        tourIndex = Math.max(0, Math.min(locations.length - 1, tourIndex + delta));
+        showStep();
+        const preferred = $(id);
+        (preferred.disabled ? $("#surface-free") : preferred).focus();
+      }, { signal });
+    }
+    $("#surface-free").addEventListener("click", stopTour, { signal });
+  }
   tour.disabled = !locations.length;
-  tour.addEventListener(
-    "click",
-    () => {
-      if (tourTimer) {
-        clearInterval(tourTimer);
-        tourTimer = null;
-        tour.textContent = "Tour finding locations";
-        return;
-      }
-      tour.textContent = "Stop tour";
-      const advance = () => {
-        const n = locations[tourIndex++ % locations.length];
-        selected = n.id;
-        angle = -Math.atan2(n.p[2], n.p[0]) + 0.25;
-        info.innerHTML = `<h3>${esc(n.label || n.id)}</h3><p class="instructions">Finding-location tour. Positions are grouped by node type; the tour does not assert an exploitation chain.</p>${n.linked.map((f) => `<div class="list-item clickable" data-finding="${esc(f.id)}" data-cid="${esc(cid)}"><div>${badge(f.severity)} ${esc(f.title)}<small>${esc([f.mitre_attack_id, f.mitre_attack_name].filter(Boolean).join(" · "))}</small></div></div>`).join("")}`;
-      };
-      advance();
-      tourTimer = setInterval(advance, 2500);
-    },
-    { signal },
-  );
-  signal.addEventListener(
-    "abort",
-    () => {
-      cancelAnimationFrame(frame);
-      if (tourTimer) clearInterval(tourTimer);
-    },
-    { once: true },
-  );
+  tour.addEventListener("click", () => {
+    if (!card.hidden) return stopTour();
+    tourIndex = 0;
+    tour.textContent = "Stop tour";
+    showStep();
+    $("#surface-free").focus();
+  }, { signal });
+  signal.addEventListener("abort", () => cancelAnimationFrame(frame), { once: true });
   draw();
   const vr = $("#vr-button");
   if (navigator.xr && (await navigator.xr.isSessionSupported("immersive-vr"))) {

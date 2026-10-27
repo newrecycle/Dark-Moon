@@ -747,3 +747,10 @@ select option {
   justify-content: flex-end;
   gap: 6px;
 }
+
+/* Graph navigation remains available without pointing at canvas nodes. */
+#surface-controls { display: grid; gap: 6px; margin-bottom: 12px; }
+#surface-tour-card { border: 1px solid var(--line); padding: 14px; margin-top: 12px; }
+#surface-tour-card[hidden] { display: none; }
+.map-info .list-item { width: 100%; text-align: left; white-space: normal; }
+.map-info pre { overflow-wrap: anywhere; white-space: pre-wrap; }
