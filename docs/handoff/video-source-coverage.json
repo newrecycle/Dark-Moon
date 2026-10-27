@@ -15,9 +15,10 @@
       "topic": "Pro tour",
       "caption_reviewed": true,
       "caption_sha256": "6f74a1742087662ff423877315e44db9743c0c3762a9213b6ad2eda8c9d4ae97",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:20\u201300:24; 00:24\u201300:37; 00:37\u201300:58; 00:58\u201301:18; 01:21\u201301:28; 01:45\u201302:18",
-      "paraphrased_scope": "First-use password setup, overview, scoped launches, console, finding evidence, reviewable fix, PDF and graph navigation."
+      "paraphrased_scope": "First-use password setup, overview, scoped launches, console, finding evidence, reviewable fix, PDF and graph navigation.",
+      "hosted_retry_status": "site_bot_restriction"
     },
     {
       "id": "2B_q_4IkE1A",
@@ -27,9 +28,10 @@
       "topic": "Cloud deployment",
       "caption_reviewed": true,
       "caption_sha256": "dbd44255755a150e4c4711c0058cdb1d8042e2857c36f108517409a9be33763f",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:09\u201300:34; 00:34\u201300:47",
-      "paraphrased_scope": "Cloud choices, provisioning progress, runtime diagnostics and opening the dashboard."
+      "paraphrased_scope": "Cloud choices, provisioning progress, runtime diagnostics and opening the dashboard.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "e67klNk79vg",
@@ -39,9 +41,10 @@
       "topic": "GitHub Actions",
       "caption_reviewed": true,
       "caption_sha256": "da6c43af39b6ebcd4ff0a4e2fa86e5f38a67204fbb12529e3422d9d9e6f16c71",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:11\u201300:30; 00:30\u201300:54",
-      "paraphrased_scope": "Action setup, severity-based gate calculation, job summaries and code-scanning output."
+      "paraphrased_scope": "Action setup, severity-based gate calculation, job summaries and code-scanning output.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "ui7NHD41cMM",
@@ -51,9 +54,10 @@
       "topic": "GitLab",
       "caption_reviewed": true,
       "caption_sha256": "e58e288d3d00a8b6374d673f3f6a7fc4224f8a5dc9858433a536fad313497738",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:11\u201300:29; 00:30\u201300:53",
-      "paraphrased_scope": "CI component, configured gate thresholds, Code Quality/SAST outputs and merge-request feedback."
+      "paraphrased_scope": "CI component, configured gate thresholds, Code Quality/SAST outputs and merge-request feedback.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "G0TgyGpVLZ8",
@@ -63,9 +67,10 @@
       "topic": "Jenkins",
       "caption_reviewed": true,
       "caption_sha256": "845e0365c81de9d127bb87033e407a7b9c8cd7f25d8f73807b19394614946f2a",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:11\u201300:30; 00:32\u201300:57",
-      "paraphrased_scope": "Plugin and pipeline step, separate failure/unstable policies, Warnings-NG and report archiving."
+      "paraphrased_scope": "Plugin and pipeline step, separate failure/unstable policies, Warnings-NG and report archiving.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "GY7YOnYpteQ",
@@ -75,9 +80,10 @@
       "topic": "VS Code",
       "caption_reviewed": true,
       "caption_sha256": "688779d18c8de1a547b32f10f3cc10542a2066cab3aa2c92577fa36af46add85",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:10\u201300:29; 00:31\u201300:52",
-      "paraphrased_scope": "Source/fixture configuration, campaign tree, sortable findings, redacted details and explicit local reveal."
+      "paraphrased_scope": "Source/fixture configuration, campaign tree, sortable findings, redacted details and explicit local reveal.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "obUUrbTN3Jg",
@@ -87,9 +93,10 @@
       "topic": "JetBrains",
       "caption_reviewed": true,
       "caption_sha256": "6a3a2dab336bcb5ef5d2d75c77e9cd5567b192e1b360f00339cbfdf49781b59f",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:11\u201300:21; 00:23\u201300:43",
-      "paraphrased_scope": "Plugin configuration, sortable/filterable findings, evidence/remediation and confirmed local reveal."
+      "paraphrased_scope": "Plugin configuration, sortable/filterable findings, evidence/remediation and confirmed local reveal.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "3htg8kh7Dr8",
@@ -99,9 +106,10 @@
       "topic": "n8n",
       "caption_reviewed": true,
       "caption_sha256": "5cda1f6b2b1baaec083bd0e92654aa7ed9935cbcfd8c7a669f93bcdddea3868f",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:10\u201300:24; 00:28\u201300:43",
-      "paraphrased_scope": "Community-node setup, connection test, campaigns/retests/metrics and event-driven downstream workflows."
+      "paraphrased_scope": "Community-node setup, connection test, campaigns/retests/metrics and event-driven downstream workflows.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "L7K-y0HPudk",
@@ -111,9 +119,10 @@
       "topic": "Grafana",
       "caption_reviewed": true,
       "caption_sha256": "588f874191d1cd8957416a919f18a91e20cd6fbbb9bb73736a4be8687b316a5d",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:10\u201300:21; 00:23\u201300:43",
-      "paraphrased_scope": "Datasource setup, posture metrics, metadata-only tables, distributions, risky targets and MITRE drill-down."
+      "paraphrased_scope": "Datasource setup, posture metrics, metadata-only tables, distributions, risky targets and MITRE drill-down.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "8w2i8nEBdQQ",
@@ -123,9 +132,10 @@
       "topic": "Splunk",
       "caption_reviewed": true,
       "caption_sha256": "84ede9f3112b128e9ed87a5d985ef7616e385f702fe82fd5b1d577fc53718d44",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:10\u201300:19; 00:23\u201300:44",
-      "paraphrased_scope": "HEC setup, metadata-only ingestion, SOC filters, MITRE coverage and retest action."
+      "paraphrased_scope": "HEC setup, metadata-only ingestion, SOC filters, MITRE coverage and retest action.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "jMIMvV8yEK8",
@@ -135,9 +145,10 @@
       "topic": "SDK / CLI",
       "caption_reviewed": true,
       "caption_sha256": "60491677c8ea4d5c58c569bcdaf3358b314230d35edeb55d97f7a6021927c65c",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:10\u201300:21; 00:23\u201300:42",
-      "paraphrased_scope": "Client setup, edition detection, severity summaries, redacted finding lists and policy exit codes."
+      "paraphrased_scope": "Client setup, edition detection, severity summaries, redacted finding lists and policy exit codes.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "3Qv1luvW99E",
@@ -147,9 +158,10 @@
       "topic": "OSS context",
       "caption_reviewed": true,
       "caption_sha256": "259065c10e45cc63bb3644474366e62f7067a487ac8691ccd4c43b67ed973afb",
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "00:00\u201301:49",
-      "paraphrased_scope": "Installation/model/CLI context; not treated as evidence of Pro UI behavior."
+      "paraphrased_scope": "Installation/model/CLI context; not treated as evidence of Pro UI behavior.",
+      "hosted_retry_status": "unavailable"
     },
     {
       "id": "1bFRVuMkZzY",
@@ -159,9 +171,10 @@
       "topic": "Older demo",
       "caption_reviewed": false,
       "caption_sha256": null,
-      "visual_review": "blocked: downloaded streams/storyboards were HTML Site Unavailable responses, not usable media",
+      "visual_review": "blocked: no YouTube frames acquired; see video-acquisition-retry.json for local, browser and hosted outcomes",
       "relevant_times": "Unavailable",
-      "paraphrased_scope": "Metadata obtained; no English captions and media unavailable. No content-derived requirements assigned."
+      "paraphrased_scope": "Metadata obtained; no English captions and media unavailable. No content-derived requirements assigned.",
+      "hosted_retry_status": "unavailable"
     }
   ],
   "copyright_note": "Caption text and downloaded media are not redistributed; hashes document source material used for paraphrased review.",
@@ -181,6 +194,98 @@
     {
       "path": "docs/pics/markdown-report-1.png",
       "git_blob": "10c4c05e7e5726c2c3bd633b754dcbea84cc3748"
+    }
+  ],
+  "retry_review_date_utc": "2026-10-27",
+  "acquisition_retry": "video-acquisition-retry.json",
+  "animated_references": [
+    {
+      "path": "docs/pics/infra-orbital.gif",
+      "git_blob": "3182f7f9b2e471b1c41476a3435a22924b14ebb2",
+      "sha256": "20c5c792d4cc81c5834bb2a25aed166560850bc61e4a9248cf8c1f0be473a549",
+      "dimensions": [
+        1280,
+        720
+      ],
+      "frame_count": 182,
+      "duration_ms": 9100,
+      "reviewed_frames": [
+        {
+          "frame": 0,
+          "time_ms": 0,
+          "duration_ms": 50
+        },
+        {
+          "frame": 16,
+          "time_ms": 800,
+          "duration_ms": 50
+        },
+        {
+          "frame": 33,
+          "time_ms": 1650,
+          "duration_ms": 50
+        },
+        {
+          "frame": 49,
+          "time_ms": 2450,
+          "duration_ms": 50
+        },
+        {
+          "frame": 66,
+          "time_ms": 3300,
+          "duration_ms": 50
+        },
+        {
+          "frame": 82,
+          "time_ms": 4100,
+          "duration_ms": 50
+        },
+        {
+          "frame": 87,
+          "time_ms": 4350,
+          "duration_ms": 50
+        },
+        {
+          "frame": 99,
+          "time_ms": 4950,
+          "duration_ms": 50
+        },
+        {
+          "frame": 115,
+          "time_ms": 5750,
+          "duration_ms": 50
+        },
+        {
+          "frame": 132,
+          "time_ms": 6600,
+          "duration_ms": 50
+        },
+        {
+          "frame": 148,
+          "time_ms": 7400,
+          "duration_ms": 50
+        },
+        {
+          "frame": 165,
+          "time_ms": 8250,
+          "duration_ms": 50
+        },
+        {
+          "frame": 181,
+          "time_ms": 9050,
+          "duration_ms": 50
+        }
+      ],
+      "provenance": "Publisher-provided animated UI reference from the README, not acquired YouTube footage",
+      "evidence_label": "A",
+      "review_method": "12 evenly spaced contact-sheet samples plus frame 87; full-size inspection of frames 0, 49, 87 and 99. Sampled review, not all 182 frames.",
+      "unobserved": [
+        "Tour steps 3 and 4",
+        "Pointer/keyboard gestures",
+        "Hover states",
+        "PR destination and write behavior",
+        "WebXR/headset controls"
+      ]
     }
   ]
 }

@@ -4,9 +4,9 @@ Baseline: `newrecycle/Dark-Moon`, branch `pro`, commit **630e0900a9b2f79a497b95b
 
 ## Read this first
 
-This is a functional handoff from **English captions for all 12 current official tutorials**, including one OSS contextual tutorial, plus direct inspection of four published Pro UI screenshots. **It is not a completed frame-by-frame video design audit.** Public video metadata/captions were accessible, but stream and storyboard downloads returned HTML “Site Unavailable” responses. They were verified as unusable rather than mistaken for video/image content. The older linked demo had metadata but no English caption track. Exact animation, spacing, hover states, transition timing and unspoken controls remain unverified. Ticket V00 is required to close that gap.
+This is a functional handoff from **English captions for all 12 current official tutorials**, including one OSS contextual tutorial, plus direct inspection of four published Pro UI screenshots and a sampled frame review of the publisher’s 9.1-second infrastructure animation. **It is not a completed frame-by-frame video design audit.** Public video metadata/captions were accessible, but stream and storyboard downloads returned HTML “Site Unavailable” responses. They were verified as unusable rather than mistaken for video/image content. The older linked demo had metadata but no English caption track. YouTube animation, spacing, hover states, transition timing and unspoken controls remain unverified. The 27 October retry added bounded graph-animation evidence; see [frame review and acquisition outcomes](frame-review-retry.md). Ticket V00 is required to close that gap.
 
-Evidence labels: **C** = reviewed caption/narration (a statement, not independent proof of a working feature); **S** = inspected published screenshot; **B** = inspected baseline source; **P** = proposed implementation decision. No transcript or video media is redistributed. Narration is paraphrased; timestamp ranges link back to the originals.
+Evidence labels: **C** = reviewed caption/narration (a statement, not independent proof of a working feature); **S** = inspected published screenshot; **A** = inspected sampled frames from the publisher’s README animation (not YouTube footage); **B** = inspected baseline source; **P** = proposed implementation decision. No transcript or acquired video media is redistributed; the animated reference already exists in the repository. Narration is paraphrased; timestamp ranges link back to the originals.
 
 Deliverables: this handoff, [source/coverage manifest](video-source-coverage.json), and [machine-readable backlog](pro-video-backlog.json). Captions’ SHA-256 hashes and video durations are recorded in the manifest. All current tutorial links from the official docs carousel and README were deduplicated; legacy `full.md` demo is tracked separately. This scope is bounded to those linked videos, not every upload on the channel.
 
@@ -58,9 +58,9 @@ Each acceptance statement below is required, not an optional QA suggestion. “P
 
 ### V00 — Resolve video visual coverage (P0)
 
-Baseline: **Unverified**. Evidence: All videos: media blocked.
+Baseline: **Partial visual evidence; YouTube coverage blocked**. Evidence: A: 13 timestamped sampled animation frames; local CDN, browser and hosted YouTube attempts unsuccessful. See [retry record](frame-review-retry.md).
 
-Collect accessible recordings for all 11 current Pro-related tutorials and the legacy demo. Record frame timestamps, viewport, interactions and states. Do not claim visual parity before this step.
+Collect accessible recordings for all 11 current Pro-related tutorials and the legacy demo. Record frame timestamps, viewport, interactions and states. Do not claim visual parity before this step. Use the animation observations as bounded graph requirements; do not substitute them for the linked YouTube recordings.
 
 Implementation locations: `docs/handoff`.
 
@@ -78,9 +78,9 @@ Acceptance: Zero-data and multi-project totals match records; risky rows navigat
 
 ### D02 — Consistent design system (P1)
 
-Baseline: **Partial**. Evidence: Published screenshots; implementation proposal.
+Baseline: **Partial**. Evidence: Published screenshots; implementation proposal; A: 1280×720 graph reference.
 
-Create shared page-header, stat-card, badge, table-toolbar, detail-section and form-section components using repo-native CSS. Maintain responsive keyboard-accessible navigation.
+Create shared page-header, stat-card, badge, table-toolbar, detail-section and form-section components using repo-native CSS. Maintain responsive keyboard-accessible navigation. At the reference viewport, the graph uses about 940 px and the inspector 340 px; adapt rather than hard-code this split. Keep the lower-left tour card clear of navigation and support a mobile inspector sheet.
 
 Implementation locations: `mcp/community/static/app.css; app.js; workspace.js`.
 
@@ -158,23 +158,23 @@ Acceptance: Navigation reaches correct finding; long HTTP evidence wraps; signat
 
 ### G01 — Asset-to-finding-to-proposal navigation (P1)
 
-Baseline: **Partial**. Evidence: Pro 01:45–02:18.
+Baseline: **Partial**. Evidence: Pro 01:45–02:18; A: infra-orbital.gif frames 0,49,87,99.
 
-Make graph selection reveal asset identity, risk, measured connections, related findings and their proposals. Navigation must preserve campaign context.
+Make graph selection reveal asset identity, risk, measured connections, related findings and their proposals. Navigation must preserve campaign context. Add a closeable asset inspector with severity totals and finding rows (severity, CVSS, title/category, proposal indicator); selecting a finding opens its detail with Back, endpoint, MITRE, description, remediation, proposal and full-report actions.
 
 Implementation locations: `service.py graph_for; static/app.js drawSurface`.
 
-Acceptance: Selecting an asset yields exactly its node-linked findings; missing node linkage is displayed separately.
+Acceptance: Selecting an asset yields exactly its node-linked findings; missing node linkage is displayed separately. Back restores the selected asset/list context; close and keyboard focus behave predictably; proposal/report links resolve to the selected finding and campaign, and unavailable actions explain their state.
 
 ### G02 — Evidence-backed attack-path tours (P1)
 
-Baseline: **Gap**. Evidence: Pro 01:55–02:18.
+Baseline: **Gap**. Evidence: Pro 01:55–02:18; A: infra-orbital.gif sampled frames across 0–181, only tour steps 1/4 and 2/4 observed.
 
-Introduce persisted observed path records with ordered node/edge references and evidence IDs. Add stepwise playback. Keep current finding-location tour separate when no verified path exists.
+Introduce persisted observed path records with ordered node/edge references and evidence IDs. Add stepwise playback. Keep current finding-location tour separate when no verified path exists. Present a numbered tour card with Back/Next, step indicators, Technical details where relevant, and Explore freely. Reframe the camera with reduced-motion support. Do not invent unseen steps 3/4 or label illustrative topology as an observed attack path.
 
 Implementation locations: `service.py; store.py; static/app.js`.
 
-Acceptance: Unconnected nodes never become a kill chain; each tour step resolves to supporting evidence; invalid paths are rejected.
+Acceptance: Unconnected nodes never become a kill chain; each tour step resolves to supporting evidence; invalid paths are rejected. Card, graph selection and inspector remain usable together; keyboard can move between steps and return to free exploration; reduced motion disables animated reframing.
 
 ### G03 — Immersive graph parity (P2)
 
@@ -353,6 +353,6 @@ Use separate commits per vertical behavior, preserve old route contracts, and up
 
 ## Open evidence gaps and continuation instructions
 
-All 11 current Pro-related tutorials were reviewed through captions; OSS tutorial is contextual. The older demo cannot be content-reviewed from metadata alone. All video frame-level review remains blocked by media delivery in this environment. Public screenshots supply four visual references only. To close V00, supply accessible recordings/captures, then inspect the whole timeline and add timestamped differences; do not treat this handoff as proof that no additional controls exist.
+All 11 current Pro-related tutorials were reviewed through captions; OSS tutorial is contextual. The older demo cannot be content-reviewed from metadata alone. YouTube frame-level review remains blocked after local CDN, browser and hosted-runner retries. Four public screenshots and 13 sampled frames of the README animation now provide bounded visual references. The animation is not one of the linked YouTube tutorials. To close V00, supply accessible recordings/captures, then inspect the whole timeline and add timestamped differences; do not treat this handoff as proof that no additional controls exist.
 
 Do not redistribute complete caption tracks or video files. Keep source URLs, timestamped paraphrases and source hashes. The implementer should begin by reading `video-source-coverage.json`, the current feature matrix and the regression tests; then inspect `pro` for changes after this baseline before editing.

@@ -1,0 +1,137 @@
+{
+  "review_date_utc": "2026-10-27",
+  "local_probes": [
+    {
+      "avenue": "thumbnail",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 195,
+      "prefix": "3c68746d6c3e0a202020203c686561643e3c7469746c653e536974652055",
+      "html_stub": true,
+      "image_valid": false
+    },
+    {
+      "avenue": "storyboard",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 195,
+      "prefix": "3c68746d6c3e0a202020203c686561643e3c7469746c653e536974652055",
+      "html_stub": true,
+      "image_valid": false
+    },
+    {
+      "avenue": "legacy-storyboard",
+      "status": 200,
+      "content_type": "text/html",
+      "bytes": 195,
+      "prefix": "3c68746d6c3e0a202020203c686561643e3c7469746c653e536974652055",
+      "html_stub": true,
+      "image_valid": false
+    },
+    {
+      "avenue": "video-range",
+      "status": 206,
+      "content_type": "text/html",
+      "bytes": 195,
+      "prefix": "3c68746d6c3e0a202020203c686561643e3c7469746c653e536974652055",
+      "html_stub": true
+    }
+  ],
+  "browser": {
+    "source_id": "zQE95bVLZgM",
+    "page_loaded": true,
+    "current_time": 0,
+    "ready_state": 0,
+    "media_download": "canceled",
+    "visual_result": "Black player; no decoded video frames",
+    "visible_bot_challenge": false
+  },
+  "hosted": {
+    "run_url": "https://github.com/newrecycle/Dark-Moon/actions/runs/40424885698",
+    "artifact_id": 12698278628,
+    "artifact_sha256": "832d62f992940276024c89da5414e87612988b805be5a1ab3436a11ea8bf9cb4",
+    "results": [
+      {
+        "id": "zQE95bVLZgM",
+        "status": "site_bot_restriction",
+        "avenues": [],
+        "reason": "YouTube required sign-in to confirm the request was not a bot. Acquisition stopped; no authenticated retry."
+      },
+      {
+        "id": "2B_q_4IkE1A",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "e67klNk79vg",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "ui7NHD41cMM",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "G0TgyGpVLZ8",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "GY7YOnYpteQ",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "obUUrbTN3Jg",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "3htg8kh7Dr8",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "L7K-y0HPudk",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "8w2i8nEBdQQ",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "jMIMvV8yEK8",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "3Qv1luvW99E",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      },
+      {
+        "id": "1bFRVuMkZzY",
+        "status": "unavailable",
+        "avenues": [],
+        "reason": "Not attempted after site-served bot restriction"
+      }
+    ],
+    "full_media_retained": false,
+    "cookies_used": false
+  },
+  "youtube_frames_acquired": 0
+}

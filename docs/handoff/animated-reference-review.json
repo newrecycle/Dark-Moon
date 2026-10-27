@@ -1,0 +1,88 @@
+{
+  "path": "docs/pics/infra-orbital.gif",
+  "git_blob": "3182f7f9b2e471b1c41476a3435a22924b14ebb2",
+  "sha256": "20c5c792d4cc81c5834bb2a25aed166560850bc61e4a9248cf8c1f0be473a549",
+  "dimensions": [
+    1280,
+    720
+  ],
+  "frame_count": 182,
+  "duration_ms": 9100,
+  "reviewed_frames": [
+    {
+      "frame": 0,
+      "time_ms": 0,
+      "duration_ms": 50
+    },
+    {
+      "frame": 16,
+      "time_ms": 800,
+      "duration_ms": 50
+    },
+    {
+      "frame": 33,
+      "time_ms": 1650,
+      "duration_ms": 50
+    },
+    {
+      "frame": 49,
+      "time_ms": 2450,
+      "duration_ms": 50
+    },
+    {
+      "frame": 66,
+      "time_ms": 3300,
+      "duration_ms": 50
+    },
+    {
+      "frame": 82,
+      "time_ms": 4100,
+      "duration_ms": 50
+    },
+    {
+      "frame": 87,
+      "time_ms": 4350,
+      "duration_ms": 50
+    },
+    {
+      "frame": 99,
+      "time_ms": 4950,
+      "duration_ms": 50
+    },
+    {
+      "frame": 115,
+      "time_ms": 5750,
+      "duration_ms": 50
+    },
+    {
+      "frame": 132,
+      "time_ms": 6600,
+      "duration_ms": 50
+    },
+    {
+      "frame": 148,
+      "time_ms": 7400,
+      "duration_ms": 50
+    },
+    {
+      "frame": 165,
+      "time_ms": 8250,
+      "duration_ms": 50
+    },
+    {
+      "frame": 181,
+      "time_ms": 9050,
+      "duration_ms": 50
+    }
+  ],
+  "provenance": "Publisher-provided animated UI reference from the README, not acquired YouTube footage",
+  "evidence_label": "A",
+  "review_method": "12 evenly spaced contact-sheet samples plus frame 87; full-size inspection of frames 0, 49, 87 and 99. Sampled review, not all 182 frames.",
+  "unobserved": [
+    "Tour steps 3 and 4",
+    "Pointer/keyboard gestures",
+    "Hover states",
+    "PR destination and write behavior",
+    "WebXR/headset controls"
+  ]
+}

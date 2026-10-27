@@ -6,13 +6,13 @@
       "id": "V00",
       "priority": "P0",
       "title": "Resolve video visual coverage",
-      "baseline_status": "Unverified",
-      "implementation": "Collect accessible recordings for all 11 current Pro-related tutorials and the legacy demo. Record frame timestamps, viewport, interactions and states. Do not claim visual parity before this step.",
+      "baseline_status": "Partial: publisher animation sampled; YouTube visual coverage blocked",
+      "implementation": "Collect accessible recordings for all 11 current Pro-related tutorials and the legacy demo. Record frame timestamps, viewport, interactions and states. Do not claim visual parity before this step. Use the animation observations as bounded graph requirements; do not substitute them for the linked YouTube recordings.",
       "files": [
         "docs/handoff"
       ],
       "acceptance": "Every source has a frame-review record or remains explicitly blocked.",
-      "evidence": "All videos: media blocked"
+      "evidence": "A: infra-orbital.gif, 13 timestamped sampled frames; three YouTube acquisition avenues unsuccessful (frame-review-retry.md)"
     },
     {
       "id": "D01",
@@ -33,14 +33,14 @@
       "priority": "P1",
       "title": "Consistent design system",
       "baseline_status": "Partial",
-      "implementation": "Create shared page-header, stat-card, badge, table-toolbar, detail-section and form-section components using repo-native CSS. Maintain responsive keyboard-accessible navigation.",
+      "implementation": "Create shared page-header, stat-card, badge, table-toolbar, detail-section and form-section components using repo-native CSS. Maintain responsive keyboard-accessible navigation. At the reference viewport, the graph uses about 940 px and the inspector 340 px; adapt rather than hard-code this split. Keep the lower-left tour card clear of navigation and support a mobile inspector sheet.",
       "files": [
         "mcp/community/static/app.css",
         "app.js",
         "workspace.js"
       ],
       "acceptance": "Readable at 390 and 1440 px; focus visible; active sidebar state and severity text do not rely on color alone.",
-      "evidence": "Published screenshots; implementation proposal"
+      "evidence": "Published screenshots; implementation proposal; A: 1280\u00d7720 graph reference"
     },
     {
       "id": "A01",
@@ -147,27 +147,27 @@
       "priority": "P1",
       "title": "Asset-to-finding-to-proposal navigation",
       "baseline_status": "Partial",
-      "implementation": "Make graph selection reveal asset identity, risk, measured connections, related findings and their proposals. Navigation must preserve campaign context.",
+      "implementation": "Make graph selection reveal asset identity, risk, measured connections, related findings and their proposals. Navigation must preserve campaign context. Add a closeable asset inspector with severity totals and finding rows (severity, CVSS, title/category, proposal indicator); selecting a finding opens its detail with Back, endpoint, MITRE, description, remediation, proposal and full-report actions.",
       "files": [
         "service.py graph_for",
         "static/app.js drawSurface"
       ],
-      "acceptance": "Selecting an asset yields exactly its node-linked findings; missing node linkage is displayed separately.",
-      "evidence": "Pro 01:45\u201302:18"
+      "acceptance": "Selecting an asset yields exactly its node-linked findings; missing node linkage is displayed separately. Back restores the selected asset/list context; close and keyboard focus behave predictably; proposal/report links resolve to the selected finding and campaign, and unavailable actions explain their state.",
+      "evidence": "Pro 01:45\u201302:18; A: infra-orbital.gif frames 0,49,87,99"
     },
     {
       "id": "G02",
       "priority": "P1",
       "title": "Evidence-backed attack-path tours",
       "baseline_status": "Gap",
-      "implementation": "Introduce persisted observed path records with ordered node/edge references and evidence IDs. Add stepwise playback. Keep current finding-location tour separate when no verified path exists.",
+      "implementation": "Introduce persisted observed path records with ordered node/edge references and evidence IDs. Add stepwise playback. Keep current finding-location tour separate when no verified path exists. Present a numbered tour card with Back/Next, step indicators, Technical details where relevant, and Explore freely. Reframe the camera with reduced-motion support. Do not invent unseen steps 3/4 or label illustrative topology as an observed attack path.",
       "files": [
         "service.py",
         "store.py",
         "static/app.js"
       ],
-      "acceptance": "Unconnected nodes never become a kill chain; each tour step resolves to supporting evidence; invalid paths are rejected.",
-      "evidence": "Pro 01:55\u201302:18"
+      "acceptance": "Unconnected nodes never become a kill chain; each tour step resolves to supporting evidence; invalid paths are rejected. Card, graph selection and inspector remain usable together; keyboard can move between steps and return to free exploration; reduced motion disables animated reframing.",
+      "evidence": "Pro 01:55\u201302:18; A: infra-orbital.gif sampled frames across 0\u2013181, only tour steps 1/4 and 2/4 observed"
     },
     {
       "id": "G03",
