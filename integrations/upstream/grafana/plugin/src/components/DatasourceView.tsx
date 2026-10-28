@@ -65,7 +65,8 @@ export default function DatasourceView({ type, defaultUid }: { type: DarkmoonQue
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const configured = defaultUid ? sources.some(source => source.uid === defaultUid) ? defaultUid : '' : sources.length === 1 ? sources[0].uid : '';
-  const uid = selected ? sources.some(source => source.uid === selected) ? selected : '' : configured;
+  // An explicit, inaccessible UID must fail closed, never fall back to a different configured datasource.
+  const uid = selected ? (sources.some(source => source.uid === selected) ? selected : '') : configured;
   const unavailableSelection = !sourcesLoading && !sourceError && !!(selected || defaultUid) && !uid;
   const query = useMemo(() => ({ refId: 'A', datasource: { uid, type: DATASOURCE_TYPE }, queryType: type,
     ...(['findings', 'pullrequests', 'remediation'].includes(type) && campaign ? { campaign_id: campaign } : {}), ...(type === 'findings' && severity ? { severity } : {}),
