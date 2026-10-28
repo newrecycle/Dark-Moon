@@ -12,6 +12,7 @@ RUN node -e "require('./integrations/upstream/vscode/node_modules/@vscode/test-e
 COPY integrations/upstream/vscode/ integrations/upstream/vscode/
 COPY integrations/upstream/client/fixtures/ integrations/upstream/client/fixtures/
 COPY tests/community/vscode_host.cjs tests/community/vscode_host.cjs
+COPY tests/community/launch_vscode_host.sh tests/community/launch_vscode_host.sh
 RUN npm --prefix integrations/upstream/vscode run typecheck \
  && npm --prefix integrations/upstream/vscode run compile-tests \
  && npm --prefix integrations/upstream/vscode run compile \
@@ -21,4 +22,4 @@ RUN npm --prefix integrations/upstream/vscode run typecheck \
  && test -f /workspace/vscode-package/extension/dist/extension.js \
  && test -f /workspace/vscode-package/extension/package.json \
  && test ! -e /workspace/vscode-package/extension/test/nativeRunner.ts
-CMD ["xvfb-run", "--auto-servernum", "node", "tests/community/vscode_host.cjs"]
+CMD ["sh", "tests/community/launch_vscode_host.sh"]

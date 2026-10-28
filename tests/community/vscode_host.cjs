@@ -78,7 +78,11 @@ async function main() {
   // extensions directory prevents loading unrelated user extensions.
   console.log('native-host: launching packaged extension under pinned editor');
   const outcome = await new Promise((resolve, reject) => {
-    let closeCode, closeSignal;
+    let settled = false;
+    const done = result => { if (!settled) { settled = true; resolve(result); } };
+    const heartbeat = setInterval(() => console.log(
+      'native-host heartbeat: ' + JSON.stringify(progress())), 15000);
+    heartbeat.unref();
     child = spawn(editor, args, {
       cwd: work, env: {
         ...process.env, DARKMOON_TEST: '1',
@@ -91,19 +95,28 @@ async function main() {
     child.stderr.on('data', chunk => { stderrBytes += chunk.length; stderrHash.update(chunk); });
     const watchdog = setTimeout(() => {
       timedOut = true;
-      console.error('native-host: bounded execution deadline reached');
+      console.error('native-host: bounded execution deadline reached; last stage ' +
+        JSON.stringify(progress()));
       abort('SIGTERM');
-      setTimeout(() => abort('SIGKILL'), EXIT_GRACE_MS).unref();
+      setTimeout(() => {
+        abort('SIGKILL');
+        // A grandchild can inherit pipe handles after the launcher quits.
+        // Terminate the awaiting promise even if 'close' never arrives.
+        child.stdout.destroy();
+        child.stderr.destroy();
+        child.unref();
+        done({code: 124, signal: 'WATCHDOG'});
+      }, EXIT_GRACE_MS);
     }, TIMEOUT_MS);
-    watchdog.unref();
     child.once('error', err => {
       clearTimeout(watchdog);
-      reject(new Error('Unable to start pinned editor (' + (err.code || 'spawn_error') + ')'));
+      clearInterval(heartbeat);
+      if (!settled) reject(new Error('Unable to start pinned editor (' + (err.code || 'spawn_error') + ')'));
     });
     child.once('close', (code, signal) => {
       clearTimeout(watchdog);
-      closeCode = code; closeSignal = signal;
-      resolve({ code: closeCode, signal: closeSignal });
+      clearInterval(heartbeat);
+      done({ code, signal });
     });
   });
   diagnostics('editor_exited', outcome.code, outcome.signal);

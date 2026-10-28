@@ -7,6 +7,7 @@ on:
       - 'integrations/upstream/vscode/**'
       - 'integrations/upstream/client/fixtures/**'
       - 'tests/community/vscode_host.cjs'
+      - 'tests/community/launch_vscode_host.sh'
       - 'tests/community/Dockerfile.vscode-host*'
       - '.github/workflows/community-vscode.yml'
 permissions:
@@ -29,5 +30,5 @@ jobs:
       - name: Execute the actual packaged VSIX inside pinned extension host
         run: >
           timeout --signal=TERM --kill-after=10s 240s
-          docker run --rm --network none --memory=3g --shm-size=512m
+          docker run --rm --init --network none --memory=3g --shm-size=512m
           --pids-limit=512 darkmoon-vscode-host
