@@ -10,6 +10,7 @@ on:
       - 'mcp/community/auth.py'
       - 'mcp/community/server.py'
       - 'tests/community/test_webhook_delivery_contract.py'
+      - 'tests/community/test_webhook_tls_loopback.py'
       - 'tests/community/test_webhook_receipts.py'
       - '.github/workflows/webhook-verification.yml'
 permissions:
@@ -30,4 +31,4 @@ jobs:
       - name: Verify loopback REST, queue, receipt, mock TLS/DNS safety
         env:
           PYTHONPATH: mcp
-        run: python -m pytest tests/community/test_webhook_delivery_contract.py tests/community/test_webhook_receipts.py -q
+        run: python -m pytest tests/community/test_webhook_delivery_contract.py tests/community/test_webhook_receipts.py tests/community/test_webhook_tls_loopback.py -q
