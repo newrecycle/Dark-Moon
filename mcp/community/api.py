@@ -366,7 +366,11 @@ class API:
                 return False
             return True
         if parts == ["source-files"] and method == "GET":
-            if identity.get("role") == "viewer":raise PermissionError("Read-only accounts cannot inspect source repositories")
+            # Do not probe the local filesystem before a role/scope-checked
+            # source-browser grant exists. Returning an empty projection after
+            # running git ls-files would still permit filesystem enumeration by
+            # response code and timing.
+            raise PermissionError("Source-file enumeration requires a scoped reveal policy")
             import subprocess
             from pathlib import Path
             repo = Path(query.get("repo", "")).expanduser().resolve()
