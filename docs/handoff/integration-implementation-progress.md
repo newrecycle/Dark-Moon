@@ -226,3 +226,16 @@ issues were corrected without modifying other consumers. The latest
 GitHub Actions run remains the authoritative native outcome; the passing
 offline suite does not assert native Grafana success. No commercial Pro
 binary, external provider, real scan, deployment or Jenkins work was run.
+
+### Grafana native-host verification result — 28 October 2026
+
+The [focused Go/frontend CI run 40725844906](https://github.com/newrecycle/Dark-Moon/actions/runs/40725844906)
+passed Go race tests/build and frontend typecheck/Jest/webpack build. The
+[disposable native Grafana 13.1 run 40727729155](https://github.com/newrecycle/Dark-Moon/actions/runs/40727729155)
+also **passed** with the actual bundled Mage backend and frontend package:
+Grafana registered the app/datasource, and its `/api/ds/query` HTTP interface
+returned exact completed retest campaign/target/run references from the
+synthetic fixture. See [full Grafana verification record](../pro-audit/2026-10-28/grafana-verification.md)
+for commands, coverage, exposed defects, native harness corrections and
+remaining version/vendor/browser limitations. Jenkins and unrelated integration
+work were untouched.
