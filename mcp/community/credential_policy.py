@@ -33,8 +33,8 @@ def principal(identity, state):
     if not isinstance(identity, dict):
         return None
     uid = identity.get("id")
-    if uid == SERVICE_ID and identity.get("authentication") == "workspace-token":
-        return SERVICE_ID
+    if uid == SERVICE_ID:
+        return SERVICE_ID if identity.get("authentication") == "workspace-token" else None
     user = state.get("users", {}).get(uid) if isinstance(uid, str) else None
     if not user or user.get("role") not in {"analyst", "admin"}:
         return None

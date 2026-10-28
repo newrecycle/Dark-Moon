@@ -145,6 +145,8 @@ class Accounts:
 
     def create(self, username, password, role="viewer", *, initial=False):
         identifier(username)
+        if username == "workspace-owner":
+            raise ValueError("Reserved service identity")
         if role not in {"admin", "analyst", "viewer"}:
             raise ValueError("Role must be admin, analyst or viewer")
         if not isinstance(password, str) or not 12 <= len(password) <= 1024:

@@ -204,7 +204,7 @@ def handler_for(service, allowed_hosts):
                         service._finished(cancelled)
                     return self.send(public_run(cancelled))
             if method == "POST" and parts == ["schedules"]:
-                return self.send(service.scheduler.create(self.body()), status=201)
+                return self.send(service.scheduler.create(self.body(), actor=identity), status=201)
             if len(parts) == 2 and parts[0] == "schedules":
                 item = service.store.get("schedules", identifier(parts[1]))
                 if not item:
@@ -213,7 +213,7 @@ def handler_for(service, allowed_hosts):
                     raw = self.body()
                     if set(raw) != {"enabled"} or not isinstance(raw["enabled"], bool):
                         raise ValueError("PATCH accepts only {enabled: true/false}")
-                    return self.send(service.scheduler.set_enabled(parts[1], raw["enabled"]))
+                    return self.send(service.scheduler.set_enabled(parts[1], raw["enabled"], actor=identity))
                 if method == "DELETE":
                     def remove(state):
                         state["schedules"].pop(item["id"], None)

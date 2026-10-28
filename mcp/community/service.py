@@ -99,6 +99,9 @@ class Service:
         self.queue.close()
 
     def launch(self, raw, key=None, schedule_id=None, actor=None):
+        # Persist only durable principal identity, not bearer session metadata.
+        if actor is not None:
+            actor = {"id": actor.get("id"), "authentication": actor.get("authentication")}
         spec = launch_spec(raw)
         if spec.get("remediate") and not spec.get("git_repo") and not spec.get("create_repo"):
             raise ValueError("Automatic remediation needs a source repository or an explicit request to create a proposal repository")
@@ -212,6 +215,8 @@ class Service:
                                     "finding_id": finding["id"], "message": str(exc)[:1000], "created_at": now()})
 
     def prepare_remediation(self, raw, actor=None):
+        if actor is not None:
+            actor = {"id": actor.get("id"), "authentication": actor.get("authentication")}
         from .remediation import source_file
         campaign_id, finding_id = identifier(raw.get("campaign_id")), identifier(raw.get("finding_id"))
         finding = next((f for f in data.load_vulnerabilities(campaign_id) if f.get("id") == finding_id), None)

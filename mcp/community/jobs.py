@@ -309,7 +309,7 @@ class Scheduler:
         self.stop_event = threading.Event()
         self.thread = None
 
-    def _validate_credential_refs(self, spec, state=None):
+    def _validate_credential_refs(self, spec, state=None, actor=None):
         # Use the same saved-reference rule as Service.launch, at schedule
         # definition time for compatibility requests. The normal launcher
         # still rechecks references before any execution.
@@ -321,10 +321,12 @@ class Scheduler:
             if spec.get(key):
                 try:
                     vault.require(spec[key], capability)
+                    if actor is not None:
+                        vault.require(spec[key], capability, actor=actor)
                 except KeyError:
-                    raise ValueError("Scheduled credential must be usable by the service identity") from None
+                    raise ValueError("Scheduled credential is unavailable to the requestor or service") from None
 
-    def definition(self, raw):
+    def definition(self, raw, *, actor=None):
         from .calendar_rules import normalize_rule, next_occurrence
         from .scheduler_compat import is_flat_create, normalize_create
         flat = is_flat_create(raw)
@@ -332,7 +334,7 @@ class Scheduler:
         spec = launch_spec(raw.get("spec", raw))
         # Scheduled executions use the service identity, not the editing user.
         # Reject personal-only credentials at schedule definition time.
-        self._validate_credential_refs(spec)
+        self._validate_credential_refs(spec, actor=actor)
         enabled = raw.get("enabled", True)
         if not isinstance(enabled, bool) or not isinstance(raw.get("one_shot", False), bool):
             raise ValueError("enabled and one_shot must be boolean")
@@ -354,13 +356,13 @@ class Scheduler:
                 "one_shot": rule["kind"] == "once" if rule else raw.get("one_shot", False) or bool(raw.get("run_at")),
                 **({"rule": rule} if rule else {})}
 
-    def create(self, raw):
-        item = self.definition(raw) | {"id": "sched_" + uuid.uuid4().hex[:16], "version": 1, "created_at": now()}
+    def create(self, raw, *, actor=None):
+        item = self.definition(raw, actor=actor) | {"id": "sched_" + uuid.uuid4().hex[:16], "version": 1, "created_at": now()}
         return self.store.save("schedules", item)
 
-    def preview(self, raw, clock=None):
+    def preview(self, raw, clock=None, *, actor=None):
         from .calendar_rules import next_occurrence
-        item = self.definition(raw)
+        item = self.definition(raw, actor=actor)
         clock = clock or datetime.now(timezone.utc)
         if clock.tzinfo is None or clock.utcoffset() is None:
             raise ValueError("Preview clock must have a timezone")
@@ -375,7 +377,7 @@ class Scheduler:
             if current is None: break
         return {"occurrences": rows, "timezone": str(zone), "gap_policy": "skip", "missing_month_day_policy": "skip", "definition": item}
 
-    def update(self, schedule_id, raw):
+    def update(self, schedule_id, raw, *, actor=None):
         from .calendar_rules import normalize_rule, next_occurrence
         from .scheduler_compat import is_flat_update, normalize_update
         if not isinstance(raw, dict):
@@ -408,8 +410,10 @@ class Scheduler:
             next_name = edits.get("display_name") if flat else name
             if next_name is not None and (not isinstance(next_name, str) or not next_name.strip() or len(next_name) > 160):
                 raise ValueError("Schedule display name must contain 1 to 160 characters")
-            if flat and next_spec is not None:
-                self._validate_credential_refs(next_spec, state)
+            if next_spec is not None:
+                self._validate_credential_refs(next_spec, state, actor=actor)
+            elif edits.get("enabled") is True:
+                self._validate_credential_refs(item["spec"], state, actor=actor)
             spec_changed = next_spec is not None and next_spec != item["spec"]
             rule_changed = next_rule is not None and next_rule != item.get("rule")
             if next_spec is not None: item["spec"] = next_spec
@@ -427,16 +431,17 @@ class Scheduler:
             return item
         return self.store.update(change)
 
-    def set_enabled(self, schedule_id, enabled):
-        return self.update(schedule_id, {"enabled": enabled})
+    def set_enabled(self, schedule_id, enabled, *, actor=None):
+        return self.update(schedule_id, {"enabled": enabled}, actor=actor)
 
-    def duplicate(self, schedule_id, raw):
+    def duplicate(self, schedule_id, raw, *, actor=None):
         if set(raw) != {"version"} or type(raw["version"]) is not int:
             raise ValueError("Duplicate requires the current integer version")
         def copy_record(state):
             old = state.get("schedules", {}).get(identifier(schedule_id))
             if not old: raise KeyError(schedule_id)
             if old.get("version",1) != raw["version"]: raise ValueError("Schedule changed; reload before duplicating")
+            self._validate_credential_refs(old["spec"], state, actor=actor)
             item = {k: old[k] for k in ("spec", "rule", "interval_seconds", "next_run", "one_shot") if k in old}
             # Store serialization makes this a separate record; no historical
             # job links are copied, and duplicates always start paused.

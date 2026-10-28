@@ -299,12 +299,12 @@ class API:
                 rows = self.store.items("schedules")
                 handler.send(envelope(rows) if wrapped else rows)
             elif method == "POST" and parts[1:] == ["preview"]:
-                handler.send(scheduler.preview(handler.body()))
+                handler.send(scheduler.preview(handler.body(), actor=identity))
             elif method == "POST" and len(parts) == 1:
-                item = scheduler.create(handler.body())
+                item = scheduler.create(handler.body(), actor=identity)
                 handler.send({"data": item} if wrapped else item, status=201)
             elif len(parts) == 3 and parts[2] == "duplicate" and method == "POST":
-                item = scheduler.duplicate(parts[1], handler.body())
+                item = scheduler.duplicate(parts[1], handler.body(), actor=identity)
                 handler.send({"data":item} if wrapped else item, status=201)
             elif len(parts) == 3 and parts[2] == "history" and method == "GET":
                 handler.send(envelope(scheduler.history(parts[1])))
@@ -317,7 +317,7 @@ class API:
                     raw = handler.body()
                     if method == "PUT" and type(raw.get("version")) is not int:
                         raise ValueError("PUT schedule edits require the current integer version")
-                    item = scheduler.update(parts[1], raw)
+                    item = scheduler.update(parts[1], raw, actor=identity)
                     handler.send({"data":item} if wrapped else item)
             else:
                 return False
@@ -495,7 +495,7 @@ class API:
             return True
         if resource == "retest":
             if method == "POST" and len(parts) == 1:
-                handler.send(self.service.operations.launch_retest(handler.body()), status=201)
+                handler.send(self.service.operations.launch_retest(handler.body(), actor=identity), status=201)
             elif method == "GET" and len(parts) == 1:
                 handler.send(envelope(self.store.items("retests")))
             elif method == "GET" and len(parts) == 2:

@@ -303,7 +303,7 @@ class Operations:
             return {"webhook_id":webhook_id, "event_id":event_id, "claimed":True}
         return self.store.update(claim)
 
-    def launch_retest(self, raw):
+    def launch_retest(self, raw, actor=None):
         campaign = data.load_campaign(identifier(raw.get("campaign_id"))) if raw.get("campaign_id") else None
         if raw.get("campaign_id") and not campaign:
             # An exact base must never degrade to another campaign on a target.
@@ -340,7 +340,7 @@ class Operations:
         spec.update(target=original.get("target") or target.get("host") or target.get("ip"),
                     name="Retest: " + campaign.get("name", campaign["id"]),
                     focus=",".join(sorted({str(v.get("category", "")) for v in before if v.get("category")})))
-        job = self.service.launch(spec)
+        job = self.service.launch(spec, actor=actor)
         record = {"id": "retest_" + uuid.uuid4().hex[:16], "retest_id": "", "base_campaign_id": campaign["id"],
                   "campaign_id": job["campaign_id"], "new_campaign_id": job["campaign_id"], "target_id": campaign["target_id"], "run_id": job["id"],
                   "before_ids": [v.get("id") for v in before], "status": "running", "created_at": now(), "verdicts": []}
