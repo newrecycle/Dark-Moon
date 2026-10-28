@@ -2,10 +2,11 @@
 import copy
 import json
 import threading
+import concurrent.futures
 
 import test_community as fixtures
 from api import json_storage as data
-from community.attack_paths import create_path, delete_path, list_paths
+from community.attack_paths import create_path, delete_path, list_paths, update_path, path_history, PathConflictError
 from community.server import HTTPServer, handler_for
 from community.store import Store
 
@@ -40,6 +41,83 @@ class PathFixture(fixtures.Fixture):
 
 
 class AttackPathTests(PathFixture):
+    def test_edit_retains_immutable_revisions_and_original_reviewer_after_restart(self):
+        first = self.create()
+        updated = update_path(self.service, self.cid, first["id"], self.body | {
+            "version": 1, "title": "Second review"}, {"id": "reviewer-two"})
+        self.assertEqual(updated["version"], 2)
+        self.assertEqual(updated["recorded_by"], "operator")
+        self.assertEqual(updated["reviewed_by"], "reviewer-two")
+        self.service.store = Store(self.service.store.root)
+        history = path_history(self.service, self.cid, first["id"])
+        self.assertEqual([row["version"] for row in history["data"]], [1, 2])
+        self.assertEqual(history["data"][0]["title"], first["title"])
+        self.assertEqual(history["data"][1]["title"], "Second review")
+        history["data"][0]["steps"][0]["rationale"] = "tampered response"
+        self.assertNotEqual(path_history(self.service, self.cid, first["id"])["data"][0]["steps"][0]["rationale"], "tampered response")
+        self.assertNotIn("PRIVATE-PATH-EVIDENCE", self.service.store.path.read_text())
+
+    def test_simultaneous_same_version_edits_have_one_winner(self):
+        first = self.create()
+        def edit(number):
+            try:
+                return update_path(self.service, self.cid, first["id"], self.body | {
+                    "version": 1, "title": str(number)}, self.identity)["version"]
+            except PathConflictError:
+                return "conflict"
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            results = list(pool.map(edit, range(6)))
+        self.assertEqual(results.count(2), 1)
+        self.assertEqual(results.count("conflict"), 5)
+        self.assertEqual(path_history(self.service, self.cid, first["id"])["total"], 2)
+
+    def test_edit_requires_strict_version_and_fresh_review(self):
+        first = self.create()
+        for update in ({}, {"version": True}, {"version": 0}, {"version": "1"},
+                       {"version": 1, "reviewed": False}, {"version": 1, "recorded_by": "forged"}):
+            with self.subTest(update=update), self.assertRaises(ValueError):
+                update_path(self.service, self.cid, first["id"], self.body | update, self.identity)
+        self.assertEqual(path_history(self.service, self.cid, first["id"])["total"], 1)
+
+    def test_edit_rechecks_current_evidence_and_connections(self):
+        first = self.create()
+        self.findings[0]["evidence"]["output"] = "Changed evidence"; self.save_findings()
+        self.assertFalse(self.service.graph(self.cid)["paths"][0]["valid"])
+        reviewed = update_path(self.service, self.cid, first["id"], self.body | {"version": 1}, self.identity)
+        self.assertNotEqual(reviewed["steps"][0]["evidence_sha256"], first["steps"][0]["evidence_sha256"])
+        self.assertFalse(path_history(self.service, self.cid, first["id"])["deleted"])
+        self.findings[0]["campaign_id"] = "foreign"; self.save_findings()
+        with self.assertRaises(ValueError):
+            update_path(self.service, self.cid, first["id"], self.body | {"version": 2}, self.identity)
+        self.assertEqual(path_history(self.service, self.cid, first["id"])["total"], 2)
+
+    def test_legacy_path_is_lazily_versioned_and_deletion_keeps_history(self):
+        first = self.create()
+        def legacy(state):
+            state["attack_paths"][first["id"]].pop("version")
+            state.pop("attack_path_revisions")
+        self.service.store.update(legacy)
+        self.assertEqual(self.service.graph(self.cid)["paths"][0]["version"], 1)
+        self.assertEqual(path_history(self.service, self.cid, first["id"])["total"], 1)
+        update_path(self.service, self.cid, first["id"], self.body | {"version": 1}, self.identity)
+        delete_path(self.service, self.cid, first["id"])
+        history = path_history(self.service, self.cid, first["id"])
+        self.assertEqual(history["total"], 2)
+        self.assertTrue(history["deleted"])
+        self.assertIsNone(history["current_version"])
+        self.assertEqual(self.service.graph(self.cid)["paths"], [])
+        with self.assertRaises(KeyError): path_history(self.service, "wrong_campaign", first["id"])
+        with self.assertRaises(KeyError):
+            update_path(self.service, self.cid, first["id"], self.body | {"version": 2}, self.identity)
+
+    def test_revision_limit_rejects_without_mutating_history(self):
+        first = self.create()
+        self.service.store.update(lambda state: state["attack_paths"][first["id"]].update(version=100))
+        before = self.service.store.path.read_bytes()
+        with self.assertRaisesRegex(ValueError, "100 immutable"):
+            update_path(self.service, self.cid, first["id"], self.body | {"version": 100}, self.identity)
+        self.assertEqual(self.service.store.path.read_bytes(), before)
+
     def test_persistence_without_copying_raw_evidence(self):
         result = self.create()
         self.assertTrue(result["valid"])
@@ -111,6 +189,12 @@ class AttackPathTests(PathFixture):
 class AttackPathHTTPTests(PathFixture):
     request = fixtures.HTTPTests.request
 
+    def granted(self, path):
+        status, body, _ = self.request("/api/v1/evidence/grants", "POST",
+            {"kind": "graph", "id": self.cid, "campaign_id": self.cid})
+        self.assertEqual(status, 201)
+        return self.request(path, headers={"X-Darkmoon-Evidence-Grant": json.loads(body)["grant"]})
+
     def setUp(self):
         super().setUp()
         self.server = HTTPServer(("127.0.0.1", 0), handler_for(self.service, {"127.0.0.1"}))
@@ -127,7 +211,7 @@ class AttackPathHTTPTests(PathFixture):
         status, body, _ = self.request(url, "POST", self.body)
         self.assertEqual(status, 201); path = json.loads(body)["data"]
         self.assertEqual(json.loads(self.request(url)[1])["data"][0]["id"], path["id"])
-        graph = json.loads(self.request(f"/api/v1/campaigns/{self.cid}/graph")[1])
+        graph = json.loads(self.granted(f"/api/v1/evidence/graph/{self.cid}/reveal")[1])["data"]
         self.assertTrue(graph["paths"][0]["valid"])
         self.assertEqual(self.request(url+"/"+path["id"], "DELETE")[0], 200)
         self.assertEqual(json.loads(self.request(url)[1])["total"], 0)
@@ -144,5 +228,44 @@ class AttackPathHTTPTests(PathFixture):
 
     def test_invalid_path_returns_actionable_400_without_persistence(self):
         status, body, _ = self.request(f"/api/v1/campaigns/{self.cid}/paths", "POST", self.body | {"reviewed": False})
-        self.assertEqual(status, 400); self.assertIn("reviewed", json.loads(body)["error"])
+        self.assertEqual(status, 400); self.assertEqual(json.loads(body)["error"], "Provide title, steps and explicit reviewed: true")
         self.assertEqual(self.service.store.items("attack_paths"), [])
+
+    def test_versioned_edit_history_conflict_and_role_guards(self):
+        first = self.create()
+        url = f"/api/v1/campaigns/{self.cid}/paths/{first['id']}"
+        body = self.body | {"version": 1, "title": "HTTP review"}
+        self.assertEqual(self.request(url, "PUT", body, auth=False)[0], 401)
+        self.assertEqual(self.request(url + "/revisions", auth=False)[0], 401)
+        self.service.accounts.create("history-viewer", "a-long-viewer-password", "viewer")
+        auth = self.service.accounts.issue(self.service.store.get("users", "history-viewer"))["token"]
+        headers = {"Authorization": "Bearer " + auth}
+        self.assertEqual(self.request(url, "PUT", body, headers=headers)[0], 403)
+        self.assertEqual(self.request(url + "/revisions", headers=headers)[0], 200)
+        status, response, _ = self.request(url, "PUT", body)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(response)["data"]["version"], 2)
+        self.assertEqual(self.request(url, "PUT", body)[0], 409)
+        self.assertEqual(self.request(url, "PUT", body | {"version": True})[0], 400)
+        self.assertEqual(self.request(url + "/revisions/extra")[0], 404)
+        history = json.loads(self.granted(url + "/revisions")[1])
+        self.assertEqual(history["current_version"], 2)
+        self.assertEqual(history["total"], 2)
+        self.assertEqual(self.request(url, "DELETE")[0], 200)
+        self.assertTrue(json.loads(self.granted(url + "/revisions")[1])["deleted"])
+
+    def test_history_content_needs_exact_one_use_graph_grant(self):
+        first = self.create()
+        url = f"/api/v1/campaigns/{self.cid}/paths/{first['id']}/revisions"
+        minimal = self.request(url)[1].decode()
+        self.assertNotIn("Response supports", minimal)
+        self.assertNotIn("rationale", minimal)
+        self.assertEqual(self.request(url + "?version=1")[0], 400)
+        status, body, _ = self.request("/api/v1/evidence/grants", "POST", {"kind": "graph", "id": self.cid})
+        self.assertEqual(status, 201)
+        headers = {"X-Darkmoon-Evidence-Grant": json.loads(body)["grant"]}
+        status, body, _ = self.request(url, headers=headers)
+        self.assertEqual(status, 200)
+        self.assertIn("Response supports", body.decode())
+        self.assertNotIn("PRIVATE-PATH-EVIDENCE", body.decode())
+        self.assertEqual(self.request(url, headers=headers)[0], 403)

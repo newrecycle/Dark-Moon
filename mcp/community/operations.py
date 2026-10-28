@@ -204,7 +204,12 @@ class Operations:
                 "attempts": 0, "next_attempt": time.time(), "status": "pending"}
 
     def emit(self, event, payload):
-        safe = {k: payload[k] for k in ("campaign_id", "run_id", "finding_id", "severity", "status", "retest_id", "pr_id", "state", "provider") if k in payload}
+        if not isinstance(event, str) or not re.fullmatch(r"[a-z][a-z0-9_.-]{0,99}", event):
+            raise ValueError("Invalid event name")
+        if not isinstance(payload, dict):
+            raise ValueError("Event metadata must be an object")
+        safe = {k: payload[k] for k in ("campaign_id", "run_id", "finding_id", "severity", "status", "retest_id", "pr_id", "state", "provider")
+                if isinstance(payload.get(k), str) and 0 < len(payload[k]) <= 200}
         item = {"id": "evt_" + uuid.uuid4().hex, "event": event, "timestamp": now(), "data": safe}
         def append(state):
             state["event_seq"] = state.get("event_seq", 0)+1
@@ -352,7 +357,7 @@ class Operations:
         snapshot = self.service.snapshot()
         if not self.initialized:
             self.observed = {"campaign:"+c["id"]: c.get("status") for c in snapshot["campaigns"]}
-            self.observed.update({"finding:"+str(v.get("id")): v.get("status") for v in snapshot["findings"]})
+            self.observed.update({("finding", v.get("campaign_id"), v.get("id")): v.get("status") for v in snapshot["findings"]})
             self.observed.update({"proposal:"+p["id"]: (p.get("status"), bool(p.get("published"))) for p in snapshot["remediations"]})
             self.initialized = True
         for campaign in snapshot["campaigns"]:
@@ -364,7 +369,7 @@ class Operations:
                     self.emit(event, {"campaign_id": campaign["id"], "status": value})
             self.observed[key] = value
         for finding in snapshot["findings"]:
-            key = "finding:"+str(finding.get("id"))
+            key = ("finding", finding.get("campaign_id"), finding.get("id"))
             if key not in self.observed:
                 self.emit("finding.created", {"finding_id": finding.get("id"), "campaign_id": finding.get("campaign_id"),
                                               "severity": finding.get("severity"), "status": finding.get("status")})

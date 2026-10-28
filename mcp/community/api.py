@@ -102,12 +102,25 @@ class API:
         if resource in {"credentials", "webhooks"} or parts[:2] in (["auth", "users"], ["system", "integrity"]):
             if not admin:
                 raise PermissionError("Administrator access is required")
-        if resource == "campaigns" and len(parts) in {3, 4} and parts[2] == "paths":
-            from .attack_paths import create_path, delete_path
+        if resource == "campaigns" and len(parts) in {3, 4, 5} and parts[2] == "paths":
+            from .attack_paths import create_path, delete_path, update_path, path_history, PathConflictError
+            if urlsplit(handler.path).query:
+                raise ValueError("Path routes do not accept query overrides")
+            if handler.headers.get("X-Darkmoon-Evidence-Grant"):
+                handler.require_evidence(identity, "graph", parts[1])
             if method == "GET" and len(parts) == 3:
                 handler.send(envelope(self.service.graph(parts[1])["paths"]))
             elif method == "POST" and len(parts) == 3:
                 handler.send({"data": create_path(self.service, parts[1], handler.body(), identity)}, status=201)
+            elif method == "PUT" and len(parts) == 4:
+                try:
+                    item = update_path(self.service, parts[1], parts[3], handler.body(), identity)
+                except PathConflictError as exc:
+                    handler.send({"error": str(exc)}, status=409)
+                else:
+                    handler.send({"data": item})
+            elif method == "GET" and len(parts) == 5 and parts[4] == "revisions":
+                handler.send(path_history(self.service, parts[1], parts[3]))
             elif method == "DELETE" and len(parts) == 4:
                 handler.send(delete_path(self.service, parts[1], parts[3]))
             else:

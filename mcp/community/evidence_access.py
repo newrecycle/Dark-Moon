@@ -233,6 +233,7 @@ def _paths(items):
         result.append({
             "id": path.get("id"), "campaign_id": path.get("campaign_id"),
             "created_at": path.get("created_at"),
+            "version": path.get("version", 1) if type(path.get("version", 1)) is int else None,
             "title": "Reviewed path (evidence withheld)",
             "valid": path.get("valid") is True,
             "basis": "operator_review_of_recorded_evidence",
@@ -286,12 +287,17 @@ def minimize_response(path, content, kind):
         return content
     if parts[2] == "targets" and len(parts) == 5 and parts[4] == "evolution":
         return content
-    if parts[2] == "campaigns" and len(parts) == 5 and parts[4] == "paths":
-        if isinstance(content, dict) and isinstance(content.get("data"), list):
-            return {"data": _paths(content["data"]), "total": content.get("total", 0)}
+    if parts[2] == "campaigns" and len(parts) >= 5 and parts[4] == "paths":
         if isinstance(content, dict) and isinstance(content.get("data"), dict):
             projected = _paths([content["data"]])
             return {"data": projected[0] if projected else {}}
+        if isinstance(content, dict) and isinstance(content.get("data"), list):
+            result = {"data": _paths(content["data"]), "total": content.get("total", 0)}
+            if "current_version" in content:
+                value = content["current_version"]
+                result["current_version"] = value if type(value) is int else None
+                result["deleted"] = content.get("deleted") is True
+            return result
         if isinstance(content, dict) and "deleted" in content:
             return {"deleted": content["deleted"]}
         return {"data": _paths([content])[0]} if isinstance(content, dict) else {"data": []}

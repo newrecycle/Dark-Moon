@@ -6,11 +6,17 @@ but cannot be played as current evidence-backed paths.
 """
 import hashlib
 import json
+import copy
 import uuid
 
 from .store import identifier, now
 
 SUPPORTED_STATUSES = {"confirmed", "exploited", "remediated", "resolved"}
+MAX_REVISIONS = 100
+
+
+class PathConflictError(ValueError):
+    """The reviewed path changed after the editor loaded it."""
 
 
 def has_content(value):
@@ -75,29 +81,94 @@ def list_paths(store, campaign_id, graph):
             issues = []
         except ValueError as exc:
             issues = [str(exc)]
-        result.append(path | {"valid": not issues, "issues": issues})
+        result.append(path | {"version": path.get("version", 1), "valid": not issues, "issues": issues})
     return result
 
 
-def create_path(service, campaign_id, raw, identity):
-    campaign_id = identifier(campaign_id)
-    if not isinstance(raw, dict) or set(raw) != {"title", "steps", "reviewed"} or raw.get("reviewed") is not True:
+def reviewed_input(raw, *, editing=False):
+    fields = {"title", "steps", "reviewed"} | ({"version"} if editing else set())
+    if not isinstance(raw, dict) or set(raw) != fields or raw.get("reviewed") is not True:
         raise ValueError("Provide title, steps and explicit reviewed: true")
     title = raw["title"]
     if not isinstance(title, str) or not title.strip() or len(title) > 160:
         raise ValueError("Path title must contain 1 to 160 characters")
-    graph = service.graph(campaign_id)
-    steps = validate_steps(graph, raw["steps"])
+    if editing and (type(raw["version"]) is not int or raw["version"] < 1):
+        raise ValueError("Provide the current positive integer version")
+    return title.strip()
+
+
+def revision(path):
+    # Revisions never copy arbitrary extension fields or finding evidence bodies.
+    return copy.deepcopy({key: path[key] for key in (
+        "id", "campaign_id", "title", "steps", "created_at", "recorded_by", "basis",
+        "version", "updated_at", "reviewed_by") if key in path}) | {"version": path.get("version", 1)}
+
+
+def keep_revision(state, path):
+    key = path["id"] + "." + str(path.get("version", 1))
+    revisions = state.setdefault("attack_path_revisions", {})
+    value = revision(path)
+    if key in revisions and revisions[key] != value:
+        raise ValueError("Recorded path revision conflicts with retained history")
+    revisions.setdefault(key, value)
+
+
+def create_path(service, campaign_id, raw, identity):
+    campaign_id = identifier(campaign_id)
+    title = reviewed_input(raw)
+    steps = validate_steps(service.graph(campaign_id), raw["steps"])
     path = {"id": "path_" + uuid.uuid4().hex, "campaign_id": campaign_id, "title": title.strip(),
             "steps": steps, "created_at": now(), "recorded_by": identity["id"],
-            "basis": "operator_review_of_recorded_evidence"}
+            "basis": "operator_review_of_recorded_evidence", "version": 1}
     def save(state):
         paths = state.setdefault("attack_paths", {})
         if sum(p.get("campaign_id") == campaign_id for p in paths.values()) >= 100:
             raise ValueError("A campaign supports at most 100 recorded paths")
         paths[path["id"]] = path
+        keep_revision(state, path)
         return path
     return service.store.update(save) | {"valid": True, "issues": []}
+
+
+def update_path(service, campaign_id, path_id, raw, identity):
+    campaign_id, path_id = identifier(campaign_id), identifier(path_id)
+    title = reviewed_input(raw, editing=True)
+    steps = validate_steps(service.graph(campaign_id), raw["steps"])
+    def save(state):
+        path = state.setdefault("attack_paths", {}).get(path_id)
+        if not path or path.get("campaign_id") != campaign_id:
+            raise KeyError(path_id)
+        current = path.get("version", 1)
+        if raw["version"] != current:
+            raise PathConflictError("Path changed; reload its current version before saving")
+        if current >= MAX_REVISIONS:
+            raise ValueError("A path supports at most 100 immutable revisions; record a new path")
+        # Legacy records become revision 1 without rewriting their review identity.
+        keep_revision(state, path)
+        updated = path | {"title": title, "steps": steps, "version": current + 1,
+                          "updated_at": now(), "reviewed_by": identity["id"]}
+        keep_revision(state, updated)
+        state["attack_paths"][path_id] = updated
+        return updated
+    return service.store.update(save) | {"valid": True, "issues": []}
+
+
+def path_history(service, campaign_id, path_id):
+    campaign_id, path_id = identifier(campaign_id), identifier(path_id)
+    # A single store snapshot keeps current-version and history metadata coherent.
+    state = service.store.read()
+    path = state.get("attack_paths", {}).get(path_id)
+    if path and path.get("campaign_id") != campaign_id:
+        raise KeyError(path_id)
+    rows = [revision(row) for row in state.get("attack_path_revisions", {}).values()
+            if row.get("id") == path_id and row.get("campaign_id") == campaign_id]
+    if path and not any(row["version"] == path.get("version", 1) for row in rows):
+        rows.append(revision(path))
+    if not rows:
+        raise KeyError(path_id)
+    rows.sort(key=lambda row: row["version"])
+    return {"data": rows, "total": len(rows), "current_version": path.get("version", 1) if path else None,
+            "deleted": path is None, "basis": "operator_review_of_recorded_evidence"}
 
 
 def delete_path(service, campaign_id, path_id):
@@ -106,6 +177,7 @@ def delete_path(service, campaign_id, path_id):
         paths = state.setdefault("attack_paths", {})
         if paths.get(path_id, {}).get("campaign_id") != campaign_id:
             raise KeyError(path_id)
+        keep_revision(state, paths[path_id])
         del paths[path_id]
         return {"deleted": path_id}
     return service.store.update(remove)
