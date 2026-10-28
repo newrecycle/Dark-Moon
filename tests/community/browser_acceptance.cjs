@@ -154,7 +154,9 @@ const assert = require("node:assert/strict");
     assert.match(await page.locator('#job-log').innerText(),/Run started/);
     assert.doesNotMatch(await page.locator('#job-log').innerText(),/PRIVATE-MOCK-OUTPUT/);
     await page.locator('[data-raw-job="job_mock"]').click();
-    await page.getByText('PRIVATE-MOCK-OUTPUT',{exact:true}).waitFor();
+    await page.waitForTimeout(300);
+    assert.match(await page.locator('#job-log').innerText(), /PRIVATE-MOCK-OUTPUT/,
+      'Granted mock raw output should appear without a stale result');
     await page.locator('#detail .close-dialog').click();
     for (const [matcher,handler] of mockRoutes) await page.unroute(matcher,handler);
     // High-cardinality live paging: each pager moves independently. Live
