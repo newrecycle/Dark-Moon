@@ -107,6 +107,18 @@ commercial Pro wire-parity claim. See the 28 October compatibility record for
 route schemas, limit values, privacy caveats and deferred HTTP/browser cases.
 No assessment, vendor binary, tests or build was run for this increment.
 
+### Run/log verification follow-up
+
+The later [focused offline verification workflow](../../.github/workflows/run-discovery-verification.yml)
+passed [11 new run/log cases plus 10 existing compatibility cases](https://github.com/newrecycle/Dark-Moon/actions/runs/40664772710),
+including Python module compilation and dashboard JavaScript parsing.
+The [community browser acceptance](https://github.com/newrecycle/Dark-Moon/actions/runs/40664888578)
+also passed with mocked run/log collection and detail behavior. This verifies
+the fork's isolated API/UI contract, not commercial-vendor runtime parity,
+native-client builds or adversarial streaming/rotation races. The older
+scheduler invalid-input assertion was brought into alignment with a newer,
+supported flat target update; no scheduler implementation was rewritten.
+
 ## Deferred
 
 Behavioral tests, Kotlin/Java/Go/full TypeScript builds, packaged native hosts and
