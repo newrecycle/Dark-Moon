@@ -1,0 +1,127 @@
+original_test,original_file,original_line,fork_same_name_matches,static_overlap,execution
+test_two_runs_get_distinct_campaigns,test_live_push_fixes.py,91,mcp/tests/test_live_push_fixes.py,name found,not executed
+test_subagent_merges_into_parent_run,test_live_push_fixes.py,101,mcp/tests/test_live_push_fixes.py,name found,not executed
+test_fallback_when_db_missing,test_live_push_fixes.py,111,mcp/tests/test_live_push_fixes.py,name found,not executed
+test_report_on_crash_is_generated_from_findings,test_live_push_fixes.py,121,,no same-name test found,not executed
+test_headless_browser_has_memory_flags,test_live_push_fixes.py,153,mcp/tests/test_live_push_fixes.py,name found,not executed
+test_a_single_string_target_is_normalised_to_a_list,test_port_scan_workflow.py,51,mcp/tests/test_port_scan_workflow.py,name found,not executed
+test_a_list_of_targets_is_scanned_as_given,test_port_scan_workflow.py,59,mcp/tests/test_port_scan_workflow.py,name found,not executed
+test_a_single_quote_in_a_target_is_escaped_in_the_echo_command,test_port_scan_workflow.py,71,mcp/tests/test_port_scan_workflow.py,name found,not executed
+test_naabu_gets_the_normalised_top_ports_value,test_port_scan_workflow.py,80,mcp/tests/test_port_scan_workflow.py,name found,not executed
+test_ports_are_grouped_by_host_from_naabu_json_lines,test_port_scan_workflow.py,88,mcp/tests/test_port_scan_workflow.py,name found,not executed
+test_httpx_is_not_called_without_a_web_port,test_port_scan_workflow.py,105,mcp/tests/test_port_scan_workflow.py,name found,not executed
+test_httpx_checks_every_web_port_that_was_found,test_port_scan_workflow.py,113,mcp/tests/test_port_scan_workflow.py,name found,not executed
+test_context_hides_real_ip,test_privacy.py,55,mcp/tests/test_privacy.py,name found,not executed
+test_deterministic_mapping,test_privacy.py,65,mcp/tests/test_privacy.py,name found,not executed
+test_rehydration_produces_real_command,test_privacy.py,78,mcp/tests/test_privacy.py,name found,not executed
+test_rehydration_inside_bash_c,test_privacy.py,87,mcp/tests/test_privacy.py,name found,not executed
+test_url_host_placeholder_allowed,test_privacy.py,95,mcp/tests/test_privacy.py,name found,not executed
+test_output_sanitized,test_privacy.py,106,mcp/tests/test_privacy.py,name found,not executed
+test_output_sanitizes_value_first_seen_in_output,test_privacy.py,117,mcp/tests/test_privacy.py,name found,not executed
+test_output_sanitizes_ansi_coloured_value,test_privacy.py,125,mcp/tests/test_privacy.py,name found,not executed
+test_ipv6_is_tokenized,test_privacy.py,153,mcp/tests/test_privacy.py,name found,not executed
+test_ipv6_regex_skips_code_and_mac,test_privacy.py,164,mcp/tests/test_privacy.py,name found,not executed
+test_ldap_dn_domain_is_tokenized,test_privacy.py,178,mcp/tests/test_privacy.py,name found,not executed
+test_ldap_dn_rehydrates_exactly,test_privacy.py,188,mcp/tests/test_privacy.py,name found,not executed
+test_bulk_report_rehydration_restores_every_value,test_privacy.py,195,mcp/tests/test_privacy.py,name found,not executed
+test_exfiltration_value_is_withheld,test_privacy.py,238,mcp/tests/test_privacy.py,name found,not executed
+test_exfiltration_blocked_under_strict_policy,test_privacy.py,253,mcp/tests/test_privacy.py,name found,not executed
+test_print_sink_runs_and_output_is_masked,test_privacy.py,263,mcp/tests/test_privacy.py,name found,not executed
+test_command_substitution_never_resolves_a_value,test_privacy.py,272,mcp/tests/test_privacy.py,name found,not executed
+test_substitution_free_pipelines_still_resolve,test_privacy.py,292,mcp/tests/test_privacy.py,name found,not executed
+test_policy_default_is_degrade_even_for_a_typo,test_privacy.py,299,mcp/tests/test_privacy.py,name found,not executed
+test_safe_scan_allowed,test_privacy.py,306,mcp/tests/test_privacy.py,name found,not executed
+test_unknown_placeholder_is_left_literal,test_privacy.py,312,mcp/tests/test_privacy.py,name found,not executed
+test_no_plaintext_retained_in_vault_state,test_privacy.py,324,mcp/tests/test_privacy.py,name found,not executed
+test_structured_tool_call_only_target_field,test_privacy.py,334,mcp/tests/test_privacy.py,name found,not executed
+test_expired_vault_refuses_rehydration,test_privacy.py,357,mcp/tests/test_privacy.py,name found,not executed
+test_secret_never_leaves_the_local_target_path,test_privacy.py,373,mcp/tests/test_privacy.py,name found,not executed
+test_secret_injection_can_be_disabled,test_privacy.py,402,mcp/tests/test_privacy.py,name found,not executed
+test_resolve_categories_default_covers_documented_boundary,test_privacy.py,423,mcp/tests/test_privacy.py,name found,not executed
+test_resolve_categories_empty_or_malformed_falls_back_to_default,test_privacy.py,431,mcp/tests/test_privacy.py,name found,not executed
+test_resolve_categories_explicit_override_is_honoured,test_privacy.py,439,mcp/tests/test_privacy.py,name found,not executed
+test_server_default_vault_tokenizes_url_domain_and_path,test_privacy.py,444,mcp/tests/test_privacy.py,name found,not executed
+test_vault_dataclass_default_matches_shared_default,test_privacy.py,462,mcp/tests/test_privacy.py,name found,not executed
+test_prompt_tokenization_leaks_nothing,test_privacy.py,472,mcp/tests/test_privacy.py,name found,not executed
+test_prompt_creds_split_into_user_and_cred,test_privacy.py,484,mcp/tests/test_privacy.py,name found,not executed
+test_prompt_shares_vault_so_tool_calls_and_report_resolve,test_privacy.py,496,mcp/tests/test_privacy.py,name found,not executed
+test_prompt_tokenization_is_deterministic_across_calls,test_privacy.py,509,mcp/tests/test_privacy.py,name found,not executed
+test_prompt_creds_with_email_or_upn_user_never_leaks,test_privacy.py,517,mcp/tests/test_privacy.py,name found,not executed
+test_register_is_thread_safe_no_placeholder_collision,test_privacy.py,531,mcp/tests/test_privacy.py,name found,not executed
+test_secretbox_roundtrip_and_prefix,test_remediation_backend.py,44,,no same-name test found,not executed
+test_secretbox_hint_is_masked,test_remediation_backend.py,54,,no same-name test found,not executed
+test_secretbox_wrong_key_rejected,test_remediation_backend.py,60,,no same-name test found,not executed
+test_secretbox_passthrough_plaintext,test_remediation_backend.py,68,,no same-name test found,not executed
+test_provider_catalog_shape,test_remediation_backend.py,77,,no same-name test found,not executed
+test_create_lists_and_masks_secret,test_remediation_backend.py,89,,no same-name test found,not executed
+test_secret_never_written_in_clear,test_remediation_backend.py,110,,no same-name test found,not executed
+test_update_keeps_secret_when_blank,test_remediation_backend.py,121,,no same-name test found,not executed
+test_resolve_secret_decrypts_and_marks_used,test_remediation_backend.py,133,,no same-name test found,not executed
+test_validation_missing_required,test_remediation_backend.py,142,,no same-name test found,not executed
+test_delete_credential,test_remediation_backend.py,149,,no same-name test found,not executed
+test_link_pr_stamps_multiple_findings,test_remediation_backend.py,164,,no same-name test found,not executed
+test_finding_can_have_multiple_prs,test_remediation_backend.py,179,,no same-name test found,not executed
+test_link_pr_idempotent_update_by_id,test_remediation_backend.py,188,,no same-name test found,not executed
+test_run_prompt_carries_remediation_flags,test_remediation_backend.py,210,,no same-name test found,not executed
+test_run_prompt_omits_flags_when_absent,test_remediation_backend.py,224,,no same-name test found,not executed
+test_scheduler_prompt_carries_remediation_flags,test_remediation_backend.py,229,,no same-name test found,not executed
+test_credentials_router_requires_auth,test_remediation_backend.py,256,,no same-name test found,not executed
+test_credentials_router_crud_and_masking,test_remediation_backend.py,262,,no same-name test found,not executed
+test_credentials_router_rejects_bad_provider,test_remediation_backend.py,283,,no same-name test found,not executed
+test_pull_requests_read_router,test_remediation_backend.py,289,,no same-name test found,not executed
+test_cli_cred_add_list_resolve,test_remediation_backend.py,304,,no same-name test found,not executed
+test_cli_cred_providers_lists_all,test_remediation_backend.py,320,,no same-name test found,not executed
+test_codemap_finds_sql_injection_sink,test_remediation_toolkit.py,32,,no same-name test found,not executed
+test_codemap_empty_repo,test_remediation_toolkit.py,48,,no same-name test found,not executed
+test_apply_edits_produces_diff,test_remediation_toolkit.py,57,,no same-name test found,not executed
+test_apply_edits_rejects_missing_find,test_remediation_toolkit.py,70,,no same-name test found,not executed
+test_apply_edits_rejects_ambiguous_find,test_remediation_toolkit.py,76,,no same-name test found,not executed
+test_apply_edits_rejects_path_escape,test_remediation_toolkit.py,82,,no same-name test found,not executed
+test_generate_patch_with_stub_llm,test_remediation_toolkit.py,97,,no same-name test found,not executed
+test_generate_patch_handles_fenced_json,test_remediation_toolkit.py,107,,no same-name test found,not executed
+test_generate_patch_empty_edits,test_remediation_toolkit.py,114,,no same-name test found,not executed
+test_judge_patch_no_llm_is_neutral,test_remediation_toolkit.py,121,,no same-name test found,not executed
+test_parse_repo_variants,test_remediation_toolkit.py,130,,no same-name test found,not executed
+test_infer_provider,test_remediation_toolkit.py,137,,no same-name test found,not executed
+test_authed_https_redacts_and_embeds,test_remediation_toolkit.py,144,,no same-name test found,not executed
+test_open_pull_request_github,test_remediation_toolkit.py,170,,no same-name test found,not executed
+test_open_pull_request_gitlab_uses_mr,test_remediation_toolkit.py,181,,no same-name test found,not executed
+test_open_pull_request_error_is_redacted,test_remediation_toolkit.py,189,,no same-name test found,not executed
+test_compute_confidence,test_remediation_toolkit.py,200,,no same-name test found,not executed
+test_default_llm_prefers_openrouter_when_no_anthropic,test_remediation_toolkit.py,212,,no same-name test found,not executed
+test_default_llm_none_when_unconfigured,test_remediation_toolkit.py,222,,no same-name test found,not executed
+test_openai_compat_parses_choices,test_remediation_toolkit.py,228,,no same-name test found,not executed
+test_cli_credential_from_env,test_remediation_toolkit.py,248,,no same-name test found,not executed
+test_resolves_db_containing_the_run_session,test_run_db_resolver.py,62,,no same-name test found,not executed
+test_returns_none_when_session_absent,test_run_db_resolver.py,68,,no same-name test found,not executed
+test_no_hint_falls_back_to_newest,test_run_db_resolver.py,73,,no same-name test found,not executed
+test_no_dbs_returns_none,test_run_db_resolver.py,79,,no same-name test found,not executed
+test_subagent_sessions_read_from_resolved_db,test_run_db_resolver.py,85,,no same-name test found,not executed
+test_subagent_parts_format_into_persistable_events,test_run_db_resolver.py,101,,no same-name test found,not executed
+test_no_override_falls_back_to_global_default,test_session_privacy.py,58,mcp/tests/test_session_privacy.py,name found,not executed
+test_override_true_wins_over_global_false,test_session_privacy.py,65,mcp/tests/test_session_privacy.py,name found,not executed
+test_override_false_wins_over_global_true,test_session_privacy.py,71,mcp/tests/test_session_privacy.py,name found,not executed
+test_override_is_scoped_to_its_own_vault_only,test_session_privacy.py,77,mcp/tests/test_session_privacy.py,name found,not executed
+test_override_expires_with_vault_ttl,test_session_privacy.py,87,mcp/tests/test_session_privacy.py,name found,not executed
+test_no_vault_falls_back_to_global_default,test_session_privacy.py,100,mcp/tests/test_session_privacy.py,name found,not executed
+test_rehydration_succeeds_regardless_of_session_override,test_session_privacy.py,110,mcp/tests/test_session_privacy.py,name found,not executed
+test_override_true_forces_exfil_policy_even_if_global_default_is_off,test_session_privacy.py,127,mcp/tests/test_session_privacy.py,name found,not executed
+test_output_not_sanitized_when_toggle_off,test_session_privacy.py,158,mcp/tests/test_session_privacy.py,name found,not executed
+test_output_sanitized_when_toggle_on,test_session_privacy.py,178,mcp/tests/test_session_privacy.py,name found,not executed
+test_run_workflow_rehydrates_even_when_exfil_policy_is_off,test_session_privacy.py,214,mcp/tests/test_session_privacy.py,name found,not executed
+test_run_workflow_url_exfil_bypassed_when_exfil_policy_off,test_session_privacy.py,241,mcp/tests/test_session_privacy.py,name found,not executed
+test_run_workflow_unknown_placeholder_is_passed_through_when_policy_off,test_session_privacy.py,259,mcp/tests/test_session_privacy.py,name found,not executed
+test_run_workflow_unknown_placeholder_blocked_under_strict,test_session_privacy.py,278,mcp/tests/test_session_privacy.py,name found,not executed
+test_all_toolbox_wrappers_are_whitelisted,test_tool_whitelist.py,61,mcp/tests/test_tool_whitelist.py,name found,not executed
+test_workflow_allowlist_stays_synced_with_executor,test_tool_whitelist.py,72,mcp/tests/test_tool_whitelist.py,name found,not executed
+test_workflow_rehydrates_placeholder_params,test_workflow_privacy.py,54,mcp/tests/test_workflow_privacy.py,name found,not executed
+test_workflow_sanitizes_nested_result_values_and_keys,test_workflow_privacy.py,69,mcp/tests/test_workflow_privacy.py,name found,not executed
+test_workflow_passes_unknown_placeholder_through_untouched,test_workflow_privacy.py,98,mcp/tests/test_workflow_privacy.py,name found,not executed
+test_workflow_rejects_unknown_placeholder_under_strict,test_workflow_privacy.py,107,mcp/tests/test_workflow_privacy.py,name found,not executed
+test_workflow_never_receives_a_credential,test_workflow_privacy.py,121,mcp/tests/test_workflow_privacy.py,name found,not executed
+test_workflow_rejects_credential_placeholder_under_strict,test_workflow_privacy.py,134,mcp/tests/test_workflow_privacy.py,name found,not executed
+test_workflow_withholds_placeholder_exfiltration_in_url,test_workflow_privacy.py,149,mcp/tests/test_workflow_privacy.py,name found,not executed
+test_workflow_blocks_placeholder_exfiltration_in_url_under_strict,test_workflow_privacy.py,162,mcp/tests/test_workflow_privacy.py,name found,not executed
+test_workflow_allows_placeholder_as_url_host,test_workflow_privacy.py,179,mcp/tests/test_workflow_privacy.py,name found,not executed
+test_workflow_validator_on_template,test_workflow_validator.py,6,mcp/tests/test_workflow_validator.py,name found,not executed
+test_workflow_validator_fails_on_nonexistent_class,test_workflow_validator.py,36,mcp/tests/test_workflow_validator.py,name found,not executed

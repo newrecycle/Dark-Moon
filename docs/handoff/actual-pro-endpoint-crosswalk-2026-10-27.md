@@ -1,6 +1,8 @@
 # Actual Pro 52-route API crosswalk — 2026-10-27
 
-The actual original commercial image at `sha256:48248382877ec1fd7362d2268656956268129d5ea565befab3a24436ea2fc907` has **52 FastAPI decorated method/path declarations**, including trailing-slash aliases. Compared statically to `newrecycle/Dark-Moon:pro` at `7c2bb758adc43ecb96e2761e6fbe9cc670cb04c3` in `mcp/community/api.py` and `server.py`. See [image baseline](actual-pro-image-baseline-2026-10-27.md).
+The actual original commercial image at `sha256:48248382877ec1fd7362d2268656956268129d5ea565befab3a24436ea2fc907` has **52 FastAPI decorated method/path declarations**, including trailing-slash aliases. Compared statically to `newrecycle/Dark-Moon:pro` at `84c9d360df5eefc059ed26eae4d6a1fc97c4603e` in `mcp/community/api.py` and `server.py`. See [image baseline](actual-pro-image-baseline-2026-10-27.md).
+
+**2026-10-27 follow-up:** [Detailed static audit and machine-readable discrepancy list](../pro-audit/README.md) records **13** API compatibility issues: 12 method/path differences in this table plus `GET /credentials?capability=...` filtering. These are *not* 13 missing methods. No vendor HTTP runtime comparison has been executed.
 
 `present` means a matching method/path is handled **only**. No equality of authorization, bodies, status, errors, response envelopes, pagination, ordering, stream format, or data schemas has been established. `different` and `missing` are *exact route* discrepancies, not necessarily missing user-facing capabilities. Statuses are static inspection results, not tests.
 

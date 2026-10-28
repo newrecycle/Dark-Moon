@@ -2,6 +2,8 @@
 
 > **New actual-Pro baseline (2026-10-27):** [image reference](actual-pro-image-baseline-2026-10-27.md), [52-route crosswalk](actual-pro-endpoint-crosswalk-2026-10-27.md) and [implementation parity backlog](actual-pro-parity-ledger-2026-10-27.md). This pre-existing ledger tracks **integration host validation**, not measured parity with the vendor binary.
 
+The new [commercial Pro static audit](../pro-audit/README.md) is a separate source for API/Angular/remediation coverage; it does not supersede integration-host tests or establish commercial runtime behavior. This ledger remains the source for native integration-host follow-up.
+
 Scope: finish integration gaps sequentially, test against this fork, push tested
 checkpoints to `pro`, and continue searching until remaining gaps are either
 resolved or require a concrete unavailable capability. No PR, external message,

@@ -1,5 +1,7 @@
-# Reconstructed Pro features on current master
+# Reconstructed Pro features on the independent `pro` branch
 
+> **Updated commercial Pro static analysis:** [Audit report, native coverage, Angular inventory, test overlap and known gaps](pro-audit/README.md). This is static evidence, not a completed runtime parity test.
+>
 > **Actual commercial Pro image reference (2026-10-27):** [pinned package evidence](handoff/actual-pro-image-baseline-2026-10-27.md), [exact 52-endpoint crosswalk](handoff/actual-pro-endpoint-crosswalk-2026-10-27.md), and [prioritized parity ledger](handoff/actual-pro-parity-ledger-2026-10-27.md). This matrix describes the **independent fork**, not demonstrated commercial runtime parity. The vendor packaged backend/frontend and test contracts are available for inspection, but original TypeScript / compiled native Python source and live vendor HTTP results remain unverified. Maintain stronger fork security.
 
 Base: **ASCIT31/Dark-Moon master `b52d4d73c325427e4d2fa5f3cbf87dd889cc6300`**.

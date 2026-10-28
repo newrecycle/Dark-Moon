@@ -1,0 +1,31 @@
+{
+  "baseline_commit": "84c9d360df5eefc059ed26eae4d6a1fc97c4603e",
+  "vendor_image": "ascit/opencode-darkmoon-pro@sha256:48248382877ec1fd7362d2268656956268129d5ea565befab3a24436ea2fc907",
+  "evidence_level": "static-only",
+  "genuine_vendor_runtime_executed": false,
+  "stats": {
+    "decorated_endpoint_declarations": 52,
+    "angular_js_bundles": 114,
+    "angular_babel_parsed_bundles": 114,
+    "angular_formatted_bundles": 114,
+    "original_tests": 126,
+    "native_modules": 32,
+    "ghidra_attempted_functions": 46290,
+    "ghidra_successful_functions": 46276,
+    "ghidra_failed_functions": 14,
+    "acceptance_plans_not_executed": 76,
+    "static_api_discrepancies": 13
+  },
+  "source_artifact": "darkmoon-pro-complete-audit-upload.zip",
+  "omitted_public_artifacts": [
+    "raw extracted commercial vendor assets",
+    "compiled Angular JavaScript",
+    "original binaries/shared objects",
+    "decompiled pseudocode",
+    "Ghidra raw logs and project databases",
+    "local fork checkout",
+    "possible runtime secrets",
+    "duplicate packaged archives"
+  ],
+  "note": "Compiled evidence and function counts do not constitute behavioral equivalence; proprietary assets are not mirrored into this public repository."
+}

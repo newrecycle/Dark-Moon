@@ -2,6 +2,8 @@
 
 **Purpose:** reference implementation evidence for [fork parity ledger](actual-pro-parity-ledger-2026-10-27.md) and [exact API crosswalk](actual-pro-endpoint-crosswalk-2026-10-27.md). This document describes original commercial Pro, **not** capabilities claimed by the `newrecycle/Dark-Moon:pro` fork. No vendor source/binaries are copied into this repository.
 
+**Post-extraction update:** [Comprehensive static audit and 126-test/Ghidra coverage](../pro-audit/README.md) is now available. The native `.pyi` modules identify **Nuitka**, and all 32 module files were processed by Ghidra (46,276/46,290 individual function attempts succeeded). These are low-level decompiler outcomes, **not recovery of exact Python algorithms**; no vendor runtime behavior was verified. The previous documented API crosswalk and 28-item parity ledger remain relevant.
+
 ## Verified provenance and evidence level
 
 - Image: `ascit/opencode-darkmoon-pro@sha256:48248382877ec1fd7362d2268656956268129d5ea565befab3a24436ea2fc907`, built 2026-10-27T19:45:03Z; image created 2026-10-27T20:13:21Z.
