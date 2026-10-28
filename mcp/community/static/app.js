@@ -22,6 +22,7 @@ let token = "",
   viewControl,
   scheduleMode = false;
 let currentDetailJob = "", lastFindingsHash = "";
+let runQueueOffset = 0, runQueueRequest = 0;
 const severityColors = {
   critical: "#fb8698",
   high: "#f5b27b",
@@ -321,12 +322,14 @@ async function exportReport(cid, format) {
 async function loadRunQueue(signal) {
   const target = $("#run-queue");
   if (!target) return;
+  const request = ++runQueueRequest;
+  const offset = runQueueOffset;
   try {
     const [active, recent] = await Promise.all([
       api("/api/v1/run/active", {signal}),
-      api("/api/v1/run/logs?limit=50&offset=0", {signal}),
+      api(`/api/v1/run/logs?limit=50&offset=${offset}`, {signal}),
     ]);
-    if (signal.aborted || route !== "campaigns" || target !== $("#run-queue")) return;
+    if (signal.aborted || request !== runQueueRequest || route !== "campaigns" || target !== $("#run-queue")) return;
     const seen = new Set(active.data.map((r) => r.run_id));
     const rows = [...active.data, ...recent.data.filter((r) => !seen.has(r.run_id))];
     target.innerHTML = rows.length ? rows.map((j) => {
@@ -335,10 +338,10 @@ async function loadRunQueue(signal) {
       const label = j.log_status === "unavailable" ? "Log unavailable" :
         j.log_status === "missing" ? "Log not yet created" : "Log metadata available";
       return `<div class="list-item"><div><a class="clickable" data-job="${esc(j.run_id)}">${esc(title)}</a><small>Run ${esc(j.run_id)} · Campaign ${esc(j.campaign_id || "unavailable")} · ${esc(date(j.created_at))} · ${esc(label)}</small></div><div>${badge(j.state)} ${["queued", "running", "cancelling"].includes(j.state) && identity?.role !== "viewer" ? `<button class="secondary" data-cancel="${esc(j.run_id)}">Cancel</button>` : ""}</div></div>`;
-    }).join("") + (recent.has_more ? '<p class="instructions">Showing the newest 50 history records. More pages are available through the logs API.</p>' : "") :
+    }).join("") + `<div class="toolbar" aria-label="Run history pages"><button class="secondary" data-run-page="${Math.max(0, offset - 50)}" ${offset === 0 ? "disabled" : ""}>Previous</button><span>History ${recent.total ? offset + 1 : 0}–${offset + recent.data.length} of ${recent.total}</span><button class="secondary" data-run-page="${offset + 50}" ${recent.has_more ? "" : "disabled"}>Next</button></div>` :
       empty("Queue is empty", "No retained run records.");
   } catch (error) {
-    if (!signal.aborted && route === "campaigns" && target === $("#run-queue"))
+    if (!signal.aborted && request === runQueueRequest && route === "campaigns" && target === $("#run-queue"))
       target.textContent = "Run history unavailable: " + error.message;
   }
 }
@@ -485,7 +488,13 @@ document.addEventListener("click", async (e) => {
   );
   if (!b) return;
   try {
-    if (b.dataset.findingsPage) {
+    if (b.dataset.runPage !== undefined) {
+      const next = Number(b.dataset.runPage);
+      if (!Number.isSafeInteger(next) || next < 0 || next > 100000) return;
+      runQueueOffset = next;
+      if ($("#run-queue")) $("#run-queue").textContent = "Loading runs…";
+      loadRunQueue(viewControl.signal);
+    } else if (b.dataset.findingsPage) {
       updateFindingView({page:Number(b.dataset.findingsPage)}, true);
       $("#finding-count").setAttribute("tabindex", "-1");
       $("#finding-count").focus();
