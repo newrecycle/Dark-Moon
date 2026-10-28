@@ -75,6 +75,7 @@ jobs:
               name = str(p)
               if (name == ".github/workflows/integration-inventory.yml"
                   or name == "docs/community-validation.md"
+                  or name == "integrations/upstream/client/CHANGELOG.md"
                   or any(name.startswith(root) for root in archived)
                   or p.suffix.lower() not in text_suffixes):
                   continue
