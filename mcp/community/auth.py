@@ -49,10 +49,33 @@ class CredentialVault:
 
     @staticmethod
     def public(item):
-        return {k: v for k, v in item.items() if k != "sealed"} | {"set": True}
+        # Explicit allowlist: never forward extension fields or internal secrets.
+        from .credential_catalog import capabilities
+        def string(key):
+            value = item.get(key)
+            return value if isinstance(value, str) else ""
+        return {"id": string("id"), "name": string("name"),
+                "provider": string("provider"), "username": string("username"),
+                "created_at": string("created_at"), "hint": "********",
+                "set": bool(item.get("sealed")), "capabilities": capabilities(item)}
 
-    def list(self):
-        return [self.public(item) for item in self.store.items("credentials") if not item.get("internal")]
+    def list(self, capability=None):
+        from .credential_catalog import allows, check_capability
+        check_capability(capability)
+        records = sorted(self.store.items("credentials"), key=lambda row: str(row.get("id", "")))
+        return [self.public(item) for item in records if allows(item, capability)]
+
+    def get(self, credential_id, capability=None):
+        from .credential_catalog import allows
+        item = self.store.get("credentials", identifier(credential_id))
+        if not item or not allows(item, capability):
+            raise KeyError("Credential not found")
+        return self.public(item)
+
+    def require(self, credential_id, capability):
+        # Even a guessed internal webhook signing key is not selectable.
+        self.get(credential_id, capability)
+        return identifier(credential_id)
 
     def resolve(self, credential_id):
         item = self.store.get("credentials", identifier(credential_id))

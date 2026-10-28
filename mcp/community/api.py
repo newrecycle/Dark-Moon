@@ -123,15 +123,23 @@ class API:
                 return False
             return True
         if resource == "credentials":
-            if method == "GET" and len(parts) == 1:
-                handler.send(envelope(self.service.vault.list()))
+            if method == "GET" and parts == ["credentials", "providers"]:
+                from .credential_catalog import catalog as credential_catalog
+                handler.send(credential_catalog())
+            elif method == "GET" and len(parts) == 1:
+                requested = parse_qs(urlsplit(handler.path).query, keep_blank_values=True).get("capability")
+                if requested and len(requested) != 1:
+                    raise ValueError("Specify one credential capability")
+                handler.send(envelope(self.service.vault.list(requested[0] if requested else None)))
+            elif method == "GET" and len(parts) == 2:
+                handler.send({"data": self.service.vault.get(parts[1])})
             elif method == "POST" and len(parts) == 1:
                 handler.send({"data": self.service.vault.save(handler.body())}, status=201)
             elif len(parts) == 2 and method in {"PATCH", "PUT"}:
-                if not self.store.get("credentials", parts[1]):
-                    raise KeyError(parts[1])
+                self.service.vault.get(parts[1])
                 handler.send({"data": self.service.vault.save(handler.body(), parts[1])})
             elif method == "DELETE" and len(parts) == 2:
+                self.service.vault.get(parts[1])
                 handler.send(self.service.vault.delete(parts[1]))
             else:
                 return False
@@ -341,6 +349,7 @@ class API:
             handler.send({"assessment":assessment_catalog(), "targets":snapshot["targets"], "campaigns":snapshot["campaigns"],
                           "findings":[{k:v.get(k) for k in ("id","campaign_id","title","severity")} for v in snapshot["findings"]],
                           "credentials":self.service.vault.list() if identity.get("role") != "viewer" else [],
+                          "credential_choices":{cap:self.service.vault.list(cap) for cap in ("assessment_login", "assessment_token", "source_checkout", "provider_api_key")} if identity.get("role") != "viewer" else {},
                           "repositories":sorted({j.get("spec",{}).get("git_repo") for j in self.store.items("jobs") if j.get("spec",{}).get("git_repo")} | {p.get("repo") for p in self.store.items("remediations") if p.get("repo")} | {p for p in os.environ.get("DARKMOON_SOURCE_REPOSITORIES", "").split(os.pathsep) if p}),
                           "opencode":catalog(self.service) if admin else None})
             return True

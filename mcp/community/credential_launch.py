@@ -34,9 +34,12 @@ def prepare(repo, store, prompt, spec, run=subprocess.run):
         reference = spec.get(key)
         if not reference:
             continue
+        capability = "assessment_login" if flag == "CREDS" else "assessment_token"
+        try:
+            vault.require(reference, capability)
+        except KeyError:
+            raise ValueError("Target credential reference is unavailable for this use") from None
         record = store.get("credentials", reference)
-        if not record:
-            raise ValueError("Target credential reference was not found")
         value = vault.resolve(reference)
         if not value or any(c.isspace() or c in '\"\'' for c in value):
             raise ValueError("The upstream scope parser requires a single-token target secret")

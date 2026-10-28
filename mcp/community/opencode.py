@@ -320,6 +320,10 @@ def sync(service):
 def connect(service, raw):
     pid = identifier(raw.get("provider"))
     cid = identifier(raw.get("credential_id"))
+    try:
+        service.vault.require(cid, "provider_api_key")
+    except KeyError:
+        raise ValueError("Provider credential reference is unavailable") from None
     secret = service.vault.resolve(cid)
     config_path, auth_path, _ = paths(service)
     _, _, env_path = paths(service)

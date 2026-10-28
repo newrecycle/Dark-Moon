@@ -39,7 +39,7 @@ specific rotation's version. A subsequent password rotation revokes it even if
 session issuance completes later. The existing `/auth/password` endpoint keeps
 its original `reauthenticate: true` response.
 
-The other ten static discrepancy rows remain open. Credential capabilities and
+At the first P0 increment, the other ten static discrepancy rows remained open; see subsequent implementations below. Credential capabilities and
 masked detail, finding history/PR linkage, active-run/log metadata, target
 history, webhook detail/test behavior, and original wire snapshots require their
 own explicit contracts. Supporting an exact method/path is insufficient to mark
@@ -198,3 +198,47 @@ under concurrent ticks; legacy enabled-only toggle; existing canonical editor,
 duplicate and history consumers. No full build, schedule execution, assessment
 launch or regression test was performed. This adapter does not establish
 licensed-vendor scheduling/runtime parity.
+
+## Credential discovery increment — independent fork contract
+
+Source implementation, review only (test authoring, test execution, builds and
+native-host checks deferred at the user's request):
+
+| API / consumer | Implemented fork behavior | Intentional difference / verification still needed |
+| --- | --- | --- |
+| `GET /api/v1/credentials/providers` | Administrator-only catalog of fork-native `generic`, `target-login`, `target-token`, `scm`, `api-key` suggested record labels, with explicit capability identifiers and field metadata. Routed before ID detail. | These are **not** verified vendor provider adapters, vendor schemas or supported vendor ownership models. Provider labels are descriptive; old/custom labels remain valid. Vendor response shape remains unknown. |
+| `GET /api/v1/credentials/{credential_id}` | Administrator-only `{"data": ...}` of allowlisted `id`, `name`, `provider`, `username`, `created_at`, fixed masked `hint`, `set`, and computed `capabilities`. Unknown/internal IDs return 404. | No decrypted or sealed data, internal webhook signing credentials, or arbitrary persisted fields. External wire-envelope parity unverified. |
+| `GET /api/v1/credentials?capability=...` | Administrator-only, ID-sorted, internal-excluding records with deterministic capability selection; duplicate/blank/unknown capability fails with 400 instead of widening results. Unfiltered list remains supported. | Fork-derived single-secret eligibility, not a guessed original provider-specific field adapter. |
+| `GET /api/v1/options` | Viewer gets no credential choices; analyst/admin retain the existing masked `credentials` list and receive `credential_choices` keyed by capability. Workspace launch, profile and OpenCode selectors consume those specific arrays. | Analysts may select workspace credentials for authorized launches; credential discovery/detail/mutation endpoints remain administrator-only. No partial per-owner filtering. |
+| Credential-consuming operations | `assessment_login` requires a nonempty username; `assessment_token`, `source_checkout` and `provider_api_key` require a sealed single secret. Shared eligibility checks protect launch, privacy-token injection, HTTPS checkout, remediation requests, provider profile/apply, model discovery, and OpenCode connect. | A usable reference is not a live provider test; no provider calls are made by discovery. Runtime-specific username/token syntactic constraints remain at their existing use sites. |
+
+Credential catalog use-site meanings:
+
+- `assessment_login`: username + secret injected through local privacy tokenization.
+- `assessment_token`: single secret injected as a target API token through the same privacy boundary.
+- `source_checkout`: single secret for read-only HTTPS Git askpass checkout (optional username).
+- `provider_api_key`: single secret for an administrator-managed OpenCode/provider profile or connection.
+
+Provider labels do not narrow use-site capability: old entries such as
+`github`, `gitlab`, `gitea`, `aws` and native OpenCode names remain intact,
+but labels alone do not assert that integrations work. A single-secret record
+can match several use sites; only login use requires a username. Internal records
+and records without a sealed secret cannot pass capability filtering. Saved
+ciphertext and existing credential IDs are not migrated or re-encrypted. Webhook
+signing keys remain internal and are excluded from discovery, detail, selectors
+and new consumer eligibility checks; their private delivery resolution is not
+changed.
+
+**Access model:** one administrator-managed workspace vault, with analyst
+selection exposure via `/options`, not per-user credential ownership. The
+vendor's potential owner-scoped/provider-specific behavior is deliberately not
+claimed or emulated. PBKDF2 local authentication, revocable JWT sessions, and
+the API's current credential route admin gate are unchanged.
+
+**Deferred verification:** HTTP status/envelope and role-matrix tests; blank,
+duplicate, unknown filter and ID behavior; legacy custom-provider records; forged
+fields and internal webhook credentials; selection of login credentials without
+usernames; UI selector/metadata interaction; launch, remediation checkout and
+OpenCode profile/connection behavior; concurrency, persistence and native-host
+compatibility; authorized original-runtime comparison if ever available. This
+increment has **not** been test-executed, built or vendor-wire-verified.

@@ -101,9 +101,14 @@ class Service:
         spec = launch_spec(raw)
         if spec.get("remediate") and not spec.get("git_repo") and not spec.get("create_repo"):
             raise ValueError("Automatic remediation needs a source repository or an explicit request to create a proposal repository")
-        for field in ("credential_id", "assessment_credential_id", "assessment_token_id"):
-            if spec.get(field) and not self.store.get("credentials", spec[field]):
-                raise ValueError("Saved credential reference was not found")
+        for field, capability in (("credential_id", "source_checkout"),
+                                  ("assessment_credential_id", "assessment_login"),
+                                  ("assessment_token_id", "assessment_token")):
+            if spec.get(field):
+                try:
+                    self.vault.require(spec[field], capability)
+                except KeyError:
+                    raise ValueError("Saved credential reference is unavailable for this use") from None
         allowed = [x.strip() for x in os.environ.get("DARKMOON_TARGET_ALLOWLIST", "").split(",") if x.strip()]
         if allowed:
             import fnmatch
@@ -229,8 +234,11 @@ class Service:
         if not generate and not isinstance(raw.get("edits"), list):
             raise ValueError("Supply structured edits or enable model generation")
         credential_id = raw.get("credential_id") or ""
-        if credential_id and not self.store.get("credentials", identifier(credential_id)):
-            raise ValueError("Credential reference not found")
+        if credential_id:
+            try:
+                self.vault.require(credential_id, "source_checkout")
+            except KeyError:
+                raise ValueError("Source credential reference is unavailable") from None
         proposal_id = "rem_" + uuid.uuid4().hex[:16]
         directory = self.store.root / "remediation" / proposal_id
         directory.mkdir(parents=True, mode=0o700)

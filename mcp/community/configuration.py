@@ -37,8 +37,11 @@ def profile(service, raw, profile_id=None):
                 "Local/Anthropic mode requires a base URL without embedded credentials"
             )
     credential = raw.get("credential_id") or ""
-    if credential and not service.store.get("credentials", identifier(credential)):
-        raise ValueError("Credential reference was not found")
+    if credential:
+        try:
+            service.vault.require(credential, "provider_api_key")
+        except KeyError:
+            raise ValueError("Provider credential reference is unavailable") from None
     if mode == "cloud" and not credential:
         from .opencode import catalog
 
@@ -87,6 +90,11 @@ def apply(service, profile_id):
     item = service.store.get("providers", identifier(profile_id))
     if not item:
         raise KeyError(profile_id)
+    if item["credential_id"]:
+        try:
+            service.vault.require(item["credential_id"], "provider_api_key")
+        except KeyError:
+            raise ValueError("Provider credential reference is unavailable") from None
     token = (
         service.vault.resolve(item["credential_id"]) if item["credential_id"] else ""
     )

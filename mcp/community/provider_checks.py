@@ -54,6 +54,11 @@ def endpoint_models(service, raw):
             "Use an HTTP(S) base URL without credentials, query or fragment"
         )
     credential = raw.get("credential_id") or ""
+    if credential:
+        try:
+            service.vault.require(credential, "provider_api_key")
+        except KeyError:
+            raise ValueError("Provider credential reference is unavailable") from None
     secret = service.vault.resolve(identifier(credential)) if credential else ""
     if any(c in secret for c in "\r\n\x00"):
         raise ValueError("This credential cannot be used as an HTTP header")

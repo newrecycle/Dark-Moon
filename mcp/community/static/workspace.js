@@ -12,9 +12,9 @@
         return `<option value="${esc(value)}">${esc(label)}</option>`;
       })
       .join("");
-  const credentials = () => [
+  const credentials = (capability) => [
     { value: "", label: "None / use existing provider login" },
-    ...choices.credentials.map((c) => ({
+    ...(choices.credential_choices?.[capability] || []).map((c) => ({
       value: c.id,
       label: `${c.name} (${c.provider})`,
     })),
@@ -108,7 +108,11 @@
       "credential_id",
     ])
       f.elements[key].innerHTML = optionsHtml(
-        credentials().map((c, i) =>
+        credentials({
+          credential_id: "source_checkout",
+          assessment_token_id: "assessment_token",
+          assessment_credential_id: "assessment_login",
+        }[key]).map((c, i) =>
           i
             ? c
             : {
@@ -373,7 +377,7 @@
       const result = await api("/api/v1/credentials");
       if (route !== page) return;
       $("#content").innerHTML =
-        `<section class="panel"><div class="section-top"><div><h3>Encrypted credentials</h3><p>Use opaque references in runs and provider profiles. Saved secrets are never returned.</p></div><button class="primary" data-workspace="credential">+ Add credential</button></div>${result.data.map((c) => `<div class="list-item"><div>${esc(c.name)}<small>${esc(c.provider)} · ${esc(c.id)} · ${esc(c.hint)}</small></div><button class="secondary" data-delete-credential="${esc(c.id)}">Delete</button></div>`).join("") || empty("No saved credentials")}</section>`;
+        `<section class="panel"><div class="section-top"><div><h3>Encrypted credentials</h3><p>Use opaque references in runs and provider profiles. Saved secrets are never returned.</p></div><button class="primary" data-workspace="credential">+ Add credential</button></div>${result.data.map((c) => `<div class="list-item"><div>${esc(c.name)}<small>${esc(c.provider)} · ${esc(c.id)} · ${esc(c.hint)}</small></div><button class="secondary" data-detail-credential="${esc(c.id)}">Details</button><button class="secondary" data-delete-credential="${esc(c.id)}">Delete</button></div>`).join("") || empty("No saved credentials")}</section>`;
     } else if (page === "webhooks") {
       const result = await api("/api/v1/webhooks");
       if (route !== page) return;
@@ -435,7 +439,7 @@
         "credential_id",
         "Saved API key (optional when connected)",
         "select",
-        credentials(),
+        credentials("provider_api_key"),
       ],
     ];
     openForm(
@@ -661,27 +665,12 @@
           ["new_password", "New password (at least 12 characters)", "password"],
         ]);
       if (action === "credential") {
-        await loadChoices();
+        const catalog = await api("/api/v1/credentials/providers");
         openForm("credential", "Store encrypted credential", [
           ["name", "Name"],
-          [
-            "provider",
-            "Provider",
-            "select",
-            [
-              ...new Set([
-                "generic",
-                "github",
-                "gitlab",
-                "gitea",
-                "target-login",
-                "target-token",
-                "aws",
-                ...(choices.opencode?.providers || []).map((p) => p.id),
-              ]),
-            ],
-          ],
-          ["username", "Username (optional)"],
+          ["provider", "Credential use (descriptive label)", "select",
+            catalog.data.map((p) => ({ value: p.id, label: p.name }))],
+          ["username", "Username (optional; required for target login)"],
           ["secret", "Secret", "password"],
         ]);
       }
@@ -728,7 +717,7 @@
             "credential_id",
             "Saved API key (optional)",
             "select",
-            credentials(),
+            credentials("provider_api_key"),
           ],
           ["secret", "New API key (optional)", "password"],
         );
@@ -814,6 +803,12 @@
           `<div class="cards"><div class="card">Campaigns<div class="number">${result.data.campaigns_count}</div></div><div class="card">Findings<div class="number">${result.data.total_vulnerabilities}</div></div></div><canvas class="analytics-chart" id="project-chart"></canvas><p class="instructions">Counts reflect recorded findings per campaign. Compare scope before interpreting changes as improvements.</p>${campaignsTable(result.campaigns)}`,
         );
         chart($("#project-chart"), result.timeseries.series);
+      }
+      if (button.dataset.detailCredential) {
+        const r = await api(
+          `/api/v1/credentials/${encodeURIComponent(button.dataset.detailCredential)}`,
+        );
+        details("Masked credential metadata", `<pre>${esc(JSON.stringify(r.data, null, 2))}</pre>`);
       }
       if (button.dataset.deleteCredential) {
         await api(`/api/v1/credentials/${button.dataset.deleteCredential}`, {
