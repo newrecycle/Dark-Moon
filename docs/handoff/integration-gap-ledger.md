@@ -192,3 +192,16 @@ heap. The source checkpoint is not a memory/latency or concurrency verification
 claim: full journal scans and append-lock contention remain, as do indexing,
 retention and cross-file transaction/recovery design. Verification is delegated
 through the post-commit prompt rather than run in this implementation pass.
+
+## Grafana host verification closure — 28 October 2026
+
+The Go/frontend offline regression gate [40725844906](https://github.com/newrecycle/Dark-Moon/actions/runs/40725844906)
+passed the declared Go 1.26.3/Node 22 tests, race detector and builds. The
+real packaged plugin (Mage-built nested datasource and webpack frontend) also
+passed [isolated Grafana 13.1 host acceptance 40727729155](https://github.com/newrecycle/Dark-Moon/actions/runs/40727729155)
+with fixture-backed `/api/ds/query` retest identity/lifecycle frames.
+The full [verification record](../pro-audit/2026-10-28/grafana-verification.md)
+describes security/privacy cases, host prerequisites and remaining limits.
+This closes the **disposable Grafana 13.1 host check**, not all Grafana
+versions, signed publication, browser image parity or original-vendor
+runtime compatibility.
