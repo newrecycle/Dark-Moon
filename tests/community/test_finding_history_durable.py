@@ -209,6 +209,43 @@ class DurableFindingHistoryTests(fixtures.Fixture):
             indexed.archive(out, before=STAMP)
         self.assertEqual(indexed.verify()["events"], 2)
 
+    def test_reader_writer_processes_and_contention_are_measured(self):
+        script = (
+            "import json,os,resource,sys,time\n"
+            "from pathlib import Path\n"
+            "from api import json_storage as d\n"
+            "d.FINDING_HISTORY_FILE=Path(sys.argv[1])\n"
+            "role,index=sys.argv[2:4]\n"
+            "begin=time.perf_counter()\n"
+            "for i in range(24 if role=='writer' else 60):\n"
+            " if role=='writer':\n"
+            "  d.record_finding_event({'id':'c1','target_id':'t1'},"
+            "{'id':'multi_'+index+'_'+str(i)},'finding.created')\n"
+            " else:\n"
+            "  d.load_finding_history(target_id='t1',limit=20,offset=10)\n"
+            "print(json.dumps({'role':role,'seconds':time.perf_counter()-begin,"
+            "'rss_peak_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}),flush=True)\n"
+        )
+        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[2] / "mcp"))
+        children = [
+            subprocess.Popen([sys.executable, "-c", script, str(data.FINDING_HISTORY_FILE),
+                              role, str(i)], env=env, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+            for i, role in enumerate(("reader", "writer", "reader", "writer"))
+        ]
+        measurements = []
+        for child in children:
+            stdout, stderr = child.communicate(timeout=45)
+            self.assertEqual(child.returncode, 0, stderr.decode("utf-8", "replace"))
+            measurements.append(json.loads(stdout))
+        result = data.load_finding_history(limit=50, offset=0)
+        self.assertEqual(result["total"], 48)
+        self.assertEqual(len(data.load_finding_history()["events"]), 48)
+        self.assertEqual(indexed.verify()["pending"], 0)
+        self.assertTrue(all(row["seconds"] < 30 for row in measurements))
+        print("history_process_contention_measurements=" +
+              json.dumps(measurements, sort_keys=True), flush=True)
+
     def test_deep_page_index_benchmark_vs_memory_not_universal_bound(self):
         # 24k records, many deep pages, and resident allocations of one reader.
         # This test measures the index path, not initial JSONL migration.
@@ -221,6 +258,8 @@ class DurableFindingHistoryTests(fixtures.Fixture):
                 rows.append((row["id"], STAMP, "t1", payload,
                              hashlib.sha256(payload.encode()).hexdigest(), "legacy"))
             db.executemany("INSERT INTO events(id,recorded_at,target_id,payload,payload_sha,origin) VALUES(?,?,?,?,?,?)", rows)
+        import resource
+        rss_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         elapsed = []
         tracemalloc.start()
         try:
@@ -233,7 +272,8 @@ class DurableFindingHistoryTests(fixtures.Fixture):
             _, peak = tracemalloc.get_traced_memory()
         finally:
             tracemalloc.stop()
+        rss_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         self.assertLess(peak, 20 * 1024 * 1024)
         self.assertLess(max(elapsed), 15)
-        print("sqlite_indexed_page_seconds offsets=0,4000,16000,23000 values=%s peak_traced_bytes=%d" %
-              (elapsed, peak), flush=True)
+        print("sqlite_indexed_page_seconds offsets=0,4000,16000,23000 values=%s peak_traced_bytes=%d maxrss_before_kib=%d maxrss_after_kib=%d" %
+              (elapsed, peak, rss_before, rss_after), flush=True)
