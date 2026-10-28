@@ -115,7 +115,7 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 - ⭐ **Flagship (star it):** https://github.com/ASCIT31/Dark-Moon
 - 📚 **Docs:** https://docs.dark-moon.org
 - 🌐 **Website:** https://dark-moon.org
-- 🔗 **Related integrations:** [SDK / CLI](https://github.com/ASCIT31/darkmoon-client) 
+- 🔗 **Related integrations:** [SDK / CLI](https://github.com/ASCIT31/darkmoon-client)
 
 ## Dark-Moon fork snapshot
 
