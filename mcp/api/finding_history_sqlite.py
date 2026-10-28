@@ -338,7 +338,7 @@ def read(*, target_id=None, limit=None, offset=0, snapshot_seq=None):
                     result = db.execute("SELECT id,target_id,recorded_at,payload,payload_sha FROM events WHERE " + where +
                                         " ORDER BY seq", args).fetchall()
                 else:
-                    result = db.execute("SELECT payload FROM events WHERE " + where +
+                    result = db.execute("SELECT id,target_id,recorded_at,payload,payload_sha FROM events WHERE " + where +
                                         " ORDER BY recorded_at,id LIMIT ? OFFSET ?",
                                         args + [limit, offset]).fetchall()
                 events = []
