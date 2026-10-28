@@ -95,13 +95,15 @@ class CredentialVault:
         check_capability(capability)
         state = self.store.read()
         rows = sorted(state.get("credentials", {}).values(), key=lambda r: str(r.get("id", "")))
-        return [self.public(item) for item in rows if allows(item, capability) and
-                (not for_use or may_use(item, actor, state))]
+        return [self.public(item) for item in rows
+                if not item.get("internal")
+                and (capability is None or allows(item, capability))
+                and (not for_use or may_use(item, actor, state))]
 
     def get(self, credential_id, capability=None):
         from .credential_catalog import allows
         item = self.store.get("credentials", identifier(credential_id))
-        if not item or not allows(item, capability):
+        if not item or item.get("internal") or (capability is not None and not allows(item, capability)):
             raise KeyError("Credential not found")
         return self.public(item)
 
