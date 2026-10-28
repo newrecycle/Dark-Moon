@@ -22,7 +22,7 @@ let token = "",
   viewControl,
   scheduleMode = false;
 let currentDetailJob = "", lastFindingsHash = "", jobDetailRequest = 0;
-let runQueueOffset = 0, runQueueRequest = 0;
+let runQueueOffset = 0, runActiveOffset = 0, runQueueRequest = 0;
 const severityColors = {
   critical: "#fb8698",
   high: "#f5b27b",
@@ -57,6 +57,8 @@ function lock() {
   token = "";
   snapshot = null;
   identity = null;
+  runQueueRequest++;
+  runQueueOffset = runActiveOffset = 0;
   streamControl?.abort();
   $("#setup-account").close();
   viewControl?.abort();
@@ -328,12 +330,20 @@ async function loadRunQueue(signal) {
   if (!target) return;
   const request = ++runQueueRequest;
   const offset = runQueueOffset;
+  const activeOffset = runActiveOffset;
   try {
     const [active, recent] = await Promise.all([
-      api("/api/v1/run/active", {signal}),
+      api(`/api/v1/run/active?limit=50&offset=${activeOffset}`, {signal}),
       api(`/api/v1/run/logs?limit=50&offset=${offset}`, {signal}),
     ]);
     if (signal.aborted || request !== runQueueRequest || route !== "campaigns" || target !== $("#run-queue")) return;
+    for (const [page, expectedOffset] of [[active, activeOffset], [recent, offset]]) {
+      if (!page || !Array.isArray(page.data) || page.data.length > 50 || !Number.isSafeInteger(page.total) || page.total < page.data.length ||
+          (page.offset !== undefined && page.offset !== expectedOffset) ||
+          page.data.some(row => !row || typeof row.run_id !== "string" || !row.run_id || typeof row.state !== "string")) {
+        throw new Error("Run collection did not match the expected metadata contract");
+      }
+    }
     const seen = new Set(active.data.map((r) => r.run_id));
     const rows = [...active.data, ...recent.data.filter((r) => !seen.has(r.run_id))];
     target.innerHTML = (rows.length ? rows.map((j) => {
@@ -342,7 +352,10 @@ async function loadRunQueue(signal) {
       const label = !j.log_status ? "Active run" : j.log_status === "unavailable" ? "Log unavailable" :
         j.log_status === "missing" ? "Log not yet created" : "Log metadata available";
       return `<div class="list-item"><div><a class="clickable" data-job="${esc(j.run_id)}">${esc(title)}</a><small>Run ${esc(j.run_id)} · Campaign ${esc(j.campaign_id || "unavailable")} · ${esc(date(j.created_at))} · ${esc(label)}</small></div><div>${badge(j.state)} ${["queued", "running", "cancelling"].includes(j.state) && identity?.role !== "viewer" ? `<button class="secondary" data-cancel="${esc(j.run_id)}">Cancel</button>` : ""}</div></div>`;
-    }).join("") : empty(offset ? "No records on this history page" : "Queue is empty", offset ? "Use Previous to browse earlier records." : "No retained run records.")) + `<div class="toolbar" aria-label="Run history pages"><button class="secondary" data-run-page="${Math.max(0, offset - 50)}" ${offset === 0 ? "disabled" : ""}>Previous</button><span>History ${recent.total && offset < recent.total ? offset + 1 : 0}–${offset + recent.data.length} of ${recent.total}</span><button class="secondary" data-run-page="${offset + 50}" ${recent.has_more ? "" : "disabled"}>Next</button></div>`;
+    }).join("") : empty(offset || activeOffset ? "No records on these pages" : "Queue is empty", offset || activeOffset ? "Use Previous to browse earlier records." : "No retained run records.")) +
+      `<div class="toolbar" aria-label="Active run pages"><button class="secondary" data-active-run-page="${Math.max(0, activeOffset - 50)}" ${activeOffset === 0 ? "disabled" : ""}>Previous active</button><span>Active ${active.data.length ? activeOffset + 1 : 0}–${active.data.length ? activeOffset + active.data.length : 0} of ${active.total}</span><button class="secondary" data-active-run-page="${activeOffset + 50}" ${active.has_more && activeOffset + 50 <= 100000 ? "" : "disabled"}>Next active</button></div>` +
+      `<div class="toolbar" aria-label="Run history pages"><button class="secondary" data-run-page="${Math.max(0, offset - 50)}" ${offset === 0 ? "disabled" : ""}>Previous</button><span>History ${recent.data.length ? offset + 1 : 0}–${recent.data.length ? offset + recent.data.length : 0} of ${recent.total}</span><button class="secondary" data-run-page="${offset + 50}" ${recent.has_more && offset + 50 <= 100000 ? "" : "disabled"}>Next</button></div>` +
+      `<p class="instructions">Pages reflect the current queue and may shift when runs are added or finish.${active.paging_limit_reached || recent.paging_limit_reached ? " The paging limit has been reached; use API history filters to narrow retained records." : ""}</p>`;
   } catch (error) {
     if (!signal.aborted && request === runQueueRequest && route === "campaigns" && target === $("#run-queue"))
       target.textContent = "Run history unavailable: " + error.message;
@@ -493,7 +506,13 @@ document.addEventListener("click", async (e) => {
   );
   if (!b) return;
   try {
-    if (b.dataset.runPage !== undefined) {
+    if (b.dataset.activeRunPage !== undefined) {
+      const next = Number(b.dataset.activeRunPage);
+      if (!Number.isSafeInteger(next) || next < 0 || next > 100000) return;
+      runActiveOffset = next;
+      if ($("#run-queue")) $("#run-queue").textContent = "Loading runs…";
+      loadRunQueue(viewControl.signal);
+    } else if (b.dataset.runPage !== undefined) {
       const next = Number(b.dataset.runPage);
       if (!Number.isSafeInteger(next) || next < 0 || next > 100000) return;
       runQueueOffset = next;

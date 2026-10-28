@@ -2,6 +2,19 @@
 
 Source of truth: `Dark-Moon-Front-API`, branch `dev`, `mcp/api/*` (FastAPI app in `api_server.py`). All routes are versioned under `/api/v1`. This document records the exact contract the node relies on and the one improvement that would make the integration first-class.
 
+## Fork contract note — 28 October 2026
+
+The upstream descriptions below are historical references, not a runtime
+verification of the licensed service. This fork returns public run metadata
+objects from `/run/active`, with default 50/max 100 rows and offset 0–100000.
+It rejects unknown/repeated/blank query parameters. `has_more`, `next_offset`
+and `paging_limit_reached` identify further pages versus the paging ceiling;
+`page_consistency: live_offset` means concurrent queue changes can shift pages.
+The current n8n implementation uses its patched SDK's campaign correlation and
+status reads rather than this active-run collection or raw log termination
+heuristics. Refer to `docs/pro-audit/2026-10-28/compatibility-progress.md` in the
+repository root for this fork's current authenticated run/log privacy contract.
+
 ## Endpoints used
 
 ### Auth — `mcp/api/routes_auth.py`
@@ -16,7 +29,7 @@ Token is a self-signed HS256 JWT, TTL 12h (`JWT_TTL_HOURS`). Send it as `Authori
 POST   /api/v1/run/campaign            CampaignRunRequest -> { run_id, pid, command }
 GET    /api/v1/run/logs/{run_id}                          -> { data: event[], total }
 GET    /api/v1/run/{run_id}/stream                        -> text/event-stream (SSE)
-GET    /api/v1/run/active                                 -> { data: run_id[], total }
+GET    /api/v1/run/active?limit=50&offset=0               -> { data: PublicRun[], total, limit, offset, has_more, next_offset, ... }
 DELETE /api/v1/run/{run_id}/stop                          -> { message, run_id }
 ```
 `CampaignRunRequest` fields: `target` (required), `program`, `targets[]`, `out_of_scope[]`, `exclude[]`, `focus[]`, `credentials[]`, `tokens[]`, `noise`, `severity`, `format`, `rules[]`, `safe_harbor`, plus remediation fields (`git_repo`, `credential_id`, `create_repo`, `remediate`).

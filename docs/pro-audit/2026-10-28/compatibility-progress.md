@@ -75,7 +75,7 @@ runtime equivalence. Existing SDK launch and status identities are unchanged.
 
 | Route | Fork contract |
 | --- | --- |
-| `GET /api/v1/run/active` | `{data: PublicRun[], total, active_states: ["queued","running","cancelling"]}`. No query parameters. Only persisted `queued` and `running` records qualify. A running record with `cancel_requested` has public `state: "cancelling"` while its stored `status` stays `running`. Completed, failed, cancelled, interrupted and timed-out records are excluded. |
+| `GET /api/v1/run/active` | `{data: PublicRun[], total, limit, offset, has_more, next_offset, paging_limit_reached, ordering, page_consistency, active_states: ["queued","running","cancelling"]}`. Optional `limit` 1–100 (default 50), `offset` 0–100000 (default 0); unknown/repeated/blank parameters are rejected. Only persisted `queued` and `running` records qualify. A running record with `cancel_requested` has public `state: "cancelling"` while its stored `status` stays `running`. Completed, failed, cancelled, interrupted and timed-out records are excluded. |
 | `GET /api/v1/run/logs` | `{data: (PublicRun & LogMetadata)[], total, limit, offset, has_more, ordering: "created_at_desc,id_desc", content_policy: "metadata_only"}`. Optional exact `status`, `campaign_id`, `run_id`; `limit` 1–100 (default 25), `offset` 0–100000 (default 0). Status filters target the public `state` including `cancelling`. Descending `(created_at, id)` is deterministic for one dataset; offset pages are not a repeatable snapshot across concurrent queue changes. |
 | `GET /api/v1/run/{run_id}` | `PublicRun & LogMetadata`, without the saved launch spec or execution details. Unknown run returns 404. |
 | `GET /api/v1/run/logs/{run_id}` | `{data: LogEvent[], run_id, campaign_id, status, state, log_status, log_bytes, raw, truncated, content_policy}`. By default `data` contains only generated lifecycle metadata. Optional `lines` 1–200 (default 100). Explicit `raw=true` is administrator-only and returns at most the last 64 KiB, at most 200 lines and 512 characters per line. The first partial line is omitted when tail-truncated. |
@@ -561,3 +561,35 @@ This review prioritizes integrations, does not execute suite/native-host/assessm
 **Open, concrete limitations:** `mcp/api/json_storage.py::load_finding_history` currently loads the entire append journal, and `mcp/community/finding_lifecycle.py::history_page` sorts all matching rows; large journals require bounded/indexed paging with corruption checking and the same event order. `mcp/community/run_views.py::active_runs` has no cardinality bound. Proposed PR URL patterns may exclude valid nonstandard SCM paths; these remain local-proposal projections until an explicit supported serializer is added. A path shape and stored publication flag do not prove that a remote PR exists. The vendor's undocumented schedule defaults, SSE wire shape, and native integration hosts remain unverified.
 
 **Checks in this review:** GitHub branch/ref, tree and compare inspection; explicit code-level diff inspection for the touched serializers, dispatcher and vault registration path; minimal local Python AST parse of modified expression/function snippets. **Deferred:** full Python/JS build and behavioral tests; local uncommitted-worktree inspection; native VS Code, JetBrains and Jenkins hosts; Docker/provider/real webhook delivery; licensed vendor behavior. In the remote tree `integrations/upstream/vscode/test/nativeRunner.ts` and `tests/community/vscode_host.cjs` exist and were unchanged in this 38-commit range; the specified JetBrains `BoundaryTest.kt` file is absent at that exact path. No proprietary binaries, live assessment, notification or deploy was invoked.
+
+## Bounded active-run discovery continuation — 28 October 2026
+
+The earlier combined review's unbounded `/run/active` response is corrected.
+The literal route accepts only one decimal `limit` and `offset`, with default
+50/0 and ceilings 100/100000. It keeps the existing `data`, exact `total`,
+`active_states`, authorization and public-run projection, and adds page metadata.
+Only persisted queued/running records qualify; cancelling remains a derived
+public state. Default requests no longer serialize every active run.
+
+Both active and log-history selection count matching jobs while retaining at
+most `offset + limit` references with a bounded heap. Only the selected log
+page probes log metadata. This is **not** a streaming/indexed store: the JSON
+store still loads the whole state. Ordering remains descending created_at/id,
+and `page_consistency: live_offset` explicitly allows shifts across requests.
+`has_more` and `next_offset` stop at the supported offset ceiling;
+`paging_limit_reached` distinguishes that ceiling from exhausting matches.
+
+The campaign consumer requests at most 50 active plus 50 history records,
+keeps independent navigation for both collections, deduplicates their displayed
+rows, validates basic response shape, rejects stale responses, clears offsets
+on lock, and retains Previous on an empty later page. No aggregate queue
+completion/cleanliness is inferred from one empty page. Existing n8n execution
+does not use this discovery endpoint; its historical API note now labels the
+fork's paginated object projection separately.
+
+**Checks performed:** Python AST parsing for changed modules, dashboard
+JavaScript syntax and whitespace inspection. **Delegated:** HTTP pagination/
+auth/identity/limit regressions, large-queue selection/resource measurements,
+concurrent insert/terminal transitions, browser independent-pager behavior, and
+existing suite regressions. No tests, assessments or native hosts ran here.
+The finding-history journal's full-load/sort limit remains a separate open item.

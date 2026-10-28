@@ -172,3 +172,13 @@ ISO-week buckets, nullable CVSS/campaign-qualified findings, aligned frames and
 explicit datasource selection. Source inspection only; Go/frontend/native
 verification remains open and is assigned through the post-commit worker prompt.
 No Jenkins work, external services, assessments or vendor execution occurred.
+
+## Bounded run-discovery continuation — 28 October 2026
+
+The combined review's active-run response cardinality gap is addressed with
+strict optional paging, exact totals, public-only rows and independent dashboard
+active/history navigation. Shared bounded page selection avoids a second full
+matching-list sort; the underlying JSON store still loads its complete state.
+Live page shifts and the offset ceiling are explicit. HTTP/browser/resource
+verification is delegated in the post-commit prompt. Full-load finding-journal
+paging remains open; no all-gaps-closed or vendor-wire claim is made.

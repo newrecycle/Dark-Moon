@@ -181,3 +181,14 @@ column alignment and avoid silent substitution of unavailable datasource UIDs.
 See the Grafana READMEs for the supported contract. No behavioral tests or builds
 ran. Verification is handed to a separate worker as requested; Jenkins remains
 in its previously claimed workstream.
+
+## Bounded active-run discovery — 28 October 2026
+
+`/run/active` now pages public metadata (default 50, maximum 100; offset ceiling
+100000) instead of returning all active runs. The dashboard has independent
+active/history pagers and live-page warnings. Both read paths use bounded
+additional selection memory and preserve exact total counts and descending
+identity-tied ordering. Full JSON-store loading remains; these are live offset
+pages, not snapshot-isolated cursors. Source/syntax review only; post-commit
+verification is delegated. See the dated compatibility record for limits and
+remaining finding-journal scalability work.
