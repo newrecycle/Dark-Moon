@@ -13,6 +13,7 @@ from api import json_storage as data
 from api.live_push import init_live_campaign
 from .jobs import Queue, Scheduler, launch_spec
 from .store import Store, identifier, now
+from .run_views import public_run
 
 SEVERITIES = ("critical", "high", "medium", "low", "info")
 
@@ -279,7 +280,7 @@ class Service:
                 remediations.append(item)
         snapshot = {"projects": data.load_projects(), "targets": data.load_targets(), "campaigns": data.load_campaigns(),
                 "findings": findings, "stats": {s: sum(str(f.get("severity", "info")).lower() == s for f in findings) for s in SEVERITIES},
-                "jobs": self.store.items("jobs"), "schedules": self.store.items("schedules"), "remediations": remediations}
+                "jobs": [public_run(job) for job in self.store.items("jobs")], "schedules": self.store.items("schedules"), "remediations": remediations}
         from .posture import posture
         snapshot["posture"] = posture(snapshot)
         return snapshot
