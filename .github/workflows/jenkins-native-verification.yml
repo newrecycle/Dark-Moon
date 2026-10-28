@@ -39,7 +39,10 @@ jobs:
         working-directory: integrations/upstream/jenkins
         run: |
           test -s target/darkmoon-scan.hpi
-          unzip -l target/darkmoon-scan.hpi | grep 'darkmoon-client/darkmoon-ci.cjs'
+          unzip -l target/darkmoon-scan.hpi | grep -E 'WEB-INF/lib/.*darkmoon-scan.*[.]jar'
+          unzip -l target/darkmoon-scan.jar | grep 'darkmoon-client/darkmoon-ci.cjs'
+          unzip -p target/darkmoon-scan.jar darkmoon-client/darkmoon-ci.cjs |
+            cmp - target/jenkins-bundled-cli/darkmoon-client/darkmoon-ci.cjs
           test -s target/jenkins-bundled-cli/darkmoon-client/darkmoon-ci.cjs
           node target/jenkins-bundled-cli/darkmoon-client/darkmoon-ci.cjs --help >/dev/null
           ! grep -q 'require("zod")' target/jenkins-bundled-cli/darkmoon-client/darkmoon-ci.cjs
