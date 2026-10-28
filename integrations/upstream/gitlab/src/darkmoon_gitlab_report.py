@@ -25,6 +25,7 @@ import json
 import math
 import re as _re
 import sys
+from urllib.parse import urlsplit
 from typing import Any, Dict, List
 
 # SAST schema version this mapper was written against (read live at build/test
@@ -79,16 +80,26 @@ def _norm_sev(value: Any) -> str:
 
 
 def _endpoint_to_path(endpoint: Any) -> str:
-    """'POST /rest/user/login' -> 'rest/user/login' (redaction-safe locus)."""
-    e = str(endpoint or "").strip()
-    if not e:
+    """Only a conservative static route path; never publish URL credentials."""
+    value = str(endpoint or "").strip()
+    value = _re.sub(r"^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+", "", value, flags=_re.I)
+    if value.lower().startswith(("http://", "https://")):
+        try:
+            parsed = urlsplit(value)
+            if parsed.username or parsed.password or parsed.query or parsed.fragment:
+                return ".darkmoon/report.md"
+            value = parsed.path
+        except ValueError:
+            return ".darkmoon/report.md"
+    # Query/fragment, absolute filesystem paths and opaque dynamic segments are
+    # not safe project file names. An unknown endpoint has no source location.
+    if "?" in value or "#" in value or "@" in value:
         return ".darkmoon/report.md"
-    # drop a leading HTTP method
-    e = _re.sub(r"^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+", "", e, flags=_re.I)
-    e = _re.sub(r"^[a-zA-Z]+://", "", e)   # scheme
-    e = _re.sub(r"^[^/]+", "", e) if "://" in str(endpoint) else e  # host if any
-    e = e.split("?")[0].strip().lstrip("/")
-    return e or ".darkmoon/report.md"
+    path = value.strip().lstrip("/")
+    if (not _re.fullmatch(r"[A-Za-z0-9_./-]{1,255}", path)
+            or ".." in path.split("/")):
+        return ".darkmoon/report.md"
+    return path
 
 
 def _fingerprint(f: Dict[str, Any], path: str) -> str:
@@ -97,8 +108,52 @@ def _fingerprint(f: Dict[str, Any], path: str) -> str:
 
 
 def _shared_text(f: Dict[str, Any]) -> str:
-    """Redaction-safe: the finding TITLE only (never description/evidence)."""
-    return (str(f.get("title") or "").strip() or str(f.get("id") or "Darkmoon finding"))[:1000]
+    """Only the title; redact embedded URLs before publishing a shared report."""
+    title = str(f.get("title") or "").strip() or str(f.get("id") or "Darkmoon finding")
+    title = _re.sub(r"https?://[^\s<>]+", "[URL]", title, flags=_re.I)
+    return title[:1000]
+
+
+def _category(f: Dict[str, Any]) -> str:
+    value = str(f.get("category") or "finding").strip()
+    return value if _re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", value) else "finding"
+
+
+def verify_run_verdict(path: str, exit_code: int, findings: List[Dict[str, Any]], expected_policy: str) -> None:
+    """Fail closed if the second findings read disagrees with the CLI verdict."""
+    try:
+        with open(path, encoding="utf-8") as stream:
+            verdict = json.load(stream)
+        if not isinstance(verdict, dict):
+            raise ValueError()
+        cid = verdict.get("campaignId")
+        if not isinstance(cid, str) or not _re.fullmatch(r"[A-Za-z0-9_-]{1,200}", cid):
+            raise ValueError()
+        if any(row.get("campaignId") != cid for row in findings):
+            raise ValueError()
+        if type(verdict.get("total")) is not int or verdict["total"] != len(findings):
+            raise ValueError()
+        fail_on = verdict.get("failOn")
+        policy = expected_policy.strip().lower()
+        expected = (list(CQ_SEVERITY) if policy in ("all", "any") else
+                    [] if policy in ("none", "") else
+                    list(dict.fromkeys(word.strip() for word in policy.split(",") if word.strip())))
+        if (not isinstance(fail_on, list) or fail_on != expected or len(fail_on) > 5
+                or len(set(map(str, fail_on))) != len(fail_on)
+                or any(not isinstance(x, str) or x not in CQ_SEVERITY for x in fail_on)):
+            raise ValueError()
+        offending = {severity: sum(row["severity"] == severity for row in findings)
+                     for severity in fail_on}
+        offending = {k: v for k, v in offending.items() if v}
+        if verdict.get("offending") != offending:
+            raise ValueError()
+        should_fail = bool(offending)
+        if (exit_code not in (0, 2)
+                or verdict.get("verdict") != ("fail" if should_fail else "pass")
+                or exit_code != (2 if should_fail else 0)):
+            raise ValueError()
+    except (OSError, UnicodeError, ValueError, TypeError, KeyError):
+        raise ValueError("Assessment identity, findings counts or fail-policy verdict disagree") from None
 
 
 def load_findings(path: str) -> List[Dict[str, Any]]:
@@ -140,7 +195,7 @@ def to_code_quality(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for f in findings:
         path = _endpoint_to_path(f.get("endpoint"))
         sev = _norm_sev(f.get("severity"))
-        category = str(f.get("category") or "finding").strip() or "finding"
+        category = _category(f)
         cvss = f.get("cvssScore")
         tag = " [Darkmoon %s%s]" % (
             category, (" · CVSS %.1f" % cvss) if isinstance(cvss, (int, float)) else "")
@@ -156,7 +211,7 @@ def to_code_quality(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 def _identifiers(f: Dict[str, Any]) -> List[Dict[str, Any]]:
     ids: List[Dict[str, Any]] = []
-    category = str(f.get("category") or "finding").strip() or "finding"
+    category = _category(f)
     ids.append({"type": "darkmoon_category",
                 "name": "Darkmoon: %s" % category, "value": category})
     cwe, owasp = CAT_ENRICH.get(category, (None, None))
@@ -165,10 +220,10 @@ def _identifiers(f: Dict[str, Any]) -> List[Dict[str, Any]]:
         ids.append({"type": "cwe", "name": cwe, "value": num,
                     "url": "https://cwe.mitre.org/data/definitions/%s.html" % num})
     cve = str(f.get("cve") or "").strip()
-    if cve and cve.lower() != "null":
+    if _re.fullmatch(r"CVE-[0-9]{4}-[0-9]{4,}", cve, flags=_re.I):
         ids.append({"type": "cve", "name": cve, "value": cve})
     mitre = str(f.get("mitreAttackId") or "").strip()
-    if mitre:
+    if _re.fullmatch(r"T[0-9]{4}(?:\.[0-9]{3})?", mitre):
         ids.append({"type": "darkmoon_mitre",
                     "name": str(f.get("mitreAttackName") or mitre), "value": mitre})
     return ids
@@ -218,6 +273,9 @@ def main(argv: List[str]) -> int:
     ap.add_argument("--tool-version", default="unknown")
     ap.add_argument("--edition", default="oss")
     ap.add_argument("--scan-failed", action="store_true", help="Mark diagnostic reports as an unsuccessful assessment")
+    ap.add_argument("--run-json", default="", help="Completed CLI verdict for strict identity/count comparison")
+    ap.add_argument("--run-exit-code", type=int, default=1)
+    ap.add_argument("--expected-fail-on", default="critical,high")
     args = ap.parse_args(argv)
 
     failed = args.scan_failed
@@ -227,6 +285,14 @@ def main(argv: List[str]) -> int:
         _warn(str(exc) + "; assessment result is unavailable")
         findings = []
         failed = True
+
+    if not failed and args.run_json:
+        try:
+            verify_run_verdict(args.run_json, args.run_exit_code, findings, args.expected_fail_on)
+        except ValueError as exc:
+            _warn(str(exc) + "; assessment result is unavailable")
+            failed = True
+            findings = []
 
     cq = to_code_quality(findings)
     _write(args.codequality, cq)

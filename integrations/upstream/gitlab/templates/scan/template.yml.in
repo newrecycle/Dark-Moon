@@ -123,11 +123,24 @@ spec:
         curl -fsSL "$DM_BOOTSTRAP_URL" -o /tmp/dm-install.sh
         sh /tmp/dm-install.sh
       fi
-      command -v darkmoon-ci >/dev/null 2>&1 || { echo "[darkmoon] ERROR: darkmoon-ci not on PATH (use an image that bundles it or set bootstrap-url)"; exit 1; }
       command -v python3 >/dev/null 2>&1 || { echo "[darkmoon] ERROR: python3 (>=3.8) required for report mapping"; exit 1; }
-
+      # The output directory must be a relative, simple artifact location.
+      case "$DM_OUTPUT_DIR" in
+        ""|/*|*..*) echo "[darkmoon] ERROR: invalid output-dir"; exit 1 ;;
+      esac
       mkdir -p "$DM_OUTPUT_DIR"
       printf '%s' "$MAPPER_B64" | python3 -c "import sys,base64;open(sys.argv[1],'wb').write(base64.b64decode(sys.stdin.read()))" "$DM_OUTPUT_DIR/dm_report.py"
+
+      # An unavailable CLI is still a failed scan with diagnostic reports.
+      if ! command -v darkmoon-ci >/dev/null 2>&1; then
+        echo "[darkmoon] ERROR: darkmoon-ci not on PATH (use an image that bundles the patched CLI)"
+        printf '[]\n' > "$DM_OUTPUT_DIR/findings.json"
+        set -- --findings "$DM_OUTPUT_DIR/findings.json" --codequality gl-code-quality-report.json --scan-failed
+        [ "${DM_EMIT_SAST}" = "true" ] && set -- "$@" --sast gl-sast-report.json
+        python3 "$DM_OUTPUT_DIR/dm_report.py" "$@" || true
+        rm -f "$DM_OUTPUT_DIR/findings.json" "$DM_OUTPUT_DIR/dm_report.py"
+        exit 1
+      fi
 
       # Fold focus/severity into the Darkmoon target line.
       T="$DM_TARGET"
@@ -150,8 +163,13 @@ spec:
 
       echo "[darkmoon] launching scan (mode=$DM_MODE, fail-on=$DM_FAIL_ON)"
       set +e
-      dm run --target "$T" --json --fail-on "$DM_FAIL_ON" > "$DM_OUTPUT_DIR/run.json"
+      # The patched CLI interprets an empty --fail-on as its default;
+      # this component explicitly means no findings gate.
+      fail_arg=$DM_FAIL_ON
+      [ -n "$fail_arg" ] || fail_arg=none
+      dm run --target "$T" --json --fail-on "$fail_arg" > "$DM_OUTPUT_DIR/run.json"
       rc=$?
+      run_rc=$rc
       set -e
       echo "[darkmoon] darkmoon-ci run exit code: $rc"
 
@@ -183,7 +201,7 @@ spec:
 
       # Strict mapping retains diagnostic artifacts with scan.status=failure.
       # A mapping error overrides even a findings-gate exit 2 with tool-error 1.
-      set -- --findings "$DM_OUTPUT_DIR/findings.json" --codequality gl-code-quality-report.json --edition "$DM_MODE"
+      set -- --findings "$DM_OUTPUT_DIR/findings.json" --codequality gl-code-quality-report.json --edition "$DM_MODE" --run-json "$DM_OUTPUT_DIR/run.json" --run-exit-code "$run_rc" --expected-fail-on "$fail_arg"
       [ "$rc" -eq 1 ] && set -- "$@" --scan-failed
       if [ "${DM_EMIT_SAST}" = "true" ]; then
         set -- "$@" --sast gl-sast-report.json
