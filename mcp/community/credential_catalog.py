@@ -22,7 +22,11 @@ PROVIDERS = (
 
 
 def catalog():
+    from .credential_policy import ADAPTERS, VERSION
     return {
+        "model_version": VERSION,
+        "adapters": [{"id": key, "required_fields": list(spec["fields"]), "capabilities": list(spec["capabilities"])}
+                     for key, spec in ADAPTERS.items()],
         "data": [{"id": key, "name": name, "capabilities": list(caps),
                   "fields": ["name", "provider", "username", "secret"]}
                  for key, name, caps in PROVIDERS],
@@ -39,8 +43,16 @@ def check_capability(capability):
 
 
 def capabilities(item):
-    if item.get("internal") or not isinstance(item.get("sealed"), str) or not item["sealed"]:
+    if item.get("internal") or item.get("revoked") is True or not isinstance(item.get("sealed"), str) or not item["sealed"]:
         return []
+    from .credential_policy import ADAPTERS, VERSION
+    if item.get("model_version") == VERSION:
+        entry = ADAPTERS.get(item.get("adapter"))
+        if not entry:
+            return []
+        if item.get("adapter") == "username_password" and not str(item.get("username") or "").strip():
+            return []
+        return list(entry["capabilities"])
     values = [key for key, spec in CAPABILITIES.items() if not spec["requires_username"]]
     if isinstance(item.get("username"), str) and item["username"].strip():
         values.insert(0, "assessment_login")
@@ -49,4 +61,4 @@ def capabilities(item):
 
 def allows(item, capability=None):
     check_capability(capability)
-    return not item.get("internal") and (capability is None or capability in capabilities(item))
+    return not item.get("internal") and item.get("revoked") is not True and (capability is None or capability in capabilities(item))

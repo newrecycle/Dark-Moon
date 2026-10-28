@@ -317,11 +317,11 @@ def sync(service):
     return {"imported": imported, "catalog": catalog(service)}
 
 
-def connect(service, raw):
+def connect(service, raw, *, actor=None):
     pid = identifier(raw.get("provider"))
     cid = identifier(raw.get("credential_id"))
     try:
-        service.vault.require(cid, "provider_api_key")
+        service.vault.require(cid, "provider_api_key", actor=actor)
     except KeyError:
         raise ValueError("Provider credential reference is unavailable") from None
     secret = service.vault.resolve(cid)

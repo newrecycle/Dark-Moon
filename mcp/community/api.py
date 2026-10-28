@@ -163,10 +163,10 @@ class API:
             elif method == "GET" and len(parts) == 2:
                 handler.send({"data": self.service.vault.get(parts[1])})
             elif method == "POST" and len(parts) == 1:
-                handler.send({"data": self.service.vault.save(handler.body())}, status=201)
+                handler.send({"data": self.service.vault.save(handler.body(), actor=identity)}, status=201)
             elif len(parts) == 2 and method in {"PATCH", "PUT"}:
                 self.service.vault.get(parts[1])
-                handler.send({"data": self.service.vault.save(handler.body(), parts[1])})
+                handler.send({"data": self.service.vault.save(handler.body(), parts[1], actor=identity)})
             elif method == "DELETE" and len(parts) == 2:
                 self.service.vault.get(parts[1])
                 handler.send(self.service.vault.delete(parts[1]))
@@ -285,7 +285,7 @@ class API:
             elif method == "GET" and parts == ["run", "logs"]:
                 handler.send(log_collection(self.store, handler))
             elif method == "POST" and parts[1:] == ["campaign"]:
-                job = self.service.launch(handler.body(), key=handler.headers.get("Idempotency-Key"))
+                job = self.service.launch(handler.body(), key=handler.headers.get("Idempotency-Key"), actor=identity)
                 handler.send({"run_id": job["id"], "campaign_id": job["campaign_id"], "status": job["status"]}, status=202)
             elif len(parts) == 3 and method == "GET" and parts[1] == "logs":
                 job = self.store.get("jobs", identifier(parts[2]))
@@ -324,12 +324,12 @@ class API:
                 rows = self.store.items("schedules")
                 handler.send(envelope(rows) if wrapped else rows)
             elif method == "POST" and parts[1:] == ["preview"]:
-                handler.send(scheduler.preview(handler.body()))
+                handler.send(scheduler.preview(handler.body(), actor=identity))
             elif method == "POST" and len(parts) == 1:
-                item = scheduler.create(handler.body())
+                item = scheduler.create(handler.body(), actor=identity)
                 handler.send({"data": item} if wrapped else item, status=201)
             elif len(parts) == 3 and parts[2] == "duplicate" and method == "POST":
-                item = scheduler.duplicate(parts[1], handler.body())
+                item = scheduler.duplicate(parts[1], handler.body(), actor=identity)
                 handler.send({"data":item} if wrapped else item, status=201)
             elif len(parts) == 3 and parts[2] == "history" and method == "GET":
                 handler.send(envelope(scheduler.history(parts[1])))
@@ -342,7 +342,7 @@ class API:
                     raw = handler.body()
                     if method == "PUT" and type(raw.get("version")) is not int:
                         raise ValueError("PUT schedule edits require the current integer version")
-                    item = scheduler.update(parts[1], raw)
+                    item = scheduler.update(parts[1], raw, actor=identity)
                     handler.send({"data":item} if wrapped else item)
             else:
                 return False
@@ -385,8 +385,8 @@ class API:
             from .assessment_catalog import catalog as assessment_catalog
             handler.send({"assessment":assessment_catalog(), "targets":snapshot["targets"], "campaigns":snapshot["campaigns"],
                           "findings":[{k:v.get(k) for k in ("id","campaign_id","title","severity")} for v in snapshot["findings"]],
-                          "credentials":self.service.vault.list() if identity.get("role") != "viewer" else [],
-                          "credential_choices":{cap:self.service.vault.list(cap) for cap in ("assessment_login", "assessment_token", "source_checkout", "provider_api_key")} if identity.get("role") != "viewer" else {},
+                          "credentials":self.service.vault.list(actor=identity, for_use=True) if identity.get("role") != "viewer" else [],
+                          "credential_choices":{cap:self.service.vault.list(cap, actor=identity, for_use=True) for cap in ("assessment_login", "assessment_token", "source_checkout", "provider_api_key")} if identity.get("role") != "viewer" else {},
                           "repositories":sorted({j.get("spec",{}).get("git_repo") for j in self.store.items("jobs") if j.get("spec",{}).get("git_repo")} | {p.get("repo") for p in self.store.items("remediations") if p.get("repo")} | {p for p in os.environ.get("DARKMOON_SOURCE_REPOSITORIES", "").split(os.pathsep) if p}),
                           "opencode":catalog(self.service) if admin else None})
             return True
@@ -398,7 +398,7 @@ class API:
             elif method == "POST" and len(parts) == 3 and parts[2] in {"sync","connect","disconnect","oauth-start","oauth-finish"}:
                 raw = handler.body()
                 if parts[2] == "sync":result = opencode.sync(self.service)
-                elif parts[2] == "connect":result = opencode.connect(self.service,raw)
+                elif parts[2] == "connect":result = opencode.connect(self.service,raw,actor=identity)
                 elif parts[2] == "disconnect":result = opencode.disconnect(self.service,raw)
                 else:result = opencode.oauth(self.service,raw,finish=parts[2] == "oauth-finish")
                 handler.send(result)
@@ -407,7 +407,7 @@ class API:
         if parts == ["system", "provider-models"] and method == "POST":
             if not admin:raise PermissionError("Administrator access is required")
             from .provider_checks import endpoint_models
-            handler.send(endpoint_models(self.service,handler.body()))
+            handler.send(endpoint_models(self.service,handler.body(), actor=identity))
             return True
         if parts == ["system", "opencode-health"] and method == "GET":
             if not admin:raise PermissionError("Administrator access is required")
@@ -420,12 +420,12 @@ class API:
             current=self.store.get("providers",identifier(parts[2]))
             if not current:raise KeyError(parts[2])
             if len(parts)==3 and method=="GET":handler.send({"data":current})
-            elif len(parts)==3 and method in {"PATCH","PUT"}:handler.send({"data":profile(self.service,current|handler.body(),parts[2])})
+            elif len(parts)==3 and method in {"PATCH","PUT"}:handler.send({"data":profile(self.service,current|handler.body(),parts[2],actor=identity)})
             elif len(parts)==3 and method=="DELETE":handler.send(remove(self.service,parts[2]))
             elif parts[3:]==["check"] and method=="POST":
                 handler.body()
                 from .provider_checks import check_profile
-                handler.send(check_profile(self.service,parts[2]))
+                handler.send(check_profile(self.service,parts[2],actor=identity))
             else:return False
             return True
         if resource == "system" and method == "GET":
@@ -454,14 +454,14 @@ class API:
             if not admin:
                 raise PermissionError("Administrator access is required")
             from .configuration import profile
-            handler.send({"data": profile(self.service, handler.body())}, status=201)
+            handler.send({"data": profile(self.service, handler.body(), actor=identity)}, status=201)
             return True
         if resource == "system" and method == "POST" and len(parts) == 4 and parts[1] == "providers" and parts[3] == "apply":
             if not admin:
                 raise PermissionError("Administrator access is required")
             handler.body()
             from .configuration import apply
-            handler.send(apply(self.service, parts[2]))
+            handler.send(apply(self.service, parts[2], actor=identity))
             return True
         if resource == "webhooks":
             if method == "GET" and len(parts) == 1:
@@ -520,7 +520,7 @@ class API:
             return True
         if resource == "retest":
             if method == "POST" and len(parts) == 1:
-                handler.send(self.service.operations.launch_retest(handler.body()), status=201)
+                handler.send(self.service.operations.launch_retest(handler.body(), actor=identity), status=201)
             elif method == "GET" and len(parts) == 1:
                 handler.send(envelope(self.store.items("retests")))
             elif method == "GET" and len(parts) == 2:

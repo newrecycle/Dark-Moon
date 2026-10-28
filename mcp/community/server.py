@@ -175,10 +175,10 @@ def handler_for(service, allowed_hosts):
             if method == "GET" and len(parts) == 1 and parts[0] in {"projects", "targets", "campaigns", "findings", "jobs", "schedules", "remediations"}:
                 return self.send(service.snapshot()[parts[0]])
             if method == "POST" and parts == ["campaigns"]:
-                job = service.launch(self.body(), key=self.headers.get("Idempotency-Key"))
+                job = service.launch(self.body(), key=self.headers.get("Idempotency-Key"), actor=identity)
                 return self.send(public_run(job), status=202)
             if method == "POST" and parts == ["remediations"]:
-                return self.send(public_run(service.prepare_remediation(self.body())), status=202)
+                return self.send(public_run(service.prepare_remediation(self.body(), actor=identity)), status=202)
             if method == "GET" and len(parts) == 3 and parts[0] == "remediations" and parts[2] == "patch":
                 proposal_id = identifier(parts[1])
                 self.require_evidence(identity, "patch", proposal_id)
@@ -227,7 +227,7 @@ def handler_for(service, allowed_hosts):
                         service._finished(cancelled)
                     return self.send(public_run(cancelled))
             if method == "POST" and parts == ["schedules"]:
-                return self.send(service.scheduler.create(self.body()), status=201)
+                return self.send(service.scheduler.create(self.body(), actor=identity), status=201)
             if len(parts) == 2 and parts[0] == "schedules":
                 item = service.store.get("schedules", identifier(parts[1]))
                 if not item:
@@ -236,7 +236,7 @@ def handler_for(service, allowed_hosts):
                     raw = self.body()
                     if set(raw) != {"enabled"} or not isinstance(raw["enabled"], bool):
                         raise ValueError("PATCH accepts only {enabled: true/false}")
-                    return self.send(service.scheduler.set_enabled(parts[1], raw["enabled"]))
+                    return self.send(service.scheduler.set_enabled(parts[1], raw["enabled"], actor=identity))
                 if method == "DELETE":
                     def remove(state):
                         state["schedules"].pop(item["id"], None)

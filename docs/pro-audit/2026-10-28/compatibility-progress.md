@@ -629,3 +629,31 @@ are separate operational work; this change does not claim to solve them.
 UTF-8/line-size boundaries, corruption outside selected pages/targets, writer
 validation, concurrent append/restart behavior and focused/full regressions.
 No behavioral test, assessment, native/vendor execution or external delivery ran.
+
+
+## Structured credential and access model — 28 October 2026
+
+This increment introduces an **independent fork-native** \`model_version: 1\`
+credential adapter layer: \`username_password\`, \`target_token\`, \`scm_token\`
+and \`provider_api_key\`. The adapter determines consumer eligibility;
+descriptive provider labels no longer imply new adapter capabilities.
+Administrator-controlled metadata includes explicit \`private\`, \`shared\`
+and \`service\` scopes, an owner, named user grants and irreversible revocation.
+Internal webhook signing keys remain hidden and unselectable.
+
+Legacy unversioned Fernet records continue as \`legacy_v0\` workspace-shared
+compatibility records without changing IDs or encrypted blobs. Admins can
+migrate an ID in place to a versioned adapter without supplying a new secret.
+Migration starts with private ownership and no wildcard sharing grant.
+User/session revocation, grant removal and deleted credentials invalidate
+future selection and queued use; worker preflight rechecks authorization.
+Service-only credentials require the workspace-token principal, including
+when defining schedules. Retest and alternate campaign routes preserve caller
+identity rather than silently claiming service privileges.
+
+Reference: [credential adapter and ownership decisions](../../handoff/credential-adapters-ownership-2026-10-28.md).
+These are intentionally explicit fork policy choices and should not be
+mistaken for vendor-specific owner, field, default or response equivalence.
+Provider HTTP calls, assessment launch execution and external delivery
+are excluded from verification fixtures. Hosted test results are tracked by
+the dedicated credential-access validation workflow.
