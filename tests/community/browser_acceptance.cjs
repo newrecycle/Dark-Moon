@@ -122,6 +122,7 @@ const assert = require("node:assert/strict");
     await page.keyboard.press('Enter');
     await page.locator('#finding-target_id-filter').waitFor();
     assert.equal(await page.locator('#finding-target_id-filter').inputValue(), targetId);
+    for (const severity of ['critical','high','medium','low','info']) assert.equal(await page.locator('#severity-filter option[value='+severity+']').count(),1);
     assert.equal(await page.locator('#finding-triage-filter').inputValue(), 'active');
     assert.match(await page.locator('#finding-count').innerText(), /of 3 matching findings/);
     await page.reload();
