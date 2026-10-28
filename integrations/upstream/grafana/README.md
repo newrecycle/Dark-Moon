@@ -250,3 +250,48 @@ The app rejects mismatched frame columns and does not silently substitute a
 different datasource when an explicit selection is unavailable. Behavioral
 checks, frontend types/build, Go formatting/build and native Grafana acceptance
 are delegated; this source checkpoint does not establish those results.
+
+## Fork Grafana verification — 28 October 2026
+
+The focused, offline [Grafana integration verification workflow](../../../.github/workflows/grafana-integration-verification.yml)
+is now enabled for `pro` changes and passed on
+[run 40725844906](https://github.com/newrecycle/Dark-Moon/actions/runs/40725844906).
+The pinned `go.mod` Go 1.26.3 toolchain and Node 22 ran:
+
+```sh
+# From integrations/upstream/grafana/plugin
+gofmt -l pkg/plugin/*.go pkg/models/*.go pkg/main.go
+gofmt -w pkg/plugin/*.go pkg/models/*.go pkg/main.go
+go test -race ./pkg/...
+go build ./pkg/...
+npm ci --ignore-scripts
+npm run typecheck
+npm run test:ci -- --watch=false
+npm run build
+```
+
+The Go checks were executed in an isolated CI checkout; running `gofmt`
+there does not by itself mean tracked source files have been reformatted.
+`npm run build` uses Grafana's managed webpack configuration. The backend
+race tests, frontend typecheck, Jest suite, production build and nested
+datasource static asset checks all passed.
+
+New tests validate in-progress retests with empty comparisons and exact run,
+target and campaign IDs; completed comparison array requiredness; invalid,
+duplicate and conflicting rows/aliases; rejection of unrelated comparison
+campaign, target and run references; `current_finding_id` and non-fix
+`not_observed` semantics. They also cover dashboard UTC range precedence,
+explicit/invalid/reversed ranges, ISO week-year boundaries and invalid
+week 53, sparse series/null gaps, campaign-qualified findings, legitimate
+zero versus missing CVSS, malformed/misaligned frontend frames, inaccessible
+explicit datasource selection, stale response protection, and loopback
+bearer-redirect and metadata-only evidence-proxy protections.
+
+The dedicated [disposable native-host workflow](../../../.github/workflows/grafana-native-host.yml)
+builds the real nested datasource via `go run github.com/magefile/mage -v build:linux`
+after the webpack build, boots a synthetic API and a Grafana 13.1 instance
+on a Docker internal network, and checks datasource provisioning plus
+Grafana's authenticated query API. The native host gate is separate from
+the green focused gate; check its latest run for the actual outcome.
+No provider or commercial-vendor runtime was invoked. Original wire parity,
+older Grafana versions and full Grafana browser rendering remain unverified.
