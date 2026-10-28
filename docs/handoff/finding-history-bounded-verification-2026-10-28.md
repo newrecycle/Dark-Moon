@@ -44,7 +44,7 @@ Retained-memory benchmark (Python `tracemalloc`, reader call only; exact GitHub-
 
 The memory measurement is the peak Python allocation *traced during the reader call*, **not total process RSS**, nor a bound on the entire process. Test bounds: peak traced allocation below 20 MiB and wall time below 30 seconds on this fixture.
 
-[Campaign isolation regression run 40724658845](https://github.com/newrecycle/Dark-Moon/actions/runs/40724658845) on the same checkpoint exercises the full offline `mcp/tests` and `tests/community` suites, plus native campaign-binding and finding-query JavaScript checks. The run outcome should be consulted directly before claiming full-regression success.
+[Campaign isolation regression run 40724658845](https://github.com/newrecycle/Dark-Moon/actions/runs/40724658845) on the same checkpoint: **success**. The full offline `mcp/tests` and `tests/community` suites recorded **415 passed, 109 subtests passed in 72.87 s**. The preceding credential discovery gate recorded **20 passed, 8 subtests passed in 10.68 s**. The native campaign-binding, graph-navigation and finding-query JavaScript checks also passed. These are fork offline regressions, not licensed vendor parity.
 
 ## Limitations
 
