@@ -1,0 +1,78 @@
+name: Merge validated Dependabot PRs into deps
+
+# This privileged workflow runs ONLY from the default branch. Never check out
+# or execute PR code here. The unprivileged validation workflow runs the tests.
+on:
+  workflow_run:
+    workflows: [Dependency staging validation]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dependency-staging-automerge
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify exact Dependabot PR and merge only into deps
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(jq -r '.workflow_run.head_sha' "$GITHUB_EVENT_PATH")"
+          origin="$(jq -r '.workflow_run.head_repository.full_name' "$GITHUB_EVENT_PATH")"
+          if [[ ! "$sha" =~ ^[0-9a-f]{40}$ || "$origin" != "$GITHUB_REPOSITORY" ]]; then
+            echo '::error::Workflow run does not belong to a same-repository commit.'
+            exit 1
+          fi
+
+          # Dependabot-triggered workflow_run events may have no pull_requests
+          # array; resolve the still-open PR by its exact immutable head SHA.
+          pr="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls?state=open&base=deps&per_page=100" \
+            --jq ".[] | select(.head.sha == \"$sha\" and .base.ref == \"deps\" and .user.login == \"dependabot[bot]\" and .head.repo.full_name == \"$GITHUB_REPOSITORY\") | .number")"
+
+          if [[ -z "$pr" ]]; then
+            echo 'No matching open Dependabot PR; stale/closed runs are ignored.'
+            exit 0
+          fi
+          if [[ ! "$pr" =~ ^[0-9]+$ ]]; then
+            echo '::error::Ambiguous matching PRs; declining merge.'
+            exit 1
+          fi
+
+          actual_sha="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/$pr" --jq '.head.sha')"
+          draft="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/$pr" --jq '.draft')"
+          [[ "$actual_sha" == "$sha" && "$draft" == 'false' ]] || {
+            echo '::error::PR head changed or PR is draft; declining merge.'
+            exit 1
+          }
+
+          # The successful workflow_run is for this exact head SHA. The merge
+          # API also rejects the operation if the PR head has moved since.
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/pulls/$pr/merge" \
+            -f sha="$sha" -f merge_method=squash \
+            -f commit_title="chore(deps): stage verified Dependabot PR #$pr"
+
+          # A standing deps -> pro PR is a manual promotion control, never
+          # auto-merged. This may require Actions PR-creation permission.
+          existing="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls?state=open&base=pro&per_page=100" \
+            --jq ".[] | select(.head.ref == \"deps\" and .head.repo.full_name == \"$GITHUB_REPOSITORY\") | .number")"
+          if [[ -z "$existing" ]]; then
+            if ! gh api --method POST "repos/${GITHUB_REPOSITORY}/pulls" \
+              -f base=pro -f head=deps \
+              -f title='chore(deps): promote staged dependency updates into pro' \
+              -f body='Dependabot updates have been staged on deps. Review the complete diff and CI before manually merging this PR into pro. This PR is intentionally never auto-merged.' >/dev/null; then
+              echo '::warning::deps was updated, but creating the manual promotion PR was blocked. Use the compare link in docs/dependency-maintenance.md or enable Actions PR creation.'
+            fi
+          fi
