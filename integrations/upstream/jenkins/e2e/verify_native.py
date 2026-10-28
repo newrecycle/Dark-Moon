@@ -87,6 +87,13 @@ def native():
     port = int(binding.rsplit(":", 1)[1])
     base = "http://127.0.0.1:" + str(port)
     eventually(lambda: http(base + "/login"))
+    with urllib.request.urlopen(base + "/login", timeout=10) as response:
+        controller_version = response.headers.get("X-Jenkins", "unreported")
+    print("native_jenkins_version=" + controller_version, flush=True)
+    for base_image in ("jenkins/jenkins:lts-jdk21", "jenkins/inbound-agent:jdk21",
+                       "node:22-bookworm-slim"):
+        digest = cmd("docker", "image", "inspect", "--format", "{{.Id}}", base_image, check=False)
+        print("native_image=" + base_image + " image_id=" + (digest or "unreported"), flush=True)
     plugin = eventually(lambda: next((p for p in safe_json(base + "/pluginManager/api/json?tree=plugins[shortName,active,version]")["plugins"]
                                        if p["shortName"] == "darkmoon-scan" and p["active"]), None))
     print("native_plugin_active=true version=" + plugin["version"], flush=True)
