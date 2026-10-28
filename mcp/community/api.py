@@ -16,6 +16,7 @@ from . import reports
 from .operations import evidence_meta, overview, safe_finding, safe_webhook, safe_webhook_delivery, timeseries
 from .finding_lifecycle import target_evolution, history_page, remediation_records, for_finding
 from .store import identifier, now
+from . import evidence_access
 from .run_views import active_runs, log_collection, log_detail, log_metadata, public_run, _parameters
 
 ROUTERS = ["projects", "targets", "campaigns", "vulnerabilities", "dashboard", "run", "scheduler", "auth",
@@ -77,6 +78,25 @@ class API:
         query = {k: v[-1] for k, v in parse_qs(urlsplit(handler.path).query).items()}
         resource = parts[0]
         admin = identity.get("role") == "admin"
+        if resource == "evidence":
+            if method == "POST" and parts == ["evidence", "grants"]:
+                raw = handler.body()
+                if set(raw) not in ({"kind", "id"}, {"kind", "id", "campaign_id"}):
+                    raise ValueError("Provide kind, id and optional campaign_id")
+                handler.send(evidence_access.issue(self.service, identity, raw["kind"],
+                                                   raw["id"], raw.get("campaign_id")), status=201)
+            elif method == "POST" and len(parts) == 4 and parts[1] == "grants" and parts[3] == "revoke":
+                if handler.body():
+                    raise ValueError("Revoke does not accept data")
+                handler.send(evidence_access.revoke(self.service, identity, parts[2]))
+            elif method == "GET" and len(parts) == 4 and parts[3] == "reveal":
+                if query:
+                    raise ValueError("Reveal does not accept query overrides")
+                handler.require_evidence(identity, parts[1], parts[2])
+                handler.send(evidence_access.reveal(self.service, parts[1], parts[2]))
+            else:
+                return False
+            return True
         if method != "GET" and identity.get("role") == "viewer" and parts not in (["auth", "logout"], ["auth", "password"], ["auth", "change-password"]):
             raise PermissionError("This account has read-only access")
         if resource in {"credentials", "webhooks"} or parts[:2] in (["auth", "users"], ["system", "integrity"]):
@@ -97,6 +117,7 @@ class API:
             if method == "GET" and parts == ["auth", "me"]:
                 handler.send({"user": identity})
             elif method == "POST" and parts == ["auth", "logout"]:
+                evidence_access.revoke_session(self.store, identity)
                 self.service.accounts.logout(identity)
                 handler.send({"logged_out": True})
             elif method == "POST" and parts == ["auth", "password"]:
@@ -213,6 +234,7 @@ class API:
         if resource == "campaigns" and method == "POST" and len(parts) == 4 and parts[2:] == ["report", "pdf"]:
             from .report_security import secure_pdf
             raw = handler.body()
+            handler.require_evidence(identity, "report_pdf", parts[1])
             content = secure_pdf(reports.pdf(self.service.campaign(parts[1])), self.store,
                                  password=raw.get("password"), sign=bool(raw.get("sign", True)))
             handler.send(content, "application/pdf", filename=identifier(parts[1])+".pdf")
@@ -269,6 +291,9 @@ class API:
                 job = self.store.get("jobs", identifier(parts[2]))
                 if not job:
                     raise KeyError(parts[2])
+                params = _parameters(handler, ("lines", "raw"))
+                if params.get("raw") == "true":
+                    handler.require_evidence(identity, "run", job["id"])
                 handler.send(log_detail(self.store, handler, job, admin=admin))
             elif len(parts) == 3 and parts[2] == "stop" and method in {"POST", "DELETE"}:
                 if method == "POST":
@@ -281,8 +306,8 @@ class API:
                 raw = stream_params.get("raw", "false")
                 if raw not in {"true", "false"}:
                     raise ValueError("Only raw=true or raw=false is supported for stream")
-                if raw == "true" and not admin:
-                    raise PermissionError("Administrator access is required for raw launcher output")
+                if raw == "true":
+                    handler.require_evidence(identity, "stream", parts[1])
                 handler.run_events(parts[1], reveal_output=raw == "true")
             elif len(parts) == 2 and method == "GET" and parts[1] not in {"active", "logs"}:
                 job = self.store.get("jobs", identifier(parts[1]))
