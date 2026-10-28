@@ -41,3 +41,24 @@ Recovery: stop the service; copy the directory and original legacy source for fo
 Offline migration, repeated restart, corruption rollback, process-kill windows around commit/replace/applied markers, readers/writers, indexed ordering, target filters, bounded pages and snapshot-seq stability, source/index disagreement, archive boundaries and deep-page memory/latency are covered by `tests/community/test_finding_history_durable.py`, the prior bounded-history tests and lifecycle HTTP tests. Representative CI measurements must be recorded separately once observed: local/hosted-runner numbers are not universal service-level latency/RSS guarantees. The deep-page test reports traced Python allocations during read calls, not whole-process peak RSS.
 
 **Remaining limitations:** SQLite exact counts and deep OFFSET still have work proportional to relevant row counts/offset, though pages no longer parse the full JSONL. First-time migration takes a full validated scan and a migration lock. JSON snapshots duplicate current finding data and cause per-mutation rewriting; SQLite pending intent size scales with the campaign snapshot. Full index integrity scans are explicit, not performed for every page; normal reads validate selected payload checksums. Metadata-only history does not include external writers or historical backfill. Queue and job storage remain unchanged and have a separate full-state-loading limitation; SQLite finding history does not optimize them. Independent fork test success cannot establish a licensed original-vendor response contract.
+
+
+## Measured CI observations — 2026-10-28
+
+The last isolated staging run [40778445681](https://github.com/newrecycle/Dark-Moon/actions/runs/40778445681), at commit `451fd0709`, verified source compilation and **32 focused Python tests plus 49 subtests passed (15.41 s)**. Its measured, disposable workload:
+
+| Workload | Observed on this GitHub-hosted runner |
+| --- | ---: |
+| Legacy JSONL migration fixture | 25,000 events / 6,775,086 bytes |
+| Deep page, limit 50, offset 12,000 after import | 0.007 s |
+| Same page: peak Python traced allocation | 132,978 bytes |
+| 24,000-row indexed pages, offsets 0 / 4,000 / 16,000 / 23,000 | 0.00849 / 0.00757 / 0.00830 / 0.00996 s |
+| Four-page benchmark peak Python traced allocation | 175,196 bytes |
+| Benchmark process historical max RSS before/after | 78,732 / 81,100 KiB |
+| Multiprocess readers, each 60 reads | 0.0650 / 0.0647 s |
+| Multiprocess writers, each 24 events | 0.1282 / 0.1290 s |
+| Each child recorded peak RSS | 81,100 KiB |
+
+Traced allocations are only within benchmark calls; `ru_maxrss` is a historical high-water value rather than direct incremental memory attributable to the query. These are representative observations, not latency/RSS guarantees or general concurrency scaling claims.
+
+That run's **full affected suite was not green**: 419 passed and 215 subtests passed, with 17 failures in older non-history API/scheduler/evidence-minimization assertions. A separate latest-`pro` campaign isolation run [40777808527](https://github.com/newrecycle/Dark-Moon/actions/runs/40777808527) also failed 14 tests before the durability merge. Those failures must be reconciled with recent concurrent integrations and cannot be claimed resolved by history storage work. The final fast-forward merge is [e4588e7](https://github.com/newrecycle/Dark-Moon/commit/e4588e7c253e0e3b2889b38b07883651c50cf2da); refer to its own workflow runs for the merged integration verdict.
