@@ -102,6 +102,24 @@ class DarkmoonScanStepJenkinsTest {
     }
 
     @Test
+    void findingsAuthorizationFailureCannotBecomeCleanEmptyResult(JenkinsRule j) throws Exception {
+        Path fake = stageFakeCli();
+        addTokenCredential(j);
+        String script = fake.resolve("fake-darkmoon-ci.sh").toString();
+        String source = pipeline(fake, script, "none", "none", false)
+                .replace("withEnv(['DARKMOON_FAKE_DIR=",
+                         "withEnv(['DARKMOON_FAKE_FINDINGS_FAIL=1','DARKMOON_FAKE_DIR=");
+        WorkflowJob p = job(j, "dm-auth-failure", source);
+        WorkflowRun run = p.scheduleBuild2(0).get();
+        j.assertBuildStatus(Result.FAILURE, run);
+        String log = j.getLog(run);
+        assertTrue(log.contains("Findings could not be read"), "unavailable findings must be fatal");
+        assertFalse(log.contains("SYNTHETIC_AUTH_RESPONSE_SECRET_NOT_FOR_LOGS"));
+        assertFalse(run.getArtifactManager().root()
+                .child("darkmoon-reports/darkmoon.sarif").exists(), "no clean empty SARIF after 401");
+    }
+
+    @Test
     void passesWhenBelowThreshold(JenkinsRule j) throws Exception {
         Path fake = stageFakeCli();
         addTokenCredential(j);

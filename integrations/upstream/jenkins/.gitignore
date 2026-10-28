@@ -7,3 +7,6 @@ work/
 *.iml
 .DS_Store
 *.tgz
+node_modules/
+e2e/.native/
+package-lock.json

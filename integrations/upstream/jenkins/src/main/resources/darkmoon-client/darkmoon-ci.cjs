@@ -1345,12 +1345,9 @@ var OssLocalBackend = class {
       ref.campaignId = fresh[0].id;
       return fresh[0].id;
     }
-    fresh.sort((a, b) => b.mtimeMs - a.mtimeMs);
-    this.log.warn(
-      `Multiple new campaigns since launch (${fresh.map((x) => x.id).join(", ")}). Concurrent OSS runs share one data dir \u2014 run one container/compose-project per job. Attributing to newest by mtime.`
-    );
-    ref.campaignId = fresh[0].id;
-    return fresh[0].id;
+    // Sorting by mtime is not an exact run identity. Fail closed if another
+    // process created a candidate campaign concurrently.
+    throw new CorrelationFailed("Multiple new OSS campaigns match this launch; identity is ambiguous.");
   }
   async readCampaignFile(id) {
     const p = path.join(this.campaignsDir, `${id}.json`);
@@ -1363,12 +1360,22 @@ var OssLocalBackend = class {
   }
   async readFindingsFile(campaignId) {
     const p = path.join(this.vulnsDir, `${campaignId}.json`);
-    if (!(0, import_node_fs2.existsSync)(p)) return [];
+    // A missing/unreadable/corrupt journal is NOT a successful empty scan.
+    // Legitimate zero findings must be represented by a readable JSON [].
+    let raw;
     try {
-      return parseFindings(JSON.parse(await import_node_fs.promises.readFile(p, "utf8")));
+      raw = JSON.parse(await import_node_fs.promises.readFile(p, "utf8"));
     } catch {
-      return [];
+      throw new SchemaInvalid("Campaign findings are unavailable or malformed.");
     }
+    if (!Array.isArray(raw)) throw new SchemaInvalid("Campaign findings must be a JSON array.");
+    const findings = parseFindings(raw);
+    // Never let a campaign-qualified read quietly filter out a foreign or
+    // missing campaign_id and misreport it as a clean zero-finding result.
+    if (findings.some((finding) => finding.campaign_id !== campaignId)) {
+      throw new SchemaInvalid("Campaign findings contain a foreign or missing campaign identity.");
+    }
+    return findings;
   }
   async getCampaign(id) {
     const raw = await this.readCampaignFile(id);
@@ -1459,23 +1466,20 @@ var OssLocalBackend = class {
   }
   /** Map a container report_path (/reports/x.md) to the host reports dir. */
   resolveReportPath(reportPath) {
-    if (!reportPath) return null;
+    // Never resolve a different campaign's newest report, arbitrary absolute
+    // paths, path traversal or symlink targets outside the configured reports
+    // directory. Missing explicit report identity means unavailable.
+    if (typeof reportPath !== "string" || !reportPath.trim()) return null;
     const base = path.basename(reportPath);
+    if (base !== reportPath && !reportPath.startsWith("/reports/")) return null;
+    if (!base || base === "." || base === ".." || !base.endsWith(".md")) return null;
     const candidate = path.join(this.reportsDir, base);
-    if ((0, import_node_fs2.existsSync)(candidate)) return candidate;
-    if ((0, import_node_fs2.existsSync)(reportPath)) return reportPath;
-    return null;
-  }
-  async newestReport() {
     try {
-      const files = (await import_node_fs.promises.readdir(this.reportsDir)).filter((f) => f.endsWith(".md"));
-      let newest = null;
-      for (const f of files) {
-        const p = path.join(this.reportsDir, f);
-        const st = await import_node_fs.promises.stat(p);
-        if (!newest || st.mtimeMs > newest.mtimeMs) newest = { p, mtimeMs: st.mtimeMs };
-      }
-      return newest?.p ?? null;
+      const root = import_node_fs2.realpathSync(this.reportsDir);
+      const actual = import_node_fs2.realpathSync(candidate);
+      if (!actual.startsWith(root + path.sep)) return null;
+      if (!import_node_fs2.statSync(candidate).isFile()) return null;
+      return candidate;
     } catch {
       return null;
     }
@@ -1483,8 +1487,7 @@ var OssLocalBackend = class {
   async getReport(campaignId) {
     const raw = await this.readCampaignFile(campaignId);
     if (!raw) throw new CampaignNotFound(`Campaign ${campaignId} not found.`, { id: campaignId });
-    let file = this.resolveReportPath(raw.report_path ?? null);
-    if (!file) file = await this.newestReport();
+    const file = this.resolveReportPath(raw.report_path ?? null);
     if (!file) {
       return { campaignId, format: "markdown", content: "", ready: false };
     }
