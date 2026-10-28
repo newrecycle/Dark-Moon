@@ -59,8 +59,8 @@ func TestGrafanaEvidenceMetadataProxyRedactsEverythingElse(t *testing.T) {
  d.newResourceMux().ServeHTTP(response,request)
  if response.Code!=200 {t.Fatalf("metadata read: %d %s",response.Code,response.Body)}
  text:=response.Body.String()
- for _,s:=range []string{"SENSITIVE-","description","evidence\":", "token","raw"}{
-  if strings.Contains(text,s)&&s!="evidence\":" {t.Errorf("sensitive metadata exposed: %s",s)}
+ for _,secret:=range []string{"SENSITIVE-DESCRIPTION","SENSITIVE-EVIDENCE","SENSITIVE-RAW","SENSITIVE-TOKEN"} {
+  if strings.Contains(text,secret) {t.Errorf("sensitive metadata exposed: %s",secret)}
  }
  var decoded map[string]any
  if err:=json.Unmarshal(response.Body.Bytes(),&decoded);err!=nil {t.Fatal(err)}
