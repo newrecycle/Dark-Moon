@@ -1,6 +1,6 @@
 <form version="1.1" theme="dark">
   <label>Darkmoon — Findings</label>
-  <description>All Darkmoon findings (current state). Filter by severity, status, category, campaign or target. Click a row for safe detail (no evidence is stored or shown).</description>
+  <description>Latest observed finding state within the selected time range, qualified by campaign. Filter by severity, status, category, campaign or target. Click a row for safe detail (no evidence is stored or shown).</description>
 
   <fieldset submitButton="false" autoRun="true">
     <input type="time" token="tr">
@@ -48,7 +48,7 @@
       <title>Severity distribution (matching filter)</title>
       <chart>
         <search>
-          <query>`darkmoon_findings` severity="$sev$" category="$category_tok$" target="$target_tok$" campaign_id="$campaign_tok$" | dedup finding_id sortby -_time | search status="$statusf$" | stats dc(finding_id) as count by severity</query>
+          <query>`darkmoon_findings` | dedup finding_key sortby -_indextime -_time | search severity=$sev|s$ category=$category_tok|s$ target=$target_tok|s$ campaign_id=$campaign_tok|s$ status=$statusf|s$ | stats dc(finding_key) as count by severity</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -60,7 +60,7 @@
       <title>Status distribution (matching filter)</title>
       <chart>
         <search>
-          <query>`darkmoon_findings` severity="$sev$" category="$category_tok$" target="$target_tok$" campaign_id="$campaign_tok$" | dedup finding_id sortby -_time | search status="$statusf$" | stats dc(finding_id) as count by status</query>
+          <query>`darkmoon_findings` | dedup finding_key sortby -_indextime -_time | search severity=$sev|s$ category=$category_tok|s$ target=$target_tok|s$ campaign_id=$campaign_tok|s$ status=$statusf|s$ | stats dc(finding_key) as count by status</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -74,7 +74,7 @@
       <title>Findings</title>
       <table>
         <search>
-          <query>`darkmoon_findings` severity="$sev$" category="$category_tok$" target="$target_tok$" campaign_id="$campaign_tok$" | dedup finding_id sortby -_time | search status="$statusf$" | table _time finding_id title severity status category target endpoint cve cvss_score mitre_attack_id mitre_attack_name campaign_id discovered_by_agent has_evidence | sort - _time | rename _time as time, cvss_score as cvss, mitre_attack_id as mitre_id, mitre_attack_name as mitre</query>
+          <query>`darkmoon_findings` | dedup finding_key sortby -_indextime -_time | search severity=$sev|s$ category=$category_tok|s$ target=$target_tok|s$ campaign_id=$campaign_tok|s$ status=$statusf|s$ | table _time finding_key finding_id title severity status category target endpoint cve cvss_score mitre_attack_id mitre_attack_name campaign_id discovered_by_agent has_evidence | sort - _time | rename _time as time, cvss_score as cvss, mitre_attack_id as mitre_id, mitre_attack_name as mitre</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -88,17 +88,18 @@
         </format>
         <drilldown>
           <set token="sel_finding">$row.finding_id$</set>
+          <set token="sel_finding_key">$row.finding_key$</set>
         </drilldown>
       </table>
     </panel>
   </row>
 
-  <row depends="$sel_finding$">
+  <row depends="$sel_finding_key$">
     <panel>
       <title>Finding detail — $sel_finding$ (safe fields only; no evidence)</title>
       <table>
         <search>
-          <query>`darkmoon_findings` finding_id="$sel_finding$" | dedup finding_id sortby -_time | eval discovered=strftime(_time,"%F %T") | table finding_id title severity status category target endpoint cve cvss_score cvss_vector mitre_attack_id mitre_attack_name iso27001_control discovered_by_agent has_evidence campaign_id project_id discovered | transpose column_name="field" | rename "row 1" as value</query>
+          <query>`darkmoon_findings` finding_key=$sel_finding_key|s$ | dedup finding_key sortby -_indextime -_time | eval discovered=strftime(_time,"%F %T") | table finding_id title severity status category target endpoint cve cvss_score cvss_vector mitre_attack_id mitre_attack_name iso27001_control discovered_by_agent has_evidence campaign_id project_id discovered | transpose column_name="field" | rename "row 1" as value</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>

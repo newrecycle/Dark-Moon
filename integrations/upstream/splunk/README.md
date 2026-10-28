@@ -180,3 +180,18 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 - 📚 **Docs:** https://docs.dark-moon.org
 - 🌐 **Website:** https://dark-moon.org
 - 🔗 **Related integrations:** [Grafana](https://github.com/ASCIT31/darkmoon-grafana) 
+
+## Fork snapshot/retest consumer continuation
+
+The authenticated forwarder now reads retests and saved targets, joins exact
+target references, and flattens aggregate comparisons alongside lifecycle state.
+Local proposals have their own dashboard, and finding searches/drill-downs
+retain campaign identity. Snapshot repetition is not a new assessment or proof
+of a state transition; source-time filters do not cover the entire workspace.
+`not_observed` is not proof of a deployed fix.
+
+Two completed independent Splunk source branches were reconciled for HTTPS
+admission, safe HEC host locators, UTC timestamps and permanent refusal/retry
+handling. Their prior isolated evidence does not verify the combined changes.
+See [implementation and verification handoff](../../../docs/handoff/splunk-forwarder-integration-2026-10-28.md)
+and [forwarder contract](forwarder/README.md). Testing/native acceptance is delegated.

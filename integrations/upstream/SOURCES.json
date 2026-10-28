@@ -140,6 +140,6 @@
       "test/screenshots",
       "docs/listing-images"
     ],
-    "adaptation": "Map REST record IDs, enforce scalar/finite numeric projections, distinguish local proposals and running retests; fail on REST shape/read or HEC admission errors, reject redirects and unsupported ACK claims; resolve allowlisted hosts to unique saved target IDs; serialize rate-limit state atomically. Correct unsupported direct-HEC documentation. Implementation pass; host/behavior verification is deferred."
+    "adaptation": "Map REST record IDs, enforce scalar/finite numeric projections, distinguish local proposals and running retests; fail on REST shape/read or HEC admission errors, reject redirects and unsupported ACK claims; resolve allowlisted hosts to unique saved target IDs; serialize rate-limit state atomically. Correct unsupported direct-HEC documentation. Implementation pass; host/behavior verification is deferred. Reconcile source fixes from fork worker commits 7b26130/a1a3454 for verified HTTPS admission, safe HEC host locators, UTC timestamps and permanent HEC refusal handling; poll retests/targets, flatten typed lifecycle/comparison snapshots, retain finding links and campaign-qualified identities, and wire proposal/retest dashboard views with escaped tokens. Combined verification is delegated; branch-specific test evidence is not reused as acceptance."
   }
 ]

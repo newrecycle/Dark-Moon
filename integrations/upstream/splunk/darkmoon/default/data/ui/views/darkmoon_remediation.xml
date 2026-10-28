@@ -1,6 +1,6 @@
 <form version="1.1" theme="dark">
   <label>Darkmoon — Remediation &amp; Retest</label>
-  <description>Remediation pull-requests (Pro) and retest verdicts. PR bodies and finding evidence are never ingested — state and references only.</description>
+  <description>Observed local proposals, published PRs and retest comparisons within the selected time range. Local validation and not_observed are not proof of a deployed fix. PR bodies and finding evidence are excluded.</description>
 
   <fieldset submitButton="false" autoRun="true">
     <input type="time" token="tr">
@@ -17,7 +17,7 @@
       <title>PR states</title>
       <chart>
         <search>
-          <query>`darkmoon_index` sourcetype=darkmoon:pr | stats latest(state) as state by pr_id | stats count by state</query>
+          <query>`darkmoon_index` sourcetype=darkmoon:pr | dedup pr_id sortby -_indextime -_time | stats count by state</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -26,16 +26,16 @@
       </chart>
     </panel>
     <panel>
-      <title>Retest verdicts over time</title>
+      <title>Distinct observed comparison snapshots over time</title>
       <chart>
         <search>
-          <query>`darkmoon_index` sourcetype=darkmoon:retest verdict=* | timechart count by verdict</query>
+          <query>`darkmoon_index` sourcetype=darkmoon:retest verdict=* | dedup event_id | timechart count by verdict</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
         <option name="charting.chart">column</option>
         <option name="charting.chart.stackMode">stacked</option>
-        <option name="charting.fieldColors">{"fixed":0x53a051,"regressed":0xdc4e41,"still_present":0xf1813f,"new":0x3b82f6}</option>
+        <option name="charting.fieldColors">{"fixed":0x53a051,"regressed":0xdc4e41,"still_present":0xf1813f,"new":0x3b82f6,"not_observed":0x8c8c8c}</option>
       </chart>
     </panel>
   </row>
@@ -45,7 +45,7 @@
       <title>Remediation pull-requests</title>
       <table>
         <search>
-          <query>`darkmoon_index` sourcetype=darkmoon:pr | stats latest(state) as state latest(provider) as provider latest(repo) as repo latest(number) as number latest(confidence) as confidence latest(campaign_id) as campaign_id latest(url) as url latest(_time) as last by pr_id | eval last=strftime(last,"%F %T") | table pr_id provider repo number state confidence campaign_id last url | sort - last</query>
+          <query>`darkmoon_index` sourcetype=darkmoon:pr | dedup pr_id sortby -_indextime -_time | eval last=strftime(_time,"%F %T") | table pr_id provider repo number state confidence campaign_id finding_ids last url</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -59,16 +59,44 @@
 
   <row>
     <panel>
+      <title>Local proposals — not published PRs</title>
+      <table>
+        <search>
+          <query>`darkmoon_index` sourcetype=darkmoon:remediation | dedup proposal_id sortby -_indextime -_time | table proposal_id campaign_id finding_ids status confidence validated published</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="count">50</option>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Retest lifecycle — includes pending and empty comparisons</title>
+      <table>
+        <search>
+          <query>`darkmoon_index` sourcetype=darkmoon:retest record_type=lifecycle | dedup retest_id sortby -_indextime -_time | table retest_id status base_campaign_id new_campaign_id target_id run_id</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+        </search>
+        <option name="count">50</option>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
       <title>Retest results (per finding)</title>
       <table>
         <search>
-          <query>`darkmoon_index` sourcetype=darkmoon:retest | stats latest(verdict) as verdict latest(base_status) as base_status latest(new_status) as new_status latest(severity) as severity latest(target) as target latest(_time) as last by finding_id title | eval last=strftime(last,"%F %T") | table finding_id title severity target base_status new_status verdict last | sort verdict</query>
+          <query>`darkmoon_index` sourcetype=darkmoon:retest verdict=* | dedup retest_id finding_key sortby -_indextime -_time | eval last=strftime(_time,"%F %T") | table retest_id finding_campaign_id finding_id current_finding_id title severity target base_status new_status verdict last</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
         <option name="count">50</option>
         <format type="color" field="verdict">
-          <colorPalette type="map">{"fixed":#53a051,"regressed":#dc4e41,"still_present":#f1813f,"new":#3b82f6}</colorPalette>
+          <colorPalette type="map">{"fixed":#53a051,"regressed":#dc4e41,"still_present":#f1813f,"new":#3b82f6,"not_observed":#8c8c8c}</colorPalette>
         </format>
       </table>
     </panel>

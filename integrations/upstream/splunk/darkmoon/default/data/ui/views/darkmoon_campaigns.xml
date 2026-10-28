@@ -17,7 +17,7 @@
       <title>Campaigns</title>
       <table>
         <search>
-          <query>`darkmoon_campaigns` | stats latest(status) as status latest(overall_risk) as risk latest(target) as target latest(project_id) as project latest(total_findings) as findings latest(critical) as critical latest(high) as high latest(exploited) as exploited latest(duration_seconds) as duration_s latest(_time) as last by campaign_id | eval last=strftime(last,"%F %T"), duration_min=round(duration_s/60,1) | table campaign_id target project last duration_min risk findings critical high exploited status | sort - last</query>
+          <query>`darkmoon_campaigns` | dedup campaign_id sortby -_indextime -_time | eval last=strftime(_time,"%F %T"), duration_min=round(duration_seconds/60,1) | rename overall_risk as risk project_id as project total_findings as findings | table campaign_id target project last duration_min risk findings critical high exploited status | sort - last</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -41,7 +41,7 @@
       <title>Campaign $sel_campaign$ — severity mix</title>
       <chart>
         <search>
-          <query>`darkmoon_findings` campaign_id="$sel_campaign$" | dedup finding_id sortby -_time | stats dc(finding_id) as count by severity</query>
+          <query>`darkmoon_findings` campaign_id=$sel_campaign|s$ | dedup finding_key sortby -_indextime -_time | stats dc(finding_key) as count by severity</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -53,7 +53,7 @@
       <title>Campaign $sel_campaign$ — findings</title>
       <table>
         <search>
-          <query>`darkmoon_findings` campaign_id="$sel_campaign$" | dedup finding_id sortby -_time | table finding_id title severity status category target endpoint cve mitre_attack_id | sort severity</query>
+          <query>`darkmoon_findings` campaign_id=$sel_campaign|s$ | dedup finding_key sortby -_indextime -_time | table finding_id title severity status category target endpoint cve mitre_attack_id | sort severity</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -67,10 +67,10 @@
 
   <row>
     <panel>
-      <title>Campaign volume over time</title>
+      <title>Observed completed campaigns by source time</title>
       <chart>
         <search>
-          <query>`darkmoon_campaigns` event=campaign.completed | timechart count as campaigns</query>
+          <query>`darkmoon_campaigns` event=campaign.completed | timechart dc(campaign_id) as campaigns</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>

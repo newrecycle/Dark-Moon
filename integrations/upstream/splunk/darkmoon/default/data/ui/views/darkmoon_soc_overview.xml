@@ -1,6 +1,6 @@
 <form version="1.1" theme="dark">
   <label>Darkmoon — SOC Overview</label>
-  <description>Security posture from Darkmoon AI pentest results. Safe metadata only — no evidence or secrets are ingested. Click a tile or row to drill down.</description>
+  <description>Latest observed metadata within the selected source-time window. Accepted and unknown states remain open. These snapshots do not establish live exploit validation, deployment or complete retained-workspace coverage.</description>
 
   <fieldset submitButton="false" autoRun="true">
     <input type="time" token="tr">
@@ -29,7 +29,7 @@
       <title>Active campaigns</title>
       <single>
         <search>
-          <query>`darkmoon_campaigns` project_id="$proj$" | stats latest(status) as status by campaign_id | where status="running" | stats count</query>
+          <query>`darkmoon_campaigns` project_id=$proj|s$ | dedup campaign_id sortby -_indextime -_time | where status="running" | stats count</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -43,7 +43,7 @@
       <title>Critical (open)</title>
       <single>
         <search>
-          <query>`darkmoon_findings` project_id="$proj$" severity=critical | dedup finding_id sortby -_time | search status IN ("unconfirmed","confirmed","exploited") | stats dc(finding_id)</query>
+          <query>`darkmoon_findings` project_id=$proj|s$ | dedup finding_key sortby -_indextime -_time | search severity=critical | search NOT status IN ("false_positive","remediated","resolved","closed","fixed") | stats dc(finding_key)</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -60,7 +60,7 @@
       <title>High (open)</title>
       <single>
         <search>
-          <query>`darkmoon_findings` project_id="$proj$" severity=high | dedup finding_id sortby -_time | search status IN ("unconfirmed","confirmed","exploited") | stats dc(finding_id)</query>
+          <query>`darkmoon_findings` project_id=$proj|s$ | dedup finding_key sortby -_indextime -_time | search severity=high | search NOT status IN ("false_positive","remediated","resolved","closed","fixed") | stats dc(finding_key)</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -77,7 +77,7 @@
       <title>Confirmed</title>
       <single>
         <search>
-          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | search status=confirmed | stats dc(finding_id)</query>
+          <query>`darkmoon_findings` project_id=$proj|s$ | dedup finding_key sortby -_indextime -_time | search status=confirmed | stats dc(finding_key)</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -90,7 +90,7 @@
       <title>Exploited</title>
       <single>
         <search>
-          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | search status=exploited | stats dc(finding_id)</query>
+          <query>`darkmoon_findings` project_id=$proj|s$ | dedup finding_key sortby -_indextime -_time | search status=exploited | stats dc(finding_key)</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -104,10 +104,10 @@
 
   <row>
     <panel>
-      <title>Remediation rate (% of findings remediated)</title>
+      <title>Operator-marked remediated share (%)</title>
       <single>
         <search>
-          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | stats count(eval(status=="remediated")) as rem dc(finding_id) as tot | eval pct=if(tot&gt;0, round(rem/tot*100,1), 0) | fields pct</query>
+          <query>`darkmoon_findings` project_id=$proj|s$ | dedup finding_key sortby -_indextime -_time | stats count(eval(status=="remediated")) as rem dc(finding_key) as tot | eval pct=if(tot&gt;0, round(rem/tot*100,1), null()) | fields pct</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -119,10 +119,10 @@
       </single>
     </panel>
     <panel>
-      <title>Retest verdicts (fixed vs regressed)</title>
+      <title>Latest reported retest comparisons</title>
       <chart>
         <search>
-          <query>`darkmoon_index` sourcetype=darkmoon:retest verdict=* | stats count by verdict</query>
+          <query>`darkmoon_index` sourcetype=darkmoon:retest verdict=* | dedup retest_id finding_key sortby -_indextime -_time | stats count by verdict</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -134,7 +134,7 @@
       <title>Status distribution</title>
       <chart>
         <search>
-          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | stats dc(finding_id) as count by status</query>
+          <query>`darkmoon_findings` project_id=$proj|s$ | dedup finding_key sortby -_indextime -_time | stats dc(finding_key) as count by status</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -148,7 +148,7 @@
       <title>Findings over time (by severity)</title>
       <chart>
         <search>
-          <query>`darkmoon_findings` project_id="$proj$" event=finding.discovered | timechart count by severity</query>
+          <query>`darkmoon_findings` project_id=$proj|s$ event=finding.discovered | timechart count by severity</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -162,7 +162,7 @@
       <title>Severity distribution (open findings)</title>
       <chart>
         <search>
-          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | search status IN ("unconfirmed","confirmed","exploited") | stats dc(finding_id) as count by severity</query>
+          <query>`darkmoon_findings` project_id=$proj|s$ | dedup finding_key sortby -_indextime -_time | search NOT status IN ("false_positive","remediated","resolved","closed","fixed") | stats dc(finding_key) as count by severity</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -177,7 +177,7 @@
       <title>Top exploited assets</title>
       <table>
         <search>
-          <query>`darkmoon_findings` project_id="$proj$" | dedup finding_id sortby -_time | search status=exploited | stats dc(finding_id) as exploited_findings values(severity) as severities latest(_time) as last_seen by target | eval last_seen=strftime(last_seen,"%F %T") | sort - exploited_findings</query>
+          <query>`darkmoon_findings` project_id=$proj|s$ | dedup finding_key sortby -_indextime -_time | search status=exploited | stats dc(finding_key) as exploited_findings values(severity) as severities latest(_time) as last_seen by target | eval last_seen=strftime(last_seen,"%F %T") | sort - exploited_findings</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
@@ -188,15 +188,15 @@
       </table>
     </panel>
     <panel>
-      <title>Open vs remediated over time</title>
+      <title>Active vs excluded finding observations</title>
       <chart>
         <search>
-          <query>`darkmoon_findings` project_id="$proj$" | eval bucket=if(status=="remediated","remediated","open") | timechart dc(finding_id) by bucket</query>
+          <query>`darkmoon_findings` project_id=$proj|s$ | eval bucket=if(in(status,"false_positive","remediated","resolved","closed","fixed"),"excluded","active") | timechart dc(finding_key) by bucket</query>
           <earliest>$tr.earliest$</earliest>
           <latest>$tr.latest$</latest>
         </search>
         <option name="charting.chart">line</option>
-        <option name="charting.fieldColors">{"open":0xdc4e41,"remediated":0x53a051}</option>
+        <option name="charting.fieldColors">{"active":0xdc4e41,"excluded":0x8c8c8c}</option>
       </chart>
     </panel>
   </row>
