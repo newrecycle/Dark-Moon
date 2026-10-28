@@ -1,8 +1,9 @@
 version: 2
+
 updates:
-  # Keep GitHub Actions updates low-noise and grouped into a single PR.
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "deps"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -14,101 +15,23 @@ updates:
         patterns:
           - "*"
 
-  # Python dependencies are concentrated in the MCP tooling and upstream GitLab integration.
   - package-ecosystem: "pip"
-    directory: "/mcp"
+    directory: "/"
+    target-branch: "deps"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
     rebase-strategy: "auto"
     groups:
       python:
         patterns:
           - "*"
 
-  - package-ecosystem: "pip"
-    directory: "/mcp/community"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 2
-    rebase-strategy: "auto"
-    groups:
-      python:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "pip"
-    directory: "/integrations/upstream/gitlab"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 2
-    rebase-strategy: "auto"
-    groups:
-      python:
-        patterns:
-          - "*"
-
-  # Node packages are split across multiple subprojects. Keep each project grouped and capped.
   - package-ecosystem: "npm"
-    directory: "/integrations/upstream/action"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 1
-    rebase-strategy: "auto"
-    groups:
-      javascript:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "npm"
-    directory: "/integrations/upstream/client"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 1
-    rebase-strategy: "auto"
-    groups:
-      javascript:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "npm"
-    directory: "/integrations/upstream/n8n"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 1
-    rebase-strategy: "auto"
-    groups:
-      javascript:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "npm"
-    directory: "/integrations/upstream/vscode"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 1
-    rebase-strategy: "auto"
-    groups:
-      javascript:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "npm"
-    directory: "/integrations/upstream/grafana/plugin"
+    directory: "/"
+    target-branch: "deps"
     schedule:
       interval: "weekly"
       day: "monday"
