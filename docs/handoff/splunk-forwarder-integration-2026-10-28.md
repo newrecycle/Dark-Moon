@@ -79,3 +79,25 @@ Run only offline fixtures or explicitly permitted disposable hosts. Do not call
 real providers, launch assessments, send external HEC/webhook traffic or run
 vendor binaries. Record actual source/ref, commands and results; no old isolated
 CI run establishes this combined checkpoint's acceptance.
+
+## Local verification implemented — 28 October 2026
+
+The coordinating worker executed the post-commit verification request directly.
+The reconciled branch tests now live on `pro`, with five-collection REST
+expectations and additional aggregate/flat retest, scoped identity, enrichment,
+HEC admission, configuration and package contracts. A real owned-loopback
+HTTP fixture exercises polling/projection/batched HEC and authenticated saved
+target launches; its TLS fixture checks CA trust and hostname failure/success.
+
+Observed locally: 56 Python tests (including alert/package/loopback contracts),
+13 Node setup tests and all seven legacy guard assertions passed. The package
+build exposed and fixed SIGPIPE from `tar | head` under pipefail. Regression
+tests also fixed port-zero admission, inherited aggregate comparison metadata
+and duplicate allowlist CSV headers. No tests start an assessment engine.
+
+Repeatable Linux and Windows-alert jobs are in
+`.github/workflows/splunk-verification.yml`. Hosted results are recorded in
+`docs/validation/splunk-offline-2026-10-28.md` when observed; a pending workflow
+is not a pass. Native Splunk/SPL/SDK acceptance remains unverified: this runtime
+has neither Docker nor a licensed Splunk host. XML/stanza/DOM-service checks
+are not relabeled native acceptance.

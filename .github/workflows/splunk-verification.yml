@@ -1,0 +1,49 @@
+name: Splunk offline integration verification
+on:
+  push:
+    branches: [pro]
+    paths:
+      - 'integrations/upstream/splunk/**'
+      - '.github/workflows/splunk-verification.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require local TLS fixture generator
+        run: openssl version
+      - name: Verify forwarder, alert, package and owned loopback HTTP/TLS
+        run: python -m unittest discover -s integrations/upstream/splunk/test -p 'test_*.py' -v
+      - name: Verify setup rotation and failed/concurrent saves
+        run: node --test integrations/upstream/splunk/test/setup_contract.cjs
+      - name: Preserve legacy alert guard coverage
+        run: python integrations/upstream/splunk/test/test_alert_action.py
+  windows-alert-contracts:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Windows alert and process-serialized quota
+        run: python -m unittest discover -s integrations/upstream/splunk/test -p test_alert_contract.py -v
+      - name: Verify setup callback and rotation contract
+        run: node --test integrations/upstream/splunk/test/setup_contract.cjs

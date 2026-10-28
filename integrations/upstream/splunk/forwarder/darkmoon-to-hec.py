@@ -117,7 +117,8 @@ def checked_url(value, verify=True):
         parsed = urlsplit(value)
         hostname = parsed.hostname
         # Accessing .port also rejects invalid numeric port declarations.
-        parsed.port
+        if parsed.port == 0:
+            raise ValueError("Invalid port")
     except ValueError:
         raise ValueError("Configure a valid HTTP(S) URL") from None
     if (parsed.scheme not in {"https", "http"} or not hostname
@@ -273,6 +274,10 @@ def retest_event(r):
         finding_campaign = obj["new_campaign_id"] if r["verdict"] == "new" else r.get("base_campaign_id")
         obj["finding_campaign_id"] = finding_campaign
         obj["finding_key"] = (finding_campaign or "legacy") + "::" + obj["finding_id"]
+    else:
+        for key in ("finding_id", "current_finding_id", "finding_campaign_id", "finding_key",
+                    "title", "severity", "base_status", "new_status", "verdict"):
+            obj.pop(key, None)
     obj["event"] = "retest.completed" if r.get("status") == "completed" else "retest.updated"
     obj["ts"] = r.get("ts") or r.get("finished_at") or r.get("created_at") or ""
     safe = pick_safe("darkmoon:retest", obj)
@@ -299,7 +304,9 @@ def retest_events(record):
         for key in ("retest_id", "base_campaign_id", "new_campaign_id", "target_id", "run_id"):
             if comparison.get(key) is not None and comparison[key] != record.get(key):
                 raise ValueError("Retest comparison has a conflicting parent reference")
-        row = {key: value for key, value in record.items() if key not in {"findings", "verdicts"}}
+        row = {key: value for key, value in record.items() if key not in {
+            "findings", "verdicts", "finding_id", "current_finding_id", "finding_campaign_id", "finding_key",
+            "title", "severity", "base_status", "new_status", "verdict"}}
         for key in ("finding_id", "current_finding_id", "title", "severity", "base_status", "new_status", "verdict"):
             if key in comparison:
                 value = comparison[key]

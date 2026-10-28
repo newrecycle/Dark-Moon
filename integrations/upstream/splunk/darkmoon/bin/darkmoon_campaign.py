@@ -200,8 +200,8 @@ def load_allowlist():
     try:
         with open(path, "r", encoding="utf-8", newline="") as fh:
             reader = csv.DictReader(fh)
-            if not reader.fieldnames or "target" not in reader.fieldnames:
-                raise ValueError("Missing target column")
+            if not reader.fieldnames or "target" not in reader.fieldnames or len(reader.fieldnames) != len(set(reader.fieldnames)):
+                raise ValueError("Missing or duplicate allowlist column")
             for row in reader:
                 if not row.get("target"):
                     continue

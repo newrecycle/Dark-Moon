@@ -20,6 +20,7 @@ find "$STAGE/darkmoon" -type f \( -name '*.pyc' -o -name 'local.meta' -o -name '
 
 tar -C "$STAGE" --owner=0 --group=0 -czf "$OUT" darkmoon
 echo "Built $OUT"
-tar -tzf "$OUT" | head -20
+tar -tzf "$OUT" > "$STAGE/contents.txt"
+head -20 "$STAGE/contents.txt"
 echo "..."
 echo "size: $(du -h "$OUT" | cut -f1)"

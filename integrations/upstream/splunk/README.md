@@ -212,3 +212,17 @@ action/scope/boolean values are strict, and invalid allowlists/quota state fail
 closed. Both dry-run and live attempts retain the existing rolling quota.
 These are source changes, not native Splunk verification; see
 [credential/action handoff](../../../docs/handoff/splunk-alert-credentials-2026-10-28.md).
+
+## Offline verification
+
+```bash
+python -m unittest discover -s integrations/upstream/splunk/test -p 'test_*.py' -v
+node --test integrations/upstream/splunk/test/setup_contract.cjs
+python integrations/upstream/splunk/test/test_alert_action.py
+```
+
+The focused gate `.github/workflows/splunk-verification.yml` runs these on Linux
+and the alert/setup subset on Windows. Fixtures use synthetic secrets and owned
+loopback HTTP/TLS only. Tests cover the actual package build; they do not run a
+licensed Splunk host or establish native SPL/SDK behavior. See
+[observed verification](../../../docs/validation/splunk-offline-2026-10-28.md).

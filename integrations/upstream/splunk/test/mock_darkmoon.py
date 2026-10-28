@@ -50,9 +50,15 @@ class Handler(BaseHTTPRequestHandler):
                 with open(CALLS_FILE) as fh:
                     calls = json.load(fh)
             return self._send(200, calls)
+        if self.path == "/api/v1/targets":
+            if self.headers.get("Authorization") != "Bearer TESTTOKEN":
+                return self._send(401, {"error": "fixture authentication required"})
+            return self._send(200, {"data": [{"id": "target_mock01", "host": "demo-shop.local"}], "total": 1})
         return self._send(404, {"error": "not found"})
 
     def do_POST(self):
+        if self.headers.get("Authorization") != "Bearer TESTTOKEN":
+            return self._send(401, {"error": "fixture authentication required"})
         length = int(self.headers.get("Content-Length", 0) or 0)
         raw = self.rfile.read(length) if length else b"{}"
         try:
@@ -63,8 +69,11 @@ class Handler(BaseHTTPRequestHandler):
         entry = {"path": self.path, "payload": payload, "has_auth": has_auth}
         _record(entry)
         if self.path.startswith("/api/v1/retest"):
+            if payload.get("target_id") != "target_mock01":
+                return self._send(400, {"error": "saved fixture target required"})
             return self._send(200, {"retest_id": "retest_mock01",
                                     "run_id": "run_mock01",
+                                    "target_id": "target_mock01", "status": "running",
                                     "base_campaign_id": "camp_mock"})
         if self.path.startswith("/api/v1/run/campaign"):
             return self._send(200, {"run_id": "run_mock02", "pid": 4242,
@@ -79,4 +88,4 @@ if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8443
     if os.path.exists(CALLS_FILE):
         os.remove(CALLS_FILE)
-    HTTPServer(("0.0.0.0", port), Handler).serve_forever()
+    HTTPServer(("127.0.0.1", port), Handler).serve_forever()
