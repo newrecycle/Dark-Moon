@@ -22,7 +22,7 @@
       "docs/screenshots",
       "test/screenshots"
     ],
-    "adaptation": "Require HMAC v2, fresh timestamps and durable event-id suppression; encrypted credential signing secrets instead of workflow static secrets; safe allowlisted event output, campaign-qualified atomic poll cursors, local proposal/PR distinction, retained failed cleanup, explicit launch correlation and honest timeouts; protected token/password credential tests. Native host validation runs in a network-disabled container."
+    "adaptation": "Require HMAC v2, fresh timestamps and producer-backed durable event-id admission; encrypted credential signing secrets instead of workflow static secrets; safe allowlisted event output, campaign-qualified atomic poll cursors, local proposal/PR distinction, retained failed cleanup, explicit launch correlation and honest timeouts; protected token/password credential tests. Native host validation runs in a network-disabled container. Real pinned-host restart exposed nonpersistent webhook static-data receipts; the fork receiver now requires POST /webhooks/{id}/events/claim and fails closed if durable admission is unavailable."
   },
   {
     "path": "integrations/upstream/grafana",

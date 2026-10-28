@@ -63,3 +63,11 @@ run-stop DELETE and version-required scheduler PUT aliases. See the
 API03's vendor flat schedule-payload adapter is still open, and none of the rows
 are labeled vendor-wire verified. The other ten static discrepancy rows remain
 in the systematic queue alongside the native integration-host work.
+
+The shutdown-timer follow-up reached the final native replay assertion and
+exposed an actual restart duplicate (two executions for one signed event).
+Webhook receipt mutations in that pinned n8n path are therefore not accepted as
+durable evidence. The next fix adds an authenticated, transactional producer
+receipt journal, with no raw payloads, fail-closed admission, finite retention,
+and no eviction of fresh entries at capacity. See [receipt contract](webhook-receipts.md).
+Native replay/deactivation remains pending until the new offline host run passes.

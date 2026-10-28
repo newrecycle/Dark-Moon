@@ -266,16 +266,27 @@ export class DarkmoonTrigger implements INodeType {
 		} catch {
 			return acknowledge(this, 400, 'invalid event');
 		}
-		const current = Date.now() / 1000;
-		const seenEvents = new Map(
-			Object.entries((staticData.communitySeenEvents ?? {}) as Record<string, number>).filter(
-				([, received]) => typeof received === 'number' && received >= current - 86400,
-			),
-		);
-		if (seenEvents.has(eventId)) return acknowledge(this, 200, 'duplicate ignored');
-		seenEvents.set(eventId, current);
-		const ordered = [...seenEvents].sort((a, b) => a[1] - b[1]);
-		staticData.communitySeenEvents = Object.fromEntries(ordered.slice(-5000));
+		// The pinned native webhook path did not persist receipt mutations
+		// through restart. Claim at the authenticated producer instead.
+		const webhookId = staticData.webhookId;
+		if (typeof webhookId !== 'string' || !webhookId)
+			return acknowledge(this, 503, 'webhook registration is unavailable');
+		try {
+			const session = await authorize(this, credentials as never);
+			const claim = await dm(
+				this,
+				this.getNode(),
+				session,
+				'POST',
+				`/webhooks/${encodeURIComponent(webhookId)}/events/claim`,
+				{ body: { event_id: eventId } },
+			);
+			if (claim.claimed === false) return acknowledge(this, 200, 'duplicate ignored');
+			if (claim.claimed !== true) throw new Error('Invalid receipt response');
+		} catch {
+			return acknowledge(this, 503, 'durable event admission is unavailable; retry delivery');
+		}
+
 		const selected = this.getNodeParameter('events', []) as string[];
 		if (selected.length && !selected.includes(String(body.event)))
 			return acknowledge(this, 200, 'event ignored');

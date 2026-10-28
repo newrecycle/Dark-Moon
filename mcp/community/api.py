@@ -32,7 +32,7 @@ def info():
     return {"edition": "community", "api_version": "1.0.0", "contract_version": "1", "implementation": "independent",
             "features": {"auth": True, "credentials": True, "scheduler": True, "sse_progress": True,
                          "remediation": True, "privacy_gateway": True, "licensing": False, "webhooks": True,
-                         "retest": True, "metrics": True, "publishing": False}, "routers": ROUTERS}
+                         "retest": True, "metrics": True, "webhook_receipts": True, "publishing": False}, "routers": ROUTERS}
 
 
 class API:
@@ -410,12 +410,22 @@ class API:
                 handler.send(envelope(self.store.items("webhooks")))
             elif method == "POST" and len(parts) == 1:
                 handler.send({"data": self.service.operations.register(handler.body())}, status=201)
+            elif len(parts) == 4 and parts[2:] == ["events", "claim"] and method == "POST":
+                from .operations import WebhookReceiptCapacityError
+                raw = handler.body()
+                if set(raw) != {"event_id"}: raise ValueError("Provide event_id only")
+                try:
+                    handler.send(self.service.operations.claim_webhook_event(parts[1], raw["event_id"]))
+                except WebhookReceiptCapacityError as exc:
+                    handler.send({"error":str(exc),"retry_after":exc.retry_after}, status=429,
+                                 extra_headers={"Retry-After":str(exc.retry_after)})
             elif len(parts) == 2 and method == "DELETE":
                 def remove(state):
                     hook = state.setdefault("webhooks", {}).pop(identifier(parts[1]), None)
                     if not hook:
                         raise KeyError(parts[1])
                     state.setdefault("credentials", {}).pop(hook["credential_ref"], None)
+                    state.setdefault("webhook_receipts", {}).pop(parts[1], None)
                 self.store.update(remove)
                 handler.send({"deleted": parts[1]})
             elif len(parts) == 3 and parts[2] == "deliveries" and method == "GET":

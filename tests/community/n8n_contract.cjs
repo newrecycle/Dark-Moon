@@ -77,9 +77,9 @@ const response=(body,statusCode=200)=>({body,statusCode});
   c.getCredentials=async()=>({baseUrl:'http://other.invalid',authMethod:'token',token:session.token});assert.equal(await poll(),null);
  });
  await check('signed webhook output is allowlisted and replay suppression survives a restart',async()=>{
-  const signingSecret='fixture-signing-secret';let state={},headers={},body,replyStatus;
-  const response={status:s=>{replyStatus=s;return response},json:()=>response};
-  const c={getCredentials:async()=>({webhookSecret:'fixture-signing-secret'}),getResponseObject:()=>response,getWorkflowStaticData:()=>state,getRequestObject:()=>({body,rawBody:Buffer.from(JSON.stringify(body))}),getHeaderData:()=>headers,getNodeParameter:()=>[]};
+  const signingSecret='fixture-signing-secret',receipts=new Set();let state={webhookId:'hook_fixture'},headers={},body,replyStatus;
+  const reply={status:s=>{replyStatus=s;return reply},json:()=>reply};
+  const c={getCredentials:async()=>({webhookSecret:signingSecret,baseUrl:session.apiBase,authMethod:'token',token:session.token}),getNode:()=>node,helpers:{httpRequest:async o=>{const id=o.body.event_id,claimed=!receipts.has(id);receipts.add(id);return response({claimed});}},getResponseObject:()=>reply,getWorkflowStaticData:()=>state,getRequestObject:()=>({body,rawBody:Buffer.from(JSON.stringify(body))}),getHeaderData:()=>headers,getNodeParameter:()=>[]};
   const deliver=async(id,event='finding.exploited')=>{
    body={id,event,raw:'SECRET-RAW',data:{finding_id:'f1',campaign_id:'c1',evidence:{body:'SECRET-EVIDENCE'},endpoint:'SECRET-ENDPOINT'}};
    const stamp=String(Math.floor(Date.now()/1000)),raw=JSON.stringify(body),secret=signingSecret;
@@ -91,6 +91,7 @@ const response=(body,statusCode=200)=>({body,statusCode});
   assert.ok((await deliver('__proto__')).workflowData);state=clone(state);assert.equal((await deliver('__proto__')).workflowData,undefined);
   await deliver('evt_bad','');assert.equal(replyStatus,400);
   await deliver('evt_unicode');headers['x-darkmoon-signature']='é'.repeat(64);await DarkmoonTrigger.prototype.webhook.call(c);assert.equal(replyStatus,401);
+  const request=c.helpers.httpRequest;c.helpers.httpRequest=async()=>response({},503);const refused=await deliver('evt_retry');assert.equal(replyStatus,503);assert.equal(refused.workflowData,undefined);c.helpers.httpRequest=request;assert.ok((await deliver('evt_retry')).workflowData);
  });
  console.log(JSON.stringify({status:'passed',checks:passed}));
 })().catch(e=>{console.error(e.stack);process.exitCode=1});

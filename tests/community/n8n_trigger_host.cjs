@@ -8,7 +8,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
  const parse=createRequire(path.resolve(cli))('flatted').parse;
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'darkmoon-trigger-host-')),repo=path.resolve(__dirname,'../..');
  const token='disposable-trigger-host-api-token',secret='disposable-trigger-signing-secret-123456789';
- const hooks=new Map();let findingStatus='confirmed',polls=0;
+ const hooks=new Map(),receipts=new Map();let findingStatus='confirmed',polls=0;
  const mock=http.createServer(async(req,res)=>{
   const send=(status,body)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
   if(req.headers.authorization!=='Bearer '+token)return send(401,{error:'Unauthorized'});
@@ -20,6 +20,11 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
   if(route==='/api/v1/webhooks'&&req.method==='POST'){
    let text='';for await(const part of req)text+=part;const body=JSON.parse(text),id='hook_'+hooks.size;
    assert.equal(body.secret,secret);hooks.set(id,{id,...body});return send(201,{id});
+  }
+  if(route.startsWith('/api/v1/webhooks/')&&route.endsWith('/events/claim')&&req.method==='POST'){
+   const hookId=route.split('/')[4];if(!hooks.has(hookId))return send(404,{error:'Not found'});
+   let text='';for await(const part of req)text+=part;const {event_id}=JSON.parse(text),key=JSON.stringify([hookId,event_id]);
+   const claimed=!receipts.has(key);receipts.set(key,true);return send(200,{claimed});
   }
   if(route.startsWith('/api/v1/webhooks/')&&req.method==='DELETE'){hooks.delete(route.split('/').at(-1));return send(200,{deleted:true});}
   send(404,{error:'Not found'});
@@ -60,12 +65,13 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
   assert.equal((await executions(hookId)).length,0);
   assert.equal((await deliver('evt_persisted')).status,200);
   await wait('webhook execution',async()=>(await executions(hookId)).some(e=>e.status==='success'),20000);
+  assert.equal(receipts.size,1,'producer receipt is recorded before workflow output');
   const rows=await executions(hookId),record=await api('/rest/executions/'+rows[0].id);const execution=typeof record.data==='string'?parse(record.data):record.data;
   const output=execution.resultData.runData.Output[0].data.main[0];assert.doesNotMatch(JSON.stringify(output),/DO-NOT-FORWARD|disposable-trigger/);assert.equal(output[0].json.data.finding_id,'fixture_finding');
   console.log('Native trigger: restarting webhook receiver and replaying signed event');
   await stop();await start();assert.equal(hooks.size,1,'restart must reuse registration');assert.equal((await deliver('evt_persisted')).status,200);await pause(1500);assert.equal((await executions(hookId)).length,rows.length);
   await api('/rest/workflows/'+hookId+'/deactivate','POST',{});assert.equal(hooks.size,0);assert.equal((await deliver('evt_after_deactivate')).status,404);
   await api('/rest/workflows/'+pollId+'/deactivate','POST',{});
-  console.log(JSON.stringify({status:'passed',host:'n8n 2.45.4',checks:['poll activation primes without replay','scheduled transition','durable poll cursor across process restart','webhook credential secret absent from workflow export','HTTP 401 on invalid HMAC','safe downstream event projection','webhook registration reused across restart','replay suppressed after restart','deactivation removes remote registration and route'],root},null,2));
+  console.log(JSON.stringify({status:'passed',host:'n8n 2.45.4',checks:['poll activation primes without replay','scheduled transition','durable poll cursor across process restart','webhook credential secret absent from workflow export','HTTP 401 on invalid HMAC','safe downstream event projection','webhook registration reused across restart','producer-backed replay suppressed after restart','deactivation removes remote registration and route'],root},null,2));
  }finally{await stop();mock.close();await fs.writeFile(path.join(root,'host.log'),log);}
 })().catch(e=>{console.error(e.stack);if(e.cause)console.error('Cause:',String(e.cause));process.exitCode=1});

@@ -221,8 +221,8 @@ static secret is removed. Historical exports/versions made before migration can
 still contain the old secret; rotate it rather than reusing it. Failed deletion
 keeps the registration reference so cleanup can be retried. Invalid signatures
 receive an actual HTTP 401, rather than a JSON object describing a 401 inside an
-HTTP 200 response. Both HMAC versions, freshness and persistent event IDs are
-checked.
+HTTP 200 response. Both HMAC versions and freshness are checked. Persistent event admission is
+provided by the authenticated fork producer, as described below.
 
 Native host tests must run in a container with **`--network none`**. Merely
 setting telemetry-disable variables does not isolate n8n: optional banner and
@@ -237,3 +237,25 @@ docker run --rm --network none darkmoon-n8n-host
 
 The test creates only disposable accounts, credentials and loopback workflows.
 It does not send Slack/Jira/other third-party messages.
+
+### Durable webhook admission
+
+The pinned n8n 2.45.4 native restart test exposed that receipt changes made in
+this webhook path were not retained across process restart. The receiver now
+claims each validated event through the fork extension
+`POST /api/v1/webhooks/{id}/events/claim`, using the existing encrypted API
+credential. Only the event ID crosses that boundary. A duplicate receives HTTP
+200 without starting a workflow; unavailable/malformed admission receives HTTP
+503 so the producer can retry. No in-memory-only fallback is used. Original
+commercial servers without this extension are not claimed compatible with this
+webhook mode; polling remains available.
+
+Receipts persist for 24 hours and are scoped to the registration ID. At 5,000
+fresh receipts per registration, new admissions return 429 with Retry-After;
+fresh receipts are never evicted to admit a new event. This preserves duplicate
+suppression under load. Deleting a registration removes its receipts.
+
+Admission occurs before downstream workflow execution: this is bounded
+**at-most-once admission**, not exactly-once processing. A crash or failed
+workflow after admission requires operator recovery; a duplicate delivery does
+not rerun it automatically. Retention and delivery retries are finite.

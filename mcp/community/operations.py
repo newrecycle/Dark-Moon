@@ -5,6 +5,7 @@ import http.client
 import ipaddress
 import json
 import os
+import re
 import secrets
 import socket
 import ssl
@@ -17,6 +18,16 @@ from urllib.parse import urlsplit
 
 from api import json_storage as data
 from .store import identifier, now
+
+WEBHOOK_RECEIPT_TTL = 86400
+MAX_WEBHOOK_RECEIPTS = 5000
+
+
+class WebhookReceiptCapacityError(Exception):
+    def __init__(self, retry_after):
+        super().__init__("Webhook receipt journal is full; retry after existing receipts expire")
+        self.retry_after = max(1, int(retry_after))
+
 
 SAFE_FINDING_FIELDS = ("id", "campaign_id", "project_id", "target_id", "severity", "status", "category", "cve",
                        "mitre_attack_id", "iso27001_control", "discovered_at", "discovered_by_agent", "node_id", "cvss_score")
@@ -181,6 +192,29 @@ class Operations:
         # Caller-supplied secrets are never echoed. Generated secrets are
         # returned once to the registering admin so receivers can verify them.
         return hook | ({"secret": secret} if not raw.get("secret") else {})
+
+    def claim_webhook_event(self, webhook_id, event_id, clock=None):
+        """Durable at-most-once receiver admission; never evict fresh receipts."""
+        identifier(webhook_id)
+        if not isinstance(event_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,200}", event_id):
+            raise ValueError("event_id must contain 1 to 200 letters, digits, underscores or hyphens")
+        timestamp = time.time() if clock is None else clock
+        def claim(state):
+            hook = state.get("webhooks", {}).get(webhook_id)
+            if not hook: raise KeyError(webhook_id)
+            if not hook.get("enabled"): raise PermissionError("Webhook is disabled")
+            journals = state.setdefault("webhook_receipts", {})
+            current = {key: value for key, value in journals.get(webhook_id, {}).items()
+                       if isinstance(value, (int, float)) and value > timestamp - WEBHOOK_RECEIPT_TTL}
+            if event_id in current:
+                journals[webhook_id] = current
+                return {"webhook_id":webhook_id, "event_id":event_id, "claimed":False}
+            if len(current) >= MAX_WEBHOOK_RECEIPTS:
+                raise WebhookReceiptCapacityError(min(current.values()) + WEBHOOK_RECEIPT_TTL - timestamp + 1)
+            current[event_id] = timestamp
+            journals[webhook_id] = current
+            return {"webhook_id":webhook_id, "event_id":event_id, "claimed":True}
+        return self.store.update(claim)
 
     def launch_retest(self, raw):
         campaign = data.load_campaign(identifier(raw.get("campaign_id"))) if raw.get("campaign_id") else None
