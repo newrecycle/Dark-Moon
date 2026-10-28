@@ -39,7 +39,7 @@ def fixture_status(base, context):
 def main():
     try:
         mgmt, _, _, _, ctx = preflight()
-        fixture = local_url("SPLUNK_NATIVE_DARKMOON", "")
+        fixture = local_url("SPLUNK_NATIVE_DARKMOON", "", required_scheme="http")
         splunk_home = Path(os.environ.get("SPLUNK_NATIVE_SPLUNK_HOME", ""))
         if not splunk_home.is_absolute():
             raise Unavailable("SPLUNK_NATIVE_SPLUNK_HOME must be the real host's installed Splunk directory")

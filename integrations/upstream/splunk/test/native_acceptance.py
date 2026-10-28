@@ -287,7 +287,8 @@ def native(mgmt, hec, index, package, context):
            base_campaign_id=c1, new_campaign_id=c2, target_id=run+"_target", status="completed"),
         ev("retest", now-60, retest_id=run+"_completed", record_type="comparison",
            base_campaign_id=c1, new_campaign_id=c2, finding_campaign_id=c1,
-           finding_id=f, target_id=run+"_target", verdict="not_observed", status="completed"),
+           finding_id=f, current_finding_id=f+"_current", target_id=run+"_target",
+           verdict="not_observed", status="completed"),
         ev("remediation", now-55, proposal_id=run+"_local", campaign_id=c1,
            finding_ids=[f], status="validated", published=False),
         ev("pr", now-50, pr_id=run+"_published", campaign_id=c1, finding_ids=[f],
@@ -340,6 +341,15 @@ def native(mgmt, hec, index, package, context):
     check(number(retests[0]["lifecycles"]) == 2 and number(retests[0]["unknown"]) == 1
           and number(retests[0]["fixed"]) == 0,
           "native SPL incorrectly treats not_observed or pending lifecycle as fixed")
+    comparison = spl(management, base +
+                     " sourcetype=darkmoon:retest verdict=not_observed"
+                     " | table finding_key finding_campaign_id current_finding_id"
+                     " base_campaign_id new_campaign_id")
+    check(len(comparison) == 1 and comparison[0].get("finding_key") == c1+"::"+f
+          and comparison[0].get("current_finding_id") == f+"_current"
+          and comparison[0].get("base_campaign_id") == c1
+          and comparison[0].get("new_campaign_id") == c2,
+          "native retest comparison lost campaign or current-finding identity")
     proposal = spl(management, base + " sourcetype=darkmoon:remediation | stats dc(proposal_id) as n")
     published = spl(management, base + " sourcetype=darkmoon:pr | stats dc(pr_id) as n")
     check(number(proposal[0]["n"]) == 1 and number(published[0]["n"]) == 1,

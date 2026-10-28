@@ -48,6 +48,17 @@ class NativeBoundaries(unittest.TestCase):
             with self.assertRaises(native.Unavailable):
                 native.local_url("SPLUNK_NATIVE_HEC","")
 
+    def test_native_action_can_bind_only_the_owned_http_fixture(self):
+        with mock.patch.dict(os.environ, {"SPLUNK_NATIVE_DARKMOON":
+                "http://127.0.0.1:8132"}):
+            self.assertEqual(native.local_url("SPLUNK_NATIVE_DARKMOON", "",
+                             required_scheme="http"), "http://127.0.0.1:8132")
+        with mock.patch.dict(os.environ, {"SPLUNK_NATIVE_DARKMOON":
+                "https://example.com"}):
+            with self.assertRaises(native.Unavailable):
+                native.local_url("SPLUNK_NATIVE_DARKMOON", "",
+                                 required_scheme="http")
+
     def test_installed_macro_scopes_both_indexes_to_darkmoon_sourcetype(self):
         text = (ROOT / "darkmoon/default/macros.conf").read_text()
         self.assertIn("definition = (index=darkmoon OR index=main) sourcetype=darkmoon:*", text)
