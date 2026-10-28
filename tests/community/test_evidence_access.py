@@ -111,10 +111,11 @@ class EvidenceHTTPTests(fixtures.Fixture):
         self.assertNotIn(SOURCE_CANARY, default.decode())
 
     def test_wrong_kind_id_campaign_and_cross_session_substitution(self):
-        second = self.campaign()
-        second_findings = data.load_vulnerabilities(second)
-        second_findings[0]["id"] = "unique_second_finding"
-        data.save_vulnerabilities(second, second_findings)
+        second = "separate_campaign"
+        data.save_target({"id": "separate_target"})
+        data.save_campaign({"id": second, "target_id": "separate_target"})
+        data.save_vulnerabilities(second, [{"id": "unique_second_finding",
+                                            "campaign_id": second, "target_id": "separate_target"}])
         token = self.grant("finding", self.fid)[1]["grant"]
         self.assertEqual(self.reveal("finding", "other_finding", token)[0], 404)
         self.assertEqual(self.reveal("campaign", self.cid, token)[0], 403)
