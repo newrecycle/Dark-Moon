@@ -154,6 +154,14 @@ class CredentialAccessTests(fixtures.Fixture):
             self.service.vault.require("cred_revoke", "assessment_token", actor=self.actors["alice"])
         with self.assertRaises(ValueError):
             self.service.vault.save({"revoked": False}, "cred_revoke", actor=self.actors["operator"])
+        status, body, _ = self.request("/api/v1/credentials/cred_revoke")
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(body)["data"]["revoked"])
+        self.assertNotIn(SECRET, body.decode())
+        self.assertNotIn("cred_revoke", [
+            row["id"] for row in self.service.vault.list("assessment_token")
+        ])
+        self.assertEqual(self.request("/api/v1/credentials/cred_revoke", "DELETE")[0], 200)
 
     def test_legacy_record_converts_without_reencrypt_or_wildcard_grant(self):
         legacy = self.service.vault.save({"secret": SECRET, "username": "legacy"}, "cred_old")
