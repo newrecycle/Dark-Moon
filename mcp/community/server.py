@@ -22,7 +22,7 @@ from . import reports
 from .service import Service, graph_for
 from .store import Store, identifier
 from .run_views import log_detail, log_metadata, public_run, stream_chunk
-from .evidence_access import minimize_response, public_projection, consume
+from .evidence_access import minimize_response, public_projection, consume, read_patch_bytes
 
 STATIC = Path(__file__).with_name("static")
 
@@ -187,10 +187,8 @@ def handler_for(service, allowed_hosts):
             if method == "GET" and len(parts) == 3 and parts[0] == "remediations" and parts[2] == "patch":
                 proposal_id = identifier(parts[1])
                 self.require_evidence(identity, "patch", proposal_id)
-                path = service.store.root / "remediation" / proposal_id / "fix.patch"
-                if not path.is_file():
-                    raise KeyError(proposal_id)
-                return self.send(path.read_bytes(), "text/x-diff", filename=proposal_id + ".patch")
+                return self.send(read_patch_bytes(service, proposal_id), "text/x-diff",
+                                 filename=proposal_id + ".patch")
             if method == "GET" and len(parts) >= 2 and parts[0] == "campaigns":
                 campaign = service.campaign(identifier(parts[1]))
                 if len(parts) == 2:
