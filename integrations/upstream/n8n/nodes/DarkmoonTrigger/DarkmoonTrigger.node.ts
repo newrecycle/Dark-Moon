@@ -257,14 +257,29 @@ export class DarkmoonTrigger implements INodeType {
 		}
 		if (body.id !== undefined && body.id !== eventId)
 			return acknowledge(this, 401, 'event identity mismatch');
-		let projected: IDataObject;
-		try {
-			projected = eventProjection(String(body.event ?? ''), (body.data ?? {}) as IDataObject, {
-				...body,
-				id: eventId,
-			});
-		} catch {
-			return acknowledge(this, 400, 'invalid event');
+		// The signed synthetic test uses the producer's normal durable receipt,
+		// but may not start or appear as a real lifecycle workflow event.
+		const isTest = body.event === 'webhook.test';
+		if (
+			isTest &&
+			(body.synthetic !== true ||
+				typeof body.data !== 'object' ||
+				body.data === null ||
+				Array.isArray(body.data) ||
+				(body.data as IDataObject).synthetic !== true ||
+				(body.data as IDataObject).purpose !== 'delivery_validation')
+		)
+			return acknowledge(this, 400, 'invalid test event');
+		let projected: IDataObject | undefined;
+		if (!isTest) {
+			try {
+				projected = eventProjection(String(body.event ?? ''), (body.data ?? {}) as IDataObject, {
+					...body,
+					id: eventId,
+				});
+			} catch {
+				return acknowledge(this, 400, 'invalid event');
+			}
 		}
 		// The pinned native webhook path did not persist receipt mutations
 		// through restart. Claim at the authenticated producer instead.
@@ -287,10 +302,11 @@ export class DarkmoonTrigger implements INodeType {
 			return acknowledge(this, 503, 'durable event admission is unavailable; retry delivery');
 		}
 
+		if (isTest) return acknowledge(this, 200, 'test delivery acknowledged');
 		const selected = this.getNodeParameter('events', []) as string[];
 		if (selected.length && !selected.includes(String(body.event)))
 			return acknowledge(this, 200, 'event ignored');
-		return { workflowData: [[{ json: projected }]] };
+		return { workflowData: [[{ json: projected as IDataObject }]] };
 	}
 
 	async poll(this: IPollFunctions): Promise<INodeExecutionData[][] | null> {

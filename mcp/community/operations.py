@@ -21,12 +21,24 @@ from .store import identifier, now
 
 WEBHOOK_RECEIPT_TTL = 86400
 MAX_WEBHOOK_RECEIPTS = 5000
+WEBHOOK_TEST_COOLDOWN = 60
+MAX_PENDING_TESTS_PER_HOOK = 3
+MAX_PENDING_DELIVERIES = 1000
 
 
 class WebhookReceiptCapacityError(Exception):
     def __init__(self, retry_after):
         super().__init__("Webhook receipt journal is full; retry after existing receipts expire")
         self.retry_after = max(1, int(retry_after))
+
+
+class WebhookTestConflictError(Exception):
+    pass
+
+
+class WebhookTestRateLimitError(Exception):
+    def __init__(self, retry_after=60):
+        self.retry_after = max(1, min(3600, int(retry_after)))
 
 
 SAFE_FINDING_FIELDS = ("id", "campaign_id", "project_id", "target_id", "severity", "status", "category", "cve",
@@ -123,13 +135,47 @@ def verify_delivery(secret, body, headers, seen, clock=None, tolerance=300):
         return False
 
 
-def deliver_https(url, body, headers):
+def webhook_url(url):
+    """Validate syntax; DNS and transport security are checked at delivery time."""
     parsed = urlsplit(url)
     if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
         raise ValueError("Webhook requires an HTTPS URL without credentials/fragment")
-    allowed = os.environ.get("DARKMOON_WEBHOOK_ALLOWED_HOSTS", "").split(",")
+    if parsed.port == 0:
+        raise ValueError("Invalid webhook port")
+    return parsed
+
+
+def safe_webhook(hook):
+    """Shared public metadata projection: redact full paths, tokens, and vault references."""
+    try:
+        parsed = webhook_url(str(hook.get("url", "")))
+        host = parsed.hostname
+        if ":" in host:
+            host = "[" + host + "]"
+        origin = "https://" + host + (":" + str(parsed.port) if parsed.port else "")
+    except (ValueError, TypeError):
+        origin = None
+    return {"id": hook.get("id"), "url": origin, "url_redacted": True,
+            "events": list(hook.get("events", [])) if isinstance(hook.get("events"), list) else [],
+            "enabled": hook.get("enabled") is True, "format": hook.get("format", "darkmoon"),
+            "created_at": hook.get("created_at")}
+
+
+def safe_webhook_delivery(record):
+    """No response bodies, raw events, sensitive destinations or stored error text."""
+    event = record.get("event") if isinstance(record.get("event"), dict) else {}
+    result = {k: record[k] for k in ("id", "webhook_id", "status", "attempts", "next_attempt", "http_status") if k in record}
+    result.update(event_id=event.get("id"), event=event.get("event"), synthetic=event.get("synthetic") is True)
+    if record.get("error"):
+        result["error"] = "Delivery failed; destination or network unavailable"
+    return result
+
+
+def deliver_https(url, body, headers):
+    parsed = webhook_url(url)
+    allowed = {host.strip().lower() for host in os.environ.get("DARKMOON_WEBHOOK_ALLOWED_HOSTS", "").split(",") if host.strip()}
     addresses = {r[4][0] for r in socket.getaddrinfo(parsed.hostname, parsed.port or 443, type=socket.SOCK_STREAM)}
-    if not addresses or (parsed.hostname not in allowed and any(not ipaddress.ip_address(a).is_global for a in addresses)):
+    if not addresses or (parsed.hostname.lower() not in allowed and any(not ipaddress.ip_address(a).is_global for a in addresses)):
         raise ValueError("Webhook resolves to a non-public address; explicitly allow the configured internal hostname")
     address = sorted(addresses)[0]
     connection = http.client.HTTPSConnection(parsed.hostname, parsed.port or 443, context=ssl.create_default_context(), timeout=10)
@@ -152,6 +198,11 @@ class Operations:
         self.observed = {}
         self.initialized = False
 
+    @staticmethod
+    def _delivery(hook_id, event):
+        return {"id": "delivery_" + uuid.uuid4().hex, "webhook_id": hook_id, "event": event,
+                "attempts": 0, "next_attempt": time.time(), "status": "pending"}
+
     def emit(self, event, payload):
         safe = {k: payload[k] for k in ("campaign_id", "run_id", "finding_id", "severity", "status", "retest_id", "pr_id", "state", "provider") if k in payload}
         item = {"id": "evt_" + uuid.uuid4().hex, "event": event, "timestamp": now(), "data": safe}
@@ -167,17 +218,14 @@ class Operations:
         self.store.update(trim)
         for hook in self.store.items("webhooks"):
             if hook.get("enabled") and (not hook.get("events") or event in hook["events"] or "*" in hook["events"]):
-                delivery = {"id": "delivery_"+uuid.uuid4().hex, "webhook_id": hook["id"], "event": item,
-                            "attempts": 0, "next_attempt": time.time(), "status": "pending"}
+                delivery = self._delivery(hook["id"], item)
                 self.store.save("deliveries", delivery)
         return item
 
     def register(self, raw):
         if raw.get("format", "darkmoon") != "darkmoon":
             raise ValueError("This producer supports signed darkmoon webhooks only; use the authenticated Splunk HEC forwarder for HEC delivery")
-        parsed = urlsplit(str(raw.get("url", "")))
-        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
-            raise ValueError("Webhook requires an HTTPS URL without credentials")
+        webhook_url(str(raw.get("url", "")))
         events = raw.get("events", [])
         if not isinstance(events, list) or not all(isinstance(e, str) and len(e) <= 100 for e in events):
             raise ValueError("events must be a string array")
@@ -193,7 +241,42 @@ class Operations:
         self.store.save("webhooks", hook)
         # Caller-supplied secrets are never echoed. Generated secrets are
         # returned once to the registering admin so receivers can verify them.
-        return hook | ({"secret": secret} if not raw.get("secret") else {})
+        return safe_webhook(hook) | ({"secret": secret} if not raw.get("secret") else {})
+
+    def test_webhook(self, webhook_id):
+        """Atomically enqueue a targeted synthetic event; never contact a destination."""
+        webhook_id = identifier(webhook_id)
+        clock = time.time()
+
+        def enqueue(state):
+            hook = state.get("webhooks", {}).get(webhook_id)
+            if not hook:
+                raise KeyError(webhook_id)
+            if hook.get("enabled") is not True:
+                raise WebhookTestConflictError("Webhook is disabled")
+            if hook.get("credential_ref") not in state.get("credentials", {}):
+                raise WebhookTestConflictError("Signing configuration is unavailable")
+            limits = state.setdefault("webhook_test_last", {})
+            previous = limits.get(webhook_id)
+            if isinstance(previous, (int, float)) and clock - previous < WEBHOOK_TEST_COOLDOWN:
+                raise WebhookTestRateLimitError(WEBHOOK_TEST_COOLDOWN - (clock - previous) + 1)
+            deliveries = state.setdefault("deliveries", {})
+            pending = [d for d in deliveries.values() if d.get("status") == "pending"]
+            if len(pending) >= MAX_PENDING_DELIVERIES:
+                raise WebhookTestRateLimitError()
+            if sum(d.get("webhook_id") == webhook_id and isinstance(d.get("event"), dict) and
+                   d["event"].get("synthetic") is True for d in pending) >= MAX_PENDING_TESTS_PER_HOOK:
+                raise WebhookTestRateLimitError()
+            event_id, timestamp = "evt_test_" + uuid.uuid4().hex, now()
+            event = {"id": event_id, "event": "webhook.test", "timestamp": timestamp, "ts": timestamp,
+                     "contract_version": "1", "synthetic": True,
+                     "data": {"synthetic": True, "purpose": "delivery_validation"}}
+            delivery = self._delivery(webhook_id, event)
+            deliveries[delivery["id"]] = delivery
+            limits[webhook_id] = clock
+            return {"accepted": True, "delivery_id": delivery["id"], "event_id": event_id, "status": "pending"}
+
+        return self.store.update(enqueue)
 
     def claim_webhook_event(self, webhook_id, event_id, clock=None):
         """Durable at-most-once receiver admission; never evict fresh receipts."""
@@ -314,10 +397,10 @@ class Operations:
             if not hook or not hook["enabled"]:
                 delivery["status"] = "cancelled"
             else:
-                body = json.dumps(delivery["event"] | {"delivery_id": delivery["id"]}, separators=(",", ":")).encode()
-                headers = signed_headers(self.service.vault.resolve(hook["credential_ref"]), body, delivery["event"]["id"])
                 delivery["attempts"] += 1
                 try:
+                    body = json.dumps(delivery["event"] | {"delivery_id": delivery["id"]}, separators=(",", ":")).encode()
+                    headers = signed_headers(self.service.vault.resolve(hook["credential_ref"]), body, delivery["event"]["id"])
                     status = self.transport(hook["url"], body, headers)
                     delivery.update(http_status=status, status="delivered" if 200 <= status < 300 else "pending")
                 except Exception:

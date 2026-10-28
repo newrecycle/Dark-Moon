@@ -53,3 +53,16 @@ issuance, a genuinely bodyless DELETE, and exact schedule scope/timing
 preservation. The complete MCP/community suite passed **318 tests and 17
 subtests**. Hosted validation is tracked with the implementation commit; the
 original vendor runtime has not been executed.
+
+## Webhook detail/test increment — 28 October (untested)
+
+| Contract | Fork implementation | Evidence boundary |
+| --- | --- | --- |
+| GET /api/v1/webhooks/{webhook_id} | Administrator-only safe detail serializer shared with collection; withheld vault IDs, signed secrets, URL path/query/fragment | Source implemented, no commercial response snapshot |
+| POST /api/v1/webhooks/{webhook_id}/test | Administrator-only unique `webhook.test` admission, single-target signed retry queue, HTTP 202 accepted/delivery ID rather than outcome, 409 disabled/unavailable and 429 persisted throttle/queue bound | Source implemented; transport and native host untested |
+| n8n integration | Validate HMAC and durable receipt claim; acknowledge test without workflow execution | Source implemented, native host deferred |
+
+Earlier passing tests predate these changes. Schema, disabled/deleted behavior,
+and deferred DNS/TLS/redirect/response-bound checks are recorded in
+[webhook-receipts.md](../../handoff/webhook-receipts.md). Vendor-wire
+equivalence is not established.

@@ -118,3 +118,12 @@ See [implementation detail](integration-implementation-progress.md). Original
 commercial wire parity, credential field/owner semantics, the broader static
 API discrepancy backlog and server-wide evidence policy remain separate open
 items. No vendor binaries, real assessments or external notifications ran.
+
+## Webhook detail/test follow-up (28 October; source-only)
+
+Administrator-only webhook inspection and explicit single-hook synthetic test
+admission are implemented in the fork with safe serialization, persistent
+throttling, bounded queue work and the existing signed delivery worker.
+The n8n receiver retains transactional receipts but does not execute a
+workflow for test events. See [webhook-receipts.md](webhook-receipts.md).
+No new tests or external deliveries were run; no vendor-wire claim is made.

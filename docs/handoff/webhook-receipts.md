@@ -43,3 +43,50 @@ contract checks are rerun. The native lifecycle fixture now models persistent
 producer receipts across n8n restart and still requires the final replay and
 deactivation assertions to pass. All native execution stays inside Docker
 `--network none`; no third-party delivery or vendor runtime is involved.
+
+## Synthetic webhook test event (28 October, implementation-only)
+
+`POST /api/v1/webhooks/{webhook_id}/test` is administrator-only and accepts no
+body or an empty JSON object. It does not accept destination, headers, secrets,
+event type or payload overrides. Missing/deleted hooks return 404; disabled or
+missing-signing-key hooks return 409. An atomic store transaction enforces a
+60-second persisted per-hook cooldown, at most three pending tests per hook and
+1,000 pending deliveries globally; excess requests return 429/Retry-After.
+Each accepted request uses distinct event and delivery IDs. Deletion clears
+receipt/cooldown state and cancels pending deliveries.
+
+The worker signs and sends this minimal envelope (IDs and timestamps vary):
+```json
+{
+  "id": "evt_test_<random>",
+  "event": "webhook.test",
+  "timestamp": "<UTC ISO-8601>",
+  "ts": "<UTC ISO-8601>",
+  "contract_version": "1",
+  "synthetic": true,
+  "data": {"synthetic": true, "purpose": "delivery_validation"},
+  "delivery_id": "delivery_<random>"
+}
+```
+The test is queued only to the selected hook, even when its production
+event filter excludes `webhook.test`. It never uses the broadcast emitter
+or generates a false campaign, finding or remediation lifecycle record.
+The normal delivery worker provides v1/v2 HMAC signing, bounded retries and
+backoff, DNS-result pinning, verified TLS hostname, HTTPS-only requests,
+no redirects and bounded response reads. The HTTP 202 API response includes
+`data: {accepted: true, delivery_id, event_id, status: "pending"}`:
+**acceptance is not delivery success**. Inspect the existing deliveries
+endpoint for `pending`, `delivered`, `failed`, or `cancelled`. Only a 2xx
+transport response supports delivered status. Errors are generic.
+
+The n8n receiver validates both signatures and performs producer-backed,
+transactional receipt admission for test IDs, then acknowledges without
+running a workflow. Repeat/retry IDs are suppressed within the same finite
+24-hour at-most-once *admission* window, not exactly-once processing.
+
+**Deferred verification:** no tests, live transport, native host, external
+requests or vendor runtime execution. Later check registration reuse,
+deactivation/deletion and in-flight races, cooldown/retry concurrency and
+persistence, internal hostname allowlists, mixed DNS answers, DNS pinning,
+TLS SNI/hostname checks, redirect refusal, 4 KiB response bounds and generic
+failure output with isolated approved fixtures. Commercial wire parity unknown.

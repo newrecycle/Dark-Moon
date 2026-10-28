@@ -76,6 +76,17 @@ uses a process lock and atomic replacement. This fork does not implement direct
 `format=splunk_hec` webhook delivery: its API now rejects unsupported formats,
 and docs direct users to the authenticated forwarder.
 
+## Webhook inspection and synthetic test deliveries (source-only)
+
+Listing and administrator-only webhook detail share a safe projection that
+redacts signing-vault references and URL paths, queries and fragments.
+Registration still returns generated secrets once. Explicit per-hook test
+admission queues a unique synthetic event using the signed retry worker,
+with transactional throttling and queue bounds. n8n validates and admits
+test receipts but does not execute a workflow. HTTP 202 means accepted,
+not delivered. See [webhook-receipts.md](webhook-receipts.md) for schema,
+disabled-hook behavior and deferred security checks. No tests ran.
+
 ## Deferred
 
 Behavioral tests, Kotlin/Java/Go/full TypeScript builds, packaged native hosts and

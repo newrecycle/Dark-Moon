@@ -13,7 +13,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from api import json_storage as data
 from . import reports
-from .operations import evidence_meta, overview, safe_finding, timeseries
+from .operations import evidence_meta, overview, safe_finding, safe_webhook, safe_webhook_delivery, timeseries
 from .store import identifier, now
 from .run_views import active_runs, log_collection, log_detail, log_metadata, public_run
 
@@ -419,7 +419,11 @@ class API:
             return True
         if resource == "webhooks":
             if method == "GET" and len(parts) == 1:
-                handler.send(envelope(self.store.items("webhooks")))
+                handler.send(envelope([safe_webhook(h) for h in self.store.items("webhooks")]))
+            elif method == "GET" and len(parts) == 2:
+                hook = self.store.get("webhooks", identifier(parts[1]))
+                if not hook: raise KeyError(parts[1])
+                handler.send({"data": safe_webhook(hook)})
             elif method == "POST" and len(parts) == 1:
                 handler.send({"data": self.service.operations.register(handler.body())}, status=201)
             elif len(parts) == 4 and parts[2:] == ["events", "claim"] and method == "POST":
@@ -431,17 +435,37 @@ class API:
                 except WebhookReceiptCapacityError as exc:
                     handler.send({"error":str(exc),"retry_after":exc.retry_after}, status=429,
                                  extra_headers={"Retry-After":str(exc.retry_after)})
+            elif len(parts) == 3 and parts[2] == "test" and method == "POST":
+                from .operations import WebhookTestConflictError, WebhookTestRateLimitError
+                if handler.headers.get("Transfer-Encoding"):
+                    raise ValueError("Transfer encoding is unsupported")
+                if int(handler.headers.get("Content-Length", "0")) and handler.body():
+                    raise ValueError("Test delivery does not accept payload or overrides")
+                try:
+                    handler.send({"data": self.service.operations.test_webhook(parts[1])}, status=202)
+                except WebhookTestRateLimitError as exc:
+                    handler.send({"error": "Webhook test rate limit exceeded", "retry_after": exc.retry_after},
+                                 status=429, extra_headers={"Retry-After": str(exc.retry_after)})
+                except WebhookTestConflictError as exc:
+                    handler.send({"error": str(exc)}, status=409)
             elif len(parts) == 2 and method == "DELETE":
                 def remove(state):
                     hook = state.setdefault("webhooks", {}).pop(identifier(parts[1]), None)
                     if not hook:
                         raise KeyError(parts[1])
-                    state.setdefault("credentials", {}).pop(hook["credential_ref"], None)
+                    state.setdefault("credentials", {}).pop(hook.get("credential_ref"), None)
                     state.setdefault("webhook_receipts", {}).pop(parts[1], None)
+                    state.setdefault("webhook_test_last", {}).pop(parts[1], None)
+                    for d in state.setdefault("deliveries", {}).values():
+                        if d.get("webhook_id") == parts[1] and d.get("status") == "pending":
+                            d["status"] = "cancelled"
                 self.store.update(remove)
                 handler.send({"deleted": parts[1]})
             elif len(parts) == 3 and parts[2] == "deliveries" and method == "GET":
-                handler.send(envelope([d for d in self.store.items("deliveries") if d["webhook_id"] == identifier(parts[1])]))
+                hook_id = identifier(parts[1])
+                if not self.store.get("webhooks", hook_id): raise KeyError(hook_id)
+                handler.send(envelope([safe_webhook_delivery(d) for d in self.store.items("deliveries")
+                                       if d.get("webhook_id") == hook_id]))
             else:
                 return False
             return True
