@@ -98,6 +98,8 @@ class NativeBoundaries(unittest.TestCase):
             proc.terminate()
             try: proc.wait(timeout=5)
             except subprocess.TimeoutExpired: proc.kill(); proc.wait(timeout=5)
+            proc.stdout.close()
+            proc.stderr.close()
 
     def test_native_program_syntax_and_no_license_bootstrap(self):
         src = "\n".join((ROOT / "test" / name).read_text() for name in
