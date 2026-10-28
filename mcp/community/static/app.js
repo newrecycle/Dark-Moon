@@ -710,7 +710,7 @@ document.addEventListener("click", async (e) => {
         throw new Error("Proposal is unavailable for this finding and campaign");
       $("#detail-title").textContent = r.title || r.id;
       $("#detail-body").innerHTML =
-        `${badge(r.status)} ${r.patch_path ? `<button class="secondary" data-patch="${esc(r.id)}">Download patch</button>` : ""}<pre>${esc(JSON.stringify(r, null, 2))}</pre>`;
+        `${badge(r.status)} ${identity?.role === "admin" ? `<button class="secondary" data-patch="${esc(r.id)}">Download patch with authorization</button>` : ""}<pre>${esc(JSON.stringify(r, null, 2))}</pre>`;
       $("#detail").showModal();
     }
   } catch (err) {
