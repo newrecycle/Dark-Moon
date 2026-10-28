@@ -1,11 +1,121 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
 version: 2
 updates:
-  - package-ecosystem: "" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # Keep GitHub Actions updates low-noise and grouped into a single PR.
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: "biweekly"
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 1
+    rebase-strategy: "auto"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Python dependencies are concentrated in the MCP tooling and upstream GitLab integration.
+  - package-ecosystem: "pip"
+    directory: "/mcp"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 2
+    rebase-strategy: "auto"
+    groups:
+      python:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/mcp/community"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 2
+    rebase-strategy: "auto"
+    groups:
+      python:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/integrations/upstream/gitlab"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 2
+    rebase-strategy: "auto"
+    groups:
+      python:
+        patterns:
+          - "*"
+
+  # Node packages are split across multiple subprojects. Keep each project grouped and capped.
+  - package-ecosystem: "npm"
+    directory: "/integrations/upstream/action"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 1
+    rebase-strategy: "auto"
+    groups:
+      javascript:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/integrations/upstream/client"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 1
+    rebase-strategy: "auto"
+    groups:
+      javascript:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/integrations/upstream/n8n"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 1
+    rebase-strategy: "auto"
+    groups:
+      javascript:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/integrations/upstream/vscode"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 1
+    rebase-strategy: "auto"
+    groups:
+      javascript:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/integrations/upstream/grafana/plugin"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 1
+    rebase-strategy: "auto"
+    groups:
+      javascript:
+        patterns:
+          - "*"
