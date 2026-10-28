@@ -3,9 +3,9 @@
 """
 darkmoon-to-hec — ship SAFE Darkmoon events to a Splunk HTTP Event Collector.
 
-This is the sender side for users who are NOT on the Darkmoon Pro webhook system.
-Pro users can instead point a Darkmoon webhook (format=splunk_hec) directly at
-HEC; see the repository README.
+This is the authenticated HEC sender for the independent fork.
+Direct format=splunk_hec delivery from its signed-webhook dispatcher is not
+supported. The vendor's direct HEC behavior remains unverified.
 
 Two input modes:
   --rest-url URL --token TOK   poll the Darkmoon Pro REST API
@@ -84,10 +84,18 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def open_request(request, context, timeout):
     return urllib.request.build_opener(NoRedirect(), urllib.request.HTTPSHandler(context=context)).open(request, timeout=timeout)
 
-def checked_url(value):
-    parsed = urlsplit(value)
+def checked_url(value, verify=True):
+    if not isinstance(value, str):
+        raise ValueError("Configure an HTTP(S) URL without credentials, query or fragment")
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port  # also rejects invalid ports on attacker-controlled input
+    except ValueError:
+        raise ValueError("Configure a valid HTTP(S) URL") from None
     if parsed.scheme not in {"https", "http"} or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ValueError("Configure an HTTP(S) URL without credentials, query or fragment")
+    if verify and parsed.scheme != "https":
+        raise ValueError("Unencrypted HTTP requires explicit --insecure (lab only)")
     return value.rstrip("/")
 _SECRET_RE = re.compile(
     r"(?i)(bearer\s+|(?:token|secret|password|api[_-]?key|authorization)"
@@ -100,6 +108,29 @@ def scrub(value):
     return value
 
 
+def safe_locator(value):
+    """Strip URL credentials, query and fragment before using a location as an event field or host."""
+    if not isinstance(value, str):
+        return ""
+    method, separator, remainder = value.partition(" ")
+    if separator and method.upper() in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}:
+        value = remainder.strip()
+    value = value.split("?", 1)[0].split("#", 1)[0]
+    try:
+        parsed = urlsplit(value)
+        if parsed.scheme in {"http", "https"}:
+            if not parsed.hostname:
+                return ""
+            hostname = parsed.hostname
+            if ":" in hostname and not hostname.startswith("["):
+                hostname = "[" + hostname + "]"
+            netloc = hostname + ((":" + str(parsed.port)) if parsed.port is not None else "")
+            value = urlunsplit((parsed.scheme, netloc, parsed.path, "", ""))
+    except ValueError:
+        return ""
+    return scrub(value)
+
+
 def to_epoch(ts):
     if isinstance(ts, (int, float)) and not isinstance(ts, bool) and math.isfinite(ts):
         return float(ts)
@@ -108,7 +139,10 @@ def to_epoch(ts):
                     "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
             try:
                 import datetime
-                return datetime.datetime.strptime(ts.replace("Z", "+0000"), fmt).timestamp()
+                parsed = datetime.datetime.strptime(ts.replace("Z", "+0000"), fmt)
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+                return parsed.timestamp()
             except Exception:
                 continue
     return time.time()
@@ -126,14 +160,9 @@ def pick_safe(sourcetype, obj):
             if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0: out[k] = value
         elif isinstance(value, str):
             if k in {"endpoint", "url", "target", "repo"}:
-                method, separator, remainder = value.partition(" ")
-                if separator and method.upper() in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}: value = remainder.strip()
-                value = value.split("?", 1)[0].split("#", 1)[0]
-                try:
-                    parsed = urlsplit(value)
-                    if parsed.scheme in {"http", "https"}: value = urlunsplit((parsed.scheme, parsed.netloc.rsplit("@", 1)[-1], parsed.path, "", ""))
-                except ValueError: continue
-            out[k] = scrub(value)
+                out[k] = safe_locator(value)
+            else:
+                out[k] = scrub(value)
     out["contract_version"] = CONTRACT_VERSION
     return out
 
@@ -210,7 +239,7 @@ def _envelope(sourcetype, safe_event, ts, host="darkmoon"):
     safe_event["event_id"] = hashlib.sha256(json.dumps([sourcetype, safe_event], sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return {
         "time": to_epoch(ts),
-        "host": scrub(host) if isinstance(host, str) else "darkmoon",
+        "host": safe_locator(host) or "darkmoon",
         "source": "darkmoon",
         "sourcetype": sourcetype,
         "event": safe_event,
@@ -246,7 +275,7 @@ def poll_rest(base_url, token, verify):
     if token:
         headers["Authorization"] = "Bearer " + token
     data = {}
-    base = checked_url(base_url)
+    base = checked_url(base_url, verify=verify)
     if base.endswith("/api/v1"): base = base[:-7]
     for key, path in (("campaigns", "/api/v1/campaigns"),
                       ("vulnerabilities", "/api/v1/vulnerabilities"),
@@ -259,10 +288,19 @@ def poll_rest(base_url, token, verify):
 
 
 # --- output: HEC ------------------------------------------------------------
+class HECAdmissionError(ValueError):
+    """Explicit HEC response rejection: replaying the batch cannot fix its data."""
+
+
 def send_hec(hec_url, hec_token, events, verify, batch_size=100,
              max_retries=4, use_ack=False):
-    checked_url(hec_url)
-    if batch_size < 1 or batch_size > 1000: raise ValueError("Batch size must be between 1 and 1000")
+    checked_url(hec_url, verify=verify)
+    if type(batch_size) is not int or not 1 <= batch_size <= 1000:
+        raise ValueError("Batch size must be an integer between 1 and 1000")
+    if type(max_retries) is not int or not 0 <= max_retries <= 10:
+        raise ValueError("max_retries must be an integer between 0 and 10")
+    if not isinstance(hec_token, str) or not hec_token:
+        raise ValueError("HEC authentication is required")
     if use_ack: raise ValueError("Indexer acknowledgment is not implemented; do not request it")
     channel = str(uuid.uuid4())
     headers = {"Authorization": "Splunk " + hec_token,
@@ -282,10 +320,16 @@ def send_hec(hec_url, hec_token, events, verify, batch_size=100,
             try:
                 req = urllib.request.Request(hec_url, data=body, headers=headers, method="POST")
                 with open_request(req, ctx, 30) as r:
-                    result = json.loads(r.read(1024 * 1024).decode("utf-8"))
-                    if not isinstance(result, dict) or type(result.get("code")) is not int or result["code"] != 0: raise ValueError("HEC did not acknowledge successful admission")
+                    try:
+                        result = json.loads(r.read(1024 * 1024).decode("utf-8"))
+                    except (UnicodeError, ValueError):
+                        raise HECAdmissionError("HEC returned an invalid admission response") from None
+                    if not isinstance(result, dict) or type(result.get("code")) is not int or result["code"] != 0:
+                        raise HECAdmissionError("HEC did not acknowledge successful admission")
                 sent += len(batch)
                 break
+            except HECAdmissionError as exc:
+                raise ValueError(str(exc)) from None
             except urllib.error.HTTPError as e:
                 if 300 <= e.code < 500 and e.code != 429:
                     raise RuntimeError("HEC rejected the batch (HTTP %s)" % e.code) from None

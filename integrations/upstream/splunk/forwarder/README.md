@@ -76,4 +76,10 @@ alert action resolves an allowlisted host to one saved REST target before a
 retest, keeps launch acceptance separate from completion, and serializes its
 rolling quota across processes with atomic state writes.
 
-Verification of these changes is deferred to the later test pass.
+## Offline contract verification (isolated branch)
+
+Run `python3 -m unittest discover -s integrations/upstream/splunk/test -p test_forwarder_contract.py -v` to check the stdlib-only forwarder without reaching Darkmoon or Splunk. The dedicated branch workflow `.github/workflows/splunk-forwarder-verification.yml` runs the same tests on pushes to `agent/splunk-hec-offline-verification-20261028`.
+
+Safeguards checked: strict record projection and stable IDs; redaction of URL userinfo/query/fragment from HEC event **and host** fields; typed numeric metadata; exact REST array contracts; explicit rejection of HTTP endpoints unless the operator enables `--insecure` in a trusted lab; 2xx plus integer `code: 0` for successful HEC admission; no retries on semantic HEC refusal, redirects or permanent HTTP 4xx; bounded retries on temporary failures. Indexer ACK remains unsupported. HTTP mode deliberately requires explicit lab opt-out rather than silently sending credentials over cleartext.
+
+This is an offline fork contract, not a Splunk native-host integration or commercial Darkmoon wire-parity claim. Failures and reruns must be evaluated from the actual CI run.

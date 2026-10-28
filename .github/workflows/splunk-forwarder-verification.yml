@@ -1,0 +1,27 @@
+name: Splunk forwarder offline verification (isolated)
+on:
+  push:
+    branches:
+      - agent/splunk-hec-offline-verification-20261028
+    paths:
+      - 'integrations/upstream/splunk/forwarder/**'
+      - 'integrations/upstream/splunk/test/test_forwarder_contract.py'
+      - '.github/workflows/splunk-forwarder-verification.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check forwarder syntax
+        run: python -m py_compile integrations/upstream/splunk/forwarder/darkmoon-to-hec.py integrations/upstream/splunk/test/test_forwarder_contract.py
+      - name: Verify offline REST, projection and HEC contracts
+        run: python -m unittest discover -s integrations/upstream/splunk/test -p test_forwarder_contract.py -v
