@@ -1363,12 +1363,16 @@ var OssLocalBackend = class {
   }
   async readFindingsFile(campaignId) {
     const p = path.join(this.vulnsDir, `${campaignId}.json`);
-    if (!(0, import_node_fs2.existsSync)(p)) return [];
+    // A missing/unreadable/corrupt journal is NOT a successful empty scan.
+    // Legitimate zero findings must be represented by a readable JSON [].
+    let raw;
     try {
-      return parseFindings(JSON.parse(await import_node_fs.promises.readFile(p, "utf8")));
+      raw = JSON.parse(await import_node_fs.promises.readFile(p, "utf8"));
     } catch {
-      return [];
+      throw new SchemaInvalid("Campaign findings are unavailable or malformed.");
     }
+    if (!Array.isArray(raw)) throw new SchemaInvalid("Campaign findings must be a JSON array.");
+    return parseFindings(raw);
   }
   async getCampaign(id) {
     const raw = await this.readCampaignFile(id);

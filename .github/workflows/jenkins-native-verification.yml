@@ -1,0 +1,54 @@
+name: Jenkins HPI and native agent integration
+on:
+  workflow_dispatch:
+  push:
+    branches: [pro, agent/jenkins-native-acceptance-20261028]
+    paths:
+      - 'integrations/upstream/jenkins/**'
+      - '.github/workflows/jenkins-native-verification.yml'
+permissions:
+  contents: read
+jobs:
+  jenkins-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: integrations/upstream/jenkins/pom.xml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Record Java Maven Node and Docker versions
+        run: |
+          java -version
+          mvn -version
+          node --version
+          npm --version
+          docker --version
+      - name: Compile, unit-test, JenkinsRule Pipeline-test and package actual HPI
+        working-directory: integrations/upstream/jenkins
+        run: mvn -B -ntp clean verify
+      - name: Inspect bundled-runtime HPI and verify self-contained Node dependency
+        working-directory: integrations/upstream/jenkins
+        run: |
+          test -s target/darkmoon-scan.hpi
+          unzip -l target/darkmoon-scan.hpi | grep 'darkmoon-client/darkmoon-ci.cjs'
+          test -s target/jenkins-bundled-cli/darkmoon-client/darkmoon-ci.cjs
+          node target/jenkins-bundled-cli/darkmoon-client/darkmoon-ci.cjs --help >/dev/null
+          ! grep -q 'require("zod")' target/jenkins-bundled-cli/darkmoon-client/darkmoon-ci.cjs
+      - name: Native disposable Jenkins controller and remote agent acceptance
+        working-directory: integrations/upstream/jenkins
+        run: bash e2e/run-e2e.sh
+      - name: Relevant shared community regressions (offline)
+        env:
+          PYTHONPATH: mcp
+        run: |
+          python -m pip install -q pytest -r mcp/requirements.txt -r mcp/community/requirements.txt
+          python -m pytest tests/community/test_community.py -q

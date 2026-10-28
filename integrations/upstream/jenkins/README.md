@@ -40,9 +40,11 @@ severity donut, trend and per-issue details:
 ## Requirements
 
 - Jenkins **2.479+** (parent POM 5.x, JDK 17+ runtime).
-- The [`darkmoon-ci`](https://www.npmjs.com/package/@darkmoon_ai/client) CLI on the
-  build agent's `PATH`, plus Node.js 18+. Pin a compatible release
-  (`npm i -g @darkmoon_ai/client@^0.2`) so the plugin talks to a `1.x`-contract CLI.
+- **Node.js 18+ on the agent**. The HPI contains a build-time bundled portable
+  `darkmoon-ci.cjs` including its pinned Zod dependency. The controller and agent
+  require **no npm installation**, no preinstalled `darkmoon-ci`, no developer-home
+  checkout and no external npm tarball at runtime. Building the HPI requires Node/npm
+  18+ in addition to JDK 21 and Maven.
 - [Warnings Next Generation](https://plugins.jenkins.io/warnings-ng/) (installed as a
   dependency) to visualize/trend findings.
 - Credentials plugin + Plain Credentials plugin (installed as dependencies) for secrets.
@@ -167,7 +169,10 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 
 The default `bundled` command ships the patched `0.2.1-darkmoon.1` portable CLI
 in the HPI and copies it to the agent workspace; Node.js 18+ is required on the
-agent. The previous default `darkmoon-ci` setting also selects this bundled
+agent. The source snapshot is bundled with pinned `zod@3.25.76` and
+`esbuild@0.25.12` during Maven `generate-resources`; the resulting HPI contains
+a self-contained CommonJS runtime. The Jenkins agent runs neither npm nor a
+developer-home checkout. The previous default `darkmoon-ci` setting also selects this bundled
 snapshot. Explicit custom CLI commands are parsed as quoted argument lists.
 
 A successful run verdict must be followed by an exact, completed campaign status
@@ -180,4 +185,8 @@ Only named outputs are archived; job permissions determine artifact visibility.
 Archived CLI logs now contain execution metadata, not stdout/stderr bodies or
 command arguments. Output buffering and process duration are bounded. Extra
 arguments are limited to supported scan options; credentials and backend options
-use dedicated configuration fields. Verification is deferred to the later pass.
+use dedicated configuration fields. Offline native verification is implemented in [e2e/](e2e/README.md); its real
+Docker controller loads the produced HPI, schedules Pipeline steps on a
+separate inbound agent, and tests synthetic assessment outcomes. CI results and
+exact image versions must be recorded from completed runs; native results do not
+imply licensed commercial Darkmoon parity.

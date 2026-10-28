@@ -1,8 +1,8 @@
 jenkins:
-  systemMessage: "Darkmoon E2E"
+  systemMessage: "Synthetic Jenkins HPI acceptance — no live scans"
   securityRealm: "none"
   authorizationStrategy: "unsecured"
-  numExecutors: 2
+  numExecutors: 0
 credentials:
   system:
     domainCredentials:
@@ -10,24 +10,37 @@ credentials:
           - string:
               scope: GLOBAL
               id: "dm-token"
-              secret: "dm-container-secret-XYZ987"
-              description: "Darkmoon token"
+              secret: "SYNTHETIC_ONLY_CREDENTIAL_8e9ffab"
+              description: "Disposable native acceptance token"
 jobs:
-  - script: >
-      pipelineJob('darkmoon-e2e') {
+  - script: |
+      pipelineJob('darkmoon-native') {
+        parameters {
+          stringParam('SCENARIO', 'high', 'Synthetic fixture only')
+        }
         definition {
           cps {
             sandbox(true)
             script('''
-              node {
-                darkmoonScan target: 'http://127.0.0.1:3000', mode: 'oss',
-                  failOn: 'high', credentialsId: 'dm-token',
-                  cliPath: 'darkmoon-ci',
-                  ossDataDir: '/var/darkmoon/data',
-                  ossReportsDir: '/var/darkmoon/data/reports',
-                  ossScript: '/opt/engine-standin.sh',
-                  timeout: 90, recordIssues: true, archiveReport: true
-                recordIssues(enabledForFailure: true, tools: [sarif(pattern: 'darkmoon-reports/darkmoon.sarif')])
+              node('dm-agent') {
+                withEnv(["DM_SCENARIO=${params.SCENARIO}"]) {
+                  def credential = params.SCENARIO == 'missing_credential' ? 'not-present' : 'dm-token'
+                  def command = params.SCENARIO == 'missing_node' ? 'node-command-does-not-exist' : 'bundled'
+                  def failLevel = params.SCENARIO == 'nonempty_pass' ? 'none' : 'high'
+                  def unstableLevel = params.SCENARIO == 'nonempty_pass' ? 'none' : 'medium'
+                  sh 'mkdir -p darkmoon-reports'
+                  writeFile file: 'darkmoon-reports/unrelated-sensitive.txt',
+                    text: 'SYNTHETIC_UNRELATED_SECRET_DO_NOT_ARCHIVE'
+                  darkmoonScan target: 'https://example.invalid', mode: 'oss',
+                    failOn: failLevel, unstableOn: unstableLevel,
+                    credentialsId: credential, cliPath: command,
+                    ossDataDir: '/opt/synthetic data',
+                    ossReportsDir: '/opt/synthetic reports',
+                    ossScript: '/opt/engine-standin.sh', extraArgs: '--poll 1',
+                    timeout: 12, recordIssues: true, archiveReport: true
+                  recordIssues(enabledForFailure: true,
+                    tools: [sarif(pattern: 'darkmoon-reports/darkmoon.sarif')])
+                }
               }
             '''.stripIndent())
           }
