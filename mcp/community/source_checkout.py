@@ -17,15 +17,15 @@ def checkout(service, source, campaign_id, credential_id="", run=subprocess.run,
     parsed = urlsplit(source)
     if not parsed.hostname or parsed.username or parsed.password or parsed.fragment or parsed.query:
         raise ValueError("Source repository requires HTTPS without embedded credentials/query/fragment")
-    target = service.store.root / "checkouts" / identifier(campaign_id)
-    if target.exists():
-        return target
-    target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     if credential_id:
         try:
             service.vault.require(credential_id, "source_checkout", actor=actor)
         except KeyError:
             raise ValueError("Source credential reference is unavailable") from None
+    target = service.store.root / "checkouts" / identifier(campaign_id)
+    if target.exists():
+        return target
+    target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     secret = service.vault.resolve(credential_id) if credential_id else ""
     credential = service.store.get("credentials", credential_id) if credential_id else {}
     with tempfile.TemporaryDirectory(prefix="darkmoon-source-auth-") as temporary:

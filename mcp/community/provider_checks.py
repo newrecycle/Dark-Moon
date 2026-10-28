@@ -34,7 +34,7 @@ def model_records(items):
     return result[:1000], len(result) > 1000
 
 
-def endpoint_models(service, raw):
+def endpoint_models(service, raw, *, actor=None):
     mode = raw.get("mode")
     if mode not in {"local", "anthropic"}:
         raise ValueError(
@@ -56,7 +56,7 @@ def endpoint_models(service, raw):
     credential = raw.get("credential_id") or ""
     if credential:
         try:
-            service.vault.require(credential, "provider_api_key")
+            service.vault.require(credential, "provider_api_key", actor=actor)
         except KeyError:
             raise ValueError("Provider credential reference is unavailable") from None
     secret = service.vault.resolve(identifier(credential)) if credential else ""
@@ -149,13 +149,13 @@ def bridge_health():
         }
 
 
-def check_profile(service, profile_id):
+def check_profile(service, profile_id, *, actor=None):
     item = service.store.get("providers", identifier(profile_id))
     if not item:
         raise KeyError(profile_id)
     if item["mode"] in {"local", "anthropic"}:
         try:
-            result = endpoint_models(service, item)
+            result = endpoint_models(service, item, actor=actor)
             model = item["model"].removeprefix(item["provider"] + "/")
             found = any(m["id"] == model for m in result["models"])
             result = {k: v for k, v in result.items() if k != "models"} | {

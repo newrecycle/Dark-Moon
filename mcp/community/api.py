@@ -373,7 +373,7 @@ class API:
             elif method == "POST" and len(parts) == 3 and parts[2] in {"sync","connect","disconnect","oauth-start","oauth-finish"}:
                 raw = handler.body()
                 if parts[2] == "sync":result = opencode.sync(self.service)
-                elif parts[2] == "connect":result = opencode.connect(self.service,raw)
+                elif parts[2] == "connect":result = opencode.connect(self.service,raw,actor=identity)
                 elif parts[2] == "disconnect":result = opencode.disconnect(self.service,raw)
                 else:result = opencode.oauth(self.service,raw,finish=parts[2] == "oauth-finish")
                 handler.send(result)
@@ -382,7 +382,7 @@ class API:
         if parts == ["system", "provider-models"] and method == "POST":
             if not admin:raise PermissionError("Administrator access is required")
             from .provider_checks import endpoint_models
-            handler.send(endpoint_models(self.service,handler.body()))
+            handler.send(endpoint_models(self.service,handler.body(), actor=identity))
             return True
         if parts == ["system", "opencode-health"] and method == "GET":
             if not admin:raise PermissionError("Administrator access is required")
@@ -395,12 +395,12 @@ class API:
             current=self.store.get("providers",identifier(parts[2]))
             if not current:raise KeyError(parts[2])
             if len(parts)==3 and method=="GET":handler.send({"data":current})
-            elif len(parts)==3 and method in {"PATCH","PUT"}:handler.send({"data":profile(self.service,current|handler.body(),parts[2])})
+            elif len(parts)==3 and method in {"PATCH","PUT"}:handler.send({"data":profile(self.service,current|handler.body(),parts[2],actor=identity)})
             elif len(parts)==3 and method=="DELETE":handler.send(remove(self.service,parts[2]))
             elif parts[3:]==["check"] and method=="POST":
                 handler.body()
                 from .provider_checks import check_profile
-                handler.send(check_profile(self.service,parts[2]))
+                handler.send(check_profile(self.service,parts[2],actor=identity))
             else:return False
             return True
         if resource == "system" and method == "GET":
@@ -429,14 +429,14 @@ class API:
             if not admin:
                 raise PermissionError("Administrator access is required")
             from .configuration import profile
-            handler.send({"data": profile(self.service, handler.body())}, status=201)
+            handler.send({"data": profile(self.service, handler.body(), actor=identity)}, status=201)
             return True
         if resource == "system" and method == "POST" and len(parts) == 4 and parts[1] == "providers" and parts[3] == "apply":
             if not admin:
                 raise PermissionError("Administrator access is required")
             handler.body()
             from .configuration import apply
-            handler.send(apply(self.service, parts[2]))
+            handler.send(apply(self.service, parts[2], actor=identity))
             return True
         if resource == "webhooks":
             if method == "GET" and len(parts) == 1:

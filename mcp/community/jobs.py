@@ -313,10 +313,16 @@ class Scheduler:
         # Use the same saved-reference rule as Service.launch, at schedule
         # definition time for compatibility requests. The normal launcher
         # still rechecks references before any execution.
-        records = (state if state is not None else self.store.read()).get("credentials", {})
-        for key in ("credential_id", "assessment_credential_id", "assessment_token_id"):
-            if spec.get(key) and spec[key] not in records:
-                raise ValueError("Saved credential reference was not found")
+        from .auth import CredentialVault
+        vault = CredentialVault(self.store)
+        for key, capability in (("credential_id", "source_checkout"),
+                                ("assessment_credential_id", "assessment_login"),
+                                ("assessment_token_id", "assessment_token")):
+            if spec.get(key):
+                try:
+                    vault.require(spec[key], capability)
+                except KeyError:
+                    raise ValueError("Scheduled credential must be usable by the service identity") from None
 
     def definition(self, raw):
         from .calendar_rules import normalize_rule, next_occurrence
@@ -324,8 +330,9 @@ class Scheduler:
         flat = is_flat_create(raw)
         raw = normalize_create(raw, launch_spec)
         spec = launch_spec(raw.get("spec", raw))
-        if flat:
-            self._validate_credential_refs(spec)
+        # Scheduled executions use the service identity, not the editing user.
+        # Reject personal-only credentials at schedule definition time.
+        self._validate_credential_refs(spec)
         enabled = raw.get("enabled", True)
         if not isinstance(enabled, bool) or not isinstance(raw.get("one_shot", False), bool):
             raise ValueError("enabled and one_shot must be boolean")

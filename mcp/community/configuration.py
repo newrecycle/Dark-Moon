@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 from .store import identifier, now
 
 
-def profile(service, raw, profile_id=None):
+def profile(service, raw, profile_id=None, *, actor=None):
     mode = raw.get("mode")
     if mode not in {"cloud", "local", "anthropic"}:
         raise ValueError("Provider mode must be cloud, local or anthropic")
@@ -39,7 +39,7 @@ def profile(service, raw, profile_id=None):
     credential = raw.get("credential_id") or ""
     if credential:
         try:
-            service.vault.require(credential, "provider_api_key")
+            service.vault.require(credential, "provider_api_key", actor=actor)
         except KeyError:
             raise ValueError("Provider credential reference is unavailable") from None
     if mode == "cloud" and not credential:
@@ -82,7 +82,7 @@ def profile(service, raw, profile_id=None):
     return service.store.save("providers", item)
 
 
-def apply(service, profile_id):
+def apply(service, profile_id, *, actor=None):
     from .opencode import paths, document, private_write, write_environment, native
     from api import json_storage as data
     import json
@@ -92,7 +92,7 @@ def apply(service, profile_id):
         raise KeyError(profile_id)
     if item["credential_id"]:
         try:
-            service.vault.require(item["credential_id"], "provider_api_key")
+            service.vault.require(item["credential_id"], "provider_api_key", actor=actor)
         except KeyError:
             raise ValueError("Provider credential reference is unavailable") from None
     token = (
