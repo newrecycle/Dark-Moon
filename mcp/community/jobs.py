@@ -324,7 +324,7 @@ class Scheduler:
                     if actor is not None:
                         vault.require(spec[key], capability, actor=actor)
                 except KeyError:
-                    raise ValueError("Scheduled credential is unavailable to the requestor or service") from None
+                    raise ValueError("Saved credential reference is unavailable to the requestor or scheduling service") from None
 
     def definition(self, raw, *, actor=None):
         from .calendar_rules import normalize_rule, next_occurrence
