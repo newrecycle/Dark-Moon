@@ -484,4 +484,4 @@ had **369 passed, 58 subtests passed, 2 failed**. The failures were an
 outdated expectation rejecting a newly supported flat target edit and an
 unrelated webhook role-fixture duplicate username. Subsequent independent
 `pro` commits updated those test cases. Do not interpret the earlier full
-suite as passing; verify the later full run separately.
+suite as passing; the subsequent [full community regression run](https://github.com/newrecycle/Dark-Moon/actions/runs/40664888923) at `0434b9d1c1e5a5269f34d3698a04f8184853be6e` **passed 401 tests and 66 subtests**; the offline Node campaign/graph/finding checks also passed. This is fork regression coverage, not proof of vendor parity.
