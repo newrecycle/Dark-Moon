@@ -776,6 +776,9 @@ const assert = require("node:assert/strict");
     );
     assert.ok(!responseEvidence.includes("\x1b"));
     assert.equal(await page.locator("#detail-body script").count(), 0);
+    // Before remediation exists, the exact finding lookup must return a valid empty result.
+    await page.getByText("Linked remediation records", {exact:true}).waitFor();
+    assert.match(await page.locator("#detail-body").innerText(), /No linked remediation records/);
     await page.locator("[data-prepare-fix]").click();
     await page.locator("#remediation-dialog[open]").waitFor();
     assert.equal(
@@ -812,6 +815,21 @@ const assert = require("node:assert/strict");
       /\+message = 'fixed'/,
     );
     await page.locator("#detail .close-dialog").click();
+    // A persisted proposal must be linked to its exact finding/campaign pair.
+    await page.locator('nav a[href="#findings"]').click();
+    await page.locator("#findings-clear").click();
+    await page.locator(`button[data-finding="${fixture.finding_id}"]`).first().click();
+    const linkedButton = page.locator(`#detail-body [data-proposal-finding="${fixture.finding_id}"]`);
+    await linkedButton.waitFor();
+    assert.equal(await linkedButton.count(), 1);
+    assert.match(await page.locator("#detail-body").innerText(), /Local proposal/);
+    await page.locator("#detail .close-dialog").click();
+    await page.route('**/api/v1/pull-requests/finding/**', route => route.fulfill({
+      status:503,contentType:'application/json',body:JSON.stringify({error:'unavailable'})}));
+    await page.locator(`button[data-finding="${fixture.finding_id}"]`).first().click();
+    await page.getByText("Linked remediation records unavailable.", {exact:true}).waitFor();
+    await page.locator("#detail .close-dialog").click();
+    await page.unroute('**/api/v1/pull-requests/finding/**');
     await page.locator('nav a[href="#overview"]').click();
     assert.match(await page.locator('#posture-remediation').innerText(), /0 \/ 1 \(0\.0%\)/);
     await page.locator('#posture-remediation').getByRole('link',{name:'proposed: 1',exact:true}).click();
