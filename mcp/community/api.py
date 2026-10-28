@@ -89,6 +89,14 @@ class API:
             elif method == "POST" and parts == ["auth", "password"]:
                 raw = handler.body()
                 handler.send(self.service.accounts.password(identity, raw.get("old_password"), raw.get("new_password")))
+            elif method == "POST" and parts == ["auth", "setup"]:
+                if identity.get("authentication") != "workspace-token":
+                    raise PermissionError("Use the private workspace recovery token for initial setup")
+                raw = handler.body()
+                if set(raw) != {"username", "password"}:
+                    raise ValueError("Initial setup accepts username and password only")
+                user = self.service.accounts.create(raw["username"], raw["password"], "admin", initial=True)
+                handler.send(self.service.accounts.issue(self.store.get("users", user["id"])), status=201)
             elif method == "GET" and parts == ["auth", "users"]:
                 handler.send(envelope([self.service.accounts.public(u) for u in self.store.items("users")]))
             elif method == "POST" and parts == ["auth", "users"]:

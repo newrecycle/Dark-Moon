@@ -25,6 +25,7 @@ const assert = require("node:assert/strict");
         ...process.env,
         PYTHONPATH: path.join(repo, "mcp"),
         DARKMOON_SHARED_DIR: root,
+        DARKMOON_FIXTURE_NO_ACCOUNTS: "1",
         DARKMOON_DASHBOARD_TOKEN: "offline-browser-fixture-token-123456789",
       },
     },
@@ -70,14 +71,39 @@ const assert = require("node:assert/strict");
       errors.push("Unexpected browser dialog");
       dialog.dismiss();
     });
+    const screenshots =
+      process.env.DARKMOON_SCREENSHOTS || path.join(root, "screenshots");
+    await fs.mkdir(screenshots, { recursive: true });
     await page.goto(`http://127.0.0.1:${fixture.port}`);
     await page.locator("#token").fill(fixture.token);
     await page.locator("#login-form button[type=submit]").click();
     await page.locator("#login").waitFor({ state: "hidden" });
     await page.getByText("Your security workspace").waitFor();
-    const screenshots =
-      process.env.DARKMOON_SCREENSHOTS || path.join(root, "screenshots");
-    await fs.mkdir(screenshots, { recursive: true });
+    await page.locator('#setup-account[open]').waitFor();
+    await page.screenshot({path:path.join(screenshots,'first-use.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true);
+    await page.screenshot({path:path.join(screenshots,'first-use-mobile.png'),fullPage:true});
+    await page.setViewportSize({width:1440,height:1000});
+    await page.locator('#setup-account-skip').click();
+    await page.locator('#setup-account').waitFor({state:'hidden'});
+    await page.locator('#logout').click();
+    await page.locator('#token').fill(fixture.token);
+    await page.locator('#login-form button[type=submit]').click();
+    await page.locator('#setup-account[open]').waitFor();
+    await page.locator('#setup-account-form [name=username]').fill('fixture-admin');
+    await page.locator('#setup-account-form [name=password]').fill('offline-fixture-password');
+    await page.locator('#setup-account-form [name=confirmation]').fill('mismatched-fixture-password');
+    await page.locator('#setup-account-form [type=submit]').click();
+    assert.match(await page.locator('#setup-account-error').innerText(),/do not match/);
+    await page.locator('#setup-account-form [name=confirmation]').fill('offline-fixture-password');
+    await page.locator('#setup-account-form [type=submit]').click();
+    await page.locator('#setup-account').waitFor({state:'hidden'});
+    await page.getByText('OpenCode providers and logins',{exact:true}).waitFor();
+    assert.equal(await page.locator('#setup-account-form [name=password]').inputValue(),'');
+    assert.equal(await page.locator('#token').inputValue(),'');
+    await page.locator('nav a[href="#overview"]').click();
+    await page.getByText('Your security workspace').waitFor();
     await page.screenshot({
       path: path.join(screenshots, "overview.png"),
       fullPage: true,

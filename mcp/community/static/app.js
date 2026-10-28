@@ -59,6 +59,8 @@ function lock() {
   snapshot = null;
   identity = null;
   streamControl?.abort();
+  $("#setup-account").close();
+  $("#setup-account-form").reset();
   $("#login").showModal();
   $("#content").replaceChildren();
 }
@@ -387,10 +389,45 @@ $("#login-form").addEventListener("submit", async (e) => {
     $("#token").value = "";
     $("#login").close();
     connect();
+    if (identity?.authentication === "workspace-token") {
+      api("/api/v1/auth/config").then(config => {
+        if (!config.accounts_configured && token) $("#setup-account").showModal();
+      }).catch(fail);
+    }
   } catch (err) {
     $("#login-error").textContent = err.message;
   }
 });
+$("#setup-account-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget, submit = form.querySelector('[type="submit"]');
+  $("#setup-account-error").textContent = "";
+  if (form.elements.password.value !== form.elements.confirmation.value) {
+    $("#setup-account-error").textContent = "Passwords do not match.";
+    return;
+  }
+  submit.disabled = true;
+  $("#setup-account-skip").disabled = true;
+  let created = false;
+  try {
+    const result = await api("/api/v1/auth/setup", {method: "POST", body: JSON.stringify({username:form.elements.username.value, password:form.elements.password.value})});
+    token = result.token;
+    created = true;
+    form.reset();
+    $("#setup-account").close();
+    location.hash = "settings";
+    await refresh();
+    connect();
+  } catch (error) {
+    if (created) fail(error);
+    else $("#setup-account-error").textContent = error.message;
+  } finally {submit.disabled = false; $("#setup-account-skip").disabled = false;}
+});
+$("#setup-account").addEventListener("cancel", event => {
+  if ($("#setup-account-form [type=submit]").disabled) event.preventDefault();
+});
+$("#setup-account-skip").addEventListener("click", () => $("#setup-account").close());
+$("#setup-account").addEventListener("close", () => $("#setup-account-form").reset());
 $("#login").addEventListener("cancel", (e) => e.preventDefault());
 $("#detail").addEventListener("close", () => {
   currentDetailJob = "";

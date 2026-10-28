@@ -12,7 +12,8 @@
         "docs/handoff"
       ],
       "acceptance": "Every source has a frame-review record or remains explicitly blocked.",
-      "evidence": "uploaded-video-review.json and uploaded-video-analysis.md"
+      "evidence": "uploaded-video-review.json and uploaded-video-analysis.md",
+      "implementation_progress": "All 107 storyboards individually inspected, full AV decoding and complete-track ASR review added; direct continuous audiovisual playback remains incomplete."
     },
     {
       "id": "D01",
@@ -40,7 +41,8 @@
         "workspace.js"
       ],
       "acceptance": "Readable at 390 and 1440 px; focus visible; active sidebar state and severity text do not rely on color alone.",
-      "evidence": "Published screenshots; implementation proposal; A: 1280\u00d7720 graph reference"
+      "evidence": "Published screenshots; implementation proposal; A: 1280\u00d7720 graph reference",
+      "implementation_progress": "Desktop map tour overlay, mobile inspector sheet and readable finding cards implemented and visually inspected at 1440 and 390 px. Broader consistency and exact visual parity remain partial."
     },
     {
       "id": "A01",
@@ -54,7 +56,8 @@
         "static/workspace.js"
       ],
       "acceptance": "Concurrent setup creates one initial administrator; account data are never public; reload does not expose recovery credentials.",
-      "evidence": "Pro 00:20\u201300:24"
+      "evidence": "Pro 00:20\u201300:24",
+      "implementation_progress": "Guided initial administrator setup via private recovery token, atomic single-user creation, password confirmation and provider-settings handoff implemented; concurrency and authorization tested. OIDC/recovery remain supported."
     },
     {
       "id": "C01",
@@ -140,7 +143,8 @@
         "static/workspace.js"
       ],
       "acceptance": "Navigation reaches correct finding; long HTTP evidence wraps; signature/encryption validated independently; no unrecorded findings appear.",
-      "evidence": "Pro 01:21\u201301:28; markdown-report-1.png"
+      "evidence": "Pro 01:21\u201301:28; markdown-report-1.png",
+      "implementation_progress": "Keyboard section/finding-heading navigation implemented in report preview; roadmap and further evidence/export refinements remain partial."
     },
     {
       "id": "G01",
@@ -154,7 +158,7 @@
       ],
       "acceptance": "Selecting an asset yields exactly its node-linked findings; missing node linkage is displayed separately. Back restores the selected asset/list context; close and keyboard focus behave predictably; proposal/report links resolve to the selected finding and campaign, and unavailable actions explain their state.",
       "evidence": "Pro 01:45\u201302:18; A: infra-orbital.gif frames 0,49,87,99",
-      "implementation_progress": "Asset summary fields, per-asset severity counts, CVSS/category/status rows and metadata disclosure implemented. In-panel finding detail and proposal links remain open."
+      "implementation_progress": "Asset summaries/severity cards, in-panel finding detail/Back, real proposal indicators and campaign-preserving report/proposal review implemented. Current linkage, deleted findings and response races tested. Broader finding detail/report acceptance remains tracked in F02/R01."
     },
     {
       "id": "G02",
@@ -254,7 +258,8 @@
         "api.py"
       ],
       "acceptance": "Persisted replay suppression and HMAC freshness tested across restart; no Slack/Jira/DefectDojo traffic without explicit configuration.",
-      "evidence": "n8n 00:22\u201300:43"
+      "evidence": "n8n 00:22\u201300:43",
+      "implementation_progress": "Actual n8n 2.45.4 workflow engine and editor credential-test API verified locally and in CI. Authenticated token/password tests fixed; trigger restart/poll/webhook lifecycle remains open."
     },
     {
       "id": "I03",

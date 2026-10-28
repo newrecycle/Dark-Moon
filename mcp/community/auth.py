@@ -79,7 +79,7 @@ class Accounts:
         if password and not self.store.items("users"):
             self.create(os.environ.get("DARKMOON_ADMIN_USERNAME", "admin"), password, "admin")
 
-    def create(self, username, password, role="viewer"):
+    def create(self, username, password, role="viewer", *, initial=False):
         identifier(username)
         if role not in {"admin", "analyst", "viewer"}:
             raise ValueError("Role must be admin, analyst or viewer")
@@ -91,6 +91,8 @@ class Accounts:
                 "auth_version": 1, "created_at": now(), "must_change_password": False}
         def create(state):
             users = state.setdefault("users", {})
+            if initial and users:
+                raise ValueError("Initial account setup is already complete")
             if username in users:
                 raise ValueError("Username already exists")
             users[username] = user

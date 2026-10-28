@@ -251,7 +251,8 @@ from community.report_security import init_signer
 os.environ["DARKMOON_SIGNING_PASSWORD"] = "fixture-report-signing-password"
 init_signer(service.store, "Browser fixture", "fixture-report-signing-password")
 
-service.accounts.create("fixture-admin", "offline-fixture-password", "admin")
+if not os.environ.get("DARKMOON_FIXTURE_NO_ACCOUNTS"):
+    service.accounts.create("fixture-admin", "offline-fixture-password", "admin")
 service.operations.transport = lambda *args: (_ for _ in ()).throw(
     AssertionError("External webhook transport is disabled in browser fixtures")
 )

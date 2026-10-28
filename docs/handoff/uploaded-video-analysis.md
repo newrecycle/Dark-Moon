@@ -4,7 +4,7 @@
 
 ## Coverage and interpretation
 
-The uploaded 143,700,312-byte archive contains all 13 linked videos, 475 two-second samples and 107 native storyboard sheets. All 635 supplied file hashes matched. Every supplied sample was inspected in chronological contact sheets; the Pro-tour frames at 46, 120, 128 and 136 seconds were additionally inspected at full resolution. The native storyboard sheets were acquired and hash-verified, but not individually visually reviewed. See [exact coverage and hashes](uploaded-video-review.json).
+The uploaded 143,700,312-byte archive contains all 13 linked videos, 475 two-second samples and 107 native storyboard sheets. All 635 supplied file hashes matched. Every supplied sample was inspected in chronological contact sheets; the Pro-tour frames at 46, 120, 128 and 136 seconds were additionally inspected at full resolution. The original pass acquired and hash-verified storyboard sheets without individual visual inspection. The later [full-track review](full-track-review.md) has now inspected all 107. See [exact coverage and hashes](uploaded-video-review.json).
 
 This resolves the acquisition blocker. It is a sampled visual review, not continuous playback, audio review or inspection of every encoded frame. Small text in contact sheets is not treated as transcribed configuration. Exact typography, animation timing, hover/focus interactions, intermediate states shorter than two seconds and headset behavior remain unverified. The original media stays in the uploaded archive; this repository stores analysis and evidence references.
 
@@ -34,7 +34,7 @@ At 120s, step 3/4 selects the database and describes weak access controls. At 12
 
 The graph uses a large canvas with a persistent right inspector, top campaign context and aggregate counts, a lower-left tour card, and a free-exploration action. Asset information leads, with raw metadata secondary. Selection should retain campaign context. A proposal indicator must refer to a real proposal; the recording's repeated PR badges are not production defaults.
 
-## Implementation list and current increment
+## Initial video-review implementation list (superseded by implementation-progress.md)
 
 1. **Implemented in this increment (G01):** asset type/address/endpoint/technology summary where data exists; raw metadata moved to a disclosure; per-asset severity counts; finding rows show CVSS, category/status, title and MITRE. Values remain escaped and linked to the selected asset.
 2. **Implemented in this increment (G02):** final manual tour step exposes Finish and returns focus to the tour launcher. Step count follows actual linked assets; no fabricated four-step path.

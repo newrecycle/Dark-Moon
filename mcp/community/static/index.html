@@ -83,6 +83,19 @@
         >
       </form>
     </dialog>
+    <dialog id="setup-account">
+      <form id="setup-account-form">
+        <div class="eyebrow">FIRST USE</div>
+        <h2>Create your administrator account</h2>
+        <p>Choose a password for everyday sign-in. Keep your workspace recovery token private.</p>
+        <label>Username<input name="username" value="admin" required maxlength="200" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{0,199}" autocomplete="username" /></label>
+        <label>Password (at least 12 characters)<input name="password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password" /></label>
+        <label>Confirm password<input name="confirmation" type="password" required minlength="12" maxlength="1024" autocomplete="new-password" /></label>
+        <p id="setup-account-error" role="alert"></p>
+        <button class="primary" type="submit">Create account and review runtime →</button>
+        <button class="secondary" type="button" id="setup-account-skip">Use this recovery session</button>
+      </form>
+    </dialog>
     <datalist id="source-repositories"></datalist>
     <dialog id="launch-dialog">
       <form id="launch-form">

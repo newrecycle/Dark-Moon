@@ -37,6 +37,37 @@ class APITests(fixtures.Fixture):
         self.assertEqual(status,200)
         return json.loads(body)['token']
 
+    def test_initial_setup_requires_recovery_auth_and_creates_admin_session(self):
+        raw = {"username": "first-admin", "password": "a-strong-first-password"}
+        self.assertEqual(self.request('/api/v1/auth/setup', 'POST', raw, auth=False)[0], 401)
+        self.assertEqual(self.request('/api/v1/auth/setup', 'POST', raw | {"role": "admin"})[0], 400)
+        self.assertEqual(self.request('/api/v1/auth/setup', 'POST', raw | {"password": "short"})[0], 400)
+        status, body, _ = self.request('/api/v1/auth/setup', 'POST', raw)
+        self.assertEqual(status, 201)
+        result = json.loads(body)
+        self.assertEqual(result['user']['role'], 'admin')
+        self.assertEqual(self.service.accounts.identity(result['token'])['id'], 'first-admin')
+        self.assertNotIn(raw['password'], body.decode())
+        self.assertNotIn('password_hash', body.decode())
+        self.assertNotIn(raw['password'], self.service.store.path.read_text())
+        self.assertEqual(self.request('/api/v1/auth/setup', 'POST', raw | {"username": "second-admin"})[0], 400)
+        self.assertEqual(len(self.service.store.items('users')), 1)
+        self.assertTrue(json.loads(self.request('/api/v1/auth/config', auth=False)[1])['accounts_configured'])
+
+    def test_initial_setup_is_atomic_for_simultaneous_recovery_requests(self):
+        import concurrent.futures
+        def setup(index):
+            return self.request('/api/v1/auth/setup', 'POST', {'username': f'initial-{index}', 'password': 'a-strong-first-password'})[0]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            statuses = list(pool.map(setup, range(6)))
+        self.assertEqual(statuses.count(201), 1)
+        self.assertEqual(statuses.count(400), 5)
+        self.assertEqual(len(self.service.store.items('users')), 1)
+
+    def test_password_admin_cannot_use_recovery_setup_endpoint(self):
+        token = self.login()
+        self.assertEqual(self.request('/api/v1/auth/setup', 'POST', {'username':'other', 'password':'a-strong-first-password'}, headers={'Authorization':'Bearer '+token})[0], 403)
+
     def test_account_login_jwt_role_and_revocation(self):
         token=self.login('viewer')
         headers={'Authorization':'Bearer '+token}

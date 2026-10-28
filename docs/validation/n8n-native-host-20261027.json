@@ -21,5 +21,10 @@
     "No third-party delivery",
     "No host trigger/poll restart lifecycle test",
     "No other n8n version compatibility claim"
-  ]
+  ],
+  "hosted_ci": {
+    "run_id": 40605263744,
+    "conclusion": "success",
+    "url": "https://github.com/newrecycle/Dark-Moon/actions/runs/40605263744"
+  }
 }
