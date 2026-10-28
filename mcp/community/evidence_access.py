@@ -453,6 +453,25 @@ def revoke_session(store, identity):
     store.update(operation)
 
 
+def read_patch_bytes(service, resource_id):
+    """Read a bounded regular, unlinked patch without following final symlinks."""
+    resource_id = identifier(resource_id)
+    file = service.store.root / "remediation" / resource_id / "fix.patch"
+    fd = os.open(file, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        status = os.fstat(fd)
+        if (not stat.S_ISREG(status.st_mode) or status.st_nlink != 1
+                or not 0 <= status.st_size <= 262144):
+            raise ValueError("Patch content is unavailable")
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            result = stream.read(262145)
+        if len(result) > 262144:
+            raise ValueError("Patch content is unavailable")
+        return result
+    finally:
+        os.close(fd)
+
+
 def reveal(service, kind, resource_id):
     from . import reports
     if kind == "finding":
@@ -467,17 +486,8 @@ def reveal(service, kind, resource_id):
         proposal = next(p for p in service.snapshot()["remediations"] if p.get("id") == resource_id)
         return {"data": proposal}
     if kind == "patch":
-        file = service.store.root / "remediation" / identifier(resource_id) / "fix.patch"
-        fd = os.open(file, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-        try:
-            status = os.fstat(fd)
-            if not stat.S_ISREG(status.st_mode) or status.st_size > 262144:
-                raise ValueError("Patch content is unavailable")
-            with os.fdopen(fd, "rb", closefd=False) as handle:
-                patch_bytes = handle.read(262145)
-        finally:
-            os.close(fd)
-        return {"data": {"id": resource_id, "patch": patch_bytes.decode("utf-8", "replace")}}
+        return {"data": {"id": resource_id,
+                         "patch": read_patch_bytes(service, resource_id).decode("utf-8", "replace")}}
     if kind == "run":
         from .run_views import _read_chunk
         chunk, _, state, truncated = _read_chunk(service.store, resource_id, tail=True)
