@@ -4,6 +4,7 @@ Only disposable local HTTP and storage fixtures; no live assessment or delivery.
 """
 import concurrent.futures
 import json
+import os
 import threading
 import time
 from unittest.mock import patch
@@ -211,3 +212,33 @@ class EvidenceHTTPTests(fixtures.Fixture):
         self.assertEqual(response[0], 403)
         self.assertNotIn(EVIDENCE_CANARY, response[1].decode())
         shell.assert_not_called()
+
+    def test_patch_requires_grant_and_refuses_symlink_hardlink_reads(self):
+        proposal = {"id": "rem_patch_fixture", "campaign_id": self.cid,
+                    "finding_id": self.fid, "status": "proposed"}
+        folder = self.service.store.root / "remediation" / proposal["id"]
+        data._write_json(folder / "result.json", proposal)
+        patch_path = folder / "fix.patch"
+        outside = self.root / "private-outside.patch"
+        outside.write_text(EVIDENCE_CANARY)
+        self.assertEqual(self.request("/api/v1/remediations/rem_patch_fixture/patch")[0], 403)
+        for variant in ("symlink", "hardlink"):
+            if patch_path.exists() or patch_path.is_symlink():
+                patch_path.unlink()
+            if variant == "symlink":
+                patch_path.symlink_to(outside)
+            else:
+                os.link(outside, patch_path)
+            grant = self.grant("patch", proposal["id"])[1]["grant"]
+            status, body, _ = self.request("/api/v1/remediations/rem_patch_fixture/patch",
+                headers={"X-Darkmoon-Evidence-Grant": grant})
+            self.assertNotEqual(status, 200, variant)
+            self.assertNotIn(EVIDENCE_CANARY, body.decode("utf-8", "replace"))
+        patch_path.unlink()
+        patch_path.write_text(EVIDENCE_CANARY)
+        grant = self.grant("patch", proposal["id"])[1]["grant"]
+        status, body, _ = self.request("/api/v1/remediations/rem_patch_fixture/patch",
+            headers={"X-Darkmoon-Evidence-Grant": grant})
+        self.assertEqual(status, 200)
+        self.assertIn(EVIDENCE_CANARY, body.decode())
+        self.assertEqual(self.request("/api/v1/remediations/rem_patch_fixture/patch")[0], 403)
