@@ -116,7 +116,7 @@
         },
         {
           "command": "darkmoon.openReportFull",
-          "when": "darkmoon.cap.rehydratedReports && !remoteName"
+          "when": "darkmoon.cap.rehydratedReports && !remoteName && isWorkspaceTrusted"
         },
         {
           "command": "darkmoon.launchCampaign",
@@ -142,7 +142,7 @@
       "view/item/context": [
         {
           "command": "darkmoon.openReportFull",
-          "when": "view == darkmoon.reports && viewItem == darkmoon.report && darkmoon.cap.rehydratedReports && !remoteName",
+          "when": "view == darkmoon.reports && viewItem == darkmoon.report && darkmoon.cap.rehydratedReports && !remoteName && isWorkspaceTrusted",
           "group": "inline"
         }
       ]

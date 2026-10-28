@@ -1,0 +1,25 @@
+name: Community native VS Code acceptance
+on:
+  workflow_dispatch:
+  push:
+    branches: [pro]
+    paths:
+      - 'integrations/upstream/vscode/**'
+      - 'integrations/upstream/client/fixtures/**'
+      - 'tests/community/vscode_host.cjs'
+      - 'tests/community/Dockerfile.vscode-host*'
+      - '.github/workflows/community-vscode.yml'
+permissions:
+  contents: read
+jobs:
+  vscode-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare pinned editor and build extension
+        run: docker build -f tests/community/Dockerfile.vscode-host -t darkmoon-vscode-host .
+      - name: Exercise the real extension host offline
+        run: docker run --rm --network none darkmoon-vscode-host

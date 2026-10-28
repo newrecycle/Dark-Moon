@@ -99,7 +99,7 @@
       "tarball_sha256": "cf103ead62b2b37dcbb7ba4da3a15f9827b1dd71a4131a7c12fa87f09908cafb",
       "npm_published": false
     },
-    "adaptation": "Replace legacy 0.1 client archive with patched local snapshot via existing @darkmoon/client import alias. Portable required SDK fixture tests; native reveal-policy validation remains open."
+    "adaptation": "Patched local SDK snapshot under the existing import alias; required portable fixture tests. Resource/client/session-bound trusted-local reveal grants, fresh authorized finding/report reads with post-await checks, 60-second expiry and revocation on refresh/focus/panel hide. Metadata-only default body previews; refresh failure/concurrency clears stale evidence. Native editor acceptance runs in Docker --network none with pinned VS Code 1.106.3; completion is tracked separately."
   },
   {
     "path": "integrations/upstream/jetbrains",

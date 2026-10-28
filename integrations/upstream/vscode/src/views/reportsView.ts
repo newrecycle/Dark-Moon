@@ -1,54 +1,80 @@
 import * as vscode from 'vscode';
 import type { ReportMeta } from '../darkmoon/contract';
 import { DarkmoonSession } from '../session';
-import { redact } from '../util/redact';
+import { RevealGrants, type RevealContext } from '../util/reveal';
+import { revealContext } from '../util/localReveal';
 
 export const REPORT_SCHEME = 'darkmoon-report';
 
-/**
- * Read-only virtual documents for reports. Content-provider documents are not
- * editable, so the rendered markdown cannot be tampered with. Redaction is
- * decided by the `rehydrate` query flag (plan §4): default is redacted; the
- * rehydrated variant is only requested by an explicit local open.
- */
-export class ReportContentProvider
-  implements vscode.TextDocumentContentProvider
-{
+/** Read-only metadata previews; full bodies require an in-memory reveal grant. */
+export class ReportContentProvider implements vscode.TextDocumentContentProvider, vscode.Disposable {
   private readonly _onDidChange = new vscode.EventEmitter<vscode.Uri>();
   readonly onDidChange = this._onDidChange.event;
+  private readonly fullUris = new Map<string, vscode.Uri>();
+  private readonly grants: RevealGrants;
+  private readonly subscriptions: vscode.Disposable[];
 
-  constructor(private readonly session: DarkmoonSession) {}
+  constructor(private readonly session: DarkmoonSession, ttlMs = 60_000) {
+    this.grants = new RevealGrants(() => revealContext(session), token => {
+      const uri = this.fullUris.get(token);
+      this.fullUris.delete(token);
+      if (uri) this._onDidChange.fire(uri);
+    }, ttlMs);
+    this.subscriptions = [
+      session.onDidChange(() => this.grants.invalidate()),
+      vscode.window.onDidChangeWindowState(state => { if (!state.focused) this.grants.invalidate(); }),
+    ];
+  }
 
-  static uri(id: string, rehydrate: boolean): vscode.Uri {
-    // Path ends in .md so VS Code assigns the markdown language + preview.
-    return vscode.Uri.from({
-      scheme: REPORT_SCHEME,
-      path: `/${encodeURIComponent(id)}.md`,
-      query: rehydrate ? 'rehydrate=1' : '',
+  static uri(id: string, rehydrate = false): vscode.Uri {
+    // A legacy flag never grants access; only authorizeFull can issue a grant.
+    return vscode.Uri.from({ scheme: REPORT_SCHEME, path: `/${encodeURIComponent(id)}.md`, query: rehydrate ? 'rehydrate=1' : '' });
+  }
+
+  authorizeFull(id: string, expected: RevealContext): vscode.Uri | undefined {
+    if (!this.session.snapshot.reports.some(report => report.id === id)) return undefined;
+    const token = this.grants.issue(id, expected);
+    if (!token) return undefined;
+    const uri = ReportContentProvider.uri(id).with({ query: `grant=${token}` });
+    this.fullUris.set(token, uri);
+    return uri;
+  }
+
+  private preview(id: string): string {
+    const campaign = this.session.getCampaign(id);
+    if (!campaign || !/^[A-Za-z0-9_-]{1,200}$/.test(id) || !this.session.getClient()) return '# Report unavailable\n\nRefresh the connection to load current metadata.';
+    // Free-form markdown can contain credentials that no pattern can recognize.
+    // The default view is built solely from the current campaign's typed counts.
+    const rows = ['critical', 'high', 'medium', 'low', 'info'].map(severity => {
+      const value = campaign.stats[severity as keyof typeof campaign.stats];
+      return `| ${severity} | ${typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 'unavailable'} |`;
     });
+    return `# Assessment report\n\nCampaign: ${id}\n\nThese are retained campaign summary counts, not proof of successful validation. Detailed report text and evidence are hidden. Use Darkmoon: Open Full Report on a trusted local workbench to reveal for up to 60 seconds.\n\n| Severity | Findings |\n| --- | ---: |\n${rows.join('\n')}\n`;
   }
 
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
+    let id: string;
+    try { id = decodeURIComponent(uri.path.replace(/^\//, '').replace(/\.md$/, '')); }
+    catch { return '# Report unavailable'; }
+    const params = new URLSearchParams(uri.query);
+    const token = params.getAll('grant').length === 1 && [...params.keys()].every(key => key === 'grant') ? params.get('grant')! : '';
     const client = this.session.getClient();
-    const id = decodeURIComponent(uri.path.replace(/^\//, '').replace(/\.md$/, ''));
-    const rehydrate = uri.query.includes('rehydrate=1');
-    if (!client) {
-      return '# Report unavailable\n\nDarkmoon client is not ready.';
-    }
+    if (!client || !this.grants.valid(token, id)) return this.preview(id);
     try {
-      const res = await client.getReport(id, { rehydrate });
-      const header = rehydrate
-        ? '> ⚠ **Full report — real infrastructure values shown.**\n\n'
-        : '> Sensitive values are redacted. Use "Darkmoon: Open Full Report" (local only) to reveal.\n\n';
-      // Defence-in-depth: for the default view always run the extension's own
-      // redaction net, regardless of the client's redaction policy (which may
-      // leave the target host visible). The full view is only reachable via an
-      // explicit, local, confirmed action.
-      const body = rehydrate ? res.markdown : redact(res.markdown);
-      return header + body;
-    } catch (err) {
-      return `# Report unavailable\n\n${err instanceof Error ? err.message : String(err)}`;
+      const result = await client.getReport(id, { rehydrate: true });
+      if (!this.grants.valid(token, id) || client !== this.session.getClient()) return this.preview(id);
+      if (!result.rehydrated) return this.preview(id);
+      return '> Full report — real infrastructure values shown. Access expires within 60 seconds.\n\n' + result.markdown;
+    } catch {
+      return '# Report unavailable\n\nThe current credentials could not read this report.';
     }
+  }
+
+  dispose(): void {
+    for (const subscription of this.subscriptions) subscription.dispose();
+    this.grants.dispose();
+    this.fullUris.clear();
+    this._onDidChange.dispose();
   }
 }
 

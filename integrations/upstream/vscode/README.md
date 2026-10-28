@@ -128,3 +128,33 @@ not an npm release. Its hash and upstream source provenance are recorded in
 The real-adapter data tests require the sibling client fixture directory (or
 `DARKMOON_CLIENT_FIXTURES`); a missing directory is a failure, not a skipped test.
 Native extension-host and reveal-policy validation are tracked separately.
+
+## Scoped local reveal in this fork
+
+Default report previews contain current campaign summary metadata. Finding
+previews withhold free-form descriptions, endpoints, evidence and remediation;
+pattern matching cannot recognize every extracted password or recovery phrase.
+Use the explicit reveal action on a trusted, focused local workbench for a fresh
+authorized read. The grant is bound to one resource, one client and one session
+revision, expires after at most 60 seconds, and is revoked on refresh, credential
+change, focus loss or panel hiding. A crafted `rehydrate=1` URI has no authority.
+Pending reads are checked again before their content can be rendered.
+
+Refresh clears previous snapshots and clients immediately; a failed or older
+concurrent refresh cannot restore stale evidence. This is an editor UI safeguard,
+not a replacement for backend access control, and does not erase values already
+seen or copied during an authorized reveal. Server-wide evidence policy remains
+a separate open audit item.
+
+Run native acceptance in the offline container (dependencies download during
+build; the editor runs only with networking disabled):
+
+```sh
+docker build -f ../../../tests/community/Dockerfile.vscode-host -t darkmoon-vscode-host ../../..
+docker run --rm --network none darkmoon-vscode-host
+```
+
+The editor is pinned to 1.106.3. Pure data/grant tests can run under Node; the
+actual extension host additionally checks provider authorization, delayed reads,
+expiry notifications and session refresh races. Native acceptance is recorded
+in the integration gap ledger after CI completes.

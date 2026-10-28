@@ -16,11 +16,12 @@ const MASK = '[redacted]';
 
 // Order matters: mask the most specific structures first.
 const RULES: Array<{ re: RegExp; replace: string }> = [
+  { re: /\b(?:authorization\s*:\s*)?bearer\s+[A-Za-z0-9._~+/=-]+/gi, replace: '[redacted-bearer]' },
   // JWTs (three base64url segments).
   { re: /\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{2,}\b/g, replace: '[redacted-jwt]' },
   // Authorization / bearer / api-key style assignments.
   {
-    re: /\b(authorization|bearer|api[-_]?key|x-api-key|token|password|passwd|pwd|secret)\b(\s*[:=]\s*|\s+)("?)[^\s",'}]+\3/gi,
+    re: /\b(authorization|bearer|api[-_]?key|x-api-key|token|password|passwd|pwd|pw|secret)\b(\s*[:=]\s*|\s+)("?)[^\s",'}]+\3/gi,
     replace: '$1$2[redacted]',
   },
   // Basic auth / creds embedded in URLs: scheme://user:pass@host

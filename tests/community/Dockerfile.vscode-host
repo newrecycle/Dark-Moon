@@ -1,0 +1,13 @@
+# Prepare dependencies online; execute the vendor editor only with --network none.
+FROM node:24-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends xvfb xauth libasound2 libgbm1 libgtk-3-0 libnss3 libxss1 libxtst6 libx11-xcb1 && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace
+COPY integrations/upstream/vscode/package*.json integrations/upstream/vscode/
+COPY integrations/upstream/vscode/vendor/ integrations/upstream/vscode/vendor/
+RUN npm ci --prefix integrations/upstream/vscode --ignore-scripts --no-audit --no-fund
+RUN node -e "require('./integrations/upstream/vscode/node_modules/@vscode/test-electron').downloadAndUnzipVSCode({version:'1.106.3',cachePath:'/opt/vscode'}).then(p=>require('fs').writeFileSync('/opt/vscode-executable',p))"
+COPY integrations/upstream/vscode/ integrations/upstream/vscode/
+COPY integrations/upstream/client/fixtures/ integrations/upstream/client/fixtures/
+COPY tests/community/vscode_host.cjs tests/community/vscode_host.cjs
+RUN npm --prefix integrations/upstream/vscode run typecheck && npm --prefix integrations/upstream/vscode run compile-tests && npm --prefix integrations/upstream/vscode run compile
+CMD ["xvfb-run", "--auto-servernum", "node", "tests/community/vscode_host.cjs"]

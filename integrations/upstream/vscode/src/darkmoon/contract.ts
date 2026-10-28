@@ -186,7 +186,7 @@ export interface DarkmoonClient {
   listCampaigns(): Promise<Campaign[]>;
   getCampaign(id: string): Promise<Campaign>;
   listFindings(campaignId?: string): Promise<Finding[]>;
-  getFinding(id: string): Promise<Finding | undefined>;
+  getFinding(id: string, opts?: { rehydrate?: boolean }): Promise<Finding | undefined>;
   listReports(): Promise<ReportMeta[]>;
   /**
    * Redaction-safe by default (plan §4). With `{ rehydrate: false }` (default)

@@ -56,8 +56,11 @@ export function activate(context: vscode.ExtensionContext): DarkmoonApi {
     )
   );
 
+  context.subscriptions.push(reportContentProvider);
+
   // Finding detail — webview panels.
   const findingPanels = new FindingPanelManager(context.extensionUri, session);
+  context.subscriptions.push(findingPanels);
 
   registerCommands(context, {
     session,

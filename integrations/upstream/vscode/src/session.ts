@@ -28,6 +28,8 @@ export class DarkmoonSession {
   readonly onDidChange = this._onDidChange.event;
 
   private client: DarkmoonClient | undefined;
+  private generation = 0;
+  get revision(): number { return this.generation; }
   private data: SessionData = {
     campaigns: [],
     findings: [],
@@ -63,43 +65,37 @@ export class DarkmoonSession {
 
   /** (Re)resolve the client and reload all data. */
   async refresh(): Promise<void> {
-    this.data = { ...this.data, loading: true, error: undefined };
+    const revision = ++this.generation;
+    const previous = this.client;
+    this.client = undefined;
+    this.data = { campaigns: [], findings: [], reports: [], loading: true };
     this._onDidChange.fire(this.data);
-
+    void previous?.dispose?.();
+    let candidate: DarkmoonClient | undefined;
     try {
       const settings = this.settings();
       const secretVals = await this.secrets.read();
+      if (revision !== this.generation) return;
       const cfg = toClientConfig(settings, secretVals);
-      this.client = await resolveClient(cfg, {
-        fixturesDir: this.fixturesDir(),
-        useFixtures: settings.useFixtures,
-      });
-
-      const capabilities = await this.client.capabilities();
+      candidate = await resolveClient(cfg, { fixturesDir: this.fixturesDir(), useFixtures: settings.useFixtures });
+      if (revision !== this.generation) { void candidate.dispose?.(); return; }
+      const capabilities = await candidate.capabilities();
+      if (revision !== this.generation) { void candidate.dispose?.(); return; }
       const [campaigns, findings, reports] = await Promise.all([
-        this.client.listCampaigns(),
-        this.client.listFindings(),
-        this.client.listReports(),
+        candidate.listCampaigns(), candidate.listFindings(), candidate.listReports(),
       ]);
-
-      this.data = {
-        campaigns,
-        findings,
-        reports,
-        capabilities,
-        loading: false,
-        error: undefined,
-      };
+      if (revision !== this.generation) { void candidate.dispose?.(); return; }
+      this.client = candidate;
+      this.data = { campaigns, findings, reports, capabilities, loading: false };
       await this.applyContext(capabilities, true);
-    } catch (err) {
-      this.data = {
-        ...this.data,
-        loading: false,
-        error: err instanceof Error ? err.message : String(err),
-      };
+    } catch {
+      if (revision !== this.generation) { void candidate?.dispose?.(); return; }
+      void candidate?.dispose?.();
+      this.client = undefined;
+      this.data = { campaigns: [], findings: [], reports: [], loading: false, error: 'Darkmoon data could not be refreshed. Check the connection and credentials.' };
       await this.applyContext(undefined, false);
     }
-    this._onDidChange.fire(this.data);
+    if (revision === this.generation) this._onDidChange.fire(this.data);
   }
 
   /**
@@ -135,7 +131,9 @@ export class DarkmoonSession {
   }
 
   dispose(): void {
-    this._onDidChange.dispose();
+    this.generation++;
     void this.client?.dispose?.();
+    this.client = undefined;
+    this._onDidChange.dispose();
   }
 }

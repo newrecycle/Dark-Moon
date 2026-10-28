@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { fakeClientFactory } from '../fakeClient';
 import type { DarkmoonApi } from '../../src/extension';
 import { ReportContentProvider } from '../../src/views/reportsView';
+import { revealContext } from '../../src/util/localReveal';
 
 const EXT_ID = 'darkmoon.darkmoon-vscode';
 
@@ -87,12 +88,19 @@ describe('Darkmoon extension activation & data (plan §5)', () => {
       'default preview must not leak real IPs'
     );
 
-    const fullUri = ReportContentProvider.uri(report.id, true);
-    const full = await provider.provideTextDocumentContent(fullUri);
+    const forged = await provider.provideTextDocumentContent(ReportContentProvider.uri(report.id, true));
+    assert.ok(!forged.includes('127.0.0.1'), 'a query flag grants no raw access');
+    const fullUri = provider.authorizeFull(report.id, revealContext(api.session));
+    assert.ok(fullUri, 'trusted focused local host can authorize a confirmed reveal');
+    const full = await provider.provideTextDocumentContent(fullUri!);
     assert.ok(
       full.includes('127.0.0.1') || full.includes('real infrastructure'),
       'full report carries rehydrated content'
     );
+    await api.session.refresh();
+    const expired = await provider.provideTextDocumentContent(fullUri!);
+    assert.ok(!expired.includes('127.0.0.1'), 'refresh revokes the old URI');
+    provider.dispose();
   });
 
   it('launchCampaign is guarded by capability (no throw path)', async () => {

@@ -7,7 +7,9 @@
     return String(s ?? '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function section(title, bodyHtml) {
@@ -25,10 +27,10 @@
     const ev = f.evidence || {};
     const banner = msg.rehydrated
       ? `<div class="banner"><span>⚠ Showing <b>real</b> infrastructure values.</span></div>`
-      : `<div class="banner"><span>Sensitive values are redacted.</span>${
+      : `<div class="banner"><span>Detailed evidence and infrastructure values are hidden.</span>${
           msg.canReveal
             ? `<button id="reveal">Reveal real values (local)</button>`
-            : `<span class="muted">Reveal disabled on remote workbench</span>`
+            : `<span class="muted">Reveal requires a trusted, focused local workbench</span>`
         }</div>`;
 
     app.innerHTML = `

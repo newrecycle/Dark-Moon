@@ -248,11 +248,12 @@ class RealClientAdapter implements DarkmoonClient {
     return all;
   }
 
-  async getFinding(id: string): Promise<Finding | undefined> {
+  async getFinding(id: string, opts?: { rehydrate?: boolean }): Promise<Finding | undefined> {
     try {
-      return mapFinding(await this.pkg.getFinding(id, { includeEvidence: true }));
-    } catch {
-      return undefined;
+      return mapFinding(await this.pkg.getFinding(id, { includeEvidence: true, ...(opts?.rehydrate ? { full: true, private: true } : {}) }));
+    } catch (error) {
+      if ((error as { code?: string }).code === "FINDING_NOT_FOUND") return undefined;
+      throw error;
     }
   }
 

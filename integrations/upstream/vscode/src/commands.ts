@@ -4,6 +4,7 @@ import { DarkmoonSession } from './session';
 import { FindingPanelManager } from './views/findingPanel';
 import { ReportContentProvider } from './views/reportsView';
 import { SecretsStore } from './secrets';
+import { revealContext } from './util/localReveal';
 import { baseUrlWarning, readSettings } from './config';
 
 interface Deps {
@@ -17,7 +18,7 @@ export function registerCommands(
   context: vscode.ExtensionContext,
   deps: Deps
 ): void {
-  const { session, findingPanels, secrets } = deps;
+  const { session, findingPanels, reportProvider, secrets } = deps;
   const reg = (id: string, fn: (...a: any[]) => any) =>
     context.subscriptions.push(vscode.commands.registerCommand(id, fn));
 
@@ -35,9 +36,10 @@ export function registerCommands(
     if (!id) {
       return;
     }
-    if (vscode.env.remoteName) {
+    const expected = revealContext(session);
+    if (!expected.allowed || !expected.client) {
       void vscode.window.showWarningMessage(
-        'Darkmoon: full (rehydrated) reports can only be opened on a local workbench.'
+        'Darkmoon: full reports require a ready connection and a trusted, focused local workbench.'
       );
       return;
     }
@@ -56,8 +58,8 @@ export function registerCommands(
     if (ok !== 'Open full report') {
       return;
     }
-    const uri = ReportContentProvider.uri(id, true);
-    await openMarkdownPreview(uri);
+    const uri = reportProvider.authorizeFull(id, expected);
+    if (uri) await openMarkdownPreview(uri);
   });
 
   reg('darkmoon.launchCampaign', async () => {
