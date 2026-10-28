@@ -4,8 +4,8 @@
 darkmoon-to-hec — ship SAFE Darkmoon events to a Splunk HTTP Event Collector.
 
 This is the sender side for users who are NOT on the Darkmoon Pro webhook system.
-Pro users can instead point a Darkmoon webhook (format=splunk_hec) directly at
-HEC; see the repository README.
+This fork does not implement direct splunk_hec webhook delivery; use the
+authenticated forwarder for HEC admission.
 
 Two input modes:
   --rest-url URL --token TOK   poll the Darkmoon Pro REST API
@@ -22,7 +22,8 @@ SAFETY (non-negotiable):
     request/response bodies are dropped by construction.
   * Every emitted string value is scrubbed for token-like patterns as a second
     line of defense.
-  * TLS verification is ON by default (use --insecure only in a trusted lab).
+  * HTTPS and TLS certificate verification are required by default. Plaintext
+    HTTP and unverified HTTPS require explicit --insecure (trusted lab only).
 
 Standard library only. Python 3.8+.
 """
@@ -84,10 +85,29 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def open_request(request, context, timeout):
     return urllib.request.build_opener(NoRedirect(), urllib.request.HTTPSHandler(context=context)).open(request, timeout=timeout)
 
-def checked_url(value):
-    parsed = urlsplit(value)
-    if parsed.scheme not in {"https", "http"} or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
+def checked_url(value, verify=True):
+    """Reject unsafe URLs before attaching REST/HEC authorization headers.
+
+    --insecure is an explicit lab-only escape hatch for plaintext HTTP as well
+    as unverified HTTPS. TLS verification must never silently imply that an
+    HTTP endpoint is acceptable.
+    """
+    if (not isinstance(value, str) or not value or len(value) > 8192
+            or any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in value)):
+        raise ValueError("Configure a URL without whitespace or control characters")
+    try:
+        parsed = urlsplit(value)
+        hostname = parsed.hostname
+        # Accessing .port also rejects invalid numeric port declarations.
+        parsed.port
+    except ValueError:
+        raise ValueError("Configure a valid HTTP(S) URL") from None
+    if (parsed.scheme not in {"https", "http"} or not hostname
+            or parsed.username is not None or parsed.password is not None
+            or parsed.query or parsed.fragment):
         raise ValueError("Configure an HTTP(S) URL without credentials, query or fragment")
+    if verify and parsed.scheme != "https":
+        raise ValueError("HTTPS is required for authenticated REST/HEC requests; --insecure is lab-only")
     return value.rstrip("/")
 _SECRET_RE = re.compile(
     r"(?i)(bearer\s+|(?:token|secret|password|api[_-]?key|authorization)"
@@ -230,6 +250,7 @@ def build_events(data):
 
 # --- input: REST poll -------------------------------------------------------
 def _get_json(url, headers, verify, timeout=20):
+    checked_url(url, verify)
     req = urllib.request.Request(url, headers=headers)
     ctx = ssl.create_default_context()
     if not verify:
@@ -246,7 +267,7 @@ def poll_rest(base_url, token, verify):
     if token:
         headers["Authorization"] = "Bearer " + token
     data = {}
-    base = checked_url(base_url)
+    base = checked_url(base_url, verify)
     if base.endswith("/api/v1"): base = base[:-7]
     for key, path in (("campaigns", "/api/v1/campaigns"),
                       ("vulnerabilities", "/api/v1/vulnerabilities"),
@@ -261,7 +282,7 @@ def poll_rest(base_url, token, verify):
 # --- output: HEC ------------------------------------------------------------
 def send_hec(hec_url, hec_token, events, verify, batch_size=100,
              max_retries=4, use_ack=False):
-    checked_url(hec_url)
+    checked_url(hec_url, verify)
     if batch_size < 1 or batch_size > 1000: raise ValueError("Batch size must be between 1 and 1000")
     if use_ack: raise ValueError("Indexer acknowledgment is not implemented; do not request it")
     channel = str(uuid.uuid4())
@@ -313,7 +334,7 @@ def main():
                     help="HEC token (or env SPLUNK_HEC_TOKEN)")
     ap.add_argument("--batch-size", type=int, default=100)
     ap.add_argument("--insecure", action="store_true",
-                    help="disable TLS verification (LAB ONLY)")
+                    help="allow HTTP and disable TLS verification (LAB ONLY)")
     args = ap.parse_args()
     verify = not args.insecure
 

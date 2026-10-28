@@ -1,8 +1,8 @@
 # darkmoon-to-hec forwarder
 
-A tiny, dependency-free (Python 3 stdlib) sender that pushes **safe** Darkmoon
-events to a Splunk HTTP Event Collector. Use it if you are **not** on the
-Darkmoon Pro webhook system.
+A small, dependency-free (Python 3 stdlib) sender that pushes **safe** Darkmoon
+events to a Splunk HTTP Event Collector. This fork uses this authenticated
+forwarder instead of direct Splunk webhook format delivery.
 
 > Use this forwarder for authenticated HEC delivery from this fork. Direct `format=splunk_hec` webhook delivery is unsupported; a signing secret does not supply HEC authentication.
 
@@ -57,8 +57,29 @@ python3 darkmoon-to-hec.py --export sample.json --stdout
 `--stdout` (output, one required), `--hec-token`, `--batch-size` (default 100),
 `--insecure` (disable TLS verification — **lab only**).
 
-Retries use exponential backoff with jitter; HTTP 400/403 are treated as
-non-retryable. Batches are newline-delimited JSON, chunked by `--batch-size`.
+**Authenticated transport:** REST polling and HEC delivery require HTTPS with
+certificate and hostname verification by default. Plaintext HTTP is rejected
+before an authorization header is constructed or any request is sent. This
+also applies if the URL points at localhost. To use a controlled, isolated
+HTTP endpoint or unverified HTTPS certificate in a **trusted lab only**, supply
+`--insecure` explicitly; this disables certificate/hostname verification and
+allows plaintext credentials, which must never be used on untrusted networks.
+URLs containing embedded userinfo, query strings, fragments, whitespace,
+control characters or invalid port declarations are rejected. Redirects are
+never followed, to avoid forwarding credentials to a new destination.
+
+Retries use exponential backoff; HTTP 3xx and 4xx other than 429 are
+non-retryable. HTTP 429 and retryable failures may repeat a batch; Splunk HEC
+success (`code: 0`) does not imply exactly-once indexing. Batches are
+newline-delimited JSON, chunked by `--batch-size`.
+
+Offline transport verification (no Splunk server or network):
+
+```bash
+python3 -m unittest discover -s integrations/upstream/splunk/test \
+  -p 'test_forwarder_transport.py' -v
+```
+
 
 ## Fork implementation update
 
@@ -76,4 +97,6 @@ alert action resolves an allowlisted host to one saved REST target before a
 retest, keeps launch acceptance separate from completion, and serializes its
 rolling quota across processes with atomic state writes.
 
-Verification of these changes is deferred to the later test pass.
+Native Splunk host validation, HTTP delivery persistence and authorized-vendor
+response parity remain out of scope. The offline tests establish only this
+fork's transport admission and error-handling behavior.

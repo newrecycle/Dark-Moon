@@ -1,0 +1,30 @@
+name: Splunk forwarder authenticated transport
+on:
+  push:
+    branches:
+      - pro
+      - agent/splunk-forwarder-transport-security
+    paths:
+      - 'integrations/upstream/splunk/forwarder/**'
+      - 'integrations/upstream/splunk/test/test_forwarder_transport.py'
+      - '.github/workflows/splunk-forwarder-transport.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-hec-transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile forwarder module
+        run: python -m py_compile integrations/upstream/splunk/forwarder/darkmoon-to-hec.py
+      - name: Validate authenticated REST and HEC transport offline
+        run: >
+          python -m unittest discover -s integrations/upstream/splunk/test
+          -p 'test_forwarder_transport.py' -v
