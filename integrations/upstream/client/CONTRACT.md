@@ -7,7 +7,6 @@ in parallel, in isolated directories:
 2. GitLab CI/CD
 3. Jenkins (shared library / plugin, via the `darkmoon-ci` bin)
 4. VS Code extension
-5. JetBrains plugin (Kotlin — reuses the conformance fixtures/goldens, not this JS)
 
 **Freeze rule:** the method signatures and the canonical enum value sets below are
 frozen for the `1.x` line. Additive fields are allowed; breaking changes bump the
@@ -194,22 +193,6 @@ The **CLI** (`darkmoon-ci`) is the link method for Jenkins/GitLab shell steps:
 npx darkmoon-ci run --target http://app:3000 --fail-on critical,high --json
 # exit 0 pass · 2 fail-policy · 1 tool error
 ```
-
-### Kotlin (JetBrains)
-
-The Kotlin client (`darkmoon-client-kotlin`) does **not** re-implement the JS
-normalizer. It drives this package over a subprocess — the `darkmoon-ci` CLI /
-`darkmoon-bridge.mjs` — and deserializes the already-normalized JSON into Kotlin
-types that mirror the same frozen shapes (`CONTRACT_VERSION = "1.0.0"`, identical
-severity/status enum sets, `evidence=null` by default, two-key opt-in). Its
-conformance suite asserts against the shared goldens in
-`fixtures/conformance/*.golden.json` (language-neutral JSON produced by
-`scripts/gen-golden.mjs`), verifying enum fidelity, redaction-safety and
-field-completeness. The normalization "unknown → info, never escalate" rule is
-therefore enforced once, here in the JS client, and consumed identically by all
-integrations (the Kotlin types fail loudly rather than silently escalate if an
-out-of-set value ever appears). The plugin ships its own copy of the goldens;
-regenerating them here (`npm run gen:golden`) requires re-syncing that copy.
 
 ## 6. Conformance guarantee
 
