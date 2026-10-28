@@ -246,7 +246,7 @@ class API:
         if resource == "run":
             # Literal collection routes must precede generic /run/{run_id}.
             if method == "GET" and parts == ["run", "active"]:
-                if query:
+                if urlsplit(handler.path).query:
                     raise ValueError("Active runs do not accept query parameters")
                 handler.send(active_runs(self.store))
             elif method == "GET" and parts == ["run", "logs"]:
