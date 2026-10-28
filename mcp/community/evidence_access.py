@@ -218,6 +218,18 @@ def minimize_response(path, content, kind):
     parts = path.split("?", 1)[0].strip("/").split("/")
     if len(parts) < 3 or parts[:2] != ["api", "v1"] or parts[2] not in WORKSPACE_ROUTES:
         return content
+    # These handlers already construct bounded typed metadata, rather than
+    # spreading persisted assessment records. Keep their published contracts.
+    if parts[2] == "vulnerabilities" and parts[3:4] == ["history"]:
+        return content
+    if parts[2] == "targets" and len(parts) == 5 and parts[4] == "evolution":
+        return content
+    if parts[2] == "pull-requests":
+        return content
+    if parts[2] == "run":
+        return content  # run_views uses explicit safe serializers; raw access requires a grant
+    if parts[2] == "dashboard" and parts[3:] == ["posture"]:
+        return _posture(content)
     if parts[2] == "source-files":
         return {"files": [], "truncated": True, "evidence_reveal_required": True}
     if parts[2] == "options" and isinstance(content, dict):
