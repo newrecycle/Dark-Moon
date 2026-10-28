@@ -167,4 +167,3 @@ class EvidenceHTTPTests(fixtures.Fixture):
         self.assertEqual(status, 200)
         self.assertIn(EVIDENCE_CANARY, body.decode())
         self.assertNotIn(EVIDENCE_CANARY, self.request(f"/api/v1/run/logs/{job['id']}")[1].decode())
-
