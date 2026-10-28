@@ -11,6 +11,9 @@ on:
       - 'mcp/community/server.py'
       - 'tests/community/test_webhook_delivery_contract.py'
       - 'tests/community/test_webhook_tls_loopback.py'
+      - 'integrations/upstream/n8n/**'
+      - 'tests/community/n8n_receiver.cjs'
+      - 'tests/community/n8n_contract.cjs'
       - 'tests/community/test_webhook_receipts.py'
       - '.github/workflows/webhook-verification.yml'
 permissions:
@@ -32,3 +35,24 @@ jobs:
         env:
           PYTHONPATH: mcp
         run: python -m pytest tests/community/test_webhook_delivery_contract.py tests/community/test_webhook_receipts.py tests/community/test_webhook_tls_loopback.py -q
+
+  n8n-receiver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install n8n package from pinned lockfile
+        run: npm --prefix integrations/upstream/n8n ci --ignore-scripts
+      - name: Compile n8n nodes and run unit tests
+        run: |
+          npm --prefix integrations/upstream/n8n run build
+          npm --prefix integrations/upstream/n8n test
+      - name: Verify signed synthetic receiver admission and replay
+        run: |
+          node tests/community/n8n_receiver.cjs
+          node tests/community/n8n_contract.cjs
