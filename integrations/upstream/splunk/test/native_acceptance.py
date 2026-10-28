@@ -240,6 +240,13 @@ def native(mgmt, hec, index, package, context):
     action = entry(management.call("/servicesNS/nobody/darkmoon/alerts/alert_actions/" +
                                    "darkmoon_campaign?output_mode=json"))
     check(isinstance(action, dict) and bool(action), "native alert action missing")
+    form = entry(management.call("/servicesNS/nobody/darkmoon/data/ui/alerts/" +
+                                 "darkmoon_campaign?output_mode=json"))
+    markup = str(form.get("eai:data", form.get("data", "")))
+    for param in ("action_kind", "retest_scope", "campaign_id", "finding_id",
+                  "scope_profile", "dry_run", "max_per_hour"):
+        check("action.darkmoon_campaign.param." + param in markup,
+              "native registered alert configuration form is incomplete")
     # Native effective conf: macro and EVAL guards, not local-source parse.
     macros = entry(management.call("/servicesNS/nobody/darkmoon/configs/conf-macros/" +
                                    "darkmoon_index?output_mode=json"))
