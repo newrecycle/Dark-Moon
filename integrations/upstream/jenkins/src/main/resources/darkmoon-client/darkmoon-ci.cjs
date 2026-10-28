@@ -1372,7 +1372,13 @@ var OssLocalBackend = class {
       throw new SchemaInvalid("Campaign findings are unavailable or malformed.");
     }
     if (!Array.isArray(raw)) throw new SchemaInvalid("Campaign findings must be a JSON array.");
-    return parseFindings(raw);
+    const findings = parseFindings(raw);
+    // Never let a campaign-qualified read quietly filter out a foreign or
+    // missing campaign_id and misreport it as a clean zero-finding result.
+    if (findings.some((finding) => finding.campaign_id !== campaignId)) {
+      throw new SchemaInvalid("Campaign findings contain a foreign or missing campaign identity.");
+    }
+    return findings;
   }
   async getCampaign(id) {
     const raw = await this.readCampaignFile(id);
