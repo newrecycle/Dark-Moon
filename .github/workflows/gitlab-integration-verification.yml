@@ -60,7 +60,7 @@ jobs:
         run: |
           npm --prefix integrations/upstream/client ci
           npm --prefix integrations/upstream/client run build
-          node integrations/upstream/client/dist/cli/darkmoon-ci.cjs help
+          node integrations/upstream/client/dist/cli/darkmoon-ci.cjs --help
       - name: Download isolated GitLab Runner 15.11.1 for deprecated exec shell
         run: |
           set -eu
