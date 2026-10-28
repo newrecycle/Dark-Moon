@@ -66,3 +66,69 @@ Earlier passing tests predate these changes. Schema, disabled/deleted behavior,
 and deferred DNS/TLS/redirect/response-bound checks are recorded in
 [webhook-receipts.md](../../handoff/webhook-receipts.md). Vendor-wire
 equivalence is not established.
+
+## Active-run discovery and bounded log browsing — 28 October integration increment
+
+This **source-only integration increment** implements the fork's independent run
+discovery contract; it does not establish original commercial Pro wire or
+runtime equivalence. Existing SDK launch and status identities are unchanged.
+
+| Route | Fork contract |
+| --- | --- |
+| `GET /api/v1/run/active` | `{data: PublicRun[], total, active_states: ["queued","running","cancelling"]}`. No query parameters. Only persisted `queued` and `running` records qualify. A running record with `cancel_requested` has public `state: "cancelling"` while its stored `status` stays `running`. Completed, failed, cancelled, interrupted and timed-out records are excluded. |
+| `GET /api/v1/run/logs` | `{data: (PublicRun & LogMetadata)[], total, limit, offset, has_more, ordering: "created_at_desc,id_desc", content_policy: "metadata_only"}`. Optional exact `status`, `campaign_id`, `run_id`; `limit` 1–100 (default 25), `offset` 0–100000 (default 0). Status filters target the public `state` including `cancelling`. Descending `(created_at, id)` is deterministic for one dataset; offset pages are not a repeatable snapshot across concurrent queue changes. |
+| `GET /api/v1/run/{run_id}` | `PublicRun & LogMetadata`, without the saved launch spec or execution details. Unknown run returns 404. |
+| `GET /api/v1/run/logs/{run_id}` | `{data: LogEvent[], run_id, campaign_id, status, state, log_status, log_bytes, raw, truncated, content_policy}`. By default `data` contains only generated lifecycle metadata. Optional `lines` 1–200 (default 100). Explicit `raw=true` is administrator-only and returns at most the last 64 KiB, at most 200 lines and 512 characters per line. The first partial line is omitted when tail-truncated. |
+| `GET /api/v1/run/{run_id}/stream` | Maintains SSE heartbeats, `run_completed`/`run_error` terminal frames and exact `run_id`/`campaign_id`. `output` frames are available only with administrator `?raw=true`, in bounded 8-KiB incremental reads; default/viewer stream emits lifecycle/heartbeat frames only. The default change is an intentional privacy restriction, not identical behavior to the earlier unguarded SSE output. |
+| `POST/DELETE /api/v1/run/{run_id}/stop` | Same idempotent queue cancellation and exact job lookup; bodyless DELETE remains supported. Response now exposes only `PublicRun`. |
+
+`PublicRun` is allowlisted: `id` and `run_id` are the actual queue
+record ID, `campaign_id` is the separately persisted campaign ID (never
+inferred from or substituted for the job ID), `status`, derived `state`,
+`cancel_requested`, `kind`, optional lifecycle timestamps and related
+schedule/proposal IDs, and optional integer exit code. Unknown queue statuses
+are returned as `unknown`; arbitrary persisted status/error text is not
+forwarded. No full `spec`, credential, environment, command argument, local
+path, process error string or provider stdout is serialized.
+
+`LogMetadata` has `log_status: available | missing | unavailable` and
+`log_bytes` (null when unavailable). Known run with no log returns 200,
+`log_status: missing` and no raw messages; unknown run returns 404.
+Malformed/duplicate/unknown collection parameters and invalid requested ranges
+return 400. Non-administrator `raw=true` returns 403. The collection never
+includes raw log content. Authentication remains mandatory; viewer accounts
+may read lifecycle metadata but not raw subprocess output, and retain no
+mutation permission. No client-provided path is resolved. Reads enforce an
+identifier-derived log location, reject symlinks and non-regular/multi-link
+files, bound bytes/lines/line length, and never read whole files.
+
+**Privacy limitation:** raw launcher logs are untrusted subprocess output and
+may include credentials, tokens, sensitive targets, or other private text.
+There is no claim that regex redaction can sanitize arbitrary output. Only an
+administrator's explicit raw opt-in exposes a small unredacted window; the
+default response and all collection views use structured lifecycle metadata.
+The legacy `/api/v1/jobs/{id}`, `/api/v1/jobs/{id}/log`, launcher responses
+and `/api/v1/overview` job records are restricted to the same boundary,
+rather than leaking saved specs or unrestricted output.
+
+The campaign-page consumer fetches `/run/active` and `/run/logs` with
+50-record history pages, deduplicates active runs, keeps exact campaign/run
+identities, exposes bounded previous/next navigation, and distinguishes loading,
+valid emptiness, missing logs and failures. In-flight loads are discarded when
+the view changes or a newer page request supersedes them. Per-run detail uses
+structured lifecycle events; administrators can explicitly reveal a bounded
+untrusted raw-output window. Stop uses the existing bodyless DELETE alias.
+
+### Verification boundary for this increment
+
+Implementation/source and documentation only: **no test execution, full build,
+native host, licensed vendor process or assessment** was invoked. The earlier
+passing test counts above describe their earlier compatibility increment, not
+this one. Deferred cases: queued → running → cancelling → terminal transitions;
+restart recovery and stopped runs; queue/remediation campaign/run identity
+correlation; idempotent repeated stop and races; 8-MiB/oversized single-line
+logs and concurrent file rotation; malformed/duplicate/overflow query values;
+missing, unreadable, symlinked and replaced files; viewer/admin and
+unauthenticated access; SSE disconnect and bounded raw reads; pagination with
+concurrent inserts; browser stale requests; SDK launch/status polling; and
+original-vendor response comparison if authorized access becomes possible.
