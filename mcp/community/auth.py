@@ -324,5 +324,28 @@ class Accounts:
         role = "admin" if subject in admins else "analyst" if subject in analysts else "viewer"
         user = {"id": user_id, "username": str(claims.get("preferred_username", subject))[:160], "role": role,
                 "created_at": now(), "must_change_password": False, "auth_version": 1, "provider": "oidc"}
-        self.store.save("users", user)
+        def bind_oidc(state):
+            users = state.setdefault("users", {})
+            if user_id not in users:
+                # Re-provisioning a revoked SSO subject must not resurrect an
+                # orphaned private credential, grant or queued launch.
+                for credential in state.get("credentials", {}).values():
+                    if credential.get("model_version") == 1:
+                        if credential.get("owner_id") == user_id:
+                            credential["revoked"] = True
+                        if user_id in credential.get("grants", []):
+                            credential["grants"] = [g for g in credential["grants"] if g != user_id]
+                for sid, session in list(state.get("sessions", {}).items()):
+                    if session.get("user_id") == user_id:
+                        del state["sessions"][sid]
+                for job in state.get("jobs", {}).values():
+                    if (job.get("status") == "queued" and
+                        isinstance(job.get("request_actor"), dict) and
+                        job["request_actor"].get("id") == user_id):
+                        job.update(status="cancelled", finished_at=now(),
+                                   error="Queued principal no longer exists")
+            else:
+                user["auth_version"] = users[user_id].get("auth_version", 1)
+            users[user_id] = user
+        self.store.update(bind_oidc)
         return self.issue(user)
