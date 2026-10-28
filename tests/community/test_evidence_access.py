@@ -112,6 +112,9 @@ class EvidenceHTTPTests(fixtures.Fixture):
 
     def test_wrong_kind_id_campaign_and_cross_session_substitution(self):
         second = self.campaign()
+        second_findings = data.load_vulnerabilities(second)
+        second_findings[0]["id"] = "unique_second_finding"
+        data.save_vulnerabilities(second, second_findings)
         token = self.grant("finding", self.fid)[1]["grant"]
         self.assertEqual(self.reveal("finding", "other_finding", token)[0], 404)
         self.assertEqual(self.reveal("campaign", self.cid, token)[0], 403)
