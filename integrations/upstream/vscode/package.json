@@ -207,16 +207,16 @@
   "devDependencies": {
     "@darkmoon/client": "file:vendor/darkmoon_ai-client-0.2.1-darkmoon.1.tgz",
     "@types/mocha": "^10.0.6",
-    "@types/node": "^20.11.0",
-    "@types/vscode": "^1.85.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
+    "@types/node": "^26.6.5",
+    "@types/vscode": "^1.140.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.0",
+    "@typescript-eslint/parser": "^8.72.0",
     "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^2.4.0",
+    "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.0.0",
-    "esbuild": "^0.20.0",
-    "eslint": "^8.57.0",
-    "mocha": "^10.3.0",
-    "typescript": "^5.4.0"
+    "esbuild": "^0.28.2",
+    "eslint": "^10.13.0",
+    "mocha": "^12.0.3",
+    "typescript": "^7.0.2"
   }
 }
