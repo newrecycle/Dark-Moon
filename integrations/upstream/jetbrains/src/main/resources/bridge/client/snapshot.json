@@ -1,7 +1,0 @@
-{
-  "version": "0.2.1-darkmoon.1",
-  "source_commit": "126f6daa930318dd2de0fb61a49ea0fdaf00e0dd",
-  "source": "integrations/upstream/client",
-  "sha256": "ace4fceebbf7296a37b2d2b5deca2b967696c390cb8f533cc53eb8def4b0462b",
-  "npm_published": false
-}

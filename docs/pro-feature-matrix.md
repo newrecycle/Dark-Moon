@@ -24,7 +24,7 @@ their licenses preserved. Eight source imports are unmodified. The n8n receiver 
 recorded adaptation for HMAC v2, timestamp validation and replay deduplication;
 caches, dependency installs and locally generated build products are not committed.
 The Action distribution bundle is rebuilt from source; upstream SDK tarballs and
-the Gradle wrapper are preserved. See the [import guide](../integrations/upstream/README.md).
+the required license notices are preserved. See the [import guide](../integrations/upstream/README.md).
 
 ## Feature coverage
 
@@ -55,7 +55,7 @@ the Gradle wrapper are preserved. See the [import guide](../integrations/upstrea
 | Runtime hardening / guard | Optional read-only Compose overlay, cap drop/no-new-privileges, resource/log limits; operator-signed hash baseline and persistent compromise marker; periodic checks block new runs | Integrity tamper/reseal tests and static overlay review. No Docker daemon was available for an image boot test. Docker-socket access remains a powerful trust boundary. |
 | Diagnostics / repair | Dependency/path/permission diagnostics; explicit repair of owned state directories and key permissions | Does not clear compromise markers, change vendor images, or install packages silently. |
 | Image updates | Build/digest comparison and explicit read-only Docker Hub lookup; UI check button | Registry transport mocked; no automatic image pull or deployment. |
-| CI/CD and integrations | Imported official client/CLI, GitHub Action/reusable workflow, GitLab component, Jenkins plugin, VS Code extension, JetBrains plugin, n8n nodes, Grafana app and Splunk app/forwarder; existing lightweight JSONL/Prometheus examples | Client 75 tests; n8n 25 checks + receiver test; Action 27 tests; GitLab 15 checks; Splunk 13 offline/mock checks; VS Code build + 8 Node tests; direct current/legacy SDK-to-our-server flows. Native Grafana/Jenkins/JetBrains and live extension hosts require their environments. |
+| CI/CD and integrations | Imported official client/CLI, GitHub Action/reusable workflow, GitLab component, Jenkins plugin, VS Code extension, n8n nodes, Grafana app and Splunk app/forwarder; existing lightweight JSONL/Prometheus examples | Client 75 tests; n8n 25 checks + receiver test; Action 27 tests; GitLab 15 checks; Splunk 13 offline/mock checks; VS Code build + 8 Node tests; direct current/legacy SDK-to-our-server flows. Native Grafana/Jenkins and live extension hosts require their environments. |
 | Cloud / bare-metal deployment | Source bundle, checksum-verified bootstrap, AWS/GCP/Azure/OVH plans and explicit execution; same workspace can run on existing Linux/WSL hosts | Generated plans/cloud-init tested without provisioning. Source hosting and LLM secret configuration remain explicit operator steps; no unattended vendor appliance equivalence is claimed. |
 
 Commercial licence activation, hardware-bound licence enforcement and vendor

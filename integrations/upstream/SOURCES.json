@@ -110,25 +110,6 @@
     "adaptation": "Patched local SDK snapshot under the existing import alias; required portable fixture tests. Resource/client/session-bound trusted-local reveal grants, fresh authorized finding/report reads with post-await checks, 60-second expiry and revocation on refresh/focus/panel hide. Metadata-only default body previews; refresh failure/concurrency clears stale evidence. Native editor acceptance runs in Docker --network none with pinned VS Code 1.106.3; completion is tracked separately."
   },
   {
-    "path": "integrations/upstream/jetbrains",
-    "repository": "https://github.com/ASCIT31/darkmoon-jetbrains.git",
-    "commit": "8e54c5375261f9c0243e5cb3c63e79ad2ad7289d",
-    "license": "MIT",
-    "modified": true,
-    "excluded": [
-      ".github",
-      "docs/screenshots",
-      "test/screenshots"
-    ],
-    "adaptation": "Bundle the patched SDK 0.2.1-darkmoon.1 with the bridge and use it by default; explicit OSS directories; preserve correlation through all bridge reads, reject synthetic campaign pinning and malformed/foreign results; bounded child processes and safe errors; scoped expiring trusted-local reveal, metadata-only defaults, stale refresh/selection protection and credential-revision binding. Implementation pass; compilation/native verification is deferred by user instruction.",
-    "client_snapshot": {
-      "source": "integrations/upstream/client",
-      "version": "0.2.1-darkmoon.1",
-      "source_commit": "126f6daa930318dd2de0fb61a49ea0fdaf00e0dd",
-      "npm_published": false
-    }
-  },
-  {
     "path": "integrations/upstream/splunk",
     "repository": "https://github.com/ASCIT31/darkmoon-splunk.git",
     "commit": "8c5c8667eccaad9768232e2cf4065b7aabdcf642",

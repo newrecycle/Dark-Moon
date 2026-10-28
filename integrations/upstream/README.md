@@ -2,7 +2,7 @@
 
 These are MIT-licensed source imports, with original copyright/license files.
 [SOURCES.json](SOURCES.json) records exact commits, exclusions and modifications.
-Eight imports are unmodified; the n8n webhook receiver is adapted to require
+Seven imports were originally unmodified; the n8n webhook receiver is adapted to require
 HMAC v2, a fresh timestamp and persisted event-id replay suppression.
 
 | Directory | Implementation | Verification here |
@@ -12,7 +12,6 @@ HMAC v2, a fresh timestamp and persisted event-id replay suppression.
 | `gitlab` | CI Catalog component and SAST/Code-Quality mapper | 15 offline mapper/schema checks. |
 | `jenkins` | Pipeline plugin, SARIF adapter and Warnings-NG integration | Source/provenance checked; Maven/HPI and Jenkins host tests not run. |
 | `vscode` | Campaign/finding/report views and launch/status extension | Typecheck, build and 8 Node data-layer tests; Electron host tests not run. |
-| `jetbrains` | IntelliJ plugin, Kotlin client and Node bridge | Source/provenance checked; Gradle and IDE host tests not run. |
 | `n8n` | Campaign/finding/retest/metric/webhook nodes and trigger | Build; 25 checks; compiled webhook signature/replay test. |
 | `grafana` | Go datasource, Grafana app and dashboards | Source/provenance checked; Go build and live Grafana host not run. |
 | `splunk` | Splunk app, guarded alert action and safe-field HEC forwarder | 7 offline security checks and 6 local mock-HTTP checks; live Splunk not run. |
@@ -20,8 +19,7 @@ HMAC v2, a fresh timestamp and persisted event-id replay suppression.
 Nothing in these directories is installed, published or activated by importing
 it. Nested workflow files do not change this repository's root CI. Auxiliary CI
 and promotional screenshots are omitted as recorded in the manifest. The Action's
-checked-in distribution bundle is omitted; rebuild it from source. Upstream
-vendored SDK tarballs and the Gradle wrapper are retained byte-for-byte.
+checked-in distribution bundle is omitted; rebuild it from source. Retained consumer SDK runtimes and their required license notices are preserved.
 
 Use each package's README for native packaging/installation. Point its Pro HTTP
 backend at the reconstructed workspace URL and obtain an authenticated session

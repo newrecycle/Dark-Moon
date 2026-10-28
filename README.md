@@ -25,7 +25,7 @@
 - 🟢 **Truly open source.** GPLv3 and self-hosted, every agent's methodology is plain Markdown you can read, diff and fork.
 - 🎯 **Finds AND proves.** Each vulnerability ships with the exact command and raw output (exploitation is agent-asserted; the Pro remediation retest is the machine-verified step), so there is almost nothing to triage.
 - 🔒 **Runs on a local LLM + Privacy Gateway.** The gateway tokenizes your real IPs, hosts and credentials locally, so the model reasons on placeholders while real values stay on your perimeter.
-- 🧩 **Everywhere you build.** Run it from GitHub, GitLab, Jenkins, VS Code, JetBrains, n8n, Grafana or Splunk — the open-source edition works with the CLI-based ones. [See the integrations ↓](#-darkmoon-everywhere)
+- 🧩 **Everywhere you build.** Run it from GitHub, GitLab, Jenkins, VS Code, n8n, Grafana or Splunk — the open-source edition works with the CLI-based ones. [See the integrations ↓](#-darkmoon-everywhere)
 
 ---
 
@@ -118,9 +118,7 @@ Built for **security teams**, **DevSecOps engineers**, **red teamers** and **eth
 
 ## 🧩 DarkMoon everywhere
 
-<p align="center">
-  <img src="docs/pics/integrations.svg" alt="DarkMoon integrations: GitHub, GitLab, Jenkins, VS Code, JetBrains, n8n, Grafana, Splunk — OSS + Pro" width="100%" />
-</p>
+This fork supports GitHub Actions, GitLab, Jenkins, VS Code, n8n, Grafana, Splunk and the shared SDK/CLI. **The JetBrains integration has been intentionally removed and is not maintained, shipped or supported.**
 
 Run DarkMoon where you already build — in CI/CD, your IDE, automation and SecOps. Integrations marked **OSS + Pro** work with the open-source edition (local CLI + JSON); the Pro-only ones consume the [DarkMoon Pro](#-darkmoon-pro--paid-edition-web-dashboard-and-automated-remediation) REST API (live dashboard, remediation→PR).
 
@@ -130,7 +128,6 @@ Run DarkMoon where you already build — in CI/CD, your IDE, automation and SecO
 | **GitLab CI/CD** | Findings as Code Quality + SAST reports | [CI/CD Catalog](https://gitlab.com/explore/catalog/Dark-Moon-X/darkmoon-scan) | OSS + Pro | [▶ Watch](https://youtu.be/ui7NHD41cMM) |
 | **Jenkins** | Findings as Warnings-NG issues in the build | [Plugin `.hpi` (Releases)](https://github.com/ASCIT31/darkmoon-jenkins/releases) | OSS + Pro | [▶ Watch](https://youtu.be/G0TgyGpVLZ8) |
 | **VS Code** | Browse and launch assessments from the editor | [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Darkmoon.darkmoon-vscode) | OSS + Pro | [▶ Watch](https://youtu.be/GY7YOnYpteQ) |
-| **JetBrains** | Findings in an IDE tool window | [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/34497-darkmoon) | OSS + Pro | [▶ Watch](https://youtu.be/obUUrbTN3Jg) |
 | **n8n** | Automate campaigns, retests and alerts | [npm `n8n-nodes-darkmoon`](https://www.npmjs.com/package/n8n-nodes-darkmoon) | Pro | [▶ Watch](https://youtu.be/3htg8kh7Dr8) |
 | **Grafana** | Security-posture dashboards | [Self-host (Releases)](https://github.com/ASCIT31/darkmoon-grafana/releases) | Pro | [▶ Watch](https://youtu.be/L7K-y0HPudk) |
 | **Splunk** | SOC ingestion (HEC) + "Send to Darkmoon" alert action | [App (Releases)](https://github.com/ASCIT31/darkmoon-splunk/releases) — Splunkbase pending | OSS + Pro | [▶ Watch](https://youtu.be/8w2i8nEBdQQ) |

@@ -20,7 +20,6 @@ Darkmoon is open-source — **a star really helps us grow.** [![Star the Darkmoo
 | Platform | Get it |
 |---|---|
 | VS Code | [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Darkmoon.darkmoon-vscode) |
-| JetBrains | [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/34497-darkmoon) |
 | GitHub Actions | [GitHub Marketplace](https://github.com/marketplace/actions/darkmoon-pentest) |
 | GitLab CI/CD | [CI/CD Catalog](https://gitlab.com/explore/catalog/Dark-Moon-X/darkmoon-scan) |
 | Jenkins | [Download the .hpi](https://github.com/ASCIT31/darkmoon-jenkins/releases) |

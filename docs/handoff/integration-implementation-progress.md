@@ -7,15 +7,18 @@ Kotlin, Java, Go and complete frontend builds still need the later pass.
 
 ## Client distribution
 
-JetBrains previously invoked a CI command which does not implement its GUI
+The now-removed JetBrains integration previously invoked a CI command which does not implement its GUI
 read grammar. The default now extracts a packaged bridge and the patched SDK
-together. Jenkins similarly ships the patched portable CLI in its HPI and copies
+together (historical; no longer bundled by the fork). Jenkins separately ships the patched portable CLI in its HPI and copies
 it to the agent. Node 18+ is a runtime prerequisite. No npm installation runs
 inside the editor or Jenkins step. Explicit custom commands remain possible.
-Snapshot manifests and MIT/Zod licenses accompany both bundled runtimes. They
+Snapshot manifests and MIT/Zod licenses accompany retained consumer runtimes. They
 come from the fork SDK checkpoint 126f6daa, version 0.2.1-darkmoon.1.
 
-## JetBrains
+## JetBrains (historical — intentionally removed 2026-10-28)
+
+**Superseded:** This plugin, bridge, Kotlin client and packaged runtime have been removed from the fork. The notes below record past implementation work, not an active supported integration. See [removal decision](jetbrains-removal-2026-10-28.md).
+
 
 All bridge campaign-reference operations retain correlation rather than treating
 run IDs as campaign IDs. Temporary `run:<id>` status records are not pinned.

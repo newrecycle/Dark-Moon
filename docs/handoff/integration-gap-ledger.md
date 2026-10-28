@@ -58,7 +58,7 @@ GitHub Issues are disabled for this repository (issue creation returned HTTP
 | GitHub Action | Patched snapshot; build, types, 30 tests and executed bundled-action checks pass | Failed/stopped assessments and findings-read errors fail closed; counts derive from fetched findings. Real toolkit outputs and SARIF verified for high/empty/failed/auth/malformed cases over owned HTTP; no comments posted. Hosted runner rerun pending. |
 | GitLab | Schema pin 15.2.5; strict mapper and exact generated YAML script cases pass locally | Run identity, findings-read, parse and mapping errors become exit 1 and failed-scan SAST diagnostics; exit 2 remains the optional nonblocking gate. Real GitLab runner/server and report ingestion still need a configured disposable host. |
 | VS Code | Updated client; types/build and all 12 data-layer/real-adapter tests pass | Removed developer-home path and silent skip. 19 Node data/grant tests pass; scoped expiring trusted-local reveal, fresh reads, metadata-only default bodies and refresh race/failure protection implemented. Offline native VS Code 1.106.3 acceptance pending. |
-| JetBrains | Portable required bridge/SDK fixtures and offline native harness added; CI pending | JDK 21 runtime plus declared JDK 17 compilation toolchain; pinned IntelliJ 2025.2.6.2. Baseline inspection found synthetic run IDs pinned as campaign IDs, raw subprocess error text, stale asynchronous panel reads and no enforced trusted-local reveal expiry. These remain next corrections; a green baseline alone will not close them. |
+| JetBrains (intentionally removed 2026-10-28) | **Unsupported and no longer shipped by this fork.** All optional client files, resources, host harness and workflow removed. | No open compilation, packaging, native acceptance or SDK-parity work item; historical validation evidence is retained below. |
 | Jenkins | Source/tests and isolated Docker host recipe located; not yet run | Build HPI and run Jenkins harness/host cases for fail vs unstable precedence, empty results and scanner errors. Local Docker/Maven are absent; hosted CI is available. |
 | Grafana | Native Go/plugin/frontend test inventory located; not yet run | Run datasource and dashboard contracts, verify safe projections/denominators, then disposable Grafana plugin/host requests. Local Go/Docker are absent; hosted CI is available. |
 | Splunk | All 7 guard checks and 6 loopback mock-HTTP checks pass | Audit forwarder field types and state/error behavior; validate HEC mapping without external traffic. Native proprietary host/license prerequisites remain unverified. |
@@ -139,7 +139,7 @@ not type/build/native validated. Earlier passing evidence does not validate it.
 
 | Consumer | Integration implementation | Later verification boundary |
 | --- | --- | --- |
-| JetBrains | Bundled bridge + patched SDK default; real OSS directory configuration; full reference forwarding, safe subprocess failures, bounded output/processes; trusted-local expiring reveal; selection/connection/credential binding | Kotlin compilation, platform API compatibility, packaging, UI and subprocess lifecycle |
+| JetBrains (intentionally removed 2026-10-28) | **Unsupported and no longer shipped by this fork.** All optional client files, resources, host harness and workflow removed. | No open compilation, packaging, native acceptance or SDK-parity work item; historical validation evidence is retained below. |
 | Jenkins | Bundled CLI on agent; exact completed campaign plus strict findings; fetched-result gates; constrained artifact/log/argument handling; safe SARIF | Maven/HPI build and Jenkins native step/artifact behavior |
 | Grafana | Live datasource-backed app pages and config; posture/legacy adaptation; published PR vs local-proposal views; retest status; typed safe frames and aligned sparse trends; nested logo packaging | Frontend types/build, Go formatting/build, datasource/app/native host behavior |
 | Splunk | Typed identity-preserving projections; strict REST/HEC errors; saved-target resolution for retests; no redirects; serialized quota state; local-proposal sourcetype | Mapping/transport/concurrency behavior and a permitted host |
@@ -205,3 +205,12 @@ describes security/privacy cases, host prerequisites and remaining limits.
 This closes the **disposable Grafana 13.1 host check**, not all Grafana
 versions, signed publication, browser image parity or original-vendor
 runtime compatibility.
+
+
+### Historical JetBrains integration ledger entries (superseded 2026-10-28)
+
+The following rows are preserved verbatim as prior implementation/validation evidence, **not** active tasks or product support. JetBrains was intentionally removed from the current fork.
+
+| JetBrains | Portable required bridge/SDK fixtures and offline native harness added; CI pending | JDK 21 runtime plus declared JDK 17 compilation toolchain; pinned IntelliJ 2025.2.6.2. Baseline inspection found synthetic run IDs pinned as campaign IDs, raw subprocess error text, stale asynchronous panel reads and no enforced trusted-local reveal expiry. These remain next corrections; a green baseline alone will not close them. |
+
+| JetBrains | Bundled bridge + patched SDK default; real OSS directory configuration; full reference forwarding, safe subprocess failures, bounded output/processes; trusted-local expiring reveal; selection/connection/credential binding | Kotlin compilation, platform API compatibility, packaging, UI and subprocess lifecycle |

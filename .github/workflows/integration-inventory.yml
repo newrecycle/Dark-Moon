@@ -1,0 +1,104 @@
+name: Supported integration distribution audit
+
+on:
+  push:
+    branches: [pro]
+    paths:
+      - 'integrations/**'
+      - 'README.md'
+      - 'docs/**'
+      - 'tests/community/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  distribution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Check focused tree diff and supported integration inventory
+        run: |
+          git diff --check HEAD^ HEAD
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+          import subprocess
+
+          tracked = [Path(p) for p in subprocess.check_output(
+              ["git", "ls-files", "-z"]).decode().strip("\0").split("\0") if p]
+          def under(path, prefix):
+              return str(path).startswith(prefix)
+
+          # This checks distribution consistency, not the removed plugin's behavior.
+          retired = (
+              "integrations/upstream/" + "jetbrains",
+              ".github/workflows/community-" + "jetbrains.yml",
+              "tests/community/Dockerfile." + "jetbrains-host",
+              "tests/community/Dockerfile." + "jetbrains-host.dockerignore",
+              "tests/community/" + "jetbrains-cache.gradle",
+              "tests/community/" + "jetbrains_host.sh",
+              "docs/pics/integrations.svg",
+          )
+          leftovers = [str(p) for p in tracked if any(
+              str(p) == value or str(p).startswith(value + "/")
+              for value in retired)]
+          assert not leftovers, "Retired distribution paths remain: " + repr(leftovers)
+
+          expected = {
+              "client", "action", "gitlab", "jenkins",
+              "vscode", "n8n", "grafana", "splunk",
+          }
+          records = json.loads(Path("integrations/upstream/SOURCES.json").read_text())
+          present = {item["path"].split("/")[-1] for item in records}
+          assert present == expected, "Integration provenance paths differ: " + repr(present)
+          for item in records:
+              assert Path(item["path"]).is_dir(), "Missing retained import: " + item["path"]
+              assert Path(item["path"], "LICENSE").exists(), "Retained import lacks license: " + item["path"]
+
+          # Old comparisons and dated histories are deliberately not edited or
+          # relabelled as current integration support.
+          archived = ("docs/handoff/", "docs/pro-audit/", "docs/validation/")
+          pattern = re.compile("jet" + "brains|intellij|darkmoon-" + "jetbrains|fr\\.ascit\\.darkmoon", re.I)
+          text_suffixes = {".md", ".yml", ".yaml", ".json", ".toml",
+                           ".py", ".sh", ".js", ".ts", ".tsx", ".xml",
+                           ".gradle", ".kts", ".cjs", ".mjs"}
+          violations = []
+          for p in tracked:
+              name = str(p)
+              if (name == ".github/workflows/integration-inventory.yml"
+                  or name == "docs/community-validation.md"
+                  or any(name.startswith(root) for root in archived)
+                  or p.suffix.lower() not in text_suffixes):
+                  continue
+              try:
+                  lines = p.read_text(encoding="utf-8").splitlines()
+              except (UnicodeError, OSError):
+                  continue
+              for n, line in enumerate(lines, 1):
+                  if not pattern.search(line):
+                      continue
+                  if ("intentionally removed" in line.lower()
+                      and name in ("README.md", "integrations/upstream/README.md")):
+                      continue
+                  violations.append(f"{name}:{n}: {line[:160]}")
+          assert not violations, "Live retired-integration references:\\n" + "\\n".join(violations)
+          print(f"Validated {len(tracked)} tracked paths and {len(records)} retained integration source records")
+          PY
+      - name: Parse remaining workflow YAML
+        run: |
+          python3 -m pip install --disable-pip-version-check PyYAML
+          python3 - <<'PY'
+          from pathlib import Path
+          import yaml
+          for path in sorted(Path(".github/workflows").glob("*.yml")):
+              yaml.safe_load(path.read_text(encoding="utf-8"))
+          print("All retained GitHub Actions YAML files parse")
+          PY

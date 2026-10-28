@@ -31,7 +31,7 @@ in [SOURCES.json](../integrations/upstream/SOURCES.json). See the
 | PDF layout | Long-evidence PDF rendered with Poppler and inspected; embedded Vera fonts; no clipping or overlap. |
 | Static checks | Python compilation, JavaScript parsing, shell parsing and first-party patch whitespace passed. Upstream Markdown line breaks/trailing whitespace and config EOFs were preserved in imported files. |
 | Feature-only scope | Existing runtime/configuration paths unchanged; only `.gitignore`, README and the shared JSON storage adapter modify files already on master. |
-| Import provenance | 513 selected upstream files from nine repositories checked against pinned Git blobs; only the documented n8n receiver adaptation differs. Build caches, installed dependencies and locally generated products excluded. The Action bundle is rebuilt from imported source; upstream SDK tarballs and the Gradle wrapper are preserved. |
+| Import provenance | Historically, 513 selected upstream files from nine repositories were checked against pinned Git blobs before the JetBrains plugin was intentionally removed on 2026-10-28. This is retained audit evidence, not the present file count; retained integrations include subsequent documented adaptations. Build caches, installed dependencies and locally generated products excluded. The Action bundle is rebuilt from imported source; remaining consumer SDK assets and their licenses are preserved. |
 | Clean-master patch | Complete binary-capable diff checked for application to a clean archive of the pinned master. |
 
 The community suite exercises authorization and role restrictions, JWT revocation,
@@ -90,9 +90,9 @@ in this environment; use an equivalent Playwright installation elsewhere.
   and defensive generation/judging against the configured model endpoint.
 - Configure and test a real OIDC provider, TLS reverse proxy, production signing
   chain and the operator's backup/rotation/recovery procedures.
-- Build the Grafana Go backend, Jenkins HPI and JetBrains plugin, and perform a live Grafana import, external n8n
+- Build the Grafana Go backend and Jenkins HPI, and perform a live Grafana import, external n8n
   delivery, cloud provisioning or forge publication only in their environments
-  and when separately authorized. Go, Maven and Docker were unavailable here; the Gradle/IDE builds were not attempted.
+  and when separately authorized. Go, Maven and Docker were unavailable here; native Jenkins/Grafana builds were not attempted in that historical audit.
 - Verify immersive WebXR with a compatible headset.
 
 No real target assessment, cloud resource creation, hosted-service upload,
