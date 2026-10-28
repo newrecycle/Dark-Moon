@@ -40,3 +40,13 @@ old credential retirement and proprietary host compatibility remain unverified.
 The tests do not execute a scan engine, vendor binary, real HEC destination,
 external notification or deployment. Mocked dashboard/SDK checks do not replace
 those native boundaries, and no unconditional regression-freedom claim is made.
+
+## First hosted attempt
+
+[Run 40765343877](https://github.com/newrecycle/Dark-Moon/actions/runs/40765343877)
+on `fb3eec45e403c9186ed769118324a47956abc087`: the Linux full-contract,
+loopback TLS, package, setup and legacy-guard steps all passed. The Windows
+job failed before tests during full repository checkout because an unrelated
+SDK report fixture includes a colon in its filename. Its new sparse checkout
+selects only `integrations/upstream/splunk`; no SDK file is renamed or omitted
+from the Linux job. Windows test success remains pending the corrected run.
