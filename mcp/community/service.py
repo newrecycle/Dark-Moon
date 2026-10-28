@@ -42,6 +42,7 @@ def graph_for(campaign_id):
 class Service:
     def __init__(self, repo, root=None, launcher=None, timeout=7200):
         self.store = Store(root)
+        data.init_finding_history()
         self.launch_lock = threading.Lock()
         self.queue = Queue(self.store, repo, launcher, timeout, self._finished)
         self.scheduler = Scheduler(self.store, self.launch)
@@ -306,8 +307,15 @@ class Service:
             finding = next((f for f in findings if f.get("id") == finding_id), None)
             if not finding:
                 raise KeyError(finding_id)
+            old_status = finding.get("status")
             finding.update(status=status, triaged_at=now(), triage_source="operator")
             data.save_vulnerabilities(campaign_id, findings)
+            if old_status != status:
+                campaign = data.load_campaign(campaign_id)
+                if not campaign:
+                    raise KeyError(campaign_id)
+                data.record_finding_event(campaign, finding, "finding.status_changed",
+                                          previous_status=old_status, source="operator_triage")
             return finding
 
     def metadata(self):

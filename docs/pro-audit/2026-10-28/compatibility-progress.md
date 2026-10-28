@@ -242,3 +242,101 @@ usernames; UI selector/metadata interaction; launch, remediation checkout and
 OpenCode profile/connection behavior; concurrency, persistence and native-host
 compatibility; authorized original-runtime comparison if ever available. This
 increment has **not** been test-executed, built or vendor-wire-verified.
+
+
+## Finding lifecycle reads — API04, API05 and API08
+
+This increment implements independent fork-defined projections. The original
+commercial evidence establishes route declarations only; there is no
+authenticated vendor response, body schema or wire parity evidence.
+
+### API04 — GET `/api/v1/targets/{target_id}/evolution`
+
+A registered exact target ID is required (404 for a nonexistent target,
+400 for a malformed ID). A valid target with no campaigns returns an empty
+`data` array and `total: 0`. The result contains `target_id`,
+`projection: retained_campaign_current_snapshots_v1`,
+`historical_transitions_available: false`, `note`, `total`, and `data`.
+Each data row contains `campaign_id`, `target_id`, `project_id`,
+`started_at` (null if missing/invalid), the **current** campaign `status`
+and retained-current `findings`, `active`, `excluded`,
+`active_severity` and `risk` fields. Ordering is campaign start ascending;
+undated records last; campaign ID resolves ties. Findings must be bound to
+that exact campaign and must not contradict its target ID.
+
+This is **not** a reconstruction of risk or findings at campaign start.
+No prior status transitions, timestamps or historical counts are invented.
+
+### API05 — GET `/api/v1/vulnerabilities/history`
+
+Accepts only `target_id` (optional exact registered ID), `offset`
+(default 0, maximum 1,000,000,000) and `limit` (default 100, 1–500).
+Duplicate/unknown query keys, blanks and nondecimal values return 400.
+Nonexistent target returns 404. Successful responses carry
+`data`, `total`, `offset`, `limit`, `has_more`, `next_offset`,
+`target_id`, `order: recorded_at_asc,id_asc`,
+`recording_started_at`, `history_complete: false` and
+`projection: recorded_finding_mutations_v1`.
+
+Each event contains only `id`, `event`, `recorded_at`, exact
+`campaign_id`, `target_id`, `project_id`, `finding_id`,
+`previous_status`, `status` and `source`. Empty pages are valid
+HTTP 200. Ordering is stable by recorded timestamp then unique event ID;
+pagination is offset-based, not a snapshot cursor: concurrent writes can
+shift later pages.
+
+The new fsynced JSONL journal is separate from campaign finding snapshot
+files and begins with an actual activation timestamp. Only new
+`finding.created` events from the live finding ingestion path and
+`finding.status_changed` events from actual operator triage transitions
+are recorded. Unchanged status saves do not create history. Existing
+retained findings, the bounded webhook event feed, out-of-band direct
+filesystem edits and paths not instrumented here are **not** backfilled.
+The snapshot write and append-only journal write are separate filesystem
+operations, not an atomic cross-file transaction; an interruption between
+writes may leave incomplete coverage. A corrupt or unreadable journal is
+not silently returned as empty history.
+
+### API08 — GET `/api/v1/pull-requests/finding/{finding_id}`
+
+The optional `campaign_id` is a strict exact-match scope. A malformed
+ID or invalid/duplicated query filter gives 400; a missing finding or
+campaign gives 404. A known finding with no linked records gives
+`{"finding_id": "...", "campaign_ids": ["..."], "data": [], "total": 0}`.
+If a finding ID occurs in more than one campaign, the unscoped response
+preserves and returns those distinct campaign IDs, and only explicitly
+matching proposal relationships. All matching local proposals and published
+PR records are returned, including explicit many-to-many `finding_ids`
+arrays where present. No hostname, title, short-ID or fuzzy correlation
+is used.
+
+Shared `remediation_record` projection backs collection, detail and
+finding lookup. It exposes the proposal ID, exact campaign/finding IDs,
+status, bounded title, publication metadata, confidence and restricted
+validation result metadata; it excludes patches, worktrees, source,
+probe bodies, evidence bodies and credential references. The
+`record_type` distinguishes `local_proposal` from `published_pr` only
+when the saved published flag has a safe HTTPS PR URL; a flag without
+that URL stays `publication_recorded: true` but not verified as a
+published PR. The publication `state` is null when absent; an
+"open" state is never inferred. URLs omit credentials, query and fragment
+parts. No new publication or external repository action is performed.
+
+The existing finding detail dialog uses the exact campaign/finding pair
+to display related remediation metadata. No vendor UI page was created.
+
+### Deferred verification
+
+No tests or builds were added or run in this increment, per request.
+Verification to perform later: absent/invalid targets, empty campaigns,
+undated and tied chronological ordering, current-versus-historical
+snapshot semantics; journal activation, new ingestion, actual and
+unchanged triage transitions, restart/multiprocess writes and
+interruption cases; strict query validation, limit/offset boundaries,
+stable pagination and concurrent pagination shifts; multiple proposals,
+explicit many-to-many links, duplicate finding IDs across campaigns,
+published/unpublished/incomplete publication status; secret/query URL
+stripping, evidence/source/patch/probe/credential exclusion;
+role authorization, the shared collection/detail/lookup projection and
+finding-dialog error/empty states. Tests against the independent fork
+would only establish fork behavior. Original wire parity remains unverified.

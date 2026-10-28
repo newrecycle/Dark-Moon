@@ -283,6 +283,8 @@ async function showFinding(id, cid) {
   const c = await api(`/api/v1/campaigns/${encodeURIComponent(cid)}`),
     f = c.findings.find((x) => x.id === id);
   if (!f) throw new Error("Finding not found");
+  const related = await api(`/api/v1/pull-requests/finding/${encodeURIComponent(id)}?campaign_id=${encodeURIComponent(cid)}`)
+    .catch(() => null);
   $("#detail-title").textContent = f.title || f.id;
   const evidence = evidenceMarkup(f.evidence || f.evidence_output);
   $("#detail-body").innerHTML =
@@ -303,6 +305,8 @@ async function showFinding(id, cid) {
       .join(
         "",
       )}<div class="detail-label">Recorded evidence</div>${evidence}${f.evidence_commands ? `<pre>${esc(f.evidence_commands)}</pre>` : ""}<div class="detail-label">Remediation guidance</div><div class="detail-text">${esc(f.remediation || "No guidance recorded.")}</div>${["confirmed", "exploited"].includes(f.status) ? `<div class="report-actions"><button class="primary" data-prepare-fix="${esc(id)}" data-cid="${esc(cid)}">Prepare local fix →</button></div>` : ""}<div class="detail-label">Operator triage</div><div class="toolbar"><select id="triage-status">${["unconfirmed", "confirmed", "exploited", "false_positive", "accepted_risk", "remediated", "resolved"].map((x) => `<option value="${x}" ${f.status === x ? "selected" : ""}>${x.replaceAll("_", " ")}</option>`).join("")}</select><button class="secondary" data-triage="${esc(id)}" data-cid="${esc(cid)}">Save triage</button></div><small>Operator triage does not constitute a validated remediation retest.</small>`;
+  $("#detail-body").insertAdjacentHTML("beforeend",
+    `<div class="detail-label">Linked remediation records</div>${related ? (related.data.length ? related.data.map(r => `<div class="list-item"><div><strong>${esc(r.id)}</strong><small>${esc(r.record_type === "published_pr" ? "Published PR" : "Local proposal")} · ${esc(r.status || "unknown")}</small></div><button class="secondary" data-remediation="${esc(r.id)}" data-cid="${esc(cid)}" data-proposal-finding="${esc(id)}">Review</button></div>`).join("") : '<p class="instructions">No linked remediation records.</p>') : '<p class="instructions">Linked remediation records unavailable.</p>'}`);
   applyRoles();
   if (!$("#detail").open) $("#detail").showModal();
 }

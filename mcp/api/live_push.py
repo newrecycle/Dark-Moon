@@ -71,6 +71,7 @@ from api.json_storage import (
     find_project_by_target_id,
     _read_json,
     _write_json,
+    record_finding_event,
 )
 
 
@@ -563,8 +564,11 @@ def push_finding(
     finding["severity"] = str(finding.get("severity", "info")).strip().lower()
     finding["status"] = str(finding.get("status", "unconfirmed")).strip().lower()
 
+    new_identity = not any(v.get("id") == finding["id"] for v in vulns)
     vulns.append(finding)
     _write_json(vuln_path, vulns)
+    if new_identity:
+        record_finding_event(campaign, finding, "finding.created", source="live_finding_push")
 
     stats = campaign.get("stats", {})
     stats["total_findings"] = len(vulns)

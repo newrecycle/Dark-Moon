@@ -367,3 +367,65 @@ def find_project_by_target_id(target_id: Optional[str]) -> Optional[Dict[str, An
             return p
 
     return None
+
+
+# ---------------------------------------------------------------------------
+# Finding lifecycle journal (events actually recorded since activation only)
+# ---------------------------------------------------------------------------
+# Keep outside VULNERABILITIES_DIR, which contains campaign snapshots only.
+FINDING_HISTORY_FILE = DATA_DIR / "finding-history.jsonl"
+
+
+def _finding_journal_start():
+    from datetime import datetime, timezone
+    return {"kind": "journal_started", "recorded_at": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
+            "version": 1}
+
+
+def init_finding_history():
+    """Create a journal activation marker; do not backfill retained findings."""
+    with _file_lock(FINDING_HISTORY_FILE):
+        FINDING_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with FINDING_HISTORY_FILE.open("a+", encoding="utf-8") as stream:
+            stream.seek(0, os.SEEK_END)
+            if stream.tell() == 0:
+                stream.write(json.dumps(_finding_journal_start(), separators=(",", ":")) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+
+
+def record_finding_event(campaign, finding, event, previous_status=None, source="assessment"):
+    """Append only an actual finding creation or status mutation."""
+    import uuid
+    from datetime import datetime, timezone
+    if event not in {"finding.created", "finding.status_changed"}:
+        raise ValueError("Unsupported finding lifecycle event")
+    if not all(isinstance(v, str) and v for v in (campaign.get("id"), finding.get("id"), campaign.get("target_id"))):
+        raise ValueError("Finding history requires exact campaign, target and finding IDs")
+    init_finding_history()
+    row = {"kind": "finding_event", "id": "fh_" + uuid.uuid4().hex,
+           "recorded_at": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
+           "event": event, "campaign_id": campaign["id"], "target_id": campaign["target_id"],
+           "project_id": campaign.get("project_id"), "finding_id": finding["id"],
+           "previous_status": previous_status if event == "finding.status_changed" else None,
+           "status": finding.get("status"), "source": source}
+    with _file_lock(FINDING_HISTORY_FILE):
+        with FINDING_HISTORY_FILE.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(row, separators=(",", ":"), ensure_ascii=False) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+    return row
+
+
+def load_finding_history():
+    """Read committed journal entries, failing explicitly on corrupt/unavailable data."""
+    if not FINDING_HISTORY_FILE.exists():
+        return {"recording_started_at": None, "events": []}
+    with _file_lock(FINDING_HISTORY_FILE):
+        with FINDING_HISTORY_FILE.open(encoding="utf-8") as stream:
+            rows = [json.loads(line) for line in stream if line.strip()]
+    if not rows or rows[0].get("kind") != "journal_started":
+        raise ValueError("Finding history journal header unavailable")
+    if any(row.get("kind") != "finding_event" for row in rows[1:]):
+        raise ValueError("Finding history journal contains an unexpected record")
+    return {"recording_started_at": rows[0]["recorded_at"], "events": rows[1:]}

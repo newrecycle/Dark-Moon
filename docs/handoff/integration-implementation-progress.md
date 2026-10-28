@@ -116,3 +116,20 @@ working tree for that pass. The vendor wire contract is still static evidence;
 no original licensed runtime was executed. Credentials/provider ownership and
 field adapters, remaining static route discrepancies and global evidence access
 policy remain in their existing audit ledgers.
+
+
+## Finding lifecycle read continuation — 28 October 2026
+
+API04, API05 and API08 now have additive authenticated read projections for
+retained target campaigns, a newly recorded finding mutation journal and
+exact finding-to-remediation links. The existing finding detail dialog
+consumes the linked-record lookup; no additional vendor UI page was added.
+The complete [dated response contracts and limitations](../pro-audit/2026-10-28/compatibility-progress.md)
+specify pagination, strict validation, ordering and empty/error behavior.
+
+The history journal records only new instrumented events from activation,
+never reconstructed transitions. Target evolution reflects retained current
+finding states by dated campaign, not past point-in-time risk. Local proposals
+remain separate from published PR metadata. Tests, builds and licensed
+vendor runtime checks remain deferred; no vendor wire parity or regression
+freedom is asserted.

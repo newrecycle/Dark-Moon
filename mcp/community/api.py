@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, urlsplit
 from api import json_storage as data
 from . import reports
 from .operations import evidence_meta, overview, safe_finding, safe_webhook, safe_webhook_delivery, timeseries
+from .finding_lifecycle import target_evolution, history_page, remediation_records, for_finding
 from .store import identifier, now
 from .run_views import active_runs, log_collection, log_detail, log_metadata, public_run
 
@@ -153,7 +154,9 @@ class API:
                 item = next((p for p in load() if p["id"] == identifier(parts[1])), None)
                 if not item:
                     raise KeyError(parts[1])
-                if parts[2:] == ["analytics"]:
+                if resource == "targets" and parts[2:] == ["evolution"]:
+                    handler.send(target_evolution(parts[1]))
+                elif parts[2:] == ["analytics"]:
                     campaigns = [c for c in data.load_campaigns() if c.get("project_id" if resource == "projects" else "target_id") == parts[1]]
                     handler.send({"data": overview(campaigns), "campaigns": campaigns,
                                   "timeseries": timeseries({"project_id" if resource == "projects" else "target_id": parts[1]})})
@@ -213,6 +216,9 @@ class API:
                 from .finding_query import finding_page
                 page = finding_page(items, query)
                 handler.send(page | {"data": [safe_finding(v) for v in page["data"]]})
+            elif method == "GET" and parts[1:] == ["history"]:
+                params = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+                handler.send(history_page(params))
             elif method == "GET" and len(parts) >= 2:
                 finding = data.load_vulnerability(identifier(parts[1]))
                 if not finding:
@@ -312,14 +318,14 @@ class API:
             return True
         if resource == "pull-requests" and method == "GET":
             proposals = self.service.snapshot()["remediations"]
-            records = [{"id": p["id"], "campaign_id": p.get("campaign_id"), "finding_ids": [p.get("finding_id")],
-                        "status": p.get("status"), "title": p.get("title"), "url": p.get("publication", {}).get("url"),
-                        "state": "open" if p.get("published") else p.get("status", "proposed"),
-                        "provider": p.get("publication", {}).get("provider"), "confidence": p.get("judge", {}).get("confidence"),
-                        "published": bool(p.get("published")), "validation": {phase: [{k: row.get(k) for k in ("name", "kind", "passed", "exit_code", "timed_out")}
-                                      for row in p.get("validation", {}).get(phase, [])] for phase in ("before", "after")}} for p in proposals]
+            records = remediation_records(proposals)
             if len(parts) == 1:
                 handler.send(envelope(filtered(records, query, ("campaign_id", "status"))))
+            elif len(parts) == 3 and parts[1] == "finding":
+                params = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+                if set(params) - {"campaign_id"} or any(len(v) != 1 for v in params.values()):
+                    raise ValueError("Finding remediation lookup accepts only one campaign_id")
+                handler.send(for_finding(proposals, parts[2], params.get("campaign_id", [None])[0]))
             elif len(parts) == 2:
                 record = next((r for r in records if r["id"] == identifier(parts[1])), None)
                 if not record:
