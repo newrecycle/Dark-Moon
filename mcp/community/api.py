@@ -196,7 +196,9 @@ class API:
         if resource == "vulnerabilities":
             items = filtered(data.load_all_vulnerabilities(), query, ("campaign_id", "project_id", "target_id", "severity", "status", "category"))
             if method == "GET" and len(parts) == 1:
-                handler.send(envelope([safe_finding(v) for v in items]))
+                from .finding_query import finding_page
+                page = finding_page(items, query)
+                handler.send(page | {"data": [safe_finding(v) for v in page["data"]]})
             elif method == "GET" and len(parts) >= 2:
                 finding = data.load_vulnerability(identifier(parts[1]))
                 if not finding:

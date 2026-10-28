@@ -760,6 +760,11 @@ select option {
 #recorded-paths .path-review input { width: auto; margin-top: 4px; }
 #path-draft fieldset { border: 1px solid var(--line); margin: 16px 0; min-width: 0; }
 #recorded-paths select, #recorded-paths textarea { max-width: 100%; }
+.findings-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 14px; margin-bottom: 16px; }
+.findings-controls label { display: grid; gap: 8px; min-width: 0; }
+.findings-controls :is(input,select) { min-width: 0; width: 100%; box-sizing: border-box; }
+.finding-open { text-align: left; white-space: normal; }
+.finding-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 .asset-fields { display: grid; gap: 10px; }
 .asset-fields dt { color: var(--muted); font-size: 11px; }

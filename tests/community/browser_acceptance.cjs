@@ -247,7 +247,11 @@ const assert = require("node:assert/strict");
         await page.locator('#surface-close').click();
         await page.locator('#path-delete').click();
         await page.locator('#path-status').filter({hasText:'Recorded path deleted'}).waitFor();
-        await page.evaluate(() => { connect(); });
+        // Reconnect emits an initial revision and replaces the graph. Wait for
+        // that real refresh before testing another inspector selection.
+        await page.evaluate(() => { window.testPriorView = viewControl; connect(); });
+        await page.waitForFunction(() => viewControl !== window.testPriorView && document.querySelector('#surface-node'));
+        await page.evaluate(() => { delete window.testPriorView; });
         await page.setViewportSize({width:390,height:844});
         await page.locator("#surface-node").selectOption(await asset.getAttribute("value"));
         assert.equal(await page.locator("#surface-close").isVisible(),true);
@@ -565,11 +569,58 @@ const assert = require("node:assert/strict");
     await page.locator('nav a[href="#findings"]').click();
     await page.locator("#severity-filter").selectOption("high");
     assert.equal(await page.locator("tbody tr").count(), 3);
+    assert.equal(await page.locator('#severity-filter').evaluate(el=>document.activeElement===el),true);
+    await page.locator('#finding-status-filter').selectOption('confirmed');
+    await page.locator('#finding-category-filter').selectOption('sqli');
+    const filteredCampaign = await page.locator('#finding-campaign_id-filter option').nth(1).getAttribute('value');
+    await page.locator('#finding-campaign_id-filter').selectOption(filteredCampaign);
+    const filteredTarget = await page.evaluate(cid=>snapshot.campaigns.find(c=>c.id===cid).target_id,filteredCampaign);
+    await page.locator('#finding-target_id-filter').selectOption(filteredTarget);
+    await page.locator('#finding-sort').selectOption('cvss_desc');
+    assert.equal(await page.locator('tbody tr').count(),1);
+    const findingViewURL = page.url();
+    assert.ok(findingViewURL.includes('campaign_id='));
+    await page.locator('nav a[href="#overview"]').click();
+    await page.locator('nav a[href="#findings"]').click();
+    assert.equal(page.url(),findingViewURL);
+    assert.equal(await page.locator('#finding-target_id-filter').inputValue(),filteredTarget);
+    await page.screenshot({path:path.join(screenshots,'finding-filters.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true);
+    await page.screenshot({path:path.join(screenshots,'finding-filters-mobile.png'),fullPage:true});
+    await page.setViewportSize({width:1440,height:1000});
+    await page.locator('#findings-clear').click();
+    await page.locator('#finding-size').selectOption('5');
+    assert.equal(await page.locator('tbody tr').count(),5);
+    const firstPageIDs = await page.locator('tbody tr').evaluateAll(rows=>rows.map(r=>r.dataset.finding));
+    await page.getByRole('button',{name:'Next page',exact:true}).click();
+    assert.equal(await page.locator('tbody tr').count(),4);
+    assert.equal(await page.locator('#finding-count').evaluate(el=>document.activeElement===el),true);
+    const secondPageIDs = await page.locator('tbody tr').evaluateAll(rows=>rows.map(r=>r.dataset.finding));
+    assert.equal(secondPageIDs.some(id=>firstPageIDs.includes(id)),false);
+    await page.getByRole('button',{name:'Previous page',exact:true}).click();
+    await page.goBack();
+    await page.waitForFunction(()=>location.hash.includes('page=2'));
+    assert.equal(await page.locator('tbody tr').count(),4);
+    await page.goBack();
+    await page.waitForFunction(()=>!location.hash.includes('page=2'));
+    assert.equal(await page.locator('tbody tr').count(),5);
+    await page.locator('#finding-search').fill('no such fixture result');
+    assert.equal(await page.locator('tbody tr').count(),0);
+    assert.match(await page.locator('#finding-count').innerText(),/0–0 of 0 matching/);
+    await page.locator('#findings-clear').click();
+    await page.locator('#severity-filter').selectOption('high');
     await page.locator("#finding-search").fill("SQL injection");
-    await page
-      .locator(`[data-finding="${fixture.finding_id}"]`)
-      .first()
-      .click();
+    const reloadedFindingURL = page.url();
+    await page.reload();
+    await page.locator('#token').fill(fixture.token);
+    await page.locator('#login-form button[type="submit"]').click();
+    await page.locator('#finding-search').waitFor();
+    assert.equal(page.url(),reloadedFindingURL);
+    assert.equal(await page.locator('#finding-search').inputValue(),'SQL injection');
+    assert.equal(await page.locator('#severity-filter').inputValue(),'high');
+    await page.locator(`button[data-finding="${fixture.finding_id}"]`).focus();
+    await page.keyboard.press('Enter');
     await page.locator("#detail[open]").waitFor();
     assert.equal(
       await page.evaluate(() => window.injected),
@@ -803,6 +854,7 @@ const assert = require("node:assert/strict");
             "webhook and retest lifecycle with offline transports",
             "literal evidence/XSS",
             "filters",
+            "composed finding filters, URL/history restoration, stable pages and keyboard detail opening",
             "3D canvas",
             "recorded path create/persist/tour/delete, stale-evidence stop, reduced motion and mobile layout",
             "local remediation via real subprocess",

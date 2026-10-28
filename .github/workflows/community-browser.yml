@@ -31,6 +31,7 @@ jobs:
           CODEX_PRIMARY_RUNTIME_NODE_MODULES: /tmp/darkmoon-browser-node/node_modules
         run: |
           node tests/community/graph_navigation.cjs
+          node tests/community/finding_query.cjs
           node tests/community/headless_flags.cjs
           node tests/community/browser_acceptance.cjs
       - name: Preserve fixture UI screenshots

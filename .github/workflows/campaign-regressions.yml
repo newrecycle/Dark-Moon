@@ -40,3 +40,4 @@ jobs:
         run: |
           node tests/community/campaign_binding.cjs
           node tests/community/graph_navigation.cjs
+          node tests/community/finding_query.cjs

@@ -21,9 +21,7 @@ let token = "",
   streamControl,
   viewControl,
   scheduleMode = false;
-let selectedSeverity = "",
-  selectedSearch = "",
-  currentDetailJob = "";
+let currentDetailJob = "", lastFindingsHash = "";
 const severityColors = {
   critical: "#fb8698",
   high: "#f5b27b",
@@ -143,7 +141,7 @@ function findingsTable(items) {
       "No findings in this view",
       "Findings appear as agents record evidence.",
     );
-  return `<div class="table-scroll"><table><thead><tr><th>SEVERITY</th><th>FINDING / ENDPOINT</th><th>CVSS</th><th>STATUS</th><th>MITRE ATT&CK</th></tr></thead><tbody>${items.map((f) => `<tr class="clickable" data-finding="${esc(f.id)}" data-cid="${esc(f.campaign_id)}"><td>${badge(f.severity || "info")}</td><td>${esc(f.title || "Untitled")}<small>${esc(f.endpoint || f.category || "")}</small></td><td>${esc(f.cvss_score ?? "—")}</td><td>${badge(f.status)}</td><td>${esc(f.mitre_attack_id || "—")}</td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="table-scroll"><table><thead><tr><th>SEVERITY</th><th>FINDING / ENDPOINT</th><th>CVSS</th><th>STATUS</th><th>MITRE ATT&CK</th></tr></thead><tbody>${items.map((f) => `<tr class="clickable" data-finding="${esc(f.id)}" data-cid="${esc(f.campaign_id)}"><td>${badge(f.severity || "info")}</td><td><button class="text-button finding-open" data-finding="${esc(f.id)}" data-cid="${esc(f.campaign_id)}">${esc(f.title || "Untitled")}</button><small>${esc(f.endpoint || f.category || "")}</small></td><td>${esc(f.cvss_score ?? "—")}</td><td>${badge(f.status)}</td><td>${esc(f.mitre_attack_id || "—")}</td></tr>`).join("")}</tbody></table></div>`;
 }
 function applyRoles() {
   const viewer = identity?.role === "viewer",
@@ -162,7 +160,7 @@ function render() {
   if (!snapshot) return;
   viewControl?.abort();
   viewControl = new AbortController();
-  route = location.hash.slice(1) || "overview";
+  route = location.hash.slice(1).split("?")[0] || "overview";
   const headings = {
     overview: "Overview",
     campaigns: "Campaigns",
@@ -224,25 +222,7 @@ function render() {
           : empty("Queue is empty")
       }</section>`;
   } else if (route === "findings") {
-    const items = s.findings.filter(
-      (f) =>
-        (!selectedSeverity || f.severity === selectedSeverity) &&
-        (!selectedSearch ||
-          `${f.title} ${f.endpoint} ${f.category}`
-            .toLowerCase()
-            .includes(selectedSearch.toLowerCase())),
-    );
-    $("#content").innerHTML =
-      `<div class="toolbar"><input id="finding-search" aria-label="Search findings" placeholder="Search findings or endpoints…" value="${esc(selectedSearch)}"><select id="severity-filter" aria-label="Severity"><option value="">All severities</option>${Object.keys(
-        severityColors,
-      )
-        .map(
-          (x) =>
-            `<option ${selectedSeverity === x ? "selected" : ""}>${x}</option>`,
-        )
-        .join(
-          "",
-        )}</select><span class="subtle">${items.length} findings</span></div><section class="panel flush">${findingsTable(items)}</section>`;
+    renderFindings();
   } else if (route === "surface") {
     $("#content").innerHTML =
       `<div class="toolbar">${campaignSelect()}<button class="secondary" id="vr-button" disabled>Checking VR…</button><button class="secondary" id="surface-tour">Tour finding locations</button></div><div class="panel"><div class="map-layout"><div class="surface-stage"><div id="surface-controls"></div><canvas id="surface-canvas" class="surface" aria-label="Interactive three dimensional infrastructure graph"></canvas><div id="surface-tour-card" hidden></div><p class="map-caption">Drag to orbit · Scroll to zoom · Select a node to inspect. Lines show recorded containment and connections.</p></div><div class="map-info" id="map-info">Choose an assessment to explore its infrastructure.</div></div></div><section id="recorded-paths" class="panel"></section>`;
@@ -261,6 +241,28 @@ function render() {
     window.renderWorkspace(route).then(applyRoles).catch(fail);
   }
   applyRoles();
+}
+
+function updateFindingView(changes, push = false) {
+  const state = {...FindingQuery.read(location.hash), ...changes};
+  const hash = FindingQuery.hash(state);
+  if (hash !== location.hash) history[push ? "pushState" : "replaceState"](null, "", hash);
+  render();
+}
+function renderFindings() {
+  const state = FindingQuery.read(location.hash), result = FindingQuery.page(snapshot.findings, state);
+  state.page = result.page;
+  const canonical = FindingQuery.hash(state);
+  if (location.hash !== canonical) history.replaceState(null, "", canonical);
+  lastFindingsHash = canonical;
+  const choices = (key, label, options) => {
+    if (state[key] && !options.some(([value]) => value === state[key])) options.push([state[key], `Unavailable: ${state[key]}`]);
+    const id = key === "severity" ? "severity-filter" : `finding-${key}-filter`;
+    return `<label for="${id}">${esc(label)}<select id="${id}" data-finding-filter="${key}"><option value="">All ${esc(label.toLowerCase())}</option>${options.map(([value,title]) => `<option value="${esc(value)}" ${state[key] === value ? "selected" : ""}>${esc(title)}</option>`).join("")}</select></label>`;
+  };
+  const distinct = key => [...new Set(snapshot.findings.map(f => String(f[key] || "")).filter(Boolean))].sort().map(value => [value,value.replaceAll("_"," ")]);
+  const sortNames = {severity:"Severity",cvss:"CVSS",title:"Title",status:"Status",campaign:"Campaign ID",target:"Target ID"};
+  $("#content").innerHTML = `<div class="findings-controls"><label for="finding-search">Search findings<input id="finding-search" aria-label="Search findings" maxlength="500" placeholder="Title, endpoint, category or ID…" value="${esc(state.q)}"></label>${choices("severity","Severities",Object.keys(severityColors).map(k=>[k,k]))}${choices("status","Statuses",distinct("status"))}${choices("category","Categories",distinct("category"))}${choices("campaign_id","Campaigns",snapshot.campaigns.map(c=>[c.id,c.name||c.id]))}${choices("target_id","Targets",snapshot.targets.map(t=>[t.id,t.host||t.ip||t.id]))}<label for="finding-sort">Sort<select id="finding-sort">${FindingQuery.sorts.map(value=>{const [field,direction]=value.split("_");return `<option value="${value}" ${state.sort===value?"selected":""}>${sortNames[field]} · ${direction==="desc"?"descending":"ascending"}</option>`}).join("")}</select></label><label for="finding-size">Rows per page<select id="finding-size">${[5,10,25,50,100].map(size=>`<option ${state.size===size?"selected":""}>${size}</option>`).join("")}</select></label></div><div class="toolbar"><button class="secondary" id="findings-clear">Clear filters</button><span class="subtle" role="status" id="finding-count">${result.total ? result.offset+1 : 0}–${result.offset+result.items.length} of ${result.total} matching findings · ${snapshot.findings.length} total</span></div><section class="panel flush">${findingsTable(result.items)}</section><div class="toolbar" aria-label="Finding pages"><button class="secondary" data-findings-page="${result.page-1}" ${result.page===1?"disabled":""}>Previous page</button><span>Page ${result.page} of ${result.pages}</span><button class="secondary" data-findings-page="${result.page+1}" ${result.page===result.pages?"disabled":""}>Next page</button></div>`;
 }
 
 async function showCampaign(id) {
@@ -468,12 +470,22 @@ $("#launch-form").addEventListener("submit", async (e) => {
   }
 });
 document.addEventListener("click", async (e) => {
+  if (e.target.closest('nav a[href="#findings"]') && lastFindingsHash) {
+    e.preventDefault();
+    if (location.hash !== lastFindingsHash) location.hash = lastFindingsHash;
+  }
   const b = e.target.closest(
     "button,[data-campaign],[data-finding],[data-job],[data-remediation]",
   );
   if (!b) return;
   try {
-    if (b.classList.contains("close-dialog")) {
+    if (b.dataset.findingsPage) {
+      updateFindingView({page:Number(b.dataset.findingsPage)}, true);
+      $("#finding-count").setAttribute("tabindex", "-1");
+      $("#finding-count").focus();
+    } else if (b.id === "findings-clear") {
+      updateFindingView({...Object.fromEntries(FindingQuery.filters.map(k=>[k,""])),q:"",sort:"severity_desc",size:50,page:1}, true);
+    } else if (b.classList.contains("close-dialog")) {
       b.closest("dialog").close();
       currentDetailJob = "";
     } else if (b.dataset.campaign) await showCampaign(b.dataset.campaign);
@@ -556,16 +568,17 @@ document.addEventListener("change", (e) => {
     campaignId = e.target.value;
     render();
   }
-  if (e.target.id === "severity-filter") {
-    selectedSeverity = e.target.value;
-    render();
+  const key = e.target.dataset.findingFilter || ({"finding-sort":"sort","finding-size":"size"})[e.target.id];
+  if (key) {
+    const id = e.target.id, value = key === "size" ? Number(e.target.value) : e.target.value;
+    updateFindingView({[key]:value,page:1}, true);
+    $("#" + id).focus();
   }
 });
 document.addEventListener("input", (e) => {
   if (e.target.id === "finding-search") {
     const pos = e.target.selectionStart;
-    selectedSearch = e.target.value;
-    render();
+    updateFindingView({q:e.target.value,page:1});
     $("#finding-search").focus();
     $("#finding-search").setSelectionRange(pos, pos);
   }

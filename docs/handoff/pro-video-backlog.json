@@ -99,7 +99,8 @@
         "static/app.js findingsTable"
       ],
       "acceptance": "Stable ordering for ties; filters compose; empty results clear correctly; large datasets remain usable.",
-      "evidence": "VS Code 00:31\u201300:39; JetBrains 00:23\u201300:32"
+      "evidence": "VS Code 00:31\u201300:39; JetBrains 00:23\u201300:32",
+      "implementation_progress": "Composed filters, metadata search, deterministic sorting, bounded pages, keyboard finding buttons and URL/history/reload persistence implemented. Optional REST paging preserves safe projection and unlimited legacy requests. 20k-record boundary cases and desktop/mobile browser flows tested; snapshot transfer is not streamed. See finding-navigation.md."
     },
     {
       "id": "F02",
