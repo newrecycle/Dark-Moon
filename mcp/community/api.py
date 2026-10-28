@@ -16,7 +16,7 @@ from . import reports
 from .operations import evidence_meta, overview, safe_finding, safe_webhook, safe_webhook_delivery, timeseries
 from .finding_lifecycle import target_evolution, history_page, remediation_records, for_finding
 from .store import identifier, now
-from .run_views import active_runs, log_collection, log_detail, log_metadata, public_run
+from .run_views import active_runs, log_collection, log_detail, log_metadata, public_run, _parameters
 
 ROUTERS = ["projects", "targets", "campaigns", "vulnerabilities", "dashboard", "run", "scheduler", "auth",
            "credentials", "pull-requests", "system", "webhooks", "events", "retest", "metrics"]
@@ -124,13 +124,20 @@ class API:
                 return False
             return True
         if resource == "credentials":
+            credential_params = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+            if method == "GET":
+                if len(parts) == 1:
+                    if set(credential_params) - {"capability"} or any(
+                        len(values) != 1 for values in credential_params.values()
+                    ):
+                        raise ValueError("Only one credential capability filter is supported")
+                elif credential_params:
+                    raise ValueError("Credential detail and provider discovery do not accept query parameters")
             if method == "GET" and parts == ["credentials", "providers"]:
                 from .credential_catalog import catalog as credential_catalog
                 handler.send(credential_catalog())
             elif method == "GET" and len(parts) == 1:
-                requested = parse_qs(urlsplit(handler.path).query, keep_blank_values=True).get("capability")
-                if requested and len(requested) != 1:
-                    raise ValueError("Specify one credential capability")
+                requested = credential_params.get("capability")
                 handler.send(envelope(self.service.vault.list(requested[0] if requested else None)))
             elif method == "GET" and len(parts) == 2:
                 handler.send({"data": self.service.vault.get(parts[1])})
@@ -272,8 +279,9 @@ class API:
             elif len(parts) == 3 and parts[2] == "stream" and method == "GET":
                 if not self.store.get("jobs", identifier(parts[1])):
                     raise KeyError(parts[1])
-                raw = query.get("raw", "false")
-                if raw not in {"true", "false"} or set(query) - {"raw"}:
+                stream_params = _parameters(handler, ("raw",))
+                raw = stream_params.get("raw", "false")
+                if raw not in {"true", "false"}:
                     raise ValueError("Only raw=true or raw=false is supported for stream")
                 if raw == "true" and not admin:
                     raise PermissionError("Administrator access is required for raw launcher output")

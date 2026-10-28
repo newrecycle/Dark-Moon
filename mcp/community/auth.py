@@ -36,7 +36,7 @@ class CredentialVault:
         key = os.environ.get("DARKMOON_SECRET_KEY")
         self.box = Fernet(key.encode() if key else base64.urlsafe_b64encode(private_key(store.root / "vault.key")))
 
-    def save(self, raw, credential_id=None):
+    def save(self, raw, credential_id=None, *, internal=False):
         secret = raw.get("secret")
         if not isinstance(secret, str) or not 1 <= len(secret) <= 65536:
             raise ValueError("A non-empty secret is required (at most 64 KiB)")
@@ -44,6 +44,8 @@ class CredentialVault:
         item = {"id": credential_id, "name": str(raw.get("name", "Credential"))[:160],
                 "provider": str(raw.get("provider", "generic"))[:80], "username": str(raw.get("username", ""))[:160],
                 "sealed": self.box.encrypt(secret.encode()).decode(), "hint": "********", "created_at": now()}
+        if internal:
+            item["internal"] = True
         self.store.save("credentials", item)
         return self.public(item)
 

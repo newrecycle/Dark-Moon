@@ -161,3 +161,7 @@ passed. These are independent-fork results, not original-vendor wire parity.
 Historical backfill, crash-atomic snapshot/journal writes and native vendor
 comparisons remain unsupported or unverified. Detailed cases and limitations
 are in the [dated compatibility review](../pro-audit/2026-10-28/compatibility-progress.md).
+
+## Combined delegated-feature review (28 October 2026)
+
+The dated [compatibility review](../pro-audit/2026-10-28/compatibility-progress.md#consolidated-delegated-integration-review--28-october-2026) records the 38-commit review scope, concrete boundary fixes, known limitations and deferred verification. Source corrections cover strict credential and SSE query validation, initially-internal webhook signing keys and conservative PR URL classification. Earlier native/CI results were not re-executed during this integrations-first pass. The standalone Splunk agent branches were inspected but not merged; local uncommitted worker state was not available through the GitHub connection.

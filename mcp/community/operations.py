@@ -232,10 +232,12 @@ class Operations:
         secret = raw.get("secret") or secrets.token_urlsafe(32)
         if not isinstance(secret, str) or len(secret) < 24:
             raise ValueError("Webhook secret must contain at least 24 characters")
-        key = self.service.vault.save({"name": "Webhook signing", "provider": "webhook", "secret": secret})
-        internal = self.store.get("credentials", key["id"])
-        internal["internal"] = True
-        self.store.save("credentials", internal)
+        # Persist the signing key as internal in the same write: concurrent
+        # /credentials and /options readers must never see a selectable key.
+        key = self.service.vault.save(
+            {"name": "Webhook signing", "provider": "webhook", "secret": secret},
+            internal=True,
+        )
         hook = {"id": "hook_" + uuid.uuid4().hex[:16], "url": raw["url"], "events": events,
                 "credential_ref": key["id"], "enabled": True, "created_at": now(), "format": "darkmoon"}
         self.store.save("webhooks", hook)

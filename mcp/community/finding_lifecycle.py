@@ -83,6 +83,14 @@ def _public_url(value):
         parts = urlsplit(value)
         if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
             return None
+        # The publication flag plus an arbitrary HTTPS URL is insufficient
+        # proof of a PR. Only recognizable PR/MR detail paths are exposed.
+        # This also excludes opaque token-bearing paths and encoded segments.
+        if len(parts.path) > 512 or not re.fullmatch(
+            r"/(?:[A-Za-z0-9._~-]+/){2,}(?:pull|pulls|pull-requests|-/merge_requests)/[1-9][0-9]*",
+            parts.path,
+        ):
+            return None
         return urlunsplit(("https", parts.netloc, parts.path, "", ""))
     except ValueError:
         return None
