@@ -100,6 +100,62 @@ const assert = require("node:assert/strict");
     await page.locator('#setup-account-form [type=submit]').click();
     await page.locator('#setup-account').waitFor({state:'hidden'});
     await page.getByText('OpenCode providers and logins',{exact:true}).waitFor();
+    // Run/log consumer: no worker is launched. Mock only the protected
+    // collection/detail responses after verifying the fixture's empty queue.
+    await page.locator('nav a[href="#campaigns"]').click();
+    await page.getByText('Queue is empty', {exact:false}).waitFor();
+    const mockRun = {id:'job_mock',run_id:'job_mock',campaign_id:fixture.campaign_id,
+      status:'running',state:'running',kind:'assessment',created_at:'2026-10-28T09:00:00Z'};
+    const mockOld = {...mockRun,id:'job_old',run_id:'job_old',status:'succeeded',state:'succeeded'};
+    const routeActive = url => url.pathname === '/api/v1/run/active';
+    const routeLogs = url => url.pathname === '/api/v1/run/logs';
+    const routeDetail = url => url.pathname === '/api/v1/run/job_mock';
+    const routeLogDetail = url => url.pathname === '/api/v1/run/logs/job_mock';
+    const fulfill = (route, body) => route.fulfill({
+      status:200,contentType:'application/json',body:JSON.stringify(body)});
+    const activeHandler = route => fulfill(route, {data:[mockRun],total:1,
+      active_states:['queued','running','cancelling']});
+    const historyHandler = route => {
+      const offset = Number(new URL(route.request().url()).searchParams.get('offset') || 0);
+      const item = offset ? mockOld : {...mockRun, log_status:'missing',log_bytes:0};
+      return fulfill(route, {data:[item],total:51,limit:50,offset,
+        has_more:offset === 0,ordering:'created_at_desc,id_desc',content_policy:'metadata_only'});
+    };
+    const detailHandler = route => fulfill(route, {...mockRun,log_status:'available',log_bytes:22});
+    const logDetailHandler = route => {
+      const raw = new URL(route.request().url()).searchParams.get('raw') === 'true';
+      return fulfill(route,{run_id:'job_mock',campaign_id:fixture.campaign_id,
+        status:'running',state:'running',log_status:'available',log_bytes:22,
+        raw,content_policy:raw?'untrusted_admin_opt_in':'structured_lifecycle_only',
+        data:[{type:raw?'untrusted_raw':'lifecycle',
+          message:raw?'PRIVATE-MOCK-OUTPUT':'Run started'}]});
+    };
+    const mockRoutes = [[routeActive,activeHandler],[routeLogs,historyHandler],
+      [routeDetail,detailHandler],[routeLogDetail,logDetailHandler]];
+    for (const [matcher,handler] of mockRoutes) await page.route(matcher,handler);
+    await page.locator('nav a[href="#overview"]').click();
+    await page.locator('nav a[href="#campaigns"]').click();
+    await page.locator('[data-job="job_mock"]').waitFor();
+    assert.match(await page.locator('#run-queue').innerText(),/Active run|running/);
+    await page.locator('[data-run-page="50"]').click();
+    await page.locator('[data-job="job_old"]').waitFor();
+    await page.locator('[data-run-page="0"]').click();
+    await page.locator('[data-job="job_mock"]').first().click();
+    await page.locator('#job-log').waitFor();
+    assert.match(await page.locator('#job-log').innerText(),/Run started/);
+    assert.doesNotMatch(await page.locator('#job-log').innerText(),/PRIVATE-MOCK-OUTPUT/);
+    await page.locator('[data-raw-job="job_mock"]').click();
+    await page.getByText('PRIVATE-MOCK-OUTPUT',{exact:true}).waitFor();
+    await page.locator('#detail .close-dialog').click();
+    for (const [matcher,handler] of mockRoutes) await page.unroute(matcher,handler);
+    const failActive = route => route.fulfill({status:503,contentType:'application/json',
+      body:JSON.stringify({error:'Fixture discovery unavailable'})});
+    await page.route(routeActive,failActive);
+    await page.locator('nav a[href="#overview"]').click();
+    await page.locator('nav a[href="#campaigns"]').click();
+    await page.getByText('Run history unavailable: Fixture discovery unavailable').waitFor();
+    await page.unroute(routeActive,failActive);
+    await page.locator('nav a[href="#overview"]').click();
     assert.equal(await page.locator('#setup-account-form [name=password]').inputValue(),'');
     assert.equal(await page.locator('#token').inputValue(),'');
     await page.locator('nav a[href="#overview"]').click();
