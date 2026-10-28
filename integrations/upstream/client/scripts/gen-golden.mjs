@@ -1,6 +1,6 @@
 // Generates language-neutral golden normalized objects from the OSS fixtures.
-// The Kotlin (JetBrains) client reuses these exact goldens for its own
-// conformance suite. Run: node scripts/gen-golden.mjs
+// Retained SDK consumers share these conformance fixtures.
+// Run: node scripts/gen-golden.mjs
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
