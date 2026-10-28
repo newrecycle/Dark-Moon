@@ -250,10 +250,16 @@ def _safe_pr_response(body):
     def record(p):
         if not isinstance(p, dict):
             return {}
-        result = {key: p.get(key) for key in (
-            "id", "campaign_id", "status", "state", "record_type",
-            "published", "publication_recorded", "provider", "pr_id",
-            "published_at", "confidence")}
+        result = {key: p.get(key) for key in ("id", "campaign_id", "pr_id")}
+        result.update(status=_safe_value("status", p.get("status")),
+                      state=_safe_value("state", p.get("state")),
+                      record_type=p.get("record_type") if p.get("record_type") in
+                         {"published_pr", "local_proposal"} else "local_proposal",
+                      published=p.get("published") is True,
+                      publication_recorded=p.get("publication_recorded") is True,
+                      provider=_safe_value("provider", p.get("provider")),
+                      published_at=_safe_value("created_at", p.get("published_at")),
+                      confidence=p.get("confidence") if type(p.get("confidence")) in (int,float) else None)
         result["finding_ids"] = [x for x in p.get("finding_ids", [])[:1000]
                                  if isinstance(x, str) and len(x) <= 200]
         # Only the finding_lifecycle._public_url validation makes publication
@@ -263,9 +269,15 @@ def _safe_pr_response(body):
         validation = p.get("validation")
         if isinstance(validation, dict):
             result["validation"] = {
-                stage: [{key: v.get(key) for key in ("kind", "passed", "exit_code", "timed_out")
-                          if type(v.get(key)) in (str, int, bool)}
-                         for v in validation.get(stage, [])[:100] if isinstance(v, dict)]
+                stage: [{
+                    "kind": v.get("kind") if v.get("kind") in
+                        {"unit", "lint", "build", "exploit", "regression", "retest",
+                         "smoke", "integration", "security", "static", "dynamic",
+                         "test", "custom"} else "unknown",
+                    "passed": v.get("passed") if type(v.get("passed")) is bool else None,
+                    "exit_code": v.get("exit_code") if type(v.get("exit_code")) is int else None,
+                    "timed_out": v.get("timed_out") if type(v.get("timed_out")) is bool else None
+                } for v in validation.get(stage, [])[:100] if isinstance(v, dict)]
                 for stage in ("before", "after") if isinstance(validation.get(stage), list)}
         return result
     if isinstance(body, dict) and isinstance(body.get("data"), list):
