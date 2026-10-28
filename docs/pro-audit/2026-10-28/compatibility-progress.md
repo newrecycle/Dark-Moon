@@ -467,3 +467,21 @@ transport; browser stale-response timing under adversarial network scheduling;
 and full cross-consumer SDK/native builds. These must not be described as
 passing from the focused gate. Existing source-only limitations and untrusted
 raw-log warnings remain in force.
+
+### Observed scheduler verification result
+
+The dedicated [Scheduler compatibility verification run](https://github.com/newrecycle/Dark-Moon/actions/runs/40664998002)
+for commit `507776cbb013017172a1bc758f05e7dc6aeb841e` completed successfully:
+**53 passed and 41 unittest subtests passed** (Python 3.11, GitHub-hosted
+runner). It exercised `test_scheduler_compatibility.py`,
+`test_calendar_scheduling.py`, and `test_pro_contract_aliases.py`.
+The general `Tests` workflow for that same commit also succeeded. Neither
+run executed a licensed-vendor runtime or proved original-vendor wire parity.
+
+The earlier full `Campaign isolation regressions` run on the initial
+verification commit `eeaa7dc29359e0ee721fc67062e1042a2d4a6bfa`
+had **369 passed, 58 subtests passed, 2 failed**. The failures were an
+outdated expectation rejecting a newly supported flat target edit and an
+unrelated webhook role-fixture duplicate username. Subsequent independent
+`pro` commits updated those test cases. Do not interpret the earlier full
+suite as passing; verify the later full run separately.
