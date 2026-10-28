@@ -56,7 +56,12 @@ def handler_for(service, allowed_hosts):
                                      "pull-requests", "retest", "events", "scheduler", "schedules",
                                      "options", "source-files", "integrations", "evidence"})
                 if status >= 400 and workspace_error:
-                    content = {"error": "Not found" if status == 404 else "Request rejected"}
+                    # Permit only exact constant validation messages. Unknown
+                    # exception text may contain source paths or user evidence.
+                    static_errors = {"Provide title, steps and explicit reviewed: true"}
+                    existing = content.get("error") if isinstance(content, dict) else None
+                    content = {"error": "Not found" if status == 404 else
+                               existing if existing in static_errors else "Request rejected"}
                 else:
                     content = minimize_response(urlsplit(self.path).path, content, kind)
             if isinstance(content, (dict, list)):
