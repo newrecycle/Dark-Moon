@@ -29,6 +29,9 @@ jobs:
                   def failLevel = params.SCENARIO == 'nonempty_pass' ? 'none' : 'high'
                   def unstableLevel = params.SCENARIO == 'nonempty_pass' ? 'none' : 'medium'
                   sh 'mkdir -p darkmoon-reports'
+                  // The scenario is a local test fixture, not a scan option or
+                  // a credential. Commit its choice on the *agent* before run.
+                  sh "printf '%s' '${params.SCENARIO}' > '/opt/synthetic data/scenario-native.txt'"
                   writeFile file: 'darkmoon-reports/unrelated-sensitive.txt',
                     text: 'SYNTHETIC_UNRELATED_SECRET_DO_NOT_ARCHIVE'
                   darkmoonScan target: 'https://example.invalid', mode: 'oss',
@@ -36,7 +39,7 @@ jobs:
                     credentialsId: credential, cliPath: command,
                     ossDataDir: '/opt/synthetic data',
                     ossReportsDir: '/opt/synthetic reports',
-                    ossScript: '/opt/engine-standin.sh', extraArgs: "--poll 1 --program ${params.SCENARIO}",
+                    ossScript: '/opt/engine-standin.sh', extraArgs: '--poll 1',
                     timeout: 12, recordIssues: true, archiveReport: true
                   recordIssues(enabledForFailure: true,
                     tools: [sarif(pattern: 'darkmoon-reports/darkmoon.sarif')])
