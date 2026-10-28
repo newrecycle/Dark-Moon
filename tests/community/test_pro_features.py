@@ -108,7 +108,12 @@ class APITests(fixtures.Fixture):
         findings=json.loads(self.request('/api/v1/vulnerabilities?campaign_id='+cid)[1]);self.assertEqual(len(findings['data']),1)
         self.assertNotIn('PRIVATE-EVIDENCE',json.dumps(findings))
         metadata=json.loads(self.request('/api/v1/vulnerabilities/vuln_fixture/evidence-meta')[1]);self.assertTrue(metadata['has_evidence'])
-        report=json.loads(self.request('/api/v1/campaigns/'+cid+'/report')[1]);self.assertIn('PRIVATE-EVIDENCE',report['content'])
+        report=json.loads(self.request('/api/v1/campaigns/'+cid+'/report')[1])
+        self.assertNotIn('PRIVATE-EVIDENCE',report['content'])
+        grant=json.loads(self.request('/api/v1/evidence/grants','POST',{'kind':'report','id':cid})[1])
+        full=json.loads(self.request('/api/v1/evidence/report/'+cid+'/reveal',headers={
+            'X-Darkmoon-Evidence-Grant':grant['grant']})[1])
+        self.assertIn('PRIVATE-EVIDENCE',full['data']['content'])
 
     def test_crud_project_and_target_analytics(self):
         self.campaign()
