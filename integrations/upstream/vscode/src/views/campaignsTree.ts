@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { Campaign, Finding } from '../darkmoon/contract';
 import { DarkmoonSession } from '../session';
 import { severityIcon } from '../util/severity';
+import { redact } from '../util/redact';
 
 type Node = CampaignNode | InfoNode | FindingNode;
 
@@ -37,19 +38,19 @@ export class CampaignsTreeProvider implements vscode.TreeDataProvider<Node> {
       case 'campaign': {
         const c = node.campaign;
         const item = new vscode.TreeItem(
-          c.target ?? c.id,
+          redact(c.target ?? c.id),
           vscode.TreeItemCollapsibleState.Collapsed
         );
         const total = c.stats?.total_findings ?? 0;
         item.description = `${c.status}${total ? ` · ${total} findings` : ''}`;
         item.tooltip = new vscode.MarkdownString(
           [
-            `**${c.target ?? c.id}**`,
+            `**${redact(c.target ?? c.id)}**`,
             `- ID: \`${c.id}\``,
             `- Status: ${c.status}`,
             c.overall_risk ? `- Overall risk: **${c.overall_risk}**` : '',
             c.date ? `- Date: ${c.date}` : '',
-            c.methodology ? `- Methodology: ${c.methodology}` : '',
+            c.methodology ? `- Methodology: ${redact(c.methodology)}` : '',
           ]
             .filter(Boolean)
             .join('\n')
@@ -73,7 +74,7 @@ export class CampaignsTreeProvider implements vscode.TreeDataProvider<Node> {
       case 'finding': {
         const f = node.finding;
         const item = new vscode.TreeItem(
-          f.title,
+          redact(f.title),
           vscode.TreeItemCollapsibleState.None
         );
         item.description = `${f.severity}${
@@ -87,7 +88,7 @@ export class CampaignsTreeProvider implements vscode.TreeDataProvider<Node> {
           arguments: [f.id],
         };
         item.tooltip = new vscode.MarkdownString(
-          `**${f.title}**\n\n${f.status} · ${f.category ?? ''}`
+          `**${redact(f.title)}**\n\n${f.status} · ${redact(f.category ?? '')}`
         );
         return item;
       }
