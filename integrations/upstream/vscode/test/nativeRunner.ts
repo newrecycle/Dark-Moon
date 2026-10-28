@@ -9,7 +9,7 @@ export async function run(): Promise<void> {
   assert.ok(Object.values(os.networkInterfaces()).flat().every(address => address?.internal),
     'Native tests require Docker --network none');
   const progressPath = process.env.DARKMOON_NATIVE_STATUS;
-  const progress = { phase: 'starting', passed: 0, failed: 0, started: 0, total: 0 };
+  const progress = { phase: 'starting', passed: 0, failed: 0, started: 0, total: 0, failedTests: [] as string[] };
   const write = () => {
     // Never persist assertion messages, raw exceptions, stack traces or
     // campaign/finding content. The driver prints this allowlisted JSON only.
@@ -35,6 +35,12 @@ export async function run(): Promise<void> {
     runner.on('start', () => { progress.phase = 'running'; progress.total = runner.total; write(); });
     runner.on('test', () => { progress.started += 1; write(); });
     runner.on('pass', () => { progress.passed += 1; write(); });
-    runner.on('fail', () => { progress.failed += 1; write(); });
+    runner.on('fail', test => {
+      progress.failed += 1;
+      // Test titles are static source-controlled suite labels; never write
+      // assertion messages, exception strings, credential data or stacks.
+      progress.failedTests.push(test.fullTitle().slice(0, 180));
+      write();
+    });
   });
 }

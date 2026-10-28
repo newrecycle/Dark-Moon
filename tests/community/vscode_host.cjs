@@ -35,7 +35,8 @@ function progress() {
   try {
     const state = JSON.parse(fs.readFileSync(progressFile, 'utf8'));
     return { phase: state.phase, total: state.total, started: state.started,
-             passed: state.passed, failed: state.failed };
+             passed: state.passed, failed: state.failed,
+             failedTests: Array.isArray(state.failedTests) ? state.failedTests.slice(0, 3) : [] };
   } catch { return { phase: 'extension_tests_not_started' }; }
 }
 function diagnostics(label, code, signal) {
