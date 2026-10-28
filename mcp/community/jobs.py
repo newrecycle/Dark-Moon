@@ -131,7 +131,7 @@ class Queue:
                     job.update(status="interrupted", finished_at=now(), error="Dashboard restarted; inspect the agent session before rerunning")
         self.store.update(recover)
 
-    def enqueue(self, spec, campaign_id, key=None, schedule_id=None):
+    def enqueue(self, spec, campaign_id, key=None, schedule_id=None, actor=None):
         spec = launch_spec(spec)
         if key is not None:
             identifier(key)
@@ -147,7 +147,7 @@ class Queue:
                 raise ValueError("Job queue is full")
             job = {"id": "job_" + uuid.uuid4().hex[:16], "campaign_id": identifier(campaign_id),
                    "spec": spec, "status": "queued", "created_at": now(),
-                   "idempotency_key": key, "schedule_id": schedule_id}
+                   "idempotency_key": key, "schedule_id": schedule_id, "request_actor": actor}
             jobs[job["id"]] = job
             return job
         return self.store.update(change)
@@ -207,11 +207,25 @@ class Queue:
         proc = None
         status, exit_code, error = "failed", None, None
         try:
+            from .auth import CredentialVault
+            vault = CredentialVault(self.store)
+            actor = job.get("request_actor")
+            refs = (("credential_id", "source_checkout"),) if job.get("kind") == "remediation" else (
+                ("credential_id", "source_checkout"),
+                ("assessment_credential_id", "assessment_login"),
+                ("assessment_token_id", "assessment_token"))
+            source = job.get("remediation", {}) if job.get("kind") == "remediation" else job["spec"]
+            for field, capability in refs:
+                if source.get(field):
+                    try:
+                        vault.require(source[field], capability, actor=actor)
+                    except KeyError:
+                        raise ValueError("Queued credential is no longer authorized") from None
             if job.get("kind") == "remediation":
                 argv = self._remediation_argv(job)
             else:
                 from .credential_launch import prepare
-                prompt = prepare(self.repo, self.store, prompt_for(job["spec"], job["campaign_id"]), job["spec"])
+                prompt = prepare(self.repo, self.store, prompt_for(job["spec"], job["campaign_id"]), job["spec"], actor=actor)
                 argv = self.launcher + [prompt]
             task_env = dict(os.environ)
             task_env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1]) + os.pathsep + task_env.get("PYTHONPATH", "")

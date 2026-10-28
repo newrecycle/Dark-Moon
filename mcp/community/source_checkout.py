@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 from .store import identifier
 
 
-def checkout(service, source, campaign_id, credential_id="", run=subprocess.run):
+def checkout(service, source, campaign_id, credential_id="", run=subprocess.run, actor=None):
     if not str(source).startswith("https://"):
         path = Path(source).expanduser().resolve()
         if not path.is_dir():
@@ -23,7 +23,7 @@ def checkout(service, source, campaign_id, credential_id="", run=subprocess.run)
     target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     if credential_id:
         try:
-            service.vault.require(credential_id, "source_checkout")
+            service.vault.require(credential_id, "source_checkout", actor=actor)
         except KeyError:
             raise ValueError("Source credential reference is unavailable") from None
     secret = service.vault.resolve(credential_id) if credential_id else ""

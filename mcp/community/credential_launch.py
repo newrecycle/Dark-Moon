@@ -25,7 +25,7 @@ except Exception:
 '''
 
 
-def prepare(repo, store, prompt, spec, run=subprocess.run):
+def prepare(repo, store, prompt, spec, run=subprocess.run, actor=None):
     from .auth import CredentialVault
     vault = CredentialVault(store)
     secrets = []
@@ -36,7 +36,7 @@ def prepare(repo, store, prompt, spec, run=subprocess.run):
             continue
         capability = "assessment_login" if flag == "CREDS" else "assessment_token"
         try:
-            vault.require(reference, capability)
+            vault.require(reference, capability, actor=actor)
         except KeyError:
             raise ValueError("Target credential reference is unavailable for this use") from None
         record = store.get("credentials", reference)

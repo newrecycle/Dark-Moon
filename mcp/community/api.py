@@ -142,10 +142,10 @@ class API:
             elif method == "GET" and len(parts) == 2:
                 handler.send({"data": self.service.vault.get(parts[1])})
             elif method == "POST" and len(parts) == 1:
-                handler.send({"data": self.service.vault.save(handler.body())}, status=201)
+                handler.send({"data": self.service.vault.save(handler.body(), actor=identity)}, status=201)
             elif len(parts) == 2 and method in {"PATCH", "PUT"}:
                 self.service.vault.get(parts[1])
-                handler.send({"data": self.service.vault.save(handler.body(), parts[1])})
+                handler.send({"data": self.service.vault.save(handler.body(), parts[1], actor=identity)})
             elif method == "DELETE" and len(parts) == 2:
                 self.service.vault.get(parts[1])
                 handler.send(self.service.vault.delete(parts[1]))
@@ -263,7 +263,7 @@ class API:
             elif method == "GET" and parts == ["run", "logs"]:
                 handler.send(log_collection(self.store, handler))
             elif method == "POST" and parts[1:] == ["campaign"]:
-                job = self.service.launch(handler.body(), key=handler.headers.get("Idempotency-Key"))
+                job = self.service.launch(handler.body(), key=handler.headers.get("Idempotency-Key"), actor=identity)
                 handler.send({"run_id": job["id"], "campaign_id": job["campaign_id"], "status": job["status"]}, status=202)
             elif len(parts) == 3 and method == "GET" and parts[1] == "logs":
                 job = self.store.get("jobs", identifier(parts[2]))
@@ -360,8 +360,8 @@ class API:
             from .assessment_catalog import catalog as assessment_catalog
             handler.send({"assessment":assessment_catalog(), "targets":snapshot["targets"], "campaigns":snapshot["campaigns"],
                           "findings":[{k:v.get(k) for k in ("id","campaign_id","title","severity")} for v in snapshot["findings"]],
-                          "credentials":self.service.vault.list() if identity.get("role") != "viewer" else [],
-                          "credential_choices":{cap:self.service.vault.list(cap) for cap in ("assessment_login", "assessment_token", "source_checkout", "provider_api_key")} if identity.get("role") != "viewer" else {},
+                          "credentials":self.service.vault.list(actor=identity, for_use=True) if identity.get("role") != "viewer" else [],
+                          "credential_choices":{cap:self.service.vault.list(cap, actor=identity, for_use=True) for cap in ("assessment_login", "assessment_token", "source_checkout", "provider_api_key")} if identity.get("role") != "viewer" else {},
                           "repositories":sorted({j.get("spec",{}).get("git_repo") for j in self.store.items("jobs") if j.get("spec",{}).get("git_repo")} | {p.get("repo") for p in self.store.items("remediations") if p.get("repo")} | {p for p in os.environ.get("DARKMOON_SOURCE_REPOSITORIES", "").split(os.pathsep) if p}),
                           "opencode":catalog(self.service) if admin else None})
             return True

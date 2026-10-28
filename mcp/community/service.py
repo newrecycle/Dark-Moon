@@ -98,7 +98,7 @@ class Service:
         self.scheduler.close()
         self.queue.close()
 
-    def launch(self, raw, key=None, schedule_id=None):
+    def launch(self, raw, key=None, schedule_id=None, actor=None):
         spec = launch_spec(raw)
         if spec.get("remediate") and not spec.get("git_repo") and not spec.get("create_repo"):
             raise ValueError("Automatic remediation needs a source repository or an explicit request to create a proposal repository")
@@ -107,7 +107,7 @@ class Service:
                                   ("assessment_token_id", "assessment_token")):
             if spec.get(field):
                 try:
-                    self.vault.require(spec[field], capability)
+                    self.vault.require(spec[field], capability, actor=actor)
                 except KeyError:
                     raise ValueError("Saved credential reference is unavailable for this use") from None
         allowed = [x.strip() for x in os.environ.get("DARKMOON_TARGET_ALLOWLIST", "").split(",") if x.strip()]
@@ -145,8 +145,8 @@ class Service:
             if key:
                 old = next((j for j in self.store.items("jobs") if j.get("idempotency_key") == key), None)
                 if old:
-                    if old["spec"] != spec:
-                        raise ValueError("Idempotency key already used with a different launch")
+                    if old["spec"] != spec or old.get("request_actor") != actor:
+                        raise ValueError("Idempotency key already used by a different launch identity or specification")
                     return old
             host = urlsplit(spec["target"] if "://" in spec["target"] else "//" + spec["target"]).hostname or spec["target"]
             initialized = init_live_campaign("web_" + uuid.uuid4().hex[:16], host, "", project_name=spec["name"])
@@ -156,7 +156,7 @@ class Service:
             campaign["scope"] = {k: spec[k] for k in ("targets", "out_of_scope", "rules", "safe_harbor", "safe_harbor_applies")}
             data.save_campaign(campaign)
             try:
-                return self.queue.enqueue(spec, initialized["campaign_id"], key, schedule_id)
+                return self.queue.enqueue(spec, initialized["campaign_id"], key, schedule_id, actor=actor)
             except Exception:
                 campaign = data.load_campaign(initialized["campaign_id"])
                 campaign.update(status="failed", launch_error="Could not enqueue launcher")
@@ -192,7 +192,7 @@ class Service:
                 return
             try:
                 from .source_checkout import checkout
-                source = checkout(self, source, campaign["id"], job["spec"].get("credential_id", ""))
+                source = checkout(self, source, campaign["id"], job["spec"].get("credential_id", ""), actor=job.get("request_actor"))
             except Exception as exc:
                 self.store.save("automation_errors", {"id": "checkout_"+uuid.uuid4().hex[:16], "campaign_id": campaign["id"],
                                 "message": str(exc)[:1000], "created_at": now()})
@@ -206,12 +206,12 @@ class Service:
                     files = select_sources(source, finding)
                     self.prepare_remediation({"repo": source, "campaign_id": campaign["id"], "finding_id": finding["id"],
                                               "generate": True, "files": files, "validate": (Path(source)/".darkmoon/repro.json").is_file(),
-                                              "credential_id": job["spec"].get("credential_id", "")})
+                                              "credential_id": job["spec"].get("credential_id", "")}, actor=job.get("request_actor"))
                 except Exception as exc:
                     self.store.save("automation_errors", {"id": "error_"+uuid.uuid4().hex[:16], "campaign_id": campaign["id"],
                                     "finding_id": finding["id"], "message": str(exc)[:1000], "created_at": now()})
 
-    def prepare_remediation(self, raw):
+    def prepare_remediation(self, raw, actor=None):
         from .remediation import source_file
         campaign_id, finding_id = identifier(raw.get("campaign_id")), identifier(raw.get("finding_id"))
         finding = next((f for f in data.load_vulnerabilities(campaign_id) if f.get("id") == finding_id), None)
@@ -237,7 +237,7 @@ class Service:
         credential_id = raw.get("credential_id") or ""
         if credential_id:
             try:
-                self.vault.require(credential_id, "source_checkout")
+                self.vault.require(credential_id, "source_checkout", actor=actor)
             except KeyError:
                 raise ValueError("Source credential reference is unavailable") from None
         proposal_id = "rem_" + uuid.uuid4().hex[:16]
@@ -245,7 +245,7 @@ class Service:
         directory.mkdir(parents=True, mode=0o700)
         data._write_json(directory / "edits.json", raw.get("edits", []))
         job = {"id": "job_" + uuid.uuid4().hex[:16], "kind": "remediation", "campaign_id": campaign_id,
-               "proposal_id": proposal_id, "created_at": now(), "status": "queued",
+               "proposal_id": proposal_id, "created_at": now(), "status": "queued", "request_actor": actor,
                "spec": {"name": "Fix: " + str(finding.get("title", finding_id)), "target": str(repo)},
                "remediation": {"repo": str(repo), "finding_id": finding_id, "files": files,
                                "generate": generate, "validate": validate, "credential_id": credential_id,
