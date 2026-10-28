@@ -64,7 +64,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if urlsplit(self.path).path == "/__fixture__/mode":
             raw = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", "0")), 1024)))
-            if raw.get("mode") not in ("valid", "empty", "foreign", "malformed", "unavailable"):
+            if raw.get("mode") not in ("valid", "empty", "foreign", "malformed", "unavailable", "bad_launch"):
                 return self.write(400, {"error": "bad mode"})
             state["mode"] = raw["mode"]
             return self.write(200, {"ok": True})
@@ -81,7 +81,7 @@ class Handler(BaseHTTPRequestHandler):
                 or raw.get("safe_harbor") != "non-destructive"):
             return self.write(400, {"error": "scope mismatch"})
         state["posts"].append({"target_id": TARGET, "campaign_id": CAMPAIGN, "finding_ids": [FINDING]})
-        if state["mode"] == "malformed":
+        if state["mode"] == "bad_launch":
             return self.write(200, {"id": "conflicting", "retest_id": "fixture_retest"})
         return self.write(200, {"id": "fixture_retest", "retest_id": "fixture_retest",
                                  "target_id": TARGET, "base_campaign_id": CAMPAIGN,

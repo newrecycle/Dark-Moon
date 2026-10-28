@@ -19,20 +19,20 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
-from native_acceptance import Unavailable, local_url, preflight
+from native_acceptance import Unavailable, local_url, preflight, open_local
 
 
 def request(url, data, context, headers=None):
     payload = (json.dumps(data).encode() if (headers or {}).get("Content-Type") == "application/json"
                else urllib.parse.urlencode(data).encode()) if isinstance(data, dict) else json.dumps(data).encode()
     req = urllib.request.Request(url, data=payload, headers=(headers or {}), method="POST")
-    with urllib.request.urlopen(req, timeout=15, context=context) as response:
+    with open_local(req, context, 15) as response:
         return response.read(64 * 1024)
 
 
 def fixture_status(base, context):
     req = urllib.request.Request(base + "/__fixture__/state")
-    with urllib.request.urlopen(req, timeout=5, context=context) as response:
+    with open_local(req, context, 5) as response:
         return json.loads(response.read(4096))
 
 
@@ -72,7 +72,7 @@ def main():
     # Fixture's synthetic token is the value installed by the successful
     # native browser test. Never include it in subprocess diagnostics.
     config = {"target": "demo-shop.local", "action_kind": "retest", "retest_scope": "finding",
-              "scope_profile": "non-destructive", "dry_run": "0", "max_per_hour": "3",
+              "scope_profile": "non-destructive", "dry_run": "0", "max_per_hour": "8",
               "campaign_id": "fixture_campaign", "finding_id": "fixture_finding"}
     payload = {"configuration": config, "result": {"target": "demo-shop.local"},
                "session_key": session, "server_uri": mgmt}
@@ -96,27 +96,33 @@ def main():
                 {"Content-Type": "application/json"})
 
     try:
-        # Fail closed before POST when the native metadata response is broken.
-        mode("malformed")
+        # A failed/partial GET must not be confused with a valid empty set.
+        for refused in ("malformed", "unavailable", "empty", "foreign"):
+            mode(refused)
+            before = len(fixture_status(fixture, ctx)["posts"])
+            code, out = invoke()
+            if code == 0 or len(fixture_status(fixture, ctx)["posts"]) != before:
+                raise AssertionError("bad scope metadata triggered a native retest")
+        # Authenticated, well-scoped metadata can reach the local fixture.
+        # A malformed launch acknowledgement must NOT be reported successful.
+        mode("bad_launch")
         code, out = invoke()
-        if code == 0 or fixture_status(fixture, ctx)["posts"]:
-            raise AssertionError("malformed native preflight launched a retest")
+        if code == 0 or len(fixture_status(fixture, ctx)["posts"]) != 1:
+            raise AssertionError("malformed native launch identity accepted")
         mode("valid")
-        code, out = invoke()
-        if code != 0:
-            raise AssertionError("native scoped retest was not accepted by the local fixture")
+        for allowed in range(3):
+            code, out = invoke()
+            if code != 0:
+                raise AssertionError("native scoped retest was not accepted")
         posts = fixture_status(fixture, ctx)["posts"]
-        if len(posts) != 1 or posts[0] != {
-                "target_id": "fixture_target", "campaign_id": "fixture_campaign",
-                "finding_ids": ["fixture_finding"]}:
+        exact = {"target_id": "fixture_target", "campaign_id": "fixture_campaign",
+                 "finding_ids": ["fixture_finding"]}
+        if len(posts) != 4 or any(row != exact for row in posts):
             raise AssertionError("native action changed exact campaign/finding/target selection")
-        mode("foreign")
+        # 8 consumed attempts (including rejected/uncertain ones); the ninth
+        # must be rejected before any metadata or POST, not silently admitted.
         code, out = invoke()
-        if code == 0 or len(fixture_status(fixture, ctx)["posts"]) != 1:
-            raise AssertionError("foreign finding metadata was not rejected")
-        mode("valid")
-        code, out = invoke()
-        if code == 0 or len(fixture_status(fixture, ctx)["posts"]) != 1:
+        if code == 0 or len(fixture_status(fixture, ctx)["posts"]) != 4:
             raise AssertionError("native quota did not block excess attempts")
         print("PASS native installed alert preflight, exact scope, rejection and quota")
         return 0

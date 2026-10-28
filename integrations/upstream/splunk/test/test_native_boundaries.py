@@ -101,6 +101,13 @@ class NativeBoundaries(unittest.TestCase):
             proc.stdout.close()
             proc.stderr.close()
 
+    def test_severity_dashboard_filter_matches_native_eval_normalization(self):
+        import xml.etree.ElementTree as ET
+        tree = ET.parse(ROOT / "darkmoon/default/data/ui/views/darkmoon_findings.xml")
+        values = [e.get("value") for e in tree.findall(".//input[@token='sev']/choice")]
+        self.assertIn("informational", values)
+        self.assertNotIn("info", values)
+
     def test_native_program_syntax_and_no_license_bootstrap(self):
         src = "\n".join((ROOT / "test" / name).read_text() for name in
                         ("native_acceptance.py", "native_fixture.py", "native_action.py"))

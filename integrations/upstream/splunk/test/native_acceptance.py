@@ -58,6 +58,17 @@ REQUIRED_ASSETS = (
 MAX_RESPONSE = 8 * 1024 * 1024
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, new_url):
+        return None
+
+
+def open_local(request, context, timeout):
+    return urllib.request.build_opener(
+        NoRedirect(), urllib.request.HTTPSHandler(context=context)
+    ).open(request, timeout=timeout)
+
+
 class Unavailable(Exception):
     pass
 
@@ -136,7 +147,7 @@ class Client:
         request = urllib.request.Request(self.base + endpoint, data=data, headers=h,
                                          method="POST" if data is not None else "GET")
         try:
-            with urllib.request.urlopen(request, context=self.context, timeout=20) as response:
+            with open_local(request, self.context, 20) as response:
                 status, raw = response.status, response.read(MAX_RESPONSE + 1)
         except urllib.error.HTTPError as err:
             # Never echo response bodies; they can contain authorization data.
@@ -168,7 +179,7 @@ def spl(client, search, earliest="-2h", latest="now"):
          "Authorization": client.auth}
     request = urllib.request.Request(client.base + endpoint, data=data, headers=h, method="POST")
     try:
-        with urllib.request.urlopen(request, context=client.context, timeout=45) as response:
+        with open_local(request, client.context, 45) as response:
             raw = response.read(MAX_RESPONSE + 1)
     except urllib.error.HTTPError as e:
         raise AssertionError("native SPL export HTTP " + str(e.code)) from None
@@ -226,7 +237,7 @@ def native(mgmt, hec, index, package, context):
         content = entry(management.call("/servicesNS/nobody/darkmoon/data/ui/views/" +
                                         name + "?output_mode=json"))
         check(isinstance(content, dict), "native dashboard not registered: " + name)
-    action = entry(management.call("/servicesNS/nobody/darkmoon/admin/alert_actions/" +
+    action = entry(management.call("/servicesNS/nobody/darkmoon/alerts/alert_actions/" +
                                    "darkmoon_campaign?output_mode=json"))
     check(isinstance(action, dict) and bool(action), "native alert action missing")
     # Native effective conf: macro and EVAL guards, not local-source parse.

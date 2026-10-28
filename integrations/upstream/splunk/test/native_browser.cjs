@@ -85,6 +85,16 @@ async function main() {
   try {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ ignoreHTTPSErrors: process.env.SPLUNK_NATIVE_INSECURE_LOOPBACK === '1' });
+    // Native browser tests are never allowed to reach external services,
+    // including CDN redirects or third-party alert destinations.
+    await context.route('**/*', async route => {
+      const url = new URL(route.request().url());
+      if (['http:', 'https:'].includes(url.protocol) &&
+          !['127.0.0.1', '[::1]', '::1'].includes(url.hostname)) {
+        return route.abort();
+      }
+      return route.continue();
+    });
     const page = await context.newPage();
     await setup(page, web, process.env.SPLUNK_NATIVE_USER, process.env.SPLUNK_NATIVE_PASSWORD);
 
@@ -141,7 +151,7 @@ async function main() {
     await page.getByText(/Latest observed finding state within the selected time range/i).waitFor({ timeout: 20000 });
     const dashboard = await inspect(page, 'data/ui/views/darkmoon_findings');
     assert.equal(dashboard.entry.length, 1);
-    const action = await inspect(page, 'admin/alert_actions/darkmoon_campaign');
+    const action = await inspect(page, 'alerts/alert_actions/darkmoon_campaign');
     assert.equal(action.entry.length, 1);
     console.log('PASS native dashboard and alert registration');
     console.log('NATIVE WEB/SplunkJS PASS');
