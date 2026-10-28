@@ -11,6 +11,7 @@ on:
       - 'mcp/community/service.py'
       - 'mcp/community/static/app.js'
       - 'tests/community/test_finding_lifecycle.py'
+      - 'tests/community/test_finding_history_bounded.py'
       - 'tests/community/test_community.py'
       - 'tests/community/browser_acceptance.cjs'
       - '.github/workflows/finding-lifecycle-verification.yml'
@@ -34,10 +35,14 @@ jobs:
         run: python -m pip install pytest -r mcp/requirements.txt -r mcp/community/requirements.txt
       - name: Verify syntax of lifecycle implementation and browser consumer
         run: |
-          python -m py_compile mcp/api/json_storage.py mcp/api/live_push.py mcp/community/finding_lifecycle.py mcp/community/api.py mcp/community/service.py tests/community/test_finding_lifecycle.py
+          python -m py_compile mcp/api/json_storage.py mcp/api/live_push.py mcp/community/finding_lifecycle.py mcp/community/api.py mcp/community/service.py tests/community/test_finding_lifecycle.py tests/community/test_finding_history_bounded.py
           node --check mcp/community/static/app.js
           node --check tests/community/browser_acceptance.cjs
       - name: Run offline finding lifecycle API and storage tests
         env:
           PYTHONPATH: mcp
         run: python -m pytest tests/community/test_finding_lifecycle.py -v
+      - name: Verify bounded finding history, concurrency and retained memory
+        env:
+          PYTHONPATH: mcp
+        run: python -m pytest tests/community/test_finding_history_bounded.py -v -s

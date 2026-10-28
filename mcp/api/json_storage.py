@@ -412,10 +412,11 @@ def record_finding_event(campaign, finding, event, previous_status=None, source=
            "status": finding.get("status"), "source": source}
     try:
         _validate_finding_history_event(row)
-    except FindingHistoryUnavailable as exc:
+        encoded = json.dumps(row, separators=(",", ":"), ensure_ascii=False, allow_nan=False) + "\n"
+        encoded_size = len(encoded.encode("utf-8"))
+    except (FindingHistoryUnavailable, UnicodeError, ValueError, TypeError) as exc:
         raise ValueError("Finding lifecycle metadata is invalid") from exc
-    encoded = json.dumps(row, separators=(",", ":"), ensure_ascii=False) + "\n"
-    if len(encoded.encode("utf-8")) > FINDING_HISTORY_MAX_LINE_BYTES:
+    if encoded_size > FINDING_HISTORY_MAX_LINE_BYTES:
         raise ValueError("Finding lifecycle metadata exceeds the journal row limit")
     init_finding_history()
     with _file_lock(FINDING_HISTORY_FILE):
@@ -439,17 +440,28 @@ def _finding_history_row(stream):
         if len(line) > FINDING_HISTORY_MAX_LINE_BYTES or not line.endswith(b"\n"):
             raise FindingHistoryUnavailable("Finding history journal has an oversized or incomplete row")
         if not line.strip():
-            continue
-        row = json.loads(line.decode("utf-8"))
+            raise FindingHistoryUnavailable("Finding history journal contains an empty row")
+        row = json.loads(line.decode("utf-8"), parse_constant=_finding_history_reject_constant)
         if not isinstance(row, dict):
             raise FindingHistoryUnavailable("Finding history journal needs object rows")
+        # json.loads permits escaped lone surrogates, even in stored extension
+        # fields. Reject before any projection can reach UTF-8 HTTP output.
+        try:
+            json.dumps(row, ensure_ascii=False, allow_nan=False).encode("utf-8")
+        except (UnicodeError, ValueError, TypeError, RecursionError) as exc:
+            raise FindingHistoryUnavailable("Finding history journal contains invalid Unicode or metadata") from exc
         return row
+
+
+def _finding_history_reject_constant(value):
+    raise FindingHistoryUnavailable("Finding history journal contains non-JSON numeric data")
 
 
 def _finding_history_timestamp(value):
     from datetime import datetime
     if not isinstance(value, str) or len(value) > 64:
         raise FindingHistoryUnavailable("Finding history timestamp is unavailable")
+    _finding_history_utf8(value)
     try:
         instant = datetime.fromisoformat(value.replace("Z", "+00:00"))
         if instant.tzinfo is None or instant.utcoffset() is None:
@@ -466,10 +478,21 @@ def _validate_finding_history_event(row):
     for key in ("id", "campaign_id", "target_id", "finding_id"):
         if not isinstance(row.get(key), str) or not row[key] or len(row[key]) > 200:
             raise FindingHistoryUnavailable("Finding history event identity is unavailable")
+        _finding_history_utf8(row[key])
     for key in ("project_id", "previous_status", "status", "source"):
         value = row.get(key)
-        if value is not None and (not isinstance(value, str) or len(value) > 200):
-            raise FindingHistoryUnavailable("Finding history event metadata is invalid")
+        if value is not None:
+            if not isinstance(value, str) or len(value) > 200:
+                raise FindingHistoryUnavailable("Finding history event metadata is invalid")
+            _finding_history_utf8(value)
+
+
+def _finding_history_utf8(value):
+    """JSON permits escaped lone surrogates; HTTP and JSONL UTF-8 do not."""
+    try:
+        value.encode("utf-8")
+    except UnicodeError as exc:
+        raise FindingHistoryUnavailable("Finding history journal contains invalid Unicode") from exc
 
 
 def load_finding_history(*, target_id=None, limit=None, offset=0):
