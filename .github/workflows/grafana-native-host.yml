@@ -1,0 +1,109 @@
+name: Grafana native-host integration
+on:
+  workflow_dispatch:
+  push:
+    branches: [pro]
+    paths:
+      - 'integrations/upstream/grafana/**'
+      - '.github/workflows/grafana-native-host.yml'
+permissions:
+  contents: read
+concurrency:
+  group: grafana-native-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: integrations/upstream/grafana/plugin/go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build actual fork plugin package
+        working-directory: integrations/upstream/grafana/plugin
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+          go run github.com/magefile/mage -v build:linux
+          test -x dist/datasource/gpx_darkmoon_linux_amd64
+          test -f dist/datasource/plugin.json
+      - name: Boot private fixture and Grafana
+        env:
+          GRAFANA_ADMIN: offline-test-password-1234
+        run: |
+          set -euo pipefail
+          trap 'docker logs dm-grafana 2>&1 | tail -100 || true; docker rm -f dm-grafana dm-api >/dev/null 2>&1 || true; docker network rm dm-private >/dev/null 2>&1 || true' EXIT
+          docker network create --internal dm-private
+          docker run -d --name dm-api --network dm-private \
+            -v "$PWD/integrations/upstream/grafana/fixtures:/fixture:ro" \
+            -e PORT=8080 python:3.12-slim python /fixture/mock_server.py
+          cat > "$RUNNER_TEMP/ds.yaml" <<'EOF'
+          apiVersion: 1
+          datasources:
+            - name: Darkmoon Fixture
+              type: darkmoon-securityposture-datasource
+              uid: darkmoon-fixture
+              access: proxy
+              jsonData:
+                baseUrl: http://dm-api:8080
+              secureJsonData:
+                darkmoonToken: fixture-only
+          EOF
+          cat > "$RUNNER_TEMP/app.yaml" <<'EOF'
+          apiVersion: 1
+          apps:
+            - type: darkmoon-securityposture-app
+              org_id: 1
+              disabled: false
+          EOF
+          docker run -d --name dm-grafana --network dm-private \
+            -p 127.0.0.1:3009:3000 \
+            -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=darkmoon-securityposture-app,darkmoon-securityposture-datasource \
+            -e GF_ANALYTICS_REPORTING_ENABLED=false -e GF_ANALYTICS_CHECK_FOR_UPDATES=false \
+            -e GF_SECURITY_ADMIN_USER=admin -e GF_SECURITY_ADMIN_PASSWORD="$GRAFANA_ADMIN" \
+            -v "$PWD/integrations/upstream/grafana/plugin/dist:/var/lib/grafana/plugins/darkmoon-securityposture-app:ro" \
+            -v "$RUNNER_TEMP/ds.yaml:/etc/grafana/provisioning/datasources/dm.yaml:ro" \
+            -v "$RUNNER_TEMP/app.yaml:/etc/grafana/provisioning/plugins/dm.yaml:ro" \
+            grafana/grafana-oss:13.1.0
+          for n in $(seq 1 100); do
+            if curl -fsS --max-time 2 http://127.0.0.1:3009/api/health > "$RUNNER_TEMP/grafana-health.json"; then break; fi
+            sleep 2
+          done
+          curl -fsS -u "admin:$GRAFANA_ADMIN" http://127.0.0.1:3009/api/datasources/uid/darkmoon-fixture > "$RUNNER_TEMP/datasource.json"
+          curl -fsS -u "admin:$GRAFANA_ADMIN" http://127.0.0.1:3009/api/plugins/darkmoon-securityposture-app > "$RUNNER_TEMP/app.json"
+          cat > "$RUNNER_TEMP/query.json" <<'EOF'
+          {"from":"1735689600000","to":"1767225600000","queries":[{"refId":"A","datasource":{"uid":"darkmoon-fixture","type":"darkmoon-securityposture-datasource"},"queryType":"retest","retest_id":"retest_demo_1","intervalMs":60000,"maxDataPoints":100}]}
+          EOF
+          curl -fsS --max-time 20 -u "admin:$GRAFANA_ADMIN" -H 'Content-Type: application/json' \
+            --data-binary "@$RUNNER_TEMP/query.json" \
+            http://127.0.0.1:3009/api/ds/query > "$RUNNER_TEMP/query-result.json"
+          python3 - "$RUNNER_TEMP/datasource.json" "$RUNNER_TEMP/app.json" "$RUNNER_TEMP/query-result.json" <<'PY'
+          import json,sys
+          ds,app,res=(json.load(open(p)) for p in sys.argv[1:])
+          assert ds.get("uid")=="darkmoon-fixture",ds
+          assert app.get("id")=="darkmoon-securityposture-app",app
+          result=res["results"]["A"]
+          assert not result.get("error"),result.get("error")
+          frames=result.get("frames",[])
+          assert [f["schema"]["name"] for f in frames]==["retest_state","retest"],result
+          state=frames[0]["data"]["values"]
+          for col,value in [(1,"completed"),(2,"camp_demo_01"),(3,"camp_demo_04"),(4,"tgt_web"),(5,"run_demo_retest")]:
+              assert state[col][0]==value,(col,state[col])
+          print("PASS: packaged Grafana app, nested datasource and retest lifecycle")
+          PY
+      - name: Keep nonsecret host metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grafana-host-metadata
+          path: |
+            ${{ runner.temp }}/grafana-health.json
+            ${{ runner.temp }}/app.json
+            ${{ runner.temp }}/datasource.json
+          if-no-files-found: warn
