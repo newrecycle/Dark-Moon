@@ -14,7 +14,7 @@ if [[ "$PROMPT" == *PROGRAM=* ]]; then
   S="${S%% *}"
 fi
 case "$S" in
-  high|empty|nonempty_pass|medium|missing_findings|malformed_findings|wrong_findings_type|foreign_findings|failed|stopped|timed_out|running) ;;
+  high|empty|nonempty_pass|medium|missing_findings|malformed_findings|wrong_findings_type|foreign_findings|failed|stopped|timed_out|running|ambiguous_campaigns) ;;
   *) echo "Synthetic fixture scenario unavailable" >&2; exit 2;;
 esac
 ID="camp_native_$(date +%s)_$"
@@ -41,4 +41,8 @@ case "$S" in
 EOF
     ;;
 esac
+if [ "$S" = "ambiguous_campaigns" ]; then
+  # A second freshly created file has no trustworthy link to the first run.
+  cp "$D/campaigns/$ID.json" "$D/campaigns/${ID}_second.json"
+fi
 printf 'Synthetic report with redacted-only metadata.\n' > "$R/native-report.md"
