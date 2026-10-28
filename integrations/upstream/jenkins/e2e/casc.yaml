@@ -36,7 +36,7 @@ jobs:
                     credentialsId: credential, cliPath: command,
                     ossDataDir: '/opt/synthetic data',
                     ossReportsDir: '/opt/synthetic reports',
-                    ossScript: '/opt/engine-standin.sh', extraArgs: '--poll 1',
+                    ossScript: '/opt/engine-standin.sh', extraArgs: "--poll 1 --program ${params.SCENARIO}",
                     timeout: 12, recordIssues: true, archiveReport: true
                   recordIssues(enabledForFailure: true,
                     tools: [sarif(pattern: 'darkmoon-reports/darkmoon.sarif')])
