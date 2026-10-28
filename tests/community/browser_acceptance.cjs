@@ -437,6 +437,8 @@ const assert = require("node:assert/strict");
         await page.locator('nav a[href="#surface"]').click();
         await page.locator('#path-select').selectOption(recordedPathId);
         await page.locator('#path-reveal').click();
+        await page.waitForFunction(() => document.querySelector('#path-play')?.disabled === false,
+          undefined, {timeout:6000});
         assert.equal(await page.locator('#path-play').isDisabled(),false);
         // Exercise playback's own freshness check independently of SSE rerender.
         await page.evaluate(() => streamControl.abort());
