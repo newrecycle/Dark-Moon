@@ -192,3 +192,14 @@ identity-tied ordering. Full JSON-store loading remains; these are live offset
 pages, not snapshot-isolated cursors. Source/syntax review only; post-commit
 verification is delegated. See the dated compatibility record for limits and
 remaining finding-journal scalability work.
+
+## Bounded finding-history API reader — 28 October 2026
+
+The history endpoint now uses bounded binary JSONL reads and a bounded sorted
+page selection while checking all stored rows and preserving exact totals/order.
+Offsets intentionally stop at 100000; lines at 65536 bytes. Invalid/incomplete
+storage fails explicitly, and event writers enforce the same metadata/size
+contract before append. Internal unpaged reads remain available, but the HTTP
+route always pages. Full scans, lock duration, retention/indexing and separate
+snapshot/journal writes remain limitations. Behavioral/resource verification is
+delegated after this source/AST checkpoint.

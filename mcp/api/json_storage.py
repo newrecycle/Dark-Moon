@@ -374,6 +374,8 @@ def find_project_by_target_id(target_id: Optional[str]) -> Optional[Dict[str, An
 # ---------------------------------------------------------------------------
 # Keep outside VULNERABILITIES_DIR, which contains campaign snapshots only.
 FINDING_HISTORY_FILE = DATA_DIR / "finding-history.jsonl"
+FINDING_HISTORY_MAX_LINE_BYTES = 65536
+FINDING_HISTORY_MAX_OFFSET = 100000
 
 
 def _finding_journal_start():
@@ -402,16 +404,23 @@ def record_finding_event(campaign, finding, event, previous_status=None, source=
         raise ValueError("Unsupported finding lifecycle event")
     if not all(isinstance(v, str) and v for v in (campaign.get("id"), finding.get("id"), campaign.get("target_id"))):
         raise ValueError("Finding history requires exact campaign, target and finding IDs")
-    init_finding_history()
     row = {"kind": "finding_event", "id": "fh_" + uuid.uuid4().hex,
            "recorded_at": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
            "event": event, "campaign_id": campaign["id"], "target_id": campaign["target_id"],
            "project_id": campaign.get("project_id"), "finding_id": finding["id"],
            "previous_status": previous_status if event == "finding.status_changed" else None,
            "status": finding.get("status"), "source": source}
+    try:
+        _validate_finding_history_event(row)
+    except FindingHistoryUnavailable as exc:
+        raise ValueError("Finding lifecycle metadata is invalid") from exc
+    encoded = json.dumps(row, separators=(",", ":"), ensure_ascii=False) + "\n"
+    if len(encoded.encode("utf-8")) > FINDING_HISTORY_MAX_LINE_BYTES:
+        raise ValueError("Finding lifecycle metadata exceeds the journal row limit")
+    init_finding_history()
     with _file_lock(FINDING_HISTORY_FILE):
         with FINDING_HISTORY_FILE.open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps(row, separators=(",", ":"), ensure_ascii=False) + "\n")
+            stream.write(encoded)
             stream.flush()
             os.fsync(stream.fileno())
     return row
@@ -421,18 +430,86 @@ class FindingHistoryUnavailable(RuntimeError):
     """The persisted finding journal is unreadable or structurally invalid."""
 
 
-def load_finding_history():
-    """Read recorded events; never disguise damaged storage as an empty result."""
+def _finding_history_row(stream):
+    """Bound even a malformed, unterminated journal line before decoding it."""
+    while True:
+        line = stream.readline(FINDING_HISTORY_MAX_LINE_BYTES + 1)
+        if not line:
+            return None
+        if len(line) > FINDING_HISTORY_MAX_LINE_BYTES or not line.endswith(b"\n"):
+            raise FindingHistoryUnavailable("Finding history journal has an oversized or incomplete row")
+        if not line.strip():
+            continue
+        row = json.loads(line.decode("utf-8"))
+        if not isinstance(row, dict):
+            raise FindingHistoryUnavailable("Finding history journal needs object rows")
+        return row
+
+
+def _finding_history_timestamp(value):
+    from datetime import datetime
+    if not isinstance(value, str) or len(value) > 64:
+        raise FindingHistoryUnavailable("Finding history timestamp is unavailable")
+    try:
+        instant = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if instant.tzinfo is None or instant.utcoffset() is None:
+            raise ValueError("missing timezone")
+    except (ValueError, OverflowError) as exc:
+        raise FindingHistoryUnavailable("Finding history timestamp is invalid") from exc
+
+
+def _validate_finding_history_event(row):
+    """Validate every row, including rows outside the requested target/page."""
+    if row.get("kind") != "finding_event" or row.get("event") not in ("finding.created", "finding.status_changed"):
+        raise FindingHistoryUnavailable("Finding history journal contains unexpected data")
+    _finding_history_timestamp(row.get("recorded_at"))
+    for key in ("id", "campaign_id", "target_id", "finding_id"):
+        if not isinstance(row.get(key), str) or not row[key] or len(row[key]) > 200:
+            raise FindingHistoryUnavailable("Finding history event identity is unavailable")
+    for key in ("project_id", "previous_status", "status", "source"):
+        value = row.get(key)
+        if value is not None and (not isinstance(value, str) or len(value) > 200):
+            raise FindingHistoryUnavailable("Finding history event metadata is invalid")
+
+
+def load_finding_history(*, target_id=None, limit=None, offset=0):
+    """Read validated events, optionally retaining only one bounded sorted page.
+
+    Unpaged callers retain the legacy append-order list. HTTP callers supply a
+    limit: the reader scans all lines under the journal lock for an exact total
+    and corruption checking, but retains at most offset+limit projected events.
+    """
+    import heapq
+    if type(offset) is not int or not 0 <= offset <= FINDING_HISTORY_MAX_OFFSET:
+        raise ValueError("Finding history offset is outside the supported range")
+    if limit is not None and (type(limit) is not int or not 1 <= limit <= 500):
+        raise ValueError("Finding history limit must be 1 to 500")
     try:
         with _file_lock(FINDING_HISTORY_FILE):
             if not FINDING_HISTORY_FILE.exists():
-                return {"recording_started_at": None, "events": []}
-            with FINDING_HISTORY_FILE.open(encoding="utf-8") as stream:
-                rows = [json.loads(line) for line in stream if line.strip()]
-        if not rows or rows[0].get("kind") != "journal_started":
-            raise FindingHistoryUnavailable("Finding history journal header unavailable")
-        if any(row.get("kind") != "finding_event" for row in rows[1:]):
-            raise FindingHistoryUnavailable("Finding history journal contains unexpected data")
-        return {"recording_started_at": rows[0]["recorded_at"], "events": rows[1:]}
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+                return {"recording_started_at": None, "events": [], "total": 0}
+            with FINDING_HISTORY_FILE.open("rb") as stream:
+                header = _finding_history_row(stream)
+                if header is None or header.get("kind") != "journal_started" or type(header.get("version")) is not int or header["version"] != 1:
+                    raise FindingHistoryUnavailable("Finding history journal header unavailable")
+                _finding_history_timestamp(header.get("recorded_at"))
+                total = 0
+                safe = ("id", "event", "recorded_at", "campaign_id", "target_id", "project_id",
+                        "finding_id", "previous_status", "status", "source")
+                def selected():
+                    nonlocal total
+                    while True:
+                        row = _finding_history_row(stream)
+                        if row is None:
+                            return
+                        _validate_finding_history_event(row)
+                        if target_id is None or row["target_id"] == target_id:
+                            total += 1
+                            yield {key: row.get(key) for key in safe} if limit is not None else row
+                if limit is None:
+                    events = list(selected())
+                else:
+                    events = heapq.nsmallest(offset + limit, selected(), key=lambda row: (row["recorded_at"], row["id"]))[offset:]
+                return {"recording_started_at": header["recorded_at"], "events": events, "total": total}
+    except (OSError, UnicodeError, ValueError, TypeError, RecursionError) as exc:
         raise FindingHistoryUnavailable("Finding history journal is unavailable") from exc

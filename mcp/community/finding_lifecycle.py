@@ -49,19 +49,17 @@ def history_page(params):
         if value > maximum or (key == "limit" and value == 0):
             raise ValueError(key + " is outside the supported range")
         return value
-    limit, offset = number("limit", 100, 500), number("offset", 0, 1000000000)
-    journal = data.load_finding_history()
-    events = [e for e in journal["events"] if target is None or e.get("target_id") == target]
-    events.sort(key=lambda e: (e["recorded_at"], e["id"]))
-    total = len(events)
-    safe = ("id", "event", "recorded_at", "campaign_id", "target_id", "project_id",
-            "finding_id", "previous_status", "status", "source")
-    page = [{k: e.get(k) for k in safe} for e in events[offset:offset + limit]]
+    limit, offset = number("limit", 100, 500), number("offset", 0, data.FINDING_HISTORY_MAX_OFFSET)
+    journal = data.load_finding_history(target_id=target, limit=limit, offset=offset)
+    page, total = journal["events"], journal["total"]
     end = offset + len(page)
+    has_more = end < total and end <= data.FINDING_HISTORY_MAX_OFFSET
     return {"data": page, "total": total, "offset": offset, "limit": limit,
-            "has_more": end < total, "next_offset": end if end < total else None,
+            "has_more": has_more, "next_offset": end if has_more else None,
+            "paging_limit_reached": end < total and not has_more,
             "target_id": target, "order": "recorded_at_asc,id_asc",
             "recording_started_at": journal["recording_started_at"],
+            "max_offset": data.FINDING_HISTORY_MAX_OFFSET, "page_consistency": "live_offset",
             "history_complete": False, "projection": "recorded_finding_mutations_v1"}
 
 

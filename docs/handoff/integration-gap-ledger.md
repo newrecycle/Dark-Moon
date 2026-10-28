@@ -182,3 +182,13 @@ matching-list sort; the underlying JSON store still loads its complete state.
 Live page shifts and the offset ceiling are explicit. HTTP/browser/resource
 verification is delegated in the post-commit prompt. Full-load finding-journal
 paging remains open; no all-gaps-closed or vendor-wire claim is made.
+
+## Finding-journal page selection continuation — 28 October 2026
+
+The review's full-load/full-sort HTTP history path is replaced by bounded line
+reads and bounded page selection, with complete-stream corruption checking and
+exact matching totals. A documented 100000 offset ceiling bounds the selection
+heap. The source checkpoint is not a memory/latency or concurrency verification
+claim: full journal scans and append-lock contention remain, as do indexing,
+retention and cross-file transaction/recovery design. Verification is delegated
+through the post-commit prompt rather than run in this implementation pass.

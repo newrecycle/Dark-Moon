@@ -270,7 +270,7 @@ No prior status transitions, timestamps or historical counts are invented.
 ### API05 — GET `/api/v1/vulnerabilities/history`
 
 Accepts only `target_id` (optional exact registered ID), `offset`
-(default 0, maximum 1,000,000,000) and `limit` (default 100, 1–500).
+(default 0, maximum 100,000 after the bounded-reader follow-up below) and `limit` (default 100, 1–500).
 Duplicate/unknown query keys, blanks and nondecimal values return 400.
 Nonexistent target returns 404. Successful responses carry
 `data`, `total`, `offset`, `limit`, `has_more`, `next_offset`,
@@ -593,3 +593,39 @@ auth/identity/limit regressions, large-queue selection/resource measurements,
 concurrent insert/terminal transitions, browser independent-pager behavior, and
 existing suite regressions. No tests, assessments or native hosts ran here.
 The finding-history journal's full-load/sort limit remains a separate open item.
+
+## Bounded finding-history reader — 28 October 2026
+
+The HTTP history path no longer materializes and sorts all journal events.
+`load_finding_history(target_id=..., limit=..., offset=...)` reads bounded binary
+lines, validates every row (including other targets and rows beyond the page),
+counts exact matching events, and retains only the smallest `offset + limit`
+public projections in the existing recorded_at/id order. The HTTP default is
+100/max 500 rows. Unpaged internal callers retain their append-order full-list
+interface; the route always supplies page bounds.
+
+**Intentional resource limit:** accepted offsets now stop at 100000 rather than
+1000000000, limiting retained heap entries to 100500. Responses add `max_offset`,
+`page_consistency: live_offset` and `paging_limit_reached`. `has_more`/
+`next_offset` never direct callers beyond the supported ceiling. Target filtering
+can narrow large journals; this is not an indexed/cursor contract.
+
+Each JSONL line is capped at 65536 bytes including its newline. Missing/invalid
+headers, unsupported versions, missing identities/timestamps, invalid metadata,
+malformed/deeply nested JSON, oversized rows and an incomplete final line remain
+storage errors (HTTP 500), not bad client queries or empty history. Writers
+validate and size-bound their own event before appending. Existing damaged data
+is not truncated, silently repaired, dropped or backfilled. Extra stored fields
+do not reach a paginated response.
+
+The reader still scans the journal under its existing process/thread file lock,
+so CPU/I/O cost and append contention scale with journal length. Offset pages
+remain live and snapshot/journal writes remain separate operations. A durable
+index, retention/rotation policy, crash-atomic writes and multi-process recovery
+are separate operational work; this change does not claim to solve them.
+
+**Checks:** source review, Python AST parsing and whitespace inspection only.
+**Delegated:** reference-order/page comparisons, large-journal memory/latency,
+UTF-8/line-size boundaries, corruption outside selected pages/targets, writer
+validation, concurrent append/restart behavior and focused/full regressions.
+No behavioral test, assessment, native/vendor execution or external delivery ran.
