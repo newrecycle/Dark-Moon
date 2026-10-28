@@ -41,7 +41,7 @@ if cmd == "run":
         "reason": "fixture",
     }
     if case == "wrong-count": payload["total"] = total + 1
-    if case == "wrong-offending": payload["offending"] = {}
+    if case == "wrong-offending": payload["offending"] = {"high": 99}
     if case == "wrong-verdict": payload["verdict"] = "pass" if offending else "fail"
     if case == "wrong-exit": payload["verdict"] = "pass"; payload["offending"] = {}
     print(json.dumps(payload))
