@@ -22,6 +22,7 @@ let token = "",
   viewControl,
   scheduleMode = false;
 let currentDetailJob = "", lastFindingsHash = "", jobDetailRequest = 0;
+let jobRevealPending = false, jobRevealUntil = 0;
 let findingDetailRequest = 0, currentFindingRef = "";
 async function grantedRequest(kind, id, path) {
   const currentToken = token;
@@ -36,7 +37,15 @@ async function grantedRequest(kind, id, path) {
 }
 function clearRevealedContent() {
   findingDetailRequest++;
+  jobDetailRequest++;
+  jobRevealPending = false;
+  jobRevealUntil = 0;
   document.querySelectorAll("[data-revealed-content]").forEach(node => node.remove());
+  const log = $("#job-log");
+  if (log && log.dataset.revealedContent) {
+    log.textContent = "Raw output cleared; use an explicit grant to reveal again.";
+    delete log.dataset.revealedContent;
+  }
 }
 let runQueueOffset = 0, runActiveOffset = 0, runQueueRequest = 0, runQueueControl;
 const severityColors = {
@@ -636,6 +645,7 @@ document.addEventListener("click", async (e) => {
       const request = jobDetailRequest;
       if (identity?.role !== "admin") return;
       const output = $("#job-log");
+      jobRevealPending = true;
       if (output) output.textContent = "Loading untrusted output…";
       try {
         const log = await grantedRequest("run", id,
@@ -643,9 +653,13 @@ document.addEventListener("click", async (e) => {
         if (request === jobDetailRequest && currentDetailJob === id && $("#detail").open && $("#job-log")) {
           $("#job-log").textContent = log.data.map((row) => row.message).join("\n") || "No raw lines in the bounded window.";
           if (log.truncated) $("#job-log").textContent += "\n[output window truncated]";
+          $("#job-log").dataset.revealedContent = "true";
+          jobRevealUntil = Date.now() + 45000;
         }
       } catch (error) {
         if (request === jobDetailRequest && currentDetailJob === id && $("#detail").open && $("#job-log")) $("#job-log").textContent = "Log unavailable: " + error.message;
+      } finally {
+        jobRevealPending = false;
       }
     } else if (b.dataset.job) await showJob(b.dataset.job);
     else if (b.dataset.cancel) {
@@ -770,6 +784,16 @@ $("#remediation-form").addEventListener("submit", async (e) => {
 });
 window.addEventListener("hashchange", render);
 setInterval(() => {
+  if (jobRevealPending) return;
+  if (jobRevealUntil && Date.now() < jobRevealUntil) return;
+  if (jobRevealUntil) {
+    jobRevealUntil = 0;
+    const log = $("#job-log");
+    if (log) {
+      log.textContent = "Raw output authorization expired.";
+      delete log.dataset.revealedContent;
+    }
+  }
   if (currentDetailJob && $("#detail").open)
     showJob(currentDetailJob).catch(fail);
 }, 2000);
