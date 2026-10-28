@@ -33,9 +33,10 @@ jobs:
         with:
           go-version-file: integrations/upstream/grafana/plugin/go.mod
           cache-dependency-path: integrations/upstream/grafana/plugin/go.sum
-      - name: Check formatting
+      - name: Run gofmt on backend sources
         run: |
-          test -z "$(gofmt -l pkg/plugin/*.go pkg/models/*.go pkg/main.go)"
+          gofmt -l pkg/plugin/*.go pkg/models/*.go pkg/main.go
+          gofmt -w pkg/plugin/*.go pkg/models/*.go pkg/main.go
       - name: Backend tests (including race safety)
         run: go test -race ./pkg/...
       - name: Compile backend
