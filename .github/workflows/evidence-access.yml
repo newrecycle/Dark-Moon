@@ -1,0 +1,33 @@
+name: Evidence access policy verification
+on:
+  workflow_dispatch:
+  push:
+    branches: [pro]
+    paths:
+      - 'mcp/community/evidence_access.py'
+      - 'mcp/community/api.py'
+      - 'mcp/community/server.py'
+      - 'mcp/community/static/app.js'
+      - 'mcp/community/static/workspace.js'
+      - 'tests/community/test_evidence_access.py'
+      - 'tests/community/browser_acceptance.cjs'
+      - '.github/workflows/evidence-access.yml'
+permissions:
+  contents: read
+jobs:
+  backend-evidence-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install backend dependencies
+        run: python -m pip install -r mcp/requirements.txt -r mcp/community/requirements.txt pytest
+      - name: Run scoped evidence HTTP and grant tests
+        env:
+          PYTHONPATH: mcp
+        run: python -m pytest tests/community/test_evidence_access.py -q
