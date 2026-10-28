@@ -251,26 +251,30 @@ class API:
             else:
                 return False
             return True
-        if resource == "scheduler":
+        if resource in {"scheduler", "schedules"}:
+            scheduler = self.service.scheduler
+            wrapped = resource == "scheduler"
             if method == "GET" and len(parts) == 1:
-                handler.send(envelope(self.store.items("schedules")))
+                rows = self.store.items("schedules")
+                handler.send(envelope(rows) if wrapped else rows)
+            elif method == "POST" and parts[1:] == ["preview"]:
+                handler.send(scheduler.preview(handler.body()))
             elif method == "POST" and len(parts) == 1:
-                raw = handler.body()
-                if raw.get("run_at"):
-                    raw["next_run"], raw["one_shot"] = raw["run_at"], True
-                handler.send({"data": self.service.scheduler.create(raw)}, status=201)
-            elif len(parts) == 2 and method in {"PATCH", "DELETE"}:
+                item = scheduler.create(handler.body())
+                handler.send({"data": item} if wrapped else item, status=201)
+            elif len(parts) == 3 and parts[2] == "duplicate" and method == "POST":
+                item = scheduler.duplicate(parts[1], handler.body())
+                handler.send({"data":item} if wrapped else item, status=201)
+            elif len(parts) == 3 and parts[2] == "history" and method == "GET":
+                handler.send(envelope(scheduler.history(parts[1])))
+            elif len(parts) == 2 and method in {"GET", "PATCH", "DELETE"}:
                 item = self.store.get("schedules", identifier(parts[1]))
-                if not item:
-                    raise KeyError(parts[1])
-                if method == "DELETE":
-                    self.store.update(lambda state: state["schedules"].pop(parts[1]))
-                    handler.send({"deleted": parts[1]})
+                if not item: raise KeyError(parts[1])
+                if method == "GET": handler.send({"data":item} if wrapped else item)
+                elif method == "DELETE": handler.send(scheduler.delete(parts[1]))
                 else:
-                    raw = handler.body()
-                    if set(raw) != {"enabled"} or not isinstance(raw["enabled"], bool):
-                        raise ValueError("PATCH accepts an enabled boolean")
-                    handler.send({"data": self.service.scheduler.set_enabled(parts[1], raw["enabled"])})
+                    item = scheduler.update(parts[1], handler.body())
+                    handler.send({"data":item} if wrapped else item)
             else:
                 return False
             return True

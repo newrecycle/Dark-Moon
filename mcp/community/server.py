@@ -119,11 +119,12 @@ def handler_for(service, allowed_hosts):
                 self.close_connection = True
                 return self.send({"error": "Cross-origin requests are disabled"}, status=403)
             path = unquote(urlsplit(self.path).path)
-            if method == "GET" and path in {"/", "/callback", "/app.js", "/app.css", "/workspace.js", "/paths.js", "/finding-query.js"}:
+            if method == "GET" and path in {"/", "/callback", "/app.js", "/app.css", "/workspace.js", "/paths.js", "/finding-query.js", "/schedules.js"}:
                 name, kind = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
                               "/callback": ("index.html", "text/html"), "/workspace.js": ("workspace.js", "text/javascript"),
                               "/app.css": ("app.css", "text/css"), "/paths.js": ("paths.js", "text/javascript"),
-                              "/finding-query.js": ("finding-query.js", "text/javascript")}[path]
+                              "/finding-query.js": ("finding-query.js", "text/javascript"),
+                              "/schedules.js": ("schedules.js", "text/javascript")}[path]
                 return self.send((STATIC / name).read_bytes(), kind)
             if method == "GET" and path == "/healthz":
                 return self.send({"status": "ok"})

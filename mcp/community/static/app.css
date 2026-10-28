@@ -765,6 +765,10 @@ select option {
 .findings-controls :is(input,select) { min-width: 0; width: 100%; box-sizing: border-box; }
 .finding-open { text-align: left; white-space: normal; }
 .finding-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.schedule-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 150px; }
+#schedule-preview { max-height: 240px; overflow: auto; margin: 12px 0; overflow-wrap: anywhere; }
+#schedule-preview li { margin: 10px 0; }
+#schedule-preview small { display: block; }
 
 .asset-fields { display: grid; gap: 10px; }
 .asset-fields dt { color: var(--muted); font-size: 11px; }

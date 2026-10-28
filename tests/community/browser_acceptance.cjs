@@ -767,11 +767,59 @@ const assert = require("node:assert/strict");
     });
     await page.locator("#launch-form input[name=name]").fill("Future fixture");
     await page.locator("#launch-form input[name=target]").fill("test.example");
+    await page.locator('#launch-form [name=schedule_name]').fill('Month-end review');
+    await page.locator('#launch-form [name=schedule_kind]').selectOption('monthly');
+    await page.locator('#launch-form [name=schedule_every]').fill('2');
+    await page.locator('#launch-form [name=schedule_timezone]').fill('America/Edmonton');
     await page
       .locator("#launch-form input[name=first_run]")
-      .fill("2099-01-01T12:00");
+      .fill("2099-01-31T12:00");
+    await page.locator('#schedule-preview-button').click();
+    await page.locator('#schedule-preview li').first().waitFor();
+    assert.equal(await page.locator('#schedule-preview li').count(),5);
+    assert.match(await page.locator('#schedule-preview').innerText(),/America\/Edmonton/);
+    assert.match(await page.locator('#schedule-preview li').first().innerText(),/2099-01-31T12:00:00-07:00/);
+    await page.screenshot({path:path.join(screenshots,'calendar-preview.png'),fullPage:true});
     await page.locator("#launch-submit").click();
     await page.locator("#launch-dialog").waitFor({ state: "hidden" });
+    assert.match(await page.locator('#content').innerText(),/Every 2 month/);
+    const scheduleId=await page.locator('[data-edit-schedule]').getAttribute('data-edit-schedule');
+    await page.locator('[data-edit-schedule]').click();
+    await page.locator('#launch-dialog[open]').waitFor();
+    await page.evaluate(async id=>api('/api/v1/schedules/'+id,{method:'PATCH',body:JSON.stringify({version:1,display_name:'Concurrent schedule edit'})}),scheduleId);
+    await page.locator('#launch-submit').click();
+    await page.locator('#launch-error').filter({hasText:'Schedule changed'}).waitFor();
+    assert.equal(await page.locator('#launch-dialog').isVisible(),true);
+    await page.locator('#launch-dialog .close-dialog').click();
+    await page.evaluate(()=>refresh());
+    await page.locator('[data-edit-schedule]').click();
+    assert.equal(await page.locator('#launch-form [name=name]').inputValue(),'Future fixture');
+    assert.equal(await page.locator('#launch-form [name=target]').inputValue(),'test.example');
+    await page.locator('#launch-form [name=schedule_kind]').selectOption('once');
+    await page.locator('#launch-form [name=first_run]').fill('2026-03-08T02:30');
+    await page.locator('#schedule-preview-button').click();
+    await page.locator('#schedule-preview').filter({hasText:'does not exist'}).waitFor();
+    await page.locator('#launch-form [name=first_run]').fill('2099-01-31T12:00');
+    await page.locator('#launch-form [name=schedule_name]').fill('One-time fixture');
+    await page.locator('#schedule-preview-button').click();
+    await page.locator('#schedule-preview li').waitFor();
+    assert.equal(await page.locator('#schedule-preview li').count(),1);
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true);
+    await page.locator('#schedule-fields').evaluate(el=>el.scrollIntoView({block:'start'}));
+    await page.screenshot({path:path.join(screenshots,'calendar-mobile.png'),fullPage:true});
+    await page.setViewportSize({width:1440,height:1000});
+    await page.locator('#launch-submit').click();
+    await page.locator('#launch-dialog').waitFor({state:'hidden'});
+    await page.locator('[data-duplicate-schedule]').click();
+    const duplicate=page.locator('tbody tr').filter({hasText:'(copy)'});
+    await duplicate.waitFor();
+    assert.match(await duplicate.innerText(),/Disabled/);
+    await duplicate.locator('[data-schedule-history]').click();
+    await page.getByText('No run history yet',{exact:true}).waitFor();
+    await page.locator('#detail .close-dialog').click();
+    await duplicate.locator('[data-delete-schedule]').click();
+    await page.waitForFunction(()=>document.querySelectorAll('[data-delete-schedule]').length===1);
     await page.locator("[data-toggle-schedule]").click();
     await page.getByRole("button", { name: "Resume", exact: true }).waitFor();
     await page.locator("[data-delete-schedule]").click();
@@ -861,6 +909,7 @@ const assert = require("node:assert/strict");
             "original repo unchanged",
             "PDF download",
             "schedule create/pause/delete",
+            "calendar preview, named timezone, DST rejection, stale edit protection, edit, paused duplicate and history",
             "fake launcher queue",
             "responsive layout",
           ],

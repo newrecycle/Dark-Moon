@@ -4,3 +4,4 @@ cryptography>=41
 PyJWT[crypto]>=2.10,<3
 pypdf[crypto]>=5,<7
 pyHanko>=0.25,<1
+tzdata>=2024.1

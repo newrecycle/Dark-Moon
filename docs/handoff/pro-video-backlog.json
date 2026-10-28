@@ -202,7 +202,8 @@
         "static/workspace.js"
       ],
       "acceptance": "DST transition cases and monthly boundaries tested; pausing/deleting cannot resurrect schedules; concurrent edits preserve versioned state.",
-      "evidence": "scheduler.png: direct still-image observation"
+      "evidence": "scheduler.png: direct still-image observation",
+      "implementation_progress": "One-time, elapsed, daily, weekly and monthly rules with every-N periods, IANA zones, explicit DST fold, gap/month-day skip, preview, versioned editing, paused duplication and retained 100-claim history implemented. Legacy interval semantics preserved; DST/month-boundary/race/API/browser tests added. Month-grid UI, arbitrary cron, multi-weekday rules and occurrence exceptions remain future work; see calendar-scheduling.md."
     },
     {
       "id": "M01",

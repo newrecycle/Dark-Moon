@@ -295,29 +295,125 @@ class Scheduler:
         self.stop_event = threading.Event()
         self.thread = None
 
-    def create(self, raw):
-        spec = launch_spec(raw)
-        interval = int(raw.get("interval_seconds", 86400))
-        if interval < 60 or interval > 366 * 86400:
+    def definition(self, raw):
+        from .calendar_rules import normalize_rule, next_occurrence
+        spec = launch_spec(raw.get("spec", raw))
+        enabled = raw.get("enabled", True)
+        if not isinstance(enabled, bool) or not isinstance(raw.get("one_shot", False), bool):
+            raise ValueError("enabled and one_shot must be boolean")
+        rule = normalize_rule(raw["rule"]) if "rule" in raw else None
+        interval = rule.get("seconds", 86400) if rule else raw.get("interval_seconds", 86400)
+        if not rule:
+            try: interval = int(interval)
+            except (ValueError, TypeError, OverflowError): raise ValueError("Interval must be an integer number of seconds") from None
+        if type(interval) is not int or not 60 <= interval <= 366 * 86400:
             raise ValueError("Interval must be between 60 seconds and 366 days")
-        next_run = instant(raw.get("next_run") or now()).isoformat()
-        if not isinstance(raw.get("enabled", True), bool):
-            raise ValueError("enabled must be boolean")
-        item = {"id": "sched_" + uuid.uuid4().hex[:16], "spec": spec, "enabled": raw.get("enabled", True),
-                "interval_seconds": interval, "next_run": next_run, "one_shot": bool(raw.get("one_shot", False)), "created_at": now()}
+        first = next_occurrence(rule) if rule else instant(raw.get("next_run") or raw.get("run_at") or now())
+        if first is None:
+            raise ValueError("No supported occurrence remains for this rule")
+        display_name = raw.get("display_name", spec["name"])
+        if not isinstance(display_name, str) or not display_name.strip() or len(display_name) > 160:
+            raise ValueError("Schedule display name must contain 1 to 160 characters")
+        return {"spec": spec, "display_name": display_name.strip(), "enabled": enabled,
+                "interval_seconds": interval, "next_run": first.isoformat(),
+                "one_shot": rule["kind"] == "once" if rule else raw.get("one_shot", False) or bool(raw.get("run_at")),
+                **({"rule": rule} if rule else {})}
+
+    def create(self, raw):
+        item = self.definition(raw) | {"id": "sched_" + uuid.uuid4().hex[:16], "version": 1, "created_at": now()}
         return self.store.save("schedules", item)
 
-    def set_enabled(self, schedule_id, enabled):
+    def preview(self, raw, clock=None):
+        from .calendar_rules import next_occurrence
+        item = self.definition(raw)
+        clock = clock or datetime.now(timezone.utc)
+        if clock.tzinfo is None or clock.utcoffset() is None:
+            raise ValueError("Preview clock must have a timezone")
+        clock = clock.astimezone(timezone.utc)
+        current, rows = instant(item["next_run"]), []
+        from zoneinfo import ZoneInfo
+        zone = ZoneInfo(item.get("rule", {}).get("timezone", "UTC"))
+        for _ in range(5):
+            rows.append({"utc": current.isoformat(), "local": current.astimezone(zone).isoformat(), "overdue": current < clock})
+            if item["one_shot"]: break
+            current = next_occurrence(item["rule"], max(clock, current)) if item.get("rule") else max(clock, current) + timedelta(seconds=item["interval_seconds"])
+            if current is None: break
+        return {"occurrences": rows, "timezone": str(zone), "gap_policy": "skip", "missing_month_day_policy": "skip", "definition": item}
+
+    def update(self, schedule_id, raw):
+        if set(raw) - {"version", "enabled", "spec", "rule", "display_name"} or not set(raw) - {"version"}:
+            raise ValueError("Edit enabled, spec, rule or display_name with the current version")
+        if "enabled" in raw and not isinstance(raw["enabled"], bool):
+            raise ValueError("enabled must be boolean")
+        legacy_toggle = set(raw) == {"enabled"}
+        if not legacy_toggle and type(raw.get("version")) is not int:
+            raise ValueError("Schedule edits require the current integer version")
+        spec = launch_spec(raw["spec"]) if "spec" in raw else None
+        from .calendar_rules import normalize_rule, next_occurrence
+        rule = normalize_rule(raw["rule"]) if "rule" in raw else None
+        name = raw.get("display_name")
+        if name is not None and (not isinstance(name, str) or not name.strip() or len(name) > 160):
+            raise ValueError("Schedule display name must contain 1 to 160 characters")
         def change(state):
             item = state.get("schedules", {}).get(identifier(schedule_id))
-            if item is None:
-                raise KeyError(schedule_id)
-            item["enabled"] = enabled
+            if item is None: raise KeyError(schedule_id)
+            version = item.get("version", 1)
+            if not legacy_toggle and raw["version"] != version:
+                raise ValueError("Schedule changed; reload its current version before saving")
+            if spec is not None: item["spec"] = spec
+            if name is not None: item["display_name"] = name.strip()
+            if rule is not None:
+                first = next_occurrence(rule)
+                if first is None: raise ValueError("No supported occurrence remains")
+                item.update(rule=rule, next_run=first.isoformat(), one_shot=rule["kind"] == "once", interval_seconds=rule.get("seconds",86400))
+            if "enabled" in raw: item["enabled"] = raw["enabled"]
+            if set(raw) & {"spec", "rule", "display_name"}:
+                item.update(last_claim_id=None, last_disposition="definition_changed", last_error=None)
+                item.pop("last_job_id", None)
+            item.update(version=version+1, updated_at=now())
             return item
         return self.store.update(change)
 
+    def set_enabled(self, schedule_id, enabled):
+        return self.update(schedule_id, {"enabled": enabled})
+
+    def duplicate(self, schedule_id, raw):
+        if set(raw) != {"version"} or type(raw["version"]) is not int:
+            raise ValueError("Duplicate requires the current integer version")
+        def copy_record(state):
+            old = state.get("schedules", {}).get(identifier(schedule_id))
+            if not old: raise KeyError(schedule_id)
+            if old.get("version",1) != raw["version"]: raise ValueError("Schedule changed; reload before duplicating")
+            item = {k: old[k] for k in ("spec", "rule", "interval_seconds", "next_run", "one_shot") if k in old}
+            # Store serialization makes this a separate record; no historical
+            # job links are copied, and duplicates always start paused.
+            item.update(id="sched_"+uuid.uuid4().hex[:16], display_name=(old.get("display_name",old["spec"]["name"])+" (copy)")[:160],
+                        enabled=False, version=1, created_at=now())
+            state["schedules"][item["id"]] = item
+            return item
+        return self.store.update(copy_record)
+
+    def delete(self, schedule_id):
+        def remove(state):
+            schedules = state.get("schedules", {})
+            if identifier(schedule_id) not in schedules: raise KeyError(schedule_id)
+            del schedules[schedule_id]
+            return {"deleted": schedule_id}
+        return self.store.update(remove)
+
+    def history(self, schedule_id):
+        if not self.store.get("schedules", identifier(schedule_id)): raise KeyError(schedule_id)
+        rows = sorted((h for h in self.store.items("schedule_history") if h["schedule_id"] == schedule_id), key=lambda h: (h["claimed_at"],h["id"]), reverse=True)
+        for row in rows:
+            job = self.store.get("jobs", row.get("job_id", "missing"))
+            if job: row["job_status"], row["campaign_id"] = job["status"], job.get("campaign_id")
+        return rows
+
     def tick(self, clock=None):
         clock = clock or datetime.now(timezone.utc)
+        if clock.tzinfo is None or clock.utcoffset() is None:
+            raise ValueError("Scheduler clock must have a timezone")
+        clock = clock.astimezone(timezone.utc)
         for candidate in self.store.items("schedules"):
             if not candidate["enabled"] or instant(candidate["next_run"]) > clock:
                 continue
@@ -328,12 +424,21 @@ class Scheduler:
                 active = any(j.get("schedule_id") == item["id"] and j["status"] in ACTIVE
                              for j in state.get("jobs", {}).values())
                 due = item["next_run"]
-                item.update(next_run=(clock + timedelta(seconds=item["interval_seconds"])).isoformat(),
+                from .calendar_rules import next_occurrence
+                next_due = next_occurrence(item["rule"], clock) if item.get("rule") else clock + timedelta(seconds=item["interval_seconds"])
+                history_id = "occ_" + uuid.uuid4().hex[:24]
+                rows = state.setdefault("schedule_history", {})
+                rows[history_id] = {"id":history_id, "schedule_id":item["id"], "due_at":due, "claimed_at":clock.isoformat(),
+                                    "disposition":"skipped_overlap" if active else "launching"}
+                if active: rows[history_id]["finished_at"] = clock.isoformat()
+                prior = sorted((h for h in rows.values() if h["schedule_id"] == item["id"]), key=lambda h:(h["claimed_at"],h["id"]))
+                for old in prior[:-100]: rows.pop(old["id"],None)
+                item.update(next_run=next_due.isoformat() if next_due else due, last_claim_id=history_id,
                             last_tick=clock.isoformat(), last_error=None,
                             last_disposition="skipped_overlap" if active else "launching")
-                if item.get("one_shot") and not active:
+                if next_due is None or (item.get("one_shot") and not active):
                     item["enabled"] = False
-                return {"item": item, "due": due, "active": active}
+                return {"item": item, "due": due, "active": active, "history_id":history_id}
             # Recheck existence/enabled state and advance atomically, so an HTTP
             # pause/delete cannot be undone by this tick's stale snapshot.
             claimed = self.store.update(claim)
@@ -342,14 +447,19 @@ class Scheduler:
             item = claimed["item"]
             try:
                 import hashlib
-                key = "schedule_" + hashlib.sha256((item["id"] + claimed["due"]).encode()).hexdigest()[:32]
+                key = "schedule_" + hashlib.sha256((item["id"] + claimed["due"] + str(item.get("version",1))).encode()).hexdigest()[:32]
                 job = self.launch(item["spec"], key=key, schedule_id=item["id"])
                 completion = {"last_job_id": job["id"], "last_disposition": "queued"}
             except Exception as exc:
                 completion = {"last_error": str(exc), "last_disposition": "failed"}
             def finish(state):
+                history = state.get("schedule_history", {}).get(claimed["history_id"])
+                if history:
+                    history.update(disposition=completion["last_disposition"], finished_at=now())
+                    if completion.get("last_job_id"): history["job_id"] = completion["last_job_id"]
+                    if completion.get("last_error"): history["error"] = completion["last_error"][:2000]
                 current = state.get("schedules", {}).get(item["id"])
-                if current and current.get("next_run") == item["next_run"] and current.get("last_tick") == item["last_tick"]:
+                if current and current.get("last_claim_id") == claimed["history_id"] and current.get("next_run") == item["next_run"] and current.get("last_tick") == item["last_tick"]:
                     current.update(completion)
             self.store.update(finish)
 

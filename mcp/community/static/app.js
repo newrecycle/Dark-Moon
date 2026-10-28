@@ -152,7 +152,7 @@ function applyRoles() {
   ))
     a.hidden = !admin;
   for (const b of document.querySelectorAll(
-    '[data-workspace]:not([data-workspace="password"]),#new-schedule,[data-toggle-schedule],[data-delete-schedule],[data-cancel],[data-prepare-fix],[data-triage],#triage-status,[data-protected-pdf]',
+    '[data-workspace]:not([data-workspace="password"]),#new-schedule,[data-toggle-schedule],[data-delete-schedule],[data-edit-schedule],[data-duplicate-schedule],[data-cancel],[data-prepare-fix],[data-triage],#triage-status,[data-protected-pdf]',
   ))
     b.hidden = viewer;
 }
@@ -228,8 +228,7 @@ function render() {
       `<div class="toolbar">${campaignSelect()}<button class="secondary" id="vr-button" disabled>Checking VR…</button><button class="secondary" id="surface-tour">Tour finding locations</button></div><div class="panel"><div class="map-layout"><div class="surface-stage"><div id="surface-controls"></div><canvas id="surface-canvas" class="surface" aria-label="Interactive three dimensional infrastructure graph"></canvas><div id="surface-tour-card" hidden></div><p class="map-caption">Drag to orbit · Scroll to zoom · Select a node to inspect. Lines show recorded containment and connections.</p></div><div class="map-info" id="map-info">Choose an assessment to explore its infrastructure.</div></div></div><section id="recorded-paths" class="panel"></section>`;
     if (campaignId) drawSurface(campaignId, viewControl.signal).catch(fail);
   } else if (route === "schedules") {
-    $("#content").innerHTML =
-      `<section class="panel"><div class="section-top"><div><h3>Recurring assessments</h3><p>Times use your browser timezone. Missed occurrences run once after restart; overlapping runs are skipped.</p></div><button class="primary" id="new-schedule">+ Add schedule</button></div>${s.schedules.length ? `<div class="table-scroll"><table><thead><tr><th>ASSESSMENT / TARGET</th><th>INTERVAL</th><th>NEXT RUN</th><th>LAST RESULT</th><th>ACTIONS</th></tr></thead><tbody>${s.schedules.map((x) => `<tr><td>${esc(x.spec.name)}<small>${esc(x.spec.target)}</small></td><td>${+(x.interval_seconds / 3600).toFixed(2)} hours</td><td>${esc(date(x.next_run))}<small>${x.enabled ? "Enabled" : "Paused"}</small></td><td>${esc(x.last_disposition || "Not run")}<small>${esc(x.last_error || "")}</small></td><td><button class="secondary" data-toggle-schedule="${esc(x.id)}">${x.enabled ? "Pause" : "Resume"}</button> <button class="secondary" data-delete-schedule="${esc(x.id)}">Delete</button></td></tr>`).join("")}</tbody></table></div>` : empty("No scheduled assessments", "Create a recurring assessment with the same scope controls as a manual run.")}</section>`;
+    $("#content").innerHTML = `<section class="panel"><div class="section-top"><div><h3>Scheduled assessments</h3><p>Calendar rules use their named timezone; elapsed intervals keep their existing timing. Missed occurrences coalesce and overlapping jobs are skipped.</p></div><button class="primary" id="new-schedule">+ Add schedule</button></div><p class="instructions">Duplicates start paused. Pause/delete prevents future claims; an occurrence already being enqueued or running may continue. Consumed one-time schedules can be explicitly re-armed.</p>${window.ScheduleUI.table(s.schedules)}</section>`;
   } else if (route === "remediation") {
     $("#content").innerHTML =
       `<section class="panel"><div class="section-top"><div><h3>Local remediation proposals</h3><p>Patches and validation evidence, prepared for your review.</p></div><span class="badge">Publishing disabled</span></div><p class="instructions">Use the remediation command with a local source repository and a confirmed finding. It creates an isolated Git worktree, applies structured edits, and can run before/after regression probes in disposable Docker containers. Add <code>--generate</code> to use your configured model. No branch is pushed and no PR is opened.</p><pre>PYTHONPATH=mcp python3 -m community.remediation \
@@ -356,7 +355,7 @@ async function showJob(id) {
   applyRoles();
   if (!$("#detail").open) $("#detail").showModal();
 }
-async function launchDialog(schedule = false) {
+async function launchDialog(schedule = false, record = null) {
   try {
     await window.populateLaunch();
   } catch (error) {
@@ -371,6 +370,8 @@ async function launchDialog(schedule = false) {
     ? "Create schedule →"
     : "Start assessment →";
   $("#schedule-fields").hidden = !schedule;
+  window.ScheduleUI.configure(record);
+  if (record) {$("#launch-title").textContent="Edit schedule";$("#launch-submit").textContent="Save schedule changes";}
   $("#launch-error").textContent = "";
   $("#launch-dialog").showModal();
 }
@@ -451,15 +452,13 @@ $("#launch-form").addEventListener("submit", async (e) => {
     const values = window.launchValues(e.target);
     values.remediate = e.target.elements.remediate.checked;
     if (scheduleMode) {
-      values.interval_seconds = Math.round(Number(values.hours) * 3600);
-      if (values.first_run)
-        values.next_run = new Date(values.first_run).toISOString();
+      const record = window.ScheduleUI.editing(), payload = window.ScheduleUI.payload();
+      await api(`/api/v1/schedules${record?"/"+encodeURIComponent(record.id):""}`, {
+        method:record?"PATCH":"POST", body:JSON.stringify(record?{...payload,version:record.version||1}:payload),
+      });
+    } else {
+      await api("/api/v1/campaigns", {method:"POST",body:JSON.stringify(values),headers:{"Idempotency-Key":crypto.randomUUID()}});
     }
-    await api(`/api/v1/${scheduleMode ? "schedules" : "campaigns"}`, {
-      method: "POST",
-      body: JSON.stringify(values),
-      headers: { "Idempotency-Key": crypto.randomUUID() },
-    });
     $("#launch-dialog").close();
     location.hash = scheduleMode ? "schedules" : "campaigns";
     await refresh();
@@ -513,7 +512,20 @@ document.addEventListener("click", async (e) => {
       });
       await refresh();
     } else if (b.id === "new-schedule") launchDialog(true);
-    else if (b.id === "open-map") {
+    else if (b.dataset.editSchedule) {
+      await launchDialog(true, snapshot.schedules.find(s=>s.id===b.dataset.editSchedule));
+    } else if (b.dataset.duplicateSchedule) {
+      const item=snapshot.schedules.find(s=>s.id===b.dataset.duplicateSchedule);
+      await api(`/api/v1/schedules/${encodeURIComponent(item.id)}/duplicate`,{method:"POST",body:JSON.stringify({version:item.version||1})});
+      await refresh();
+    } else if (b.dataset.scheduleHistory) {
+      const item=snapshot.schedules.find(s=>s.id===b.dataset.scheduleHistory);
+      const result=await api(`/api/v1/schedules/${encodeURIComponent(item.id)}/history`);
+      currentDetailJob="";
+      $("#detail-title").textContent="Schedule history · "+(item.display_name||item.spec.name);
+      $("#detail-body").innerHTML=result.data.length?result.data.map(h=>`<section class="panel"><p>Due ${esc(date(h.due_at))}</p>${badge(h.disposition)} ${h.job_status?badge(h.job_status):""}<p>${esc(h.error||"")}</p>${h.job_id?`<button class="secondary" data-job="${esc(h.job_id)}">View job</button>`:""}${h.campaign_id?`<button class="secondary" data-campaign="${esc(h.campaign_id)}">View campaign</button>`:""}</section>`).join(""):empty("No run history yet","Up to 100 claimed occurrences are retained for each schedule.");
+      $("#detail").showModal();
+    } else if (b.id === "open-map") {
       $("#detail").close();
       location.hash = "surface";
     } else if (b.dataset.toggleSchedule) {
@@ -522,7 +534,7 @@ document.addEventListener("click", async (e) => {
       );
       await api(`/api/v1/schedules/${s.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ enabled: !s.enabled }),
+        body: JSON.stringify({ version:s.version||1, enabled: !s.enabled }),
       });
       await refresh();
     } else if (b.dataset.deleteSchedule) {

@@ -9,6 +9,7 @@
     <script src="/finding-query.js" defer></script>
     <script src="/workspace.js" defer></script>
     <script src="/paths.js" defer></script>
+    <script src="/schedules.js" defer></script>
   </head>
   <body>
     <aside class="sidebar">
@@ -236,8 +237,10 @@
         </div>
         <div id="schedule-fields" hidden>
           <div class="form-grid">
+            <label>Schedule display name<input name="schedule_name" maxlength="160" placeholder="Defaults to assessment name"></label>
+            <label>Schedule type<select name="schedule_kind"><option value="interval">Elapsed interval</option><option value="once">One time</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
             <label
-              >Repeat every (hours)<input
+              id="schedule-hours">Repeat every (hours)<input
                 name="hours"
                 type="number"
                 value="24"
@@ -248,8 +251,16 @@
               >First run (local time)<input
                 name="first_run"
                 type="datetime-local"
+                step="1"
             /></label>
+            <label id="schedule-every">Every N periods<input name="schedule_every" type="number" min="1" max="366" value="1" step="1"></label>
+            <label>Timezone<input name="schedule_timezone" list="schedule-timezones" placeholder="America/Edmonton"><datalist id="schedule-timezones"></datalist></label>
+            <label>When the clock repeats<select name="schedule_fold"><option value="0">First occurrence</option><option value="1">Second occurrence</option></select></label>
           </div>
+          <label class="check"><input type="checkbox" name="schedule_enabled" checked> Schedule enabled</label>
+          <p class="instructions">Calendar rules keep the selected local time. Nonexistent DST times and months without the selected day are skipped. Missed occurrences run once; overlapping runs are skipped. Saving a rule re-anchors its next occurrence.</p>
+          <button type="button" class="secondary" id="schedule-preview-button">Preview next occurrences</button>
+          <div id="schedule-preview" role="status"></div>
         </div>
         <details>
           <summary>Scope preview</summary>
