@@ -9,6 +9,11 @@ from .store import identifier
 
 
 def checkout(service, source, campaign_id, credential_id="", run=subprocess.run, actor=None):
+    if credential_id:
+        try:
+            service.vault.require(credential_id, "source_checkout", actor=actor)
+        except KeyError:
+            raise ValueError("Source credential reference is unavailable") from None
     if not str(source).startswith("https://"):
         path = Path(source).expanduser().resolve()
         if not path.is_dir():
@@ -17,11 +22,6 @@ def checkout(service, source, campaign_id, credential_id="", run=subprocess.run,
     parsed = urlsplit(source)
     if not parsed.hostname or parsed.username or parsed.password or parsed.fragment or parsed.query:
         raise ValueError("Source repository requires HTTPS without embedded credentials/query/fragment")
-    if credential_id:
-        try:
-            service.vault.require(credential_id, "source_checkout", actor=actor)
-        except KeyError:
-            raise ValueError("Source credential reference is unavailable") from None
     target = service.store.root / "checkouts" / identifier(campaign_id)
     if target.exists():
         return target
