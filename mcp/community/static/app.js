@@ -21,7 +21,7 @@ let token = "",
   streamControl,
   viewControl,
   scheduleMode = false;
-let currentDetailJob = "", lastFindingsHash = "";
+let currentDetailJob = "", lastFindingsHash = "", jobDetailRequest = 0;
 let runQueueOffset = 0, runQueueRequest = 0;
 const severityColors = {
   critical: "#fb8698",
@@ -345,6 +345,7 @@ async function loadRunQueue(signal) {
   }
 }
 async function showJob(id) {
+  const request = ++jobDetailRequest;
   currentDetailJob = id;
   $("#detail-title").textContent = "Run " + id;
   $("#detail-body").textContent = "Loading run and log metadata…";
@@ -354,13 +355,13 @@ async function showJob(id) {
       api(`/api/v1/run/${encodeURIComponent(id)}`),
       api(`/api/v1/run/logs/${encodeURIComponent(id)}`),
     ]);
-    if (currentDetailJob !== id || !$("#detail").open) return;
+    if (request !== jobDetailRequest || currentDetailJob !== id || !$("#detail").open) return;
     $("#detail-title").textContent = "Run " + j.run_id;
     $("#detail-body").innerHTML = `${badge(j.state)}<p>Campaign: ${esc(j.campaign_id || "unavailable")}</p><p class="detail-text">Log: ${esc(log.log_status)}. Structured lifecycle messages only by default.</p><pre id="job-log"></pre>${identity?.role === "admin" && log.log_status === "available" ? `<button class="secondary" data-raw-job="${esc(id)}">Reveal untrusted raw output (may contain secrets)</button>` : ""}`;
     $("#job-log").textContent = log.data.map((row) => row.message).join("\n") || "No lifecycle messages available.";
     applyRoles();
   } catch (error) {
-    if (currentDetailJob === id && $("#detail").open)
+    if (request === jobDetailRequest && currentDetailJob === id && $("#detail").open)
       $("#detail-body").textContent = "Run details unavailable: " + error.message;
   }
 }
@@ -444,6 +445,7 @@ $("#setup-account").addEventListener("close", () => $("#setup-account-form").res
 $("#login").addEventListener("cancel", (e) => e.preventDefault());
 $("#detail").addEventListener("close", () => {
   currentDetailJob = "";
+  jobDetailRequest++;
 });
 $("#logout").addEventListener("click", async () => {
   try {
@@ -521,17 +523,18 @@ document.addEventListener("click", async (e) => {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } else if (b.dataset.rawJob) {
       const id = b.dataset.rawJob;
+      const request = jobDetailRequest;
       if (identity?.role !== "admin") return;
       const output = $("#job-log");
       if (output) output.textContent = "Loading untrusted output…";
       try {
         const log = await api(`/api/v1/run/logs/${encodeURIComponent(id)}?raw=true&lines=100`);
-        if (currentDetailJob === id && $("#detail").open && $("#job-log")) {
+        if (request === jobDetailRequest && currentDetailJob === id && $("#detail").open && $("#job-log")) {
           $("#job-log").textContent = log.data.map((row) => row.message).join("\n") || "No raw lines in the bounded window.";
           if (log.truncated) $("#job-log").textContent += "\n[output window truncated]";
         }
       } catch (error) {
-        if (currentDetailJob === id && $("#job-log")) $("#job-log").textContent = "Log unavailable: " + error.message;
+        if (request === jobDetailRequest && currentDetailJob === id && $("#detail").open && $("#job-log")) $("#job-log").textContent = "Log unavailable: " + error.message;
       }
     } else if (b.dataset.job) await showJob(b.dataset.job);
     else if (b.dataset.cancel) {
