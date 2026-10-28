@@ -17,7 +17,7 @@ class DocumentedLaunchTests(fixtures.Fixture):
         self.assertIn("auth-bypass", [v["value"] for v in options["focus"]])
         for preset in options["presets"]:
             launch_spec({"target": "example.invalid", **preset})
-        # JetBrains was deliberately retired; catalog now has eight supported hosts.
+        # The removed IDE integration is no longer counted among supported hosts.
         self.assertEqual(len(options["integrations"]), 8)
 
     def test_scope_serializes_native_flags_without_secret_values(self):
