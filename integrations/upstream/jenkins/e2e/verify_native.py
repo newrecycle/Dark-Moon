@@ -119,6 +119,9 @@ def native():
         ("high", "FAILURE", 1),
         ("empty", "SUCCESS", 0),
         ("nonempty_pass", "SUCCESS", 1),
+        ("missing_report", "FAILURE", 1),
+        ("malformed_campaign", "FAILURE", None),
+        ("running", "FAILURE", None),
         ("medium", "UNSTABLE", 1),
         ("missing_findings", "FAILURE", None),
         ("malformed_findings", "FAILURE", None),
@@ -131,6 +134,7 @@ def native():
         ("missing_credential", "FAILURE", None),
         ("missing_node", "FAILURE", None),
     ]
+    seen_campaigns = set()
     for scenario, expected, expected_issues in cases:
         # Stage the test case before the Pipeline schedules its agent step.
         # No scenario data is passed as a CLI scan argument or a secret.
@@ -155,6 +159,14 @@ def native():
         for forbidden in FORBIDDEN:
             assert forbidden not in log, ("secret leaked to build log", scenario, forbidden)
         assert "dm-agent" in log or "Running on" in log, ("not a remote Pipeline agent", scenario)
+        found = re.search(r"\[darkmoon\] campaign (camp_native_[A-Za-z0-9_-]+)", log)
+        if found:
+            assert found.group(1) not in seen_campaigns, (
+                "previous build campaign reused", scenario, found.group(1))
+            seen_campaigns.add(found.group(1))
+        if expected_issues is not None:
+            assert found, ("successful findings require an explicit campaign", scenario)
+
 
         artifacts = safe_json(endpoint + "/api/json?tree=artifacts[relativePath]")["artifacts"]
         names = {a["relativePath"] for a in artifacts}
@@ -164,6 +176,9 @@ def native():
             payload = http(endpoint + "/artifact/" + name)
             for forbidden in FORBIDDEN:
                 assert forbidden.encode() not in payload, ("secret leaked to artifact", scenario, name, forbidden)
+        if scenario == "missing_report":
+            assert "darkmoon-reports/darkmoon-report.md" not in names, (
+                "stale report from another campaign", names)
         if expected_issues is not None:
             assert "darkmoon-reports/darkmoon.sarif" in names, (scenario, names, log[-1500:])
             sarif = json.loads(http(endpoint + "/artifact/darkmoon-reports/darkmoon.sarif"))

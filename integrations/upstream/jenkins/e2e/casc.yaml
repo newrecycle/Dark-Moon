@@ -27,9 +27,11 @@ jobs:
                 // directory before queueing each real HPI-backed build.
                 def scenario = sh(script: "cat '/opt/synthetic data/scenario-native.txt'",
                                   returnStdout: true).trim()
-                withEnv(["DM_SCENARIO=${scenario}"]) {
+                // Only the remote agent loses the node executable for this
+                // case; HPI stays bundled and the controller stays unchanged.
+                withEnv(scenario == 'missing_node' ? ['PATH=/usr/bin:/bin'] : []) {
                   def credential = scenario == 'missing_credential' ? 'not-present' : 'dm-token'
-                  def command = scenario == 'missing_node' ? 'node-command-does-not-exist' : 'bundled'
+                  def command = 'bundled'
                   def failLevel = scenario == 'nonempty_pass' ? 'none' : 'high'
                   def unstableLevel = scenario == 'nonempty_pass' ? 'none' : 'medium'
                   sh 'mkdir -p darkmoon-reports'

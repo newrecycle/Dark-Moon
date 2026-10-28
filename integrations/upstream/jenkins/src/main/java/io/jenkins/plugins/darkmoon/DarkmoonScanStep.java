@@ -316,32 +316,6 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
         try {
             verdict = CliJson.parseVerdict(runExec.stdout);
         } catch (IOException e) {
-            // Diagnostic exposes only the response shape, never response bodies,
-            // secrets, campaign IDs or other untrusted CLI data.
-            String raw = runExec.stdout == null ? "" : runExec.stdout;
-            listener.getLogger().println("[darkmoon] Invalid CLI run response (chars=" + raw.length()
-                    + ", object=" + raw.stripLeading().startsWith("{")
-                    + ", campaignId-field=" + raw.contains("\"campaignId\"")
-                    + ", verdict-field=" + raw.contains("\"verdict\"") + ").");
-            try {
-                com.fasterxml.jackson.databind.JsonNode root =
-                        new com.fasterxml.jackson.databind.ObjectMapper().readTree(raw);
-                com.fasterxml.jackson.databind.JsonNode id = root.path("campaignId");
-                com.fasterxml.jackson.databind.JsonNode verdictField = root.path("verdict");
-                com.fasterxml.jackson.databind.JsonNode totalField = root.path("total");
-                listener.getLogger().println("[darkmoon] Run contract checks (campaign-id-valid="
-                        + (id.isTextual() && id.asText().matches("[A-Za-z0-9_-]{1,200}"))
-                        + ", verdict-valid=" + (verdictField.isTextual()
-                                && java.util.Set.of("pass", "fail").contains(verdictField.asText()))
-                        + ", total-int=" + totalField.isIntegralNumber()
-                        + ", total-nonnegative=" + (totalField.canConvertToInt() && totalField.asInt() >= 0)
-                        + ", failOn-array=" + root.path("failOn").isArray()
-                        + ", cause=" + (e.getMessage() != null
-                                && e.getMessage().startsWith("CLI document") ? "schema" :
-                                   e.getClass().getSimpleName()) + ").");
-            } catch (IOException | RuntimeException ignored) {
-                listener.getLogger().println("[darkmoon] Run contract checks unavailable.");
-            }
             throw new AbortException("Could not parse the CLI run verdict; no trustworthy assessment result is available.");
         }
         String campaignId = verdict.getCampaignId();

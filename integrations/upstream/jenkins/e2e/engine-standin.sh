@@ -12,18 +12,23 @@ if [ -f "$D/scenario-native.txt" ]; then
   S="$(cat "$D/scenario-native.txt")"
 fi
 case "$S" in
-  high|empty|nonempty_pass|medium|missing_findings|malformed_findings|wrong_findings_type|foreign_findings|failed|stopped|timed_out|running|ambiguous_campaigns) ;;
+  high|empty|nonempty_pass|medium|missing_report|malformed_campaign|missing_findings|malformed_findings|wrong_findings_type|foreign_findings|failed|stopped|timed_out|running|ambiguous_campaigns) ;;
   *) echo "Synthetic fixture scenario unavailable" >&2; exit 2;;
 esac
-ID="camp_native_$(date +%s)_$"
+ID="camp_native_$(date +%s)_${BASHPID}"
 STATUS=completed
 case "$S" in
   failed|stopped|timed_out|running) STATUS="$S";;
 esac
 mkdir -p "$D/campaigns" "$D/vulnerabilities" "$R"
+REPORT_PATH="/reports/native-report.md"
+[ "$S" = "missing_report" ] && REPORT_PATH="/reports/missing-native-$ID.md"
 cat > "$D/campaigns/$ID.json" <<EOF
-{"id":"$ID","status":"$STATUS","target_id":"target_native","project_id":"proj_native","date":"2026-10-28T00:00:00Z","stats":{"total_findings":2,"critical":0,"high":1,"medium":1},"report_path":"/reports/native-report.md"}
+{"id":"$ID","status":"$STATUS","target_id":"target_native","project_id":"proj_native","date":"2026-10-28T00:00:00Z","stats":{"total_findings":2,"critical":0,"high":1,"medium":1},"report_path":"$REPORT_PATH"}
 EOF
+if [ "$S" = "malformed_campaign" ]; then
+  printf '{malformed-campaign\n' > "$D/campaigns/$ID.json"
+fi
 case "$S" in
   missing_findings) rm -f "$D/vulnerabilities/$ID.json";;
   malformed_findings) printf 'not json\n' > "$D/vulnerabilities/$ID.json";;

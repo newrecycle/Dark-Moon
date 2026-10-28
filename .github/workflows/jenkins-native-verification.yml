@@ -6,6 +6,10 @@ on:
     paths:
       - 'integrations/upstream/jenkins/**'
       - '.github/workflows/jenkins-native-verification.yml'
+# Only the newest Jenkins-only branch state needs a host acceptance build.
+concurrency:
+  group: jenkins-native-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
