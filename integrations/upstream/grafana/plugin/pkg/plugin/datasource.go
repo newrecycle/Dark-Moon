@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"sort"
-		"net/http"
+	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -334,7 +334,7 @@ func (d *Datasource) handleQuery(ctx context.Context, q backend.DataQuery) backe
 	case "targets":
 		return d.queryTargets(ctx, qm)
 	case "timeseries":
-		return d.queryTimeseries(ctx, qm)
+		return d.queryTimeseries(ctx, qm, q.TimeRange)
 	case "pullrequests", "pull-requests":
 		return d.queryPullRequests(ctx, qm)
 	case "remediation":
@@ -496,26 +496,32 @@ func (d *Datasource) queryFindings(ctx context.Context, qm queryModel) backend.D
 	}
 
 	var (
-		id, title, sev, status, cat, cve, mitre, endpoint = mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk()
-		cvss                                              = []float64{}
+		id, campaignID, title, sev, status, cat, cve, mitre, endpoint = mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk()
+		cvss = []*float64{}
 	)
 	for _, r := range rows {
 		// NOTE: description, evidence, raw, payloads are intentionally excluded.
 		if s(r, "id") == "" { return errResp(fmt.Errorf("upstream row has no string identity")) }
-		safe := pick(r, "id", "title", "severity", "status", "category", "cve", "cvss_score", "mitre_attack_id", "endpoint")
+		safe := pick(r, "id", "campaign_id", "title", "severity", "status", "category", "cve", "cvss_score", "mitre_attack_id", "endpoint")
 		id = append(id, s(safe, "id"))
+		campaignID = append(campaignID, s(safe, "campaign_id"))
 		title = append(title, s(safe, "title"))
 		sev = append(sev, s(safe, "severity"))
 		status = append(status, s(safe, "status"))
 		cat = append(cat, s(safe, "category"))
 		cve = append(cve, s(safe, "cve"))
-		cvss = append(cvss, f(safe, "cvss_score"))
+		var score *float64
+		if value, ok := safe["cvss_score"].(float64); ok && value >= 0 && value <= 10 {
+			score = &value
+		}
+		cvss = append(cvss, score)
 		mitre = append(mitre, s(safe, "mitre_attack_id"))
 		endpoint = append(endpoint, metadataURL(s(safe, "endpoint")))
 	}
 
 	frame := data.NewFrame("findings",
 		data.NewField("id", nil, id),
+		data.NewField("campaign_id", nil, campaignID),
 		data.NewField("title", nil, title),
 		data.NewField("severity", nil, sev),
 		data.NewField("status", nil, status),
@@ -567,13 +573,29 @@ func (d *Datasource) queryTargets(ctx context.Context, qm queryModel) backend.Da
 
 // ---- timeseries -----------------------------------------------------------
 
-func (d *Datasource) queryTimeseries(ctx context.Context, qm queryModel) backend.DataResponse {
+func (d *Datasource) queryTimeseries(ctx context.Context, qm queryModel, timeRange backend.TimeRange) backend.DataResponse {
 	params := url.Values{}
 	addParam(params, "metric", qm.Metric)
 	addParam(params, "group", qm.Group)
 	for k, v := range qm.Params {
+		if k != "from" && k != "to" && k != "project_id" && k != "target_id" {
+			return errResp(fmt.Errorf("unsupported timeseries parameter"))
+		}
 		addParam(params, k, v)
 	}
+	// Grafana's picker is authoritative for panel queries. Explicit params
+	// remain available to callers which do not supply a Grafana time range.
+	if !timeRange.From.IsZero() { params.Set("from", timeRange.From.UTC().Format(time.RFC3339Nano)) }
+	if !timeRange.To.IsZero() { params.Set("to", timeRange.To.UTC().Format(time.RFC3339Nano)) }
+	var from, to time.Time
+	for _, key := range []string{"from", "to"} {
+		if value := params.Get(key); value != "" {
+			instant, err := time.Parse(time.RFC3339Nano, value)
+			if err != nil { return errResp(fmt.Errorf("timeseries bounds must be RFC3339 timestamps with a timezone")) }
+			if key == "from" { from = instant } else { to = instant }
+		}
+	}
+	if !from.IsZero() && !to.IsZero() && from.After(to) { return errResp(fmt.Errorf("timeseries start must not follow its end")) }
 
 	body, e := d.get(ctx, "/api/v1/metrics/timeseries", params)
 	if e != nil {
@@ -639,6 +661,18 @@ func firstNonNil(vals ...any) any {
 func parseTime(v string) time.Time {
 	if v == "" {
 		return time.Time{}
+	}
+	// The fork's week grouping emits ISO week-year buckets, including
+	// weeks which start in the preceding calendar year. Reject invalid W53.
+	if len(v) == 8 && v[4:6] == "-W" {
+		year, yearErr := strconv.Atoi(v[:4])
+		week, weekErr := strconv.Atoi(v[6:])
+		if yearErr != nil || weekErr != nil || year < 1 || year > 9999 || week < 1 || week > 53 || fmt.Sprintf("%04d-W%02d", year, week) != v { return time.Time{} }
+		jan4 := time.Date(year, time.January, 4, 0, 0, 0, 0, time.UTC)
+		monday := jan4.AddDate(0, 0, -(int(jan4.Weekday())+6)%7).AddDate(0, 0, (week-1)*7)
+		actualYear, actualWeek := monday.ISOWeek()
+		if actualYear != year || actualWeek != week { return time.Time{} }
+		return monday
 	}
 	for _, layout := range []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02"} {
 		if t, err := time.Parse(layout, v); err == nil {
@@ -732,42 +766,6 @@ func (d *Datasource) queryRemediation(ctx context.Context, qm queryModel) backen
 }
 
 // ---- retest ---------------------------------------------------------------
-
-func (d *Datasource) queryRetest(ctx context.Context, qm queryModel) backend.DataResponse {
-	if qm.RetestID == "" {
-		return errResp(fmt.Errorf("retest_id is required for the retest query"))
-	}
-	body, e := d.get(ctx, "/api/v1/retest/"+url.PathEscape(qm.RetestID), nil)
-	if e != nil {
-		return *e
-	}
-	var header map[string]any
-	if json.Unmarshal(body, &header) != nil || s(header, "retest_id") != qm.RetestID { return errResp(fmt.Errorf("retest response identity does not match")) }
-	state := data.NewFrame("retest_state", data.NewField("retest_id", nil, []string{qm.RetestID}), data.NewField("status", nil, []string{s(header, "status")}))
-	rows, err := extractList(body, "findings")
-	if err != nil {
-		return errResp(err)
-	}
-
-	findingID, verdict, sev, base, nw := mk(), mk(), mk(), mk(), mk()
-	for _, r := range rows {
-		safe := pick(r, "finding_id", "verdict", "severity", "base_status", "new_status")
-		findingID = append(findingID, s(safe, "finding_id"))
-		verdict = append(verdict, s(safe, "verdict"))
-		sev = append(sev, s(safe, "severity"))
-		base = append(base, s(safe, "base_status"))
-		nw = append(nw, s(safe, "new_status"))
-	}
-
-	frame := data.NewFrame("retest",
-		data.NewField("finding_id", nil, findingID),
-		data.NewField("verdict", nil, verdict),
-		data.NewField("severity", nil, sev),
-		data.NewField("base_status", nil, base),
-		data.NewField("new_status", nil, nw),
-	)
-	return backend.DataResponse{Frames: data.Frames{state, frame}}
-}
 
 // ---------------------------------------------------------------------------
 // CallResource — safe metadata proxy

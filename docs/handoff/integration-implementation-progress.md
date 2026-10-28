@@ -165,3 +165,19 @@ are in the [dated compatibility review](../pro-audit/2026-10-28/compatibility-pr
 ## Combined delegated-feature review (28 October 2026)
 
 The dated [compatibility review](../pro-audit/2026-10-28/compatibility-progress.md#consolidated-delegated-integration-review--28-october-2026) records the 38-commit review scope, concrete boundary fixes, known limitations and deferred verification. Source corrections cover strict credential and SSE query validation, initially-internal webhook signing keys and conservative PR URL classification. Earlier native/CI results were not re-executed during this integrations-first pass. The standalone Splunk agent branches were inspected but not merged; local uncommitted worker state was not available through the GitHub connection.
+
+## Grafana lifecycle/time consumer follow-up — 28 October 2026
+
+Source inspection after delegated review `b512f70` found a concrete producer/
+consumer mismatch: running fork retests have `verdicts: []`, but the Grafana
+adapter required `findings`. The adapter now renders lifecycle and exact
+campaign/target/run references independently of comparisons, supports either
+comparison alias with strict agreement, and preserves `current_finding_id`.
+Missing completed results and malformed/foreign records fail explicitly.
+
+Trend panel reads now forward Grafana's selected range and parse fork ISO-week
+buckets. Findings retain campaign identity and nullable CVSS. App reads validate
+column alignment and avoid silent substitution of unavailable datasource UIDs.
+See the Grafana READMEs for the supported contract. No behavioral tests or builds
+ran. Verification is handed to a separate worker as requested; Jenkins remains
+in its previously claimed workstream.

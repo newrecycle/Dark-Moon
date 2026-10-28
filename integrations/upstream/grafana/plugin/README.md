@@ -34,13 +34,13 @@ Health check calls `GET {baseUrl}/api/v1/system/info` and reports the detected e
 
 | queryType      | Endpoint                              | Output                                                            |
 | -------------- | ------------------------------------- | ---------------------------------------------------------------- |
-| `overview`     | `/api/v1/dashboard/overview`          | counts frame + severity/status distribution (long) frames        |
+| `overview`     | `/api/v1/dashboard/posture` (404 fallback to `/overview`)          | counts frame + severity/status distribution (long) frames        |
 | `campaigns`    | `/api/v1/campaigns`                   | table incl. per-campaign finding stats                           |
 | `findings`     | `/api/v1/vulnerabilities`             | table (id, title, severity, status, category, cve, cvss, mitre, endpoint) |
 | `targets`      | `/api/v1/targets`                     | table (id, host, risk_level, status, open_vuln)                  |
 | `timeseries`   | `/api/v1/metrics/timeseries`          | wide time-series frame                                            |
 | `pullrequests` | `/api/v1/pull-requests`               | table (id, provider, repo, number, state, url, finding_ids)      |
-| `retest`       | `/api/v1/retest/{retest_id}`          | table (finding_id, verdict, severity, base_status, new_status)   |
+| `retest`       | `/api/v1/retest/{retest_id}`          | lifecycle/reference frame plus comparison rows, including current_finding_id |
 
 ## Security: evidence is never exposed
 
@@ -76,3 +76,23 @@ The SDK's Mage build places the nested datasource binary beside its manifest
 at `dist/datasource/gpx_darkmoon_<os>_<arch>`. Nested datasource logo assets are
 now copied into the package. Build/native verification is deferred to the later
 pass; original vendor runtime compatibility is not established by this source.
+
+## Retest and trend consumer follow-up (28 October 2026)
+
+Retest reads accept the fork's initial `verdicts: []` shape before a `findings`
+array exists. Lifecycle and exact base/new campaign, target and run references
+remain visible with zero comparison rows. Completed records require an explicit
+comparison array; malformed rows, conflicting aliases and foreign identities
+fail instead of implying a clean result. `current_finding_id` is retained, and
+`not_observed` is never translated into a deployed fix.
+
+Datasource panel trends honor Grafana's selected UTC time range rather than
+querying all retained campaigns. Explicit `params.from/to` remain supported
+without a Grafana range. ISO week buckets use their actual Monday, including
+week-year boundaries; invalid week 53 values are rejected. Finding rows include
+`campaign_id`, and missing/invalid CVSS scores are null rather than zero.
+
+The app rejects mismatched frame columns and does not silently substitute a
+different datasource when an explicit selection is unavailable. Behavioral
+checks, frontend types/build, Go formatting/build and native Grafana acceptance
+are delegated; this source checkpoint does not establish those results.

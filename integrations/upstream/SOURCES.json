@@ -36,7 +36,7 @@
       "docs/screenshots",
       "test/screenshots"
     ],
-    "adaptation": "Replace starter pages and unused app API-key settings with real encrypted-datasource-backed views and saved datasource UID; prefer retained-workspace posture with legacy 404 fallback; distinguish local proposals from PRs; authenticate health via protected reads; align sparse trends with null gaps; strict lists/scalar projections, safe metadata resource proxy, no redirect credential forwarding and correct nested asset packaging. Implementation pass; type/build/native verification is deferred."
+    "adaptation": "Replace starter pages and unused app API-key settings with real encrypted-datasource-backed views and saved datasource UID; prefer retained-workspace posture with legacy 404 fallback; distinguish local proposals from PRs; authenticate health via protected reads; align sparse trends with null gaps; strict lists/scalar projections, safe metadata resource proxy, no redirect credential forwarding and correct nested asset packaging. Implementation pass; type/build/native verification is deferred. Follow-up preserves pre-comparison retest state and exact references, Grafana time bounds/ISO week buckets, nullable CVSS and campaign-qualified finding rows; validates aligned frames and refuses silent datasource substitution. Follow-up behavioral/build verification remains delegated."
   },
   {
     "path": "integrations/upstream/action",

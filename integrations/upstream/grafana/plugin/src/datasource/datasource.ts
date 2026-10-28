@@ -13,7 +13,7 @@ export class DataSource extends DataSourceWithBackend<DarkmoonQuery, DarkmoonDat
   }
 
   filterQuery(query: DarkmoonQuery): boolean {
-    // Overview needs no extra input; other types are always runnable too.
-    return !!query.queryType;
+    // A retest read needs an explicit saved identity; overview is the default.
+    return query.hide !== true && (query.queryType !== 'retest' || !!query.retest_id?.trim());
   }
 }

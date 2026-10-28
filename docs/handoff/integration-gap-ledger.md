@@ -163,3 +163,12 @@ throttling, bounded queue work and the existing signed delivery worker.
 The n8n receiver retains transactional receipts but does not execute a
 workflow for test events. See [webhook-receipts.md](webhook-receipts.md).
 No new tests or external deliveries were run; no vendor-wire claim is made.
+
+## Grafana consumer adapter continuation — 28 October 2026
+
+Implemented source corrections for running retest lifecycle/reference reads,
+strict comparison aliases, current finding identity, dashboard time bounds,
+ISO-week buckets, nullable CVSS/campaign-qualified findings, aligned frames and
+explicit datasource selection. Source inspection only; Go/frontend/native
+verification remains open and is assigned through the post-commit worker prompt.
+No Jenkins work, external services, assessments or vendor execution occurred.

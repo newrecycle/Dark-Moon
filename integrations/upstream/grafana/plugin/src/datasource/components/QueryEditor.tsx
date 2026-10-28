@@ -50,7 +50,7 @@ export function QueryEditor({ query, onChange, onRunQuery }: Props) {
           {queryType === 'findings' && (
             <>
               <InlineField label="Severity" labelWidth={16}>
-                <Input id="q-severity" value={query.severity ?? ''} onChange={onText('severity')} placeholder="critical,high…" width={24} />
+                <Input id="q-severity" value={query.severity ?? ''} onChange={onText('severity')} placeholder="critical" width={24} />
               </InlineField>
               <InlineField label="Status" labelWidth={16}>
                 <Input id="q-status" value={query.status ?? ''} onChange={onText('status')} width={24} />

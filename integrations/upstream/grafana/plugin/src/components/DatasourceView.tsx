@@ -7,6 +7,18 @@ export const DATASOURCE_TYPE = 'darkmoon-securityposture-datasource';
 export type Source = { uid: string; name: string; type: string };
 type Frame = { schema: { name?: string; fields: Array<{ name: string }> }; data: { values: unknown[][] } };
 type QueryResponse = { results: Record<string, { error?: string; frames?: Frame[] }> };
+
+function validFrames(value: unknown): value is Frame[] {
+  return Array.isArray(value) && value.every(frame => {
+    if (!frame || !Array.isArray(frame.schema?.fields) || !Array.isArray(frame.data?.values)) { return false; }
+    if (frame.schema.name !== undefined && typeof frame.schema.name !== 'string') { return false; }
+    const fields: unknown[] = frame.schema.fields;
+    const columns: unknown[] = frame.data.values;
+    if (fields.length !== columns.length || !fields.every(field => typeof (field as { name?: unknown } | null)?.name === 'string')) { return false; }
+    const rows = Array.isArray(columns[0]) ? columns[0].length : 0;
+    return columns.every(column => Array.isArray(column) && column.length === rows);
+  });
+}
 export const VIEWS: Array<{ type: DarkmoonQueryType; label: string }> = [
   { type: 'overview', label: 'Overview' }, { type: 'campaigns', label: 'Campaigns' },
   { type: 'findings', label: 'Findings' }, { type: 'targets', label: 'Targets' },
@@ -19,15 +31,17 @@ export function useDarkmoonSources() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    let active = true;
     const subscription = getBackendSrv().fetch<Source[]>({ url: '/api/datasources', method: 'GET' }).subscribe({
       next: response => {
-        if (!Array.isArray(response.data)) { setError('Datasource configuration could not be read.'); setLoading(false); return; }
+        if (!active) { return; }
+        if (!Array.isArray(response.data) || response.data.some(source => !source || typeof source.type !== 'string' || typeof source.uid !== 'string' || typeof source.name !== 'string')) { setError('Datasource configuration could not be read.'); setLoading(false); return; }
         setSources(response.data.filter(source => source.type === DATASOURCE_TYPE && typeof source.uid === 'string'));
         setLoading(false);
       },
-      error: () => { setError('Datasource configuration could not be read with this Grafana account.'); setLoading(false); },
+      error: () => { if (active) { setError('Datasource configuration could not be read with this Grafana account.'); setLoading(false); } },
     });
-    return () => subscription.unsubscribe();
+    return () => { active = false; subscription.unsubscribe(); };
   }, []);
   return { sources, error, loading };
 }
@@ -50,8 +64,9 @@ export default function DatasourceView({ type, defaultUid }: { type: DarkmoonQue
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const configured = sources.some(source => source.uid === defaultUid) ? defaultUid! : sources.length === 1 ? sources[0].uid : '';
-  const uid = sources.some(source => source.uid === selected) ? selected : configured;
+  const configured = defaultUid ? sources.some(source => source.uid === defaultUid) ? defaultUid : '' : sources.length === 1 ? sources[0].uid : '';
+  const uid = selected ? sources.some(source => source.uid === selected) ? selected : '' : configured;
+  const unavailableSelection = !sourcesLoading && !sourceError && !!(selected || defaultUid) && !uid;
   const query = useMemo(() => ({ refId: 'A', datasource: { uid, type: DATASOURCE_TYPE }, queryType: type,
     ...(['findings', 'pullrequests', 'remediation'].includes(type) && campaign ? { campaign_id: campaign } : {}), ...(type === 'findings' && severity ? { severity } : {}),
     ...(type === 'timeseries' ? { metric: 'severity', group: 'day' } : {}),
@@ -61,21 +76,23 @@ export default function DatasourceView({ type, defaultUid }: { type: DarkmoonQue
   useEffect(() => {
     setFrames([]); setError(''); setLoaded(false); setLoading(false);
     if (!uid || type === 'retest' && !retest) { return; }
+    let active = true;
     setLoading(true);
     const now = Date.now();
     const subscription = getBackendSrv().fetch<QueryResponse>({ url: '/api/ds/query', method: 'POST', data: {
       queries: [{ ...query, ...(type === 'timeseries' ? { params: { from: new Date(now - 30 * 86400000).toISOString(), to: new Date(now).toISOString() } } : {}) }], from: String(now - 30 * 86400000), to: String(now),
     } }).subscribe({
       next: response => {
+        if (!active) { return; }
         const result = response.data?.results?.A;
-        if (!result || result.error || !Array.isArray(result.frames) || result.frames.some(frame => !Array.isArray(frame.schema?.fields) || !Array.isArray(frame.data?.values))) {
+        if (!result || result.error || !validFrames(result.frames)) {
           setError('This read did not return a valid result. Check datasource access and the API contract.');
         } else { setFrames(result.frames); setLoaded(true); }
         setLoading(false);
       },
-      error: () => { setError('The datasource read failed. This does not establish an empty or clean assessment.'); setLoading(false); },
+      error: () => { if (active) { setError('The datasource read failed. This does not establish an empty or clean assessment.'); setLoading(false); } },
     });
-    return () => subscription.unsubscribe();
+    return () => { active = false; subscription.unsubscribe(); };
   }, [uid, type, retest, query, refresh]);
 
   const title = VIEWS.find(view => view.type === type)?.label || 'Darkmoon';
@@ -100,6 +117,7 @@ export default function DatasourceView({ type, defaultUid }: { type: DarkmoonQue
     </div>
     {sourcesLoading && <p role="status">Loading datasource configuration…</p>}
     {sourceError && <p role="alert">{sourceError}</p>}
+    {unavailableSelection && <p role="alert">The selected datasource is unavailable to this account. Choose an accessible datasource.</p>}
     {!sourcesLoading && !sourceError && sources.length === 0 && <p>Add a Darkmoon Security Posture datasource, configure its API URL and token, then use Save &amp; test.</p>}
     {type === 'retest' && !retest && <p>Enter a saved retest ID to read its current status and findings. This page does not launch an assessment.</p>}
     {loading && <p role="status">Reading current metadata…</p>}
@@ -116,5 +134,6 @@ export default function DatasourceView({ type, defaultUid }: { type: DarkmoonQue
       {(frame.data.values[0]?.length || 0) > 500 && <p>Showing 500 rows. Refine the filters or use this datasource in Explore for the complete result.</p>}
     </section>)}
     {type === 'overview' && <p>Counts describe retained records. Local proposal validation does not establish deployment or a published fix.</p>}
+    {type === 'retest' && <p>Verdicts are reported by the producer. A finding marked not_observed is not proof of a deployed fix or a successful exploit retest.</p>}
   </section></PluginPage>;
 }
