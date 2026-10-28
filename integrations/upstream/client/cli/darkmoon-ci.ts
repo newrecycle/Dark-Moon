@@ -207,7 +207,8 @@ async function main(argv: string[]): Promise<number> {
       if (!ref) throw usage("wait requires a <campaignId>");
       const c = await client.waitForCompletion(ref, { timeoutMs, pollIntervalMs, onProgress: (p) => values.verbose && process.stderr.write(`[status] ${p.status}\n`) });
       const findings = await client.listFindings({ campaignId: c.id });
-      return emitVerdict(c.severity.total ? findings : [], values, json, c.id);
+      assertCompleted(c.status);
+      return emitVerdict(findings, values, json, c.id);
     }
     case "run": {
       if (!values.target) throw usage("run requires --target");
@@ -215,12 +216,17 @@ async function main(argv: string[]): Promise<number> {
       process.stderr.write(`[darkmoon-ci] launched (nonce=${launched.correlation.nonce}); waiting...\n`);
       const c = await client.waitForCompletion(launched, { timeoutMs, pollIntervalMs, onProgress: (p) => process.stderr.write(`[status] ${p.status}\n`) });
       const findings = await client.listFindings({ campaignId: c.id });
+      assertCompleted(c.status);
       return emitVerdict(findings, values, json, c.id);
     }
     default:
       process.stderr.write(`Unknown command: ${cmd}\n\n${HELP}`);
       return EXIT_ERROR;
   }
+}
+
+function assertCompleted(status: string): void {
+  if (status !== "completed") throw new DarkmoonError("BAD_REQUEST", `Assessment ended with status '${status}'; no findings verdict is available.`);
 }
 
 function emitVerdict(findings: Finding[], values: Record<string, unknown>, json: boolean, campaignId: string): number {

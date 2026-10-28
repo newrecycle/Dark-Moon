@@ -207,6 +207,9 @@ export class DarkmoonClient implements DarkmoonClientContract, DarkmoonClientExt
     const timeoutMs = opts.timeoutMs ?? 60 * 60 * 1000; // 1h default
     const pollIntervalMs = opts.pollIntervalMs ?? 5000;
     const failOnStuck = opts.failOnStuck ?? true;
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || !Number.isFinite(pollIntervalMs) || pollIntervalMs <= 0) {
+      throw new DarkmoonError("BAD_REQUEST", "Timeout and poll interval must be positive finite durations.");
+    }
     const deadline = Date.now() + timeoutMs;
     const be = await this.be();
     const handle = DarkmoonClient.toHandle(ref);

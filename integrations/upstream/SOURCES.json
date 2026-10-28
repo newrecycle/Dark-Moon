@@ -4,12 +4,13 @@
     "repository": "https://github.com/ASCIT31/darkmoon-client.git",
     "commit": "4d33ebe92b381cd75dad93d47f1742ef002a9eb6",
     "license": "MIT",
-    "modified": false,
+    "modified": true,
     "excluded": [
       ".github",
       "docs/screenshots",
       "test/screenshots"
-    ]
+    ],
+    "adaptation": "Fork snapshot 0.2.1-darkmoon.1: explicit run/campaign/full-session correlation, authenticated reads, typed malformed/identity/transport failures, redirects refused, bounded SSE and response-body timeouts, failed/stopped CLI runs never pass and cached zero totals never suppress fetched findings."
   },
   {
     "path": "integrations/upstream/n8n",

@@ -130,6 +130,11 @@ describe("evidence full opt-in", () => {
 });
 
 describe("waitForCompletion hard timeout", () => {
+  it("rejects invalid durations instead of waiting without a deadline", async () => {
+    const c = clientWith(new FakeBackend());
+    for (const timeoutMs of [NaN, Infinity, -1, 0]) await expect(c.waitForCompletion("camp_test", { timeoutMs })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(c.waitForCompletion("camp_test", { pollIntervalMs: NaN })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
   it("resolves when terminal", async () => {
     const be = new FakeBackend({ statuses: [campaign({ status: "running" }), campaign({ status: "completed" })] });
     const c = clientWith(be);

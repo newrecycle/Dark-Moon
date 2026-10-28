@@ -1,0 +1,27 @@
+name: Community SDK and CI contracts
+on:
+  workflow_dispatch:
+  push:
+    branches: [pro]
+    paths:
+      - 'integrations/upstream/client/**'
+      - 'integrations/upstream/action/**'
+      - 'integrations/upstream/gitlab/**'
+      - 'tests/community/client_contract.cjs'
+      - '.github/workflows/community-sdk.yml'
+permissions:
+  contents: read
+jobs:
+  sdk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm --prefix integrations/upstream/client ci --ignore-scripts
+      - run: npm --prefix integrations/upstream/client run ci
+      - run: node tests/community/client_contract.cjs

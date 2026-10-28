@@ -1,64 +1,71 @@
-import { NetworkError } from "../errors.js";
+import { AuthError, DarkmoonError, NetworkError, SchemaInvalid } from "../errors.js";
 
-/**
- * Minimal Server-Sent Events reader over fetch. Yields the parsed JSON payload
- * of each `data:` frame. The Darkmoon Pro run stream emits `data: <json>\n\n`
- * frames and closes on a run_completed / run_error event (routes_run.py).
- */
+/** JSON SSE with an idle timeout, bounded frames and cancellation on early exit. */
 export async function* readSse(
   url: string,
   opts: { token?: string | null; signal?: AbortSignal; timeoutMs?: number } = {},
 ): AsyncGenerator<unknown, void, unknown> {
   const headers: Record<string, string> = { Accept: "text/event-stream" };
   if (opts.token) headers["Authorization"] = `Bearer ${opts.token}`;
-
-  let res: Response;
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  const timeoutMs = opts.timeoutMs ?? 15_000;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const arm = () => { clearTimeout(timer); timer = setTimeout(abort, timeoutMs); };
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  if (opts.signal?.aborted) return;
+  opts.signal?.addEventListener("abort", abort, { once: true });
   try {
-    res = await fetch(url, { headers, signal: opts.signal });
-  } catch (err: any) {
-    throw new NetworkError(`SSE connect failed: ${err?.code ?? err?.name ?? "error"}.`);
-  }
-  if (!res.ok || !res.body) {
-    throw new NetworkError(`SSE stream returned HTTP ${res.status}.`, { status: res.status });
-  }
-
-  const reader = (res.body as any).getReader
-    ? (res.body as ReadableStream<Uint8Array>).getReader()
-    : null;
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  const handleChunk = function* (chunk: string): Generator<unknown> {
-    buffer += chunk;
-    let idx: number;
-    // Frames are separated by a blank line.
-    while ((idx = buffer.indexOf("\n\n")) !== -1) {
-      const frame = buffer.slice(0, idx);
-      buffer = buffer.slice(idx + 2);
-      const dataLines = frame
-        .split("\n")
-        .filter((l) => l.startsWith("data:"))
-        .map((l) => l.slice(5).trim());
-      if (dataLines.length === 0) continue;
-      const payload = dataLines.join("\n");
-      try {
-        yield JSON.parse(payload);
-      } catch {
-        yield { type: "raw", data: payload };
-      }
-    }
-  };
-
-  if (reader) {
+    arm();
+    const res = await fetch(url, { headers, signal: controller.signal, redirect: "manual" });
+    if (res.status === 401 || res.status === 403) throw new AuthError(`SSE unauthorized (HTTP ${res.status}).`);
+    if (!res.ok || !res.body) throw new NetworkError(`SSE stream returned HTTP ${res.status}.`, { status: res.status });
+    if (!/^text\/event-stream(?:;|$)/i.test(res.headers.get("content-type") ?? "")) throw new SchemaInvalid("SSE response has an invalid content type.");
+    reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let data: string[] = [];
+    let frameSize = 0;
     for (;;) {
       const { value, done } = await reader.read();
-      if (done) break;
-      yield* handleChunk(decoder.decode(value, { stream: true }));
+      if (done) {
+        buffer += decoder.decode();
+        if (buffer.trim() || data.length) throw new SchemaInvalid("SSE ended with an incomplete frame.");
+        return;
+      }
+      arm(); // Heartbeats count as activity; this is not a total run deadline.
+      buffer += decoder.decode(value, { stream: true });
+      for (;;) {
+        const match = /\r\n|\r|\n/.exec(buffer);
+        if (!match || (match[0] === "\r" && match.index === buffer.length - 1)) break;
+        const line = buffer.slice(0, match.index);
+        buffer = buffer.slice(match.index + match[0].length);
+        frameSize += line.length;
+        if (frameSize > 1024 * 1024) throw new SchemaInvalid("SSE frame exceeds the size limit.");
+        if (!line) {
+          if (data.length) {
+            let payload: unknown;
+            try { payload = JSON.parse(data.join("\n")); }
+            catch { throw new SchemaInvalid("SSE returned malformed JSON."); }
+            data = [];
+            yield payload;
+          }
+          frameSize = 0;
+        } else if (line.startsWith("data:")) {
+          data.push(line.slice(5).replace(/^ /, ""));
+        }
+      }
+      if (buffer.length + frameSize > 1024 * 1024) throw new SchemaInvalid("SSE frame exceeds the size limit.");
     }
-  } else {
-    // Node Readable stream fallback (async iterable of Buffers).
-    for await (const value of res.body as any as AsyncIterable<Uint8Array>) {
-      yield* handleChunk(decoder.decode(value, { stream: true }));
-    }
+  } catch (err) {
+    if (opts.signal?.aborted) return;
+    if (err instanceof DarkmoonError) throw err;
+    throw new NetworkError("SSE connection failed or timed out; completion is unverified.");
+  } finally {
+    clearTimeout(timer);
+    opts.signal?.removeEventListener("abort", abort);
+    controller.abort();
+    await reader?.cancel().catch(() => undefined);
+    reader?.releaseLock();
   }
 }

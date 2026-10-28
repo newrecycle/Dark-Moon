@@ -70,11 +70,11 @@ export function normalizeFindingStatus(input: unknown): FindingStatus {
 /** Normalize a campaign lifecycle status. */
 export function normalizeCampaignStatus(input: unknown): CampaignStatus {
   const s = String(input ?? "").trim().toLowerCase();
-  if (s.includes("complet") || s === "done" || s === "finished") return "completed";
-  if (s.includes("run") || s === "in_progress" || s === "active") return "running";
-  if (s === "queued" || s === "pending" || s === "scheduled") return "queued";
-  if (s.includes("stop") || s === "cancelled" || s === "canceled" || s === "killed") return "stopped";
-  if (s.includes("fail") || s.includes("error") || s === "crashed") return "failed";
+  if (["completed", "complete", "done", "finished", "succeeded", "success"].includes(s)) return "completed";
+  if (["running", "in_progress", "active"].includes(s)) return "running";
+  if (["queued", "pending", "scheduled"].includes(s)) return "queued";
+  if (["stopped", "cancelled", "canceled", "killed", "aborted"].includes(s)) return "stopped";
+  if (["failed", "failure", "error", "crashed", "timed_out", "timeout", "interrupted"].includes(s)) return "failed";
   return "unknown";
 }
 

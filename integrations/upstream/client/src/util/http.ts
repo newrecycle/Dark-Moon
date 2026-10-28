@@ -1,4 +1,4 @@
-import { NetworkError, AuthError, DarkmoonError } from "../errors.js";
+import { NetworkError, AuthError, DarkmoonError, SchemaInvalid } from "../errors.js";
 
 export interface HttpOptions {
   method?: string;
@@ -35,8 +35,10 @@ export async function httpRequest<T = unknown>(url: string, opts: HttpOptions = 
   if (opts.token) headers["Authorization"] = `Bearer ${opts.token}`;
 
   let res: Response;
+  let text: string;
   try {
-    res = await fetch(url, { method: opts.method ?? "GET", headers, body, signal: controller.signal });
+    res = await fetch(url, { method: opts.method ?? "GET", headers, body, signal: controller.signal, redirect: "manual" });
+    text = await res.text();
   } catch (err: any) {
     if (err?.name === "AbortError") {
       throw new NetworkError(`Request timed out after ${opts.timeoutMs ?? 15_000}ms.`, { url: safeUrl(url) });
@@ -46,12 +48,12 @@ export async function httpRequest<T = unknown>(url: string, opts: HttpOptions = 
     clearTimeout(timeout);
   }
 
-  const text = await res.text();
   let data: unknown = undefined;
   if (text) {
     try {
       data = JSON.parse(text);
     } catch {
+      if (res.ok) throw new SchemaInvalid("API returned malformed JSON.", { url: safeUrl(url) });
       data = undefined;
     }
   }

@@ -39,6 +39,7 @@ import {
   FindingNotFound,
   InsecureDefaultError,
   NetworkError,
+  SchemaInvalid,
 } from "../errors.js";
 
 const REPORT_PLACEHOLDER_PREFIX = "# Report not found";
@@ -100,7 +101,6 @@ export class ProHttpBackend implements Backend {
     if (res.status === 401 || !res.data?.token) {
       throw new AuthError("Login rejected by the Pro API.", { url: safeUrl(`${this.apiBase}/auth/login`) });
     }
-    this.token = res.data.token;
     this.mustChangePassword = Boolean(res.data.must_change_password ?? res.data.user?.must_change_password);
     if (this.mustChangePassword) {
       const msg = "Pro admin account still has its default password (must_change_password=true). Rotate it before using CI.";
@@ -109,6 +109,8 @@ export class ProHttpBackend implements Backend {
       }
       this.log.warn(msg);
     }
+    if (typeof res.data.token !== "string") throw new SchemaInvalid("Login returned an invalid token.");
+    this.token = res.data.token;
   }
 
   async detect(): Promise<Capabilities> {
@@ -181,14 +183,6 @@ export class ProHttpBackend implements Backend {
 
   async launchCampaign(input: LaunchInput): Promise<LaunchResult> {
     await this.ensureAuth();
-    // Snapshot campaign ids for correlation fallback.
-    let preCampaignIds: string[] = [];
-    try {
-      const before = await this.listCampaigns();
-      preCampaignIds = before.map((c) => c.id);
-    } catch {
-      /* best effort */
-    }
     const nonce = input.program ?? `ci-${randomHex(8)}`;
     const body = {
       target: input.target,
@@ -209,74 +203,69 @@ export class ProHttpBackend implements Backend {
       credential_id: input.credentialId,
       create_repo: input.createRepo,
     };
-    const res = await httpRequest<{ run_id: string; pid?: number | null }>(`${this.apiBase}/run/campaign`, {
+    const res = await httpRequest<{ run_id?: string | null; campaign_id?: string | null; pid?: number | null }>(`${this.apiBase}/run/campaign`, {
       method: "POST",
       body,
       token: this.token,
       timeoutMs: this.cfg.timeoutMs,
     });
-    const runId = res.data?.run_id ?? null;
+    const identity = (value: unknown): string | null => {
+      if (value === undefined || value === null) return null;
+      if (typeof value !== "string" || !value.trim()) throw new SchemaInvalid("Launch returned an invalid identity.");
+      return value;
+    };
+    const runId = identity(res.data?.run_id);
+    const campaignId = identity(res.data?.campaign_id);
+    if (!runId && !campaignId) throw new SchemaInvalid("Launch returned no run or campaign identity.");
     const correlation: CorrelationHandle = {
       edition: "pro",
       runId,
-      campaignId: null,
+      campaignId,
       nonce,
-      preCampaignIds,
+      preCampaignIds: [],
       startedAtMs: Date.now(),
     };
-    return { correlation, campaignId: null, runId };
+    return { correlation, campaignId, runId };
   }
 
-  /**
-   * Correlate a Pro run_id to its campaign_id. The run stream/logs carry the
-   * opencode session id (ses_XXXX...); the campaign's session_id is a fragment
-   * of it. Fallback: the single campaign that appeared since launch.
-   */
+  /** Resolve explicit producer identity or a complete, unambiguous run-session binding. */
   async resolveCampaignId(ref: CorrelationHandle | string): Promise<string | null> {
+    await this.ensureAuth();
     const direct = refToId(ref);
     if (direct) return direct;
     if (typeof ref === "string") return ref;
-    if (ref.campaignId) return ref.campaignId;
-
-    // 1) session-id correlation from the run log
-    if (ref.runId) {
-      try {
-        const logs = await httpRequest<{ data: any[] }>(`${this.apiBase}/run/logs/${encodeURIComponent(ref.runId)}`, {
-          token: this.token,
-          timeoutMs: this.cfg.timeoutMs,
-          allowStatuses: [404],
-        });
-        const sid = extractSessionId(logs.data?.data ?? []);
-        if (sid) {
-          const frag = sid.replace(/^ses_/, "").slice(0, 8);
-          const all = await this.listCampaigns();
-          const hit = all.find((c) => (c.sessionId ?? "").includes(frag) || c.id.includes(frag));
-          if (hit) {
-            ref.campaignId = hit.id;
-            return hit.id;
-          }
-        }
-      } catch {
-        /* fall through */
+    if (!ref.runId) return null;
+    const run = await httpRequest<any>(`${this.apiBase}/run/${encodeURIComponent(ref.runId)}`, {
+      token: this.token, timeoutMs: this.cfg.timeoutMs, allowStatuses: [404],
+    });
+    if (run.status !== 404) {
+      const record = run.data?.data ?? run.data;
+      if (!record || typeof record !== "object" || Array.isArray(record)) throw new SchemaInvalid("Run returned an invalid record.");
+      const returnedRunId = record.run_id ?? record.id;
+      if (returnedRunId !== undefined && returnedRunId !== ref.runId) throw new CorrelationFailed("Run response identity does not match the request.");
+      if (record.campaign_id !== undefined && record.campaign_id !== null) {
+        if (typeof record.campaign_id !== "string" || !record.campaign_id.trim()) throw new SchemaInvalid("Run returned an invalid campaign identity.");
+        ref.campaignId = record.campaign_id;
+        return ref.campaignId;
+      }
+      if (["succeeded", "failed", "timed_out", "interrupted", "cancelled", "aborted"].includes(record.status)) {
+        throw new CorrelationFailed("Run ended without an associated campaign.");
       }
     }
-    // 2) new-campaign-since-launch diff
-    try {
-      const now = await this.listCampaigns();
-      const pre = new Set(ref.preCampaignIds ?? []);
-      const fresh = now.filter((c) => !pre.has(c.id));
-      if (fresh.length === 1) {
-        ref.campaignId = fresh[0]!.id;
-        return fresh[0]!.id;
-      }
-      if (fresh.length > 1) {
-        // Multiple concurrent runs — cannot safely attribute.
-        throw new CorrelationFailed("Multiple new campaigns since launch; ambiguous correlation.", { candidates: fresh.map((c) => c.id) });
-      }
-    } catch (err) {
-      if (err instanceof CorrelationFailed) throw err;
-    }
-    return null;
+    // Legacy servers may bind a run to a complete session ID in its own logs.
+    // Never truncate it, search campaign ID substrings, or guess from global set changes.
+    const logs = await httpRequest<{ data: any[] }>(`${this.apiBase}/run/logs/${encodeURIComponent(ref.runId)}`, {
+      token: this.token, timeoutMs: this.cfg.timeoutMs, allowStatuses: [404],
+    });
+    if (logs.status === 404) return null;
+    if (!Array.isArray(logs.data?.data)) throw new SchemaInvalid("Run log response needs a data array.");
+    const sid = extractSessionId(logs.data.data);
+    if (!sid) return null;
+    const exact = (await this.listCampaigns()).filter(c => c.sessionId === sid || c.sessionId === sid.replace(/^ses_/, ""));
+    if (exact.length > 1) throw new CorrelationFailed("Run session maps to multiple campaigns.");
+    if (!exact.length) return null;
+    ref.campaignId = exact[0]!.id;
+    return ref.campaignId;
   }
 
   async getCampaignStatus(ref: CorrelationHandle | string): Promise<Campaign> {
@@ -290,25 +279,30 @@ export class ProHttpBackend implements Backend {
   }
 
   async listCampaigns(filter?: CampaignFilter): Promise<Campaign[]> {
+    await this.ensureAuth();
     const qs = new URLSearchParams();
     if (filter?.targetId) qs.set("target_id", filter.targetId);
     if (filter?.status) qs.set("status", filter.status);
     const url = `${this.apiBase}/campaigns${qs.toString() ? `?${qs}` : ""}`;
     const res = await httpRequest<{ data: any[] }>(url, { token: this.token, timeoutMs: this.cfg.timeoutMs });
-    const items = res.data?.data ?? [];
+    const items = res.data?.data;
+    if (!Array.isArray(items)) throw new SchemaInvalid("Campaign list response needs a data array.");
     return items.map((c) => normalizeCampaign(parseCampaign(c), "pro"));
   }
 
   async getCampaign(id: string): Promise<Campaign> {
+    await this.ensureAuth();
     const res = await httpRequest<{ data: any }>(`${this.apiBase}/campaigns/${encodeURIComponent(id)}`, {
       token: this.token,
       timeoutMs: this.cfg.timeoutMs,
       allowStatuses: [404],
     });
-    if (res.status === 404 || !res.data?.data) {
+    if (res.status === 404) {
       throw new CampaignNotFound(`Campaign ${id} not found.`, { id });
     }
-    const raw = res.data.data;
+    const raw = res.data?.data;
+    if (!raw || typeof raw !== "object") throw new SchemaInvalid("Campaign detail response needs a data object.");
+    if (raw.id !== id) throw new SchemaInvalid("Campaign detail identity does not match the request.");
     const campaign = normalizeCampaign(parseCampaign(raw), "pro");
     // Detail includes vulnerabilities → recompute authoritative severity summary.
     if (Array.isArray(raw.vulnerabilities)) {
@@ -326,6 +320,7 @@ export class ProHttpBackend implements Backend {
   }
 
   async listFindings(filter: FindingFilter, opts?: FindingReadOptions): Promise<Finding[]> {
+    await this.ensureAuth();
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries({
       campaign_id: filter.campaignId,
@@ -351,18 +346,23 @@ export class ProHttpBackend implements Backend {
   }
 
   async getFinding(id: string, opts?: FindingReadOptions): Promise<Finding> {
+    await this.ensureAuth();
     const res = await httpRequest<{ data: any }>(`${this.apiBase}/vulnerabilities/${encodeURIComponent(id)}`, {
       token: this.token,
       timeoutMs: this.cfg.timeoutMs,
       allowStatuses: [404],
     });
-    if (res.status === 404 || !res.data?.data) {
+    if (res.status === 404) {
       throw new FindingNotFound(`Finding ${id} not found.`, { id });
     }
-    return normalizeFinding(res.data.data, "pro", { includeEvidence: opts?.includeEvidence, full: opts?.full });
+    const raw = parseFindings([res.data?.data])[0]!;
+    const finding = normalizeFinding(raw, "pro", { includeEvidence: opts?.includeEvidence, full: opts?.full });
+    if (finding.id !== id) throw new SchemaInvalid("Finding detail identity does not match the request.");
+    return finding;
   }
 
   async getReport(campaignId: string): Promise<RawReport> {
+    await this.ensureAuth();
     const res = await httpRequest<{ campaign_id?: string; format?: string; content?: string }>(
       `${this.apiBase}/campaigns/${encodeURIComponent(campaignId)}/report`,
       { token: this.token, timeoutMs: this.cfg.timeoutMs, allowStatuses: [404] },
@@ -370,19 +370,31 @@ export class ProHttpBackend implements Backend {
     if (res.status === 404) {
       throw new CampaignNotFound(`Campaign ${campaignId} not found.`, { id: campaignId });
     }
-    const content = res.data?.content ?? "";
+    if (typeof res.data?.content !== "string" || (res.data.format !== undefined && typeof res.data.format !== "string")) throw new SchemaInvalid("Report response needs string content and format.");
+    if (res.data.campaign_id !== undefined && res.data.campaign_id !== campaignId) throw new SchemaInvalid("Report campaign identity does not match the request.");
+    const content = res.data.content;
     const ready = content.length > 0 && !content.startsWith(REPORT_PLACEHOLDER_PREFIX);
     return { campaignId, format: res.data?.format ?? "markdown", content, ready };
   }
 
   async *streamProgress(ref: CorrelationHandle | string): AsyncIterable<ProgressEvent> {
+    await this.ensureAuth();
     const runId = typeof ref === "string" ? null : ref.runId;
     if (!runId) {
       throw new CorrelationFailed("streamProgress requires a Pro run id (launch the campaign via launchCampaign).");
     }
-    for await (const evt of readSse(`${this.apiBase}/run/${encodeURIComponent(runId)}/stream`, { token: this.token })) {
+    for await (const evt of readSse(`${this.apiBase}/run/${encodeURIComponent(runId)}/stream`, { token: this.token, timeoutMs: this.cfg.timeoutMs })) {
       const e = evt as any;
-      const type = String(e?.type ?? "event");
+      if (!e || typeof e !== "object" || typeof e.type !== "string" || !e.type) throw new SchemaInvalid("Run stream needs typed events.");
+      if (e.run_id !== undefined && e.run_id !== runId) throw new CorrelationFailed("Stream run identity does not match the request.");
+      if (e.campaign_id !== undefined && e.campaign_id !== null) {
+        if (typeof e.campaign_id !== "string" || !e.campaign_id.trim()) throw new SchemaInvalid("Stream returned an invalid campaign identity.");
+        if (typeof ref !== "string") {
+          if (ref.campaignId && ref.campaignId !== e.campaign_id) throw new CorrelationFailed("Stream campaign identity conflicts with the launch.");
+          ref.campaignId = e.campaign_id;
+        }
+      }
+      const type = e.type;
       const terminal = type === "run_completed" || type === "run_error";
       yield {
         type,
@@ -394,12 +406,14 @@ export class ProHttpBackend implements Backend {
       };
       if (terminal) return;
     }
+    throw new NetworkError("Run stream closed before a terminal event; poll the run before assuming completion.");
   }
 
   // ── v0.2.0 additive surface ────────────────────────────────────────────
 
   /** GET with opt-in bounded retry on transient NETWORK/5xx (idempotent only). */
   private async getWithRetry<T>(url: string, allowStatuses?: number[]): Promise<HttpResponse<T>> {
+    await this.ensureAuth();
     const retries = Math.max(0, this.cfg.retries ?? 0);
     const base = this.cfg.backoffMs ?? 300;
     let lastErr: unknown;
@@ -543,7 +557,7 @@ export class ProHttpBackend implements Backend {
     qs.set("since", String(opts.since ?? 0));
     if (opts.events?.length) qs.set("events", opts.events.join(","));
     const url = `${this.apiBase}/events/stream?${qs}`;
-    for await (const raw of readSse(url, { token: this.token, signal: opts.signal })) {
+    for await (const raw of readSse(url, { token: this.token, signal: opts.signal, timeoutMs: this.cfg.timeoutMs })) {
       const e = raw as any;
       if (!e || typeof e !== "object" || !e.event) continue;
       yield mapEvent(e);
@@ -630,11 +644,14 @@ function syntheticRunning(runId: string | null): Campaign {
 }
 
 function extractSessionId(events: any[]): string | null {
+  const sessions = new Set<string>();
   for (const e of events) {
-    const sid = e?.sessionID ?? e?.session_id ?? e?.part?.sessionID;
-    if (typeof sid === "string" && sid.startsWith("ses_")) return sid;
+    if (e?.type !== "run_started") continue;
+    const sid = e.sessionID ?? e.session_id;
+    if (typeof sid === "string" && sid.startsWith("ses_")) sessions.add(sid);
   }
-  return null;
+  if (sessions.size > 1) throw new CorrelationFailed("Run log contains conflicting root session identities.");
+  return [...sessions][0] ?? null;
 }
 
 function randomHex(n: number): string {

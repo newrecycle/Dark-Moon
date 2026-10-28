@@ -4,6 +4,15 @@ All notable changes to `@darkmoon_ai/client` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1-darkmoon.1] - 2026-10-28
+
+Repository-local fork: exact launch/run/session correlation; authenticated reads;
+repeated default-password rejection; response identity/schema checks; body and
+idle-stream timeouts; redirect refusal; typed SSE failures and cleanup. Unknown
+lifecycle text stays unknown, interrupted/time-out campaigns fail, and CLI gates
+require successful completion and fetched findings even when cached totals are
+zero. No npm publication is implied.
+
 ## [0.2.0] - 2026-09-25
 
 Additive release for the Phase-2 integrations (Splunk, Grafana, n8n). The frozen

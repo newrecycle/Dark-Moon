@@ -94,7 +94,7 @@ Backends configure via flags or env (`DARKMOON_PRO_URL`, `DARKMOON_PRO_USER`,
 |---|---|---|
 | Transport | reads the on-disk JSON tree, launches `darkmoon.sh` | `/api/v1` REST + JWT + SSE |
 | Launch | `opencode run "TARGET: … PROGRAM=ci-<nonce>"` | `POST /run/campaign` |
-| Correlation | snapshot-diff + session-id + mtime | `run_id`→campaign via session-id / diff |
+| Correlation | snapshot-diff + session-id + mtime | explicit campaign/run binding, or complete unambiguous root session ID |
 | Progress | synthetic poll stream | live SSE `/run/{id}/stream` |
 | Report not ready | missing/empty file | placeholder-200 → `ReportNotReady` |
 | Dashboard / remediation / scheduler | no | yes (Pro only) |
@@ -132,3 +132,20 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 - 📚 **Docs:** https://docs.dark-moon.org
 - 🌐 **Website:** https://dark-moon.org
 - 🔗 **Related integrations:** [darkmoon-vscode](https://github.com/ASCIT31/darkmoon-vscode) · [darkmoon-n8n](https://github.com/ASCIT31/darkmoon-n8n) 
+
+## Dark-Moon fork snapshot
+
+`0.2.1-darkmoon.1` is this repository's patched snapshot, not an upstream npm
+release. HTTP launches retain explicit campaign IDs and never guess from a
+global campaign-set difference or truncated session prefix. Authentication and
+malformed-response errors propagate; redirects are refused. Request timeouts
+cover the response body; SSE uses an idle timeout (heartbeats count), bounded
+JSON frames and socket cleanup on cancellation. A run stream closing without a
+terminal event requires polling before completion can be established.
+
+The CLI returns tool-error exit 1 for failed, interrupted or stopped campaigns,
+even with no findings. `wait` always evaluates fetched findings rather than a
+cached severity total. Only a completed assessment can produce exit 0 or the
+findings-policy exit 2. Default SDK normalization/redaction is not a substitute
+for server-side evidence access controls. Original commercial server wire
+compatibility remains unverified.
