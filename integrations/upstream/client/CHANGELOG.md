@@ -1,3 +1,5 @@
+<!-- Historical changelog: references to the former JetBrains consumer describe past releases only. The fork intentionally removed that optional plugin on 2026-10-28; the current supported consumers are documented in integrations/upstream/README.md. -->
+
 # Changelog
 
 All notable changes to `@darkmoon_ai/client` are documented here.
