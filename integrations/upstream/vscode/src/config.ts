@@ -49,9 +49,13 @@ export function baseUrlWarning(baseUrl?: string): string | undefined {
   try {
     u = new URL(baseUrl);
   } catch {
-    return `Darkmoon base URL is not a valid URL: ${baseUrl}`;
+    // Never echo a malformed URL: it may contain embedded tokens/credentials.
+    return 'Darkmoon base URL is invalid. Configure an HTTPS origin or localhost.';
   }
-  const loopback = ['localhost', '127.0.0.1', '::1'].includes(u.hostname);
+  if (u.username || u.password || u.search || u.hash) {
+    return 'Darkmoon base URL must not contain userinfo, query parameters or a fragment.';
+  }
+  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname);
   if (u.protocol !== 'https:' && !loopback) {
     return `Darkmoon base URL uses ${u.protocol} — credentials would be sent unencrypted. Use https.`;
   }
