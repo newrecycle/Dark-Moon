@@ -87,7 +87,13 @@ async function setConfig(key: string, value: unknown): Promise<void> {
 const flush = () => new Promise((r) => setImmediate(r));
 
 describe('Growth star CTA (guardrails)', () => {
-  beforeEach(() => installStubs('Not now'));
+  beforeEach(async () => {
+    // Explicitly enable only this test's CTA path; the isolated host disables
+    // unsolicited prompts outside the suite. The opt-out test re-disables it.
+    delete process.env.DARKMOON_DISABLE_GROWTH_CTA;
+    await setConfig('growthCta.enabled', true);
+    installStubs('Not now');
+  });
 
   afterEach(async () => {
     restoreStubs();

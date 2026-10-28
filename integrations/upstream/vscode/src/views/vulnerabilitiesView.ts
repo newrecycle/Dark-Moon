@@ -55,8 +55,8 @@ export class VulnerabilitiesViewProvider implements vscode.WebviewViewProvider {
       id: f.id,
       severity: f.severity,
       severityRank: severityRank(f.severity),
-      title: f.title,
-      category: f.category ?? '',
+      title: redact(f.title),
+      category: redact(f.category ?? ''),
       // Component describes the vuln class/route (low risk); redact as a net.
       component: redact(f.plugin_or_component || f.endpoint || ''),
       status: String(f.status),

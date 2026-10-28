@@ -4,12 +4,43 @@ import * as os from 'os';
 import * as assert from 'assert';
 import Mocha = require('mocha');
 
+/** Executed inside the actual pinned VS Code extension host, not Node Mocha. */
 export async function run(): Promise<void> {
-  assert.ok(Object.values(os.networkInterfaces()).flat().every(address => address?.internal), 'Native tests require Docker --network none');
-  const mocha = new Mocha({ ui: 'bdd', timeout: 60_000 });
-  for (const directory of ['node', 'suite']) {
-    const root = path.join(__dirname, directory);
-    for (const name of fs.readdirSync(root).filter(name => name.endsWith('.test.js')).sort()) mocha.addFile(path.join(root, name));
+  assert.ok(Object.values(os.networkInterfaces()).flat().every(address => address?.internal),
+    'Native tests require Docker --network none');
+  const progressPath = process.env.DARKMOON_NATIVE_STATUS;
+  const progress = { phase: 'starting', passed: 0, failed: 0, started: 0, total: 0, failedTests: [] as string[] };
+  const write = () => {
+    // Never persist assertion messages, raw exceptions, stack traces or
+    // campaign/finding content. The driver prints this allowlisted JSON only.
+    if (progressPath) fs.writeFileSync(progressPath, JSON.stringify(progress) + '\n', { mode: 0o600 });
+  };
+  write();
+  // Node-only data-layer tests run separately, not inside the editor host.
+  const mocha = new Mocha({ ui: 'bdd', timeout: 20_000, reporter: 'min', bail: false });
+  const root = path.join(__dirname, 'suite');
+  for (const name of fs.readdirSync(root).filter(name => name.endsWith('.test.js')).sort()) {
+    mocha.addFile(path.join(root, name));
   }
-  await new Promise<void>((resolve, reject) => mocha.run(failures => failures ? reject(Error(`${failures} native extension tests failed`)) : resolve()));
+  progress.phase = 'suite_loaded';
+  write();
+  await new Promise<void>((resolve, reject) => {
+    const runner = mocha.run(failures => {
+      progress.phase = failures ? 'failed' : 'passed';
+      progress.failed = failures;
+      write();
+      if (failures) reject(new Error('Native extension suite did not pass'));
+      else resolve();
+    });
+    runner.on('start', () => { progress.phase = 'running'; progress.total = runner.total; write(); });
+    runner.on('test', () => { progress.started += 1; write(); });
+    runner.on('pass', () => { progress.passed += 1; write(); });
+    runner.on('fail', test => {
+      progress.failed += 1;
+      // Test titles are static source-controlled suite labels; never write
+      // assertion messages, exception strings, credential data or stacks.
+      progress.failedTests.push(test.fullTitle().slice(0, 180));
+      write();
+    });
+  });
 }

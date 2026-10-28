@@ -80,11 +80,11 @@ export async function resolveClient(
   // gracefully to a friendly, actionable state instead of failing activation.
   try {
     return createRealClient(cfg);
-  } catch (err) {
+  } catch {
+    // SDK loader/transport exceptions can include tokens and local paths.
+    // This reason may be surfaced by future consumers outside the session.
     return new UnavailableClient(
-      'Darkmoon client could not be initialised: ' +
-        (err instanceof Error ? err.message : String(err)) +
-        '. Enable "darkmoon.dev.useFixtures" for a demo.'
+      'Darkmoon client could not be initialised. Verify the installed client or enable "darkmoon.dev.useFixtures" for a demo.'
     );
   }
 }

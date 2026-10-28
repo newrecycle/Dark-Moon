@@ -3,6 +3,7 @@ import type { ReportMeta } from '../darkmoon/contract';
 import { DarkmoonSession } from '../session';
 import { RevealGrants, type RevealContext } from '../util/reveal';
 import { revealContext } from '../util/localReveal';
+import { redact } from '../util/redact';
 
 export const REPORT_SCHEME = 'darkmoon-report';
 
@@ -100,7 +101,7 @@ export class ReportsTreeProvider implements vscode.TreeDataProvider<ReportNode> 
       return item;
     }
     const item = new vscode.TreeItem(
-      node.title ?? node.id,
+      redact(node.title ?? node.id),
       vscode.TreeItemCollapsibleState.None
     );
     item.description = node.generatedAt ?? '';
@@ -113,7 +114,7 @@ export class ReportsTreeProvider implements vscode.TreeDataProvider<ReportNode> 
       arguments: [node.id],
     };
     item.tooltip = new vscode.MarkdownString(
-      `**${node.title ?? node.id}**\n\nOpens a redacted preview. Right-click for the full (local-only) report.`
+      `**${redact(node.title ?? node.id)}**\n\nOpens a redacted preview. Right-click for the full (local-only) report.`
     );
     return item;
   }

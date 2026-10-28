@@ -147,9 +147,10 @@ export function registerCommands(
         }
       );
       await session.refresh();
-    } catch (err) {
+    } catch {
+      // Untrusted CLI/HTTP failures can echo credentials, arguments or targets.
       void vscode.window.showErrorMessage(
-        `Darkmoon: launch failed — ${err instanceof Error ? err.message : String(err)}`
+        'Darkmoon: launch failed. Check the connection and authorized target; no raw error output is shown.'
       );
     }
   });

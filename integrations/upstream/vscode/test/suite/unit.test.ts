@@ -82,4 +82,14 @@ describe('baseUrl warning (plan §4)', () => {
   it('flags an invalid url', () => {
     assert.ok(baseUrlWarning('not a url'));
   });
+  it('never repeats secrets from malformed or credential-bearing URLs', () => {
+    for (const input of ['TOKEN_PRIVATE_NOT_A_URL',
+      'https://user:TOKEN_PRIVATE@example.invalid/',
+      'https://example.invalid/?token=TOKEN_PRIVATE',
+      'https://example.invalid/#TOKEN_PRIVATE']) {
+      const warning = baseUrlWarning(input);
+      assert.ok(warning, 'unsafe connection URL must warn');
+      assert.doesNotMatch(warning!, /TOKEN_PRIVATE/);
+    }
+  });
 });

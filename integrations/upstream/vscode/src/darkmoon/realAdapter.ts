@@ -304,10 +304,21 @@ class RealClientAdapter implements DarkmoonClient {
       input.tokens = [o.token];
     }
     const res = await this.pkg.launchCampaign(input);
-    const campaignId =
-      res.campaignId ?? res.correlation?.campaignId ?? res.runId ?? 'pending';
-    return { campaignId, status: 'queued' };
+    return { campaignId: exactCampaignIdentity(res), status: 'queued' };
   }
+}
+
+/** Run IDs must never be substituted for campaign IDs in the VS Code UI. */
+export function exactCampaignIdentity(result: {
+  campaignId?: string | null;
+  runId?: string | null;
+  correlation?: { campaignId?: string | null; runId?: string | null };
+}): string {
+  const id = result.campaignId ?? result.correlation?.campaignId;
+  if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,200}$/.test(id)) {
+    throw new Error('Campaign identity was not returned by the launch backend');
+  }
+  return id;
 }
 
 /** Build the real client from ClientConfig and wrap it in the adapter. */

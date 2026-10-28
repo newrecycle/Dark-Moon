@@ -5,10 +5,11 @@ assert.ok(Object.values(os.networkInterfaces()).flat().every(address => address.
 
 export default defineConfig({
   label: 'darkmoon',
-  files: 'out/test/**/*.test.js',
+  files: 'out/test/suite/**/*.test.js',
   version: '1.106.3',
-  // Fixture/demo mode so activation loads bundled sample data deterministically.
-  launchArgs: ['--disable-extensions'],
+  // Editor-host suites only. Ordinary Node tests run as their own CI step.
+  // Do not disable workspace trust or extension activation.
+  launchArgs: [],
   env: {
     DARKMOON_TEST: '1'
   },
