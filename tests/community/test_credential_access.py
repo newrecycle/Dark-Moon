@@ -14,6 +14,7 @@ from community.credential_policy import ADAPTERS, VERSION
 from community.configuration import profile
 from community.provider_checks import endpoint_models
 from community.server import HTTPServer, handler_for
+from community.source_checkout import checkout
 from community.store import Store
 
 
@@ -304,6 +305,20 @@ class CredentialAccessTests(fixtures.Fixture):
         for reference in ("cred_account_owned", "cred_account_grant"):
             with self.assertRaises(KeyError):
                 self.service.vault.require(reference, "assessment_token", actor=fresh)
+
+    def test_local_and_cached_checkout_refuse_forged_credential_access(self):
+        self.typed(adapter="scm_token", cid="cred_checkout_private")
+        local = self.root / "owned-repo"
+        local.mkdir()
+        with self.assertRaises(ValueError):
+            checkout(self.service, str(local), "campaign_local",
+                     "cred_checkout_private", actor=self.actors["bob"])
+        cached = self.service.store.root / "checkouts" / "campaign_cached"
+        cached.mkdir(parents=True)
+        with self.assertRaises(ValueError):
+            checkout(self.service, "https://owned.example.invalid/repo.git",
+                     "campaign_cached", "cred_checkout_private",
+                     actor=self.actors["bob"])
 
     def test_secrets_are_never_present_in_control_state_exports(self):
         self.typed(adapter="scm_token", cid="cred_scm")
