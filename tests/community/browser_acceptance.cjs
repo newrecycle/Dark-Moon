@@ -108,6 +108,85 @@ const assert = require("node:assert/strict");
       path: path.join(screenshots, "overview.png"),
       fullPage: true,
     });
+    // Dashboard counts and every new drill-down use the same retained-record cohort.
+    const posture = await page.evaluate(() => snapshot.posture);
+    assert.equal(posture.totals.findings, 9);
+    assert.equal(posture.totals.projects, 3);
+    assert.equal(posture.totals.targets, 3);
+    assert.equal(posture.totals.active, 9);
+    assert.deepEqual(await page.locator('#posture-totals .number').allTextContents(), ['3','3','3','9']);
+    const targetRow = page.locator('#posture-targets tbody tr').first();
+    const targetUrl = await targetRow.locator('a').first().getAttribute('href');
+    const targetId = new URLSearchParams(targetUrl.split('?')[1]).get('target_id');
+    await targetRow.locator('a').first().focus();
+    await page.keyboard.press('Enter');
+    await page.locator('#finding-target_id-filter').waitFor();
+    assert.equal(await page.locator('#finding-target_id-filter').inputValue(), targetId);
+    assert.equal(await page.locator('#finding-triage-filter').inputValue(), 'active');
+    assert.match(await page.locator('#finding-count').innerText(), /of 3 matching findings/);
+    await page.reload();
+    await page.locator('#token').fill(fixture.token);
+    await page.locator('#login-form button[type=submit]').click();
+    await page.locator('#finding-target_id-filter').waitFor();
+    assert.equal(await page.locator('#finding-target_id-filter').inputValue(), targetId);
+    await page.locator('nav a[href="#overview"]').click();
+    await page.locator('#posture-mitre a').first().click();
+    await page.locator('#finding-mitre_attack_id-filter').waitFor();
+    assert.equal(await page.locator('#finding-mitre_attack_id-filter').inputValue(), 'T1190');
+    assert.match(await page.locator('#finding-count').innerText(), /of 9 matching findings/);
+    await page.locator('#finding-project_id-filter').selectOption(await page.evaluate(() => snapshot.projects[0].id));
+    assert.match(await page.locator('#finding-count').innerText(), /of 3 matching findings/);
+    await page.locator('#findings-clear').click();
+    assert.equal(await page.locator('#finding-mitre_attack_id-filter').inputValue(), '');
+    assert.equal(await page.locator('#finding-project_id-filter').inputValue(), '');
+    assert.equal(await page.locator('#finding-triage-filter').inputValue(), '');
+    await page.locator('nav a[href="#overview"]').click();
+    const changedFinding = await page.evaluate(async () => {
+      const f=snapshot.findings[0];
+      await api(`/api/v1/campaigns/${f.campaign_id}/findings/${f.id}`,{method:'PATCH',body:JSON.stringify({status:'false_positive'})});
+      await refresh();
+      return {id:f.id,cid:f.campaign_id};
+    });
+    assert.match(await page.locator('#content').innerText(), /8 \/ 9 \(88\.9%\)/);
+    await page.getByRole('link',{name:'false positive: 1',exact:true}).click();
+    await page.locator('#finding-status-filter').waitFor();
+    assert.equal(await page.locator('#finding-status-filter').inputValue(),'false_positive');
+    assert.match(await page.locator('#finding-count').innerText(), /of 1 matching findings/);
+    await page.evaluate(async f => {
+      await api(`/api/v1/campaigns/${f.cid}/findings/${f.id}`,{method:'PATCH',body:JSON.stringify({status:'confirmed'})});
+      await refresh();
+    },changedFinding);
+    await page.locator('nav a[href="#overview"]').click();
+    await page.locator('#posture-targets tbody button[data-campaign]').first().click();
+    await page.locator('#detail[open]').waitFor();
+    await page.locator('#detail .close-dialog').click();
+    const idleTargets = await page.evaluate(async () => {
+      const ids=[];
+      for (let i=0;i<8;i++) ids.push((await api('/api/v1/targets',{method:'POST',body:JSON.stringify({host:'idle-'+i+'.example.invalid'})})).data.id);
+      await refresh();
+      return ids;
+    });
+    assert.equal(await page.locator('#posture-targets tbody tr').count(),10);
+    await page.getByRole('link',{name:'Show all targets',exact:true}).click();
+    assert.equal(await page.locator('#posture-targets tbody tr').count(),11);
+    await page.getByRole('link',{name:'Show top 10',exact:true}).click();
+    assert.equal(await page.locator('#posture-targets tbody tr').count(),10);
+    await page.evaluate(async ids => {
+      for (const id of ids) await api('/api/v1/targets/'+id,{method:'DELETE'});
+      await refresh();
+    },idleTargets);
+    await page.locator('#posture-remediation a').first().click();
+    await page.getByText('Local remediation proposals',{exact:true}).waitFor();
+    assert.match(await page.locator('#content').innerText(), /0 matching proposals/);
+    await page.locator('nav a[href="#overview"]').click();
+    await page.locator('nav a[href="#findings"]').click();
+    await page.locator('#findings-clear').click();
+    await page.locator('nav a[href="#overview"]').click();
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true);
+    await page.screenshot({path:path.join(screenshots,'posture-mobile.png'),fullPage:true});
+    await page.setViewportSize({width:1440,height:1000});
+    await page.screenshot({path:path.join(screenshots,'posture-desktop.png'),fullPage:true});
     for (const route of [
       "campaigns",
       "findings",
@@ -674,6 +753,12 @@ const assert = require("node:assert/strict");
       /\+message = 'fixed'/,
     );
     await page.locator("#detail .close-dialog").click();
+    await page.locator('nav a[href="#overview"]').click();
+    assert.match(await page.locator('#posture-remediation').innerText(), /0 \/ 1 \(0\.0%\)/);
+    await page.locator('#posture-remediation').getByRole('link',{name:'proposed: 1',exact:true}).click();
+    await page.getByText('Local remediation proposals',{exact:true}).waitFor();
+    assert.match(await page.locator('#content').innerText(), /1 matching proposals/);
+    assert.equal(await page.locator('#content [data-remediation]').count(),1);
     await page.locator('nav a[href="#campaigns"]').click();
     await page.locator(`[data-campaign="${fixture.campaign_id}"]`).click();
     await page.locator("[data-report-preview]").click();
@@ -904,6 +989,7 @@ const assert = require("node:assert/strict");
             "webhook and retest lifecycle with offline transports",
             "literal evidence/XSS",
             "filters",
+            "record-backed dashboard totals, exact drill-downs, triage changes, target expansion and local proposal cohorts",
             "composed finding filters, URL/history restoration, stable pages and keyboard detail opening",
             "3D canvas",
             "recorded path create/persist/tour/delete, stale-evidence stop, reduced motion and mobile layout",

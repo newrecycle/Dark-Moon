@@ -805,3 +805,18 @@ select option {
 .report-sections { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
 .report-sections .secondary { max-width: 100%; white-space: normal; text-align: left; overflow-wrap: anywhere; }
 .report-preview :is(h1,h2,h3,h4,h5,h6) { scroll-margin-top: 16px; }
+
+/* Dashboard metrics retain readable counts and keyboard-accessible drill-downs. */
+.metric-link { text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.metric-link:hover { color: var(--mint); }
+.metric-link:focus-visible, .posture-statuses a:focus-visible { outline: 2px solid var(--purple); outline-offset: 4px; }
+.posture-statuses { display: flex; flex-wrap: wrap; gap: 12px 18px; }
+.posture-distribution { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(40px, 2fr) minmax(100px, auto); gap: 12px; align-items: center; margin: 16px 0; }
+.posture-distribution meter { width: 100%; height: 12px; accent-color: var(--mint); }
+.posture-distribution > span:last-child { text-align: right; }
+.posture-distribution small { display: block; color: var(--muted); }
+#posture-history .text-button, #posture-targets .text-button { margin-top: 0; text-align: left; color: var(--text); text-decoration: underline; }
+.grid > *, .cards > * { min-width: 0; }
+@media (max-width: 720px) {
+  .posture-distribution { grid-template-columns: minmax(65px, 1fr) minmax(25px, 1fr) minmax(90px, auto); gap: 8px; font-size: 12px; }
+}

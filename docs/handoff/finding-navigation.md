@@ -1,7 +1,8 @@
 # Finding navigation and pages (F01)
 
 Finding views now compose severity, status, category, campaign and target filters
-with metadata search. Search covers ID, title, endpoint, category, campaign ID
+with metadata search. The dashboard continuation adds project, MITRE technique
+and active/excluded triage filters; see [the metric contract](dashboard-posture.md). Search covers ID, title, endpoint, category, campaign ID
 and target ID, without scanning raw evidence. Sort supports severity, CVSS,
 title, status, campaign ID and target ID in either direction. Campaign/finding
 IDs break ties consistently, independent of storage order. Missing CVSS values
@@ -16,7 +17,7 @@ opening, and the existing table can scroll horizontally on small screens.
 ## Navigation state
 
 The fragment contains `q`, `severity`, `status`, `category`, `campaign_id`,
-`target_id`, `sort`, `size` and `page`, omitting defaults. Browser history retains
+`target_id`, `project_id`, `mitre_attack_id`, `triage`, `sort`, `size` and `page`, omitting defaults. Browser history retains
 filter and page transitions. The sidebar restores the last finding view during
 the current visit; a URL survives reload and a fresh login. Closing a finding
 dialog retains the view. No credentials are put in these URLs. Operators should
@@ -25,7 +26,8 @@ remember that their own search text can appear in browser history/shared URLs.
 ## REST contract
 
 `GET /api/v1/vulnerabilities` supports the existing exact filters (including
-`project_id`) plus `q`, `sort`, `limit` and `offset`. Example:
+`project_id`) plus `mitre_attack_id`, `triage=active|excluded`, `q`, `sort`,
+`limit` and `offset`. Example:
 
 ```text
 /api/v1/vulnerabilities?severity=high&status=confirmed&sort=cvss_desc&limit=25&offset=25

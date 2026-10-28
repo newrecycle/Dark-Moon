@@ -27,7 +27,8 @@
         "operations.py"
       ],
       "acceptance": "Zero-data and multi-project totals match records; risky rows navigate to the exact target/campaign.",
-      "evidence": "Pro 00:24\u201300:37; dashboard.png"
+      "evidence": "Pro 00:24\u201300:37; dashboard.png",
+      "implementation_progress": "Core implemented: registered project/target totals including idle records, retained campaign/finding totals, exact severity/triage shares, active-finding risk rows, duration-aware history and record-specific drill-downs. Project hierarchy refinements and historical windows remain open. See dashboard-posture.md."
     },
     {
       "id": "D02",
@@ -327,7 +328,8 @@
         "integrations/upstream/grafana"
       ],
       "acceptance": "Rates have explicit cohorts and time windows; no local-validation rate is called deployed remediation; metadata feeds exclude evidence and report bodies.",
-      "evidence": "Grafana 00:17\u201300:43"
+      "evidence": "Grafana 00:17\u201300:43",
+      "implementation_progress": "Current-state core implemented: separate confirmed/exploited counts, current active target risk, linked local-proposal disposition rates and recorded MITRE breakdown with explicit cohorts and drill-downs. Aggregate API excludes evidence/report/patch bodies. Date-window/as-of metrics, independent deployed-fix proof and native Grafana host/plugin remain open. See dashboard-posture.md."
     },
     {
       "id": "I08",

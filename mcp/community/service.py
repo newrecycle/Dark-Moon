@@ -277,9 +277,12 @@ class Service:
             item = data._read_json(path)
             if isinstance(item, dict):
                 remediations.append(item)
-        return {"projects": data.load_projects(), "targets": data.load_targets(), "campaigns": data.load_campaigns(),
+        snapshot = {"projects": data.load_projects(), "targets": data.load_targets(), "campaigns": data.load_campaigns(),
                 "findings": findings, "stats": {s: sum(str(f.get("severity", "info")).lower() == s for f in findings) for s in SEVERITIES},
                 "jobs": self.store.items("jobs"), "schedules": self.store.items("schedules"), "remediations": remediations}
+        from .posture import posture
+        snapshot["posture"] = posture(snapshot)
+        return snapshot
 
     def change_finding(self, campaign_id, finding_id, raw):
         identifier(campaign_id)

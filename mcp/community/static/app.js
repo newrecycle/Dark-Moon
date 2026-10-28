@@ -141,7 +141,7 @@ function findingsTable(items) {
       "No findings in this view",
       "Findings appear as agents record evidence.",
     );
-  return `<div class="table-scroll"><table><thead><tr><th>SEVERITY</th><th>FINDING / ENDPOINT</th><th>CVSS</th><th>STATUS</th><th>MITRE ATT&CK</th></tr></thead><tbody>${items.map((f) => `<tr class="clickable" data-finding="${esc(f.id)}" data-cid="${esc(f.campaign_id)}"><td>${badge(f.severity || "info")}</td><td><button class="text-button finding-open" data-finding="${esc(f.id)}" data-cid="${esc(f.campaign_id)}">${esc(f.title || "Untitled")}</button><small>${esc(f.endpoint || f.category || "")}</small></td><td>${esc(f.cvss_score ?? "—")}</td><td>${badge(f.status)}</td><td>${esc(f.mitre_attack_id || "—")}</td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="table-scroll"><table><thead><tr><th>SEVERITY</th><th>FINDING / ENDPOINT</th><th>CVSS</th><th>STATUS</th><th>MITRE ATT&CK</th></tr></thead><tbody>${items.map((f) => `<tr class="clickable" data-finding="${esc(f.id)}" data-cid="${esc(f.campaign_id)}"><td>${badge(f.severity || "unknown")}</td><td><button class="text-button finding-open" data-finding="${esc(f.id)}" data-cid="${esc(f.campaign_id)}">${esc(f.title || "Untitled")}</button><small>${esc(f.endpoint || f.category || "")}</small></td><td>${esc(f.cvss_score ?? "—")}</td><td>${badge(f.status)}</td><td>${esc(f.mitre_attack_id || "—")}</td></tr>`).join("")}</tbody></table></div>`;
 }
 function applyRoles() {
   const viewer = identity?.role === "viewer",
@@ -185,28 +185,8 @@ function render() {
   const s = snapshot,
     total = s.findings.length;
   if (route === "overview") {
-    $("#content").innerHTML =
-      `<div class="section-top"><div><h2>Your security workspace</h2><p>Assessments, evidence and remediation in one place.</p></div><span class="subtle">${esc(new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }))}</span></div><div class="cards"><div class="card"><div class="label">Assessments</div><div class="number">${s.campaigns.length}</div><div class="note">${s.campaigns.filter((c) => c.status === "running").length} in progress</div></div><div class="card"><div class="label">Total findings</div><div class="number">${total}</div><div class="note">Across ${s.targets.length} targets</div></div><div class="card"><div class="label">Critical + high</div><div class="number critical-text">${s.stats.critical + s.stats.high}</div><div class="note">Prioritize review and remediation</div></div><div class="card"><div class="label">Confirmed / exploited</div><div class="number accent">${s.findings.filter((f) => ["confirmed", "exploited"].includes(f.status)).length}</div><div class="note">Backed by recorded agent evidence</div></div></div><div class="grid"><section class="panel flush"><div class="section-top"><h3>Recent assessments</h3><a class="subtle" href="#campaigns">View all →</a></div>${campaignsTable(s.campaigns.slice(-6))}</section><section class="panel"><div class="section-top"><h3>Finding distribution</h3><span class="subtle">${total} total</span></div>${Object.entries(
-        s.stats,
-      )
-        .map(
-          ([sev, n]) =>
-            `<div class="severity-row"><span>${esc(sev)}</span><div class="severity-track"><canvas data-sev="${sev}" data-share="${total ? n / total : 0}" width="500" height="5"></canvas></div><span class="severity-count">${n}</span></div>`,
-        )
-        .join("")}<hr class="divider"><h3>Projects & targets</h3>${
-        s.projects
-          .slice(-5)
-          .map(
-            (p) =>
-              `<div class="list-item"><div>${esc(p.name)}<small>${esc(s.targets.find((t) => t.id === p.target_id)?.host || p.description)}</small></div>${badge(s.targets.find((t) => t.id === p.target_id)?.risk_level || "none")}</div>`,
-          )
-          .join("") || empty("No projects yet")
-      }</section></div>`;
-    document.querySelectorAll("[data-sev]").forEach((c) => {
-      const ctx = c.getContext("2d");
-      ctx.fillStyle = severityColors[c.dataset.sev];
-      ctx.fillRect(0, 0, 500 * Number(c.dataset.share), 5);
-    });
+    $("#content").innerHTML = window.PostureUI.render(s, {esc, badge, date, empty});
+    if (new URLSearchParams(location.hash.split("?")[1]).get("targets") === "all") $("#posture-targets").scrollIntoView();
   } else if (route === "campaigns") {
     $("#content").innerHTML =
       `<section class="panel flush"><div class="section-top"><div><h3>All assessments</h3><p>Select one to review its findings, report and infrastructure.</p></div></div>${campaignsTable(s.campaigns)}</section><section class="panel"><div class="section-top"><h3>Execution queue</h3><span class="subtle">One assessment at a time</span></div>${
@@ -230,10 +210,15 @@ function render() {
   } else if (route === "schedules") {
     $("#content").innerHTML = `<section class="panel"><div class="section-top"><div><h3>Scheduled assessments</h3><p>Calendar rules use their named timezone; elapsed intervals keep their existing timing. Missed occurrences coalesce and overlapping jobs are skipped.</p></div><button class="primary" id="new-schedule">+ Add schedule</button></div><p class="instructions">Duplicates start paused. Pause/delete prevents future claims; an occurrence already being enqueued or running may continue. Consumed one-time schedules can be explicitly re-armed.</p>${window.ScheduleUI.table(s.schedules)}</section>`;
   } else if (route === "remediation") {
+    const query = new URLSearchParams(location.hash.split("?")[1] || "");
+    const selectedStatus = query.get("status"), linkedOnly = query.get("linked") === "1";
+    const retainedCampaigns = new Set(s.campaigns.map(c => c.id));
+    const linked = new Set(s.findings.filter(f => f.id && retainedCampaigns.has(f.campaign_id)).map(f => JSON.stringify([f.campaign_id, f.id])));
+    const proposals = s.remediations.filter(p => (!selectedStatus || (p.status || "unknown") === selectedStatus) && (!linkedOnly || linked.has(JSON.stringify([p.campaign_id, p.finding_id]))));
     $("#content").innerHTML =
       `<section class="panel"><div class="section-top"><div><h3>Local remediation proposals</h3><p>Patches and validation evidence, prepared for your review.</p></div><span class="badge">Publishing disabled</span></div><p class="instructions">Use the remediation command with a local source repository and a confirmed finding. It creates an isolated Git worktree, applies structured edits, and can run before/after regression probes in disposable Docker containers. Add <code>--generate</code> to use your configured model. No branch is pushed and no PR is opened.</p><pre>PYTHONPATH=mcp python3 -m community.remediation \
   --repo /path/to/target-source --campaign-id CAMPAIGN_ID \
-  --finding-id FINDING_ID --edits /path/to/edits.json --validate</pre>${s.remediations.length ? s.remediations.map((r) => `<div class="list-item"><div><a class="clickable" data-remediation="${esc(r.id)}">${esc(r.title || r.finding_id)}</a><small>${esc(r.branch || r.id)} · ${esc(date(r.created_at))}</small></div>${badge(r.status)}</div>`).join("") : empty("No proposals yet", "Proposals appear here when the local remediation command completes.")}</section>`;
+  --finding-id FINDING_ID --edits /path/to/edits.json --validate</pre>${selectedStatus || linkedOnly ? `<p class="instructions">${proposals.length} matching proposals · ${esc(selectedStatus || "all statuses")} · ${linkedOnly ? "linked to retained findings" : "all records"}. <a class="metric-link" href="#remediation">Clear filters</a></p>` : ""}${proposals.length ? proposals.map((r) => `<div class="list-item"><div><a class="clickable" data-remediation="${esc(r.id)}">${esc(r.title || r.finding_id)}</a><small>${esc(r.branch || r.id)} · ${esc(date(r.created_at))}</small></div>${badge(r.status)}</div>`).join("") : empty("No proposals yet", "Proposals appear here when the local remediation command completes.")}</section>`;
   } else if (route === "integrations") {
     window.renderIntegrations().catch(fail);
   } else if (window.renderWorkspace) {
@@ -259,9 +244,9 @@ function renderFindings() {
     const id = key === "severity" ? "severity-filter" : `finding-${key}-filter`;
     return `<label for="${id}">${esc(label)}<select id="${id}" data-finding-filter="${key}"><option value="">All ${esc(label.toLowerCase())}</option>${options.map(([value,title]) => `<option value="${esc(value)}" ${state[key] === value ? "selected" : ""}>${esc(title)}</option>`).join("")}</select></label>`;
   };
-  const distinct = key => [...new Set(snapshot.findings.map(f => String(f[key] || "")).filter(Boolean))].sort().map(value => [value,value.replaceAll("_"," ")]);
+  const distinct = key => [...new Set(snapshot.findings.map(f => String(f[key] || ({severity:"unknown",status:"unconfirmed"})[key] || "")).filter(Boolean))].sort().map(value => [value,value.replaceAll("_"," ")]);
   const sortNames = {severity:"Severity",cvss:"CVSS",title:"Title",status:"Status",campaign:"Campaign ID",target:"Target ID"};
-  $("#content").innerHTML = `<div class="findings-controls"><label for="finding-search">Search findings<input id="finding-search" aria-label="Search findings" maxlength="500" placeholder="Title, endpoint, category or ID…" value="${esc(state.q)}"></label>${choices("severity","Severities",Object.keys(severityColors).map(k=>[k,k]))}${choices("status","Statuses",distinct("status"))}${choices("category","Categories",distinct("category"))}${choices("campaign_id","Campaigns",snapshot.campaigns.map(c=>[c.id,c.name||c.id]))}${choices("target_id","Targets",snapshot.targets.map(t=>[t.id,t.host||t.ip||t.id]))}<label for="finding-sort">Sort<select id="finding-sort">${FindingQuery.sorts.map(value=>{const [field,direction]=value.split("_");return `<option value="${value}" ${state.sort===value?"selected":""}>${sortNames[field]} · ${direction==="desc"?"descending":"ascending"}</option>`}).join("")}</select></label><label for="finding-size">Rows per page<select id="finding-size">${[5,10,25,50,100].map(size=>`<option ${state.size===size?"selected":""}>${size}</option>`).join("")}</select></label></div><div class="toolbar"><button class="secondary" id="findings-clear">Clear filters</button><span class="subtle" role="status" id="finding-count">${result.total ? result.offset+1 : 0}–${result.offset+result.items.length} of ${result.total} matching findings · ${snapshot.findings.length} total</span></div><section class="panel flush">${findingsTable(result.items)}</section><div class="toolbar" aria-label="Finding pages"><button class="secondary" data-findings-page="${result.page-1}" ${result.page===1?"disabled":""}>Previous page</button><span>Page ${result.page} of ${result.pages}</span><button class="secondary" data-findings-page="${result.page+1}" ${result.page===result.pages?"disabled":""}>Next page</button></div>`;
+  $("#content").innerHTML = `<div class="findings-controls"><label for="finding-search">Search findings<input id="finding-search" aria-label="Search findings" maxlength="500" placeholder="Title, endpoint, category or ID…" value="${esc(state.q)}"></label>${choices("severity","Severities",distinct("severity"))}${choices("status","Statuses",distinct("status"))}${choices("category","Categories",distinct("category"))}${choices("project_id","Projects",snapshot.projects.map(p=>[p.id,p.name||p.id]))}${choices("mitre_attack_id","MITRE techniques",distinct("mitre_attack_id"))}${choices("triage","Triage groups",[["active","Active exposure"],["excluded","Excluded from active exposure"]])}${choices("campaign_id","Campaigns",snapshot.campaigns.map(c=>[c.id,c.name||c.id]))}${choices("target_id","Targets",snapshot.targets.map(t=>[t.id,t.host||t.ip||t.id]))}<label for="finding-sort">Sort<select id="finding-sort">${FindingQuery.sorts.map(value=>{const [field,direction]=value.split("_");return `<option value="${value}" ${state.sort===value?"selected":""}>${sortNames[field]} · ${direction==="desc"?"descending":"ascending"}</option>`}).join("")}</select></label><label for="finding-size">Rows per page<select id="finding-size">${[5,10,25,50,100].map(size=>`<option ${state.size===size?"selected":""}>${size}</option>`).join("")}</select></label></div><div class="toolbar"><button class="secondary" id="findings-clear">Clear filters</button><span class="subtle" role="status" id="finding-count">${result.total ? result.offset+1 : 0}–${result.offset+result.items.length} of ${result.total} matching findings · ${snapshot.findings.length} total</span></div><section class="panel flush">${findingsTable(result.items)}</section><div class="toolbar" aria-label="Finding pages"><button class="secondary" data-findings-page="${result.page-1}" ${result.page===1?"disabled":""}>Previous page</button><span>Page ${result.page} of ${result.pages}</span><button class="secondary" data-findings-page="${result.page+1}" ${result.page===result.pages?"disabled":""}>Next page</button></div>`;
 }
 
 async function showCampaign(id) {
@@ -483,7 +468,7 @@ document.addEventListener("click", async (e) => {
       $("#finding-count").setAttribute("tabindex", "-1");
       $("#finding-count").focus();
     } else if (b.id === "findings-clear") {
-      updateFindingView({...Object.fromEntries(FindingQuery.filters.map(k=>[k,""])),q:"",sort:"severity_desc",size:50,page:1}, true);
+      updateFindingView({...Object.fromEntries(FindingQuery.filters.map(k=>[k,""])),q:"",triage:"",sort:"severity_desc",size:50,page:1}, true);
     } else if (b.classList.contains("close-dialog")) {
       b.closest("dialog").close();
       currentDetailJob = "";

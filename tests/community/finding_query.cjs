@@ -22,3 +22,12 @@ const last=query.page(many,{...base,size:25,page:99999});assert.equal(last.items
 assert.equal(query.read('#findings?page=Infinity&size=999&sort=bad').page,1);
 assert.equal(query.read('#findings?page=Infinity&size=999&sort=bad').size,50);
 console.log('Finding query: URL round-trip, composed filters, stable ties, zero/missing CVSS and bounded 20k-record pages passed.');
+
+const statuses=['false_positive','resolved','remediated','closed','fixed','accepted_risk','unknown',null];
+const triageRows=statuses.map((status,i)=>({id:String(i),status,project_id:'p1',mitre_attack_id:'T1190'}));
+assert.equal(query.page(triageRows,{...base,triage:'active',project_id:'p1',mitre_attack_id:'T1190'}).total,3);
+assert.equal(query.page(triageRows,{...base,triage:'excluded'}).total,5);
+assert.equal(query.page(triageRows,{...base,status:'unconfirmed'}).total,1);
+assert.equal(query.page(triageRows,{...base,severity:'unknown'}).total,8);
+const postureState={...base,triage:'active',project_id:'p1',mitre_attack_id:'T1190'};
+assert.deepEqual(query.read(query.hash(postureState)),postureState);

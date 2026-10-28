@@ -194,7 +194,7 @@ class API:
             handler.send(content, "application/pdf", filename=identifier(parts[1])+".pdf")
             return True
         if resource == "vulnerabilities":
-            items = filtered(data.load_all_vulnerabilities(), query, ("campaign_id", "project_id", "target_id", "severity", "status", "category"))
+            items = data.load_all_vulnerabilities()
             if method == "GET" and len(parts) == 1:
                 from .finding_query import finding_page
                 page = finding_page(items, query)
@@ -220,6 +220,10 @@ class API:
         if resource == "dashboard" and method == "GET":
             if parts[1:] in (["overview"], []):
                 handler.send(overview())
+            elif parts[1:] == ["posture"]:
+                if query:
+                    raise ValueError("Posture covers all retained records; query filters are not supported")
+                handler.send(self.service.snapshot()["posture"])
             elif parts[1:] == ["analytics"]:
                 handler.send({"overview": overview(), "timeseries": timeseries(query)})
             else:
