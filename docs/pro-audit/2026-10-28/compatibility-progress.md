@@ -132,3 +132,69 @@ missing, unreadable, symlinked and replaced files; viewer/admin and
 unauthenticated access; SSE disconnect and bounded raw reads; pagination with
 concurrent inserts; browser stale requests; SDK launch/status polling; and
 original-vendor response comparison if authorized access becomes possible.
+
+## Scheduler flat-input adapter — 28 October 2026 (integration implementation only)
+
+**Evidence and limits.** The committed typed contract
+[`ScheduledCampaignCreate/Update`](typed-contracts.json) declares flat
+`target`, `name`, `program`, `targets`, `out_of_scope`,
+`exclude`, `focus`, `credentials`, `tokens`, `git_repo`,
+`credential_id`, `create_repo`, `remediate`, `noise`,
+`severity`, `format`, `rules`, `safe_harbor`,
+`scheduled_at`, `recurrence`, `recurrence_interval` and `enabled`.
+The readable UI review identifies one-time, daily, weekly and monthly
+recurrence labels. The raw archive was catalogued in the earlier static review
+but was not executable evidence; raw-byte access was unavailable in this
+implementation session. No licensed-vendor runtime was invoked. Original
+defaults, interval units beyond the daily/weekly/monthly labels, timezone
+assumptions, null-as-clear behavior, error envelopes, and recurrence string
+aliases are **unverified**.
+
+**Accepted explicit mappings:**
+
+| Flat input | Canonical handling |
+| --- | --- |
+| `target`, `targets`, `out_of_scope`, `exclude`, `focus`, `git_repo`, `credential_id`, `create_repo`, `remediate`, `noise`, `severity`, `format`, `safe_harbor` | Merge only present values into `spec`; pass through existing `launch_spec` validation. On edits, merge against the current persisted `spec` within the version-checked store transaction, retaining omitted target/scope/credentials. |
+| `program` | Canonical `spec.name`; on create only, `name` also supplies `spec.name` if `program` is absent. On edits, `name` changes only the schedule display name, not the assessment program. |
+| `name` | `display_name`; if both supplied, must equal canonical `display_name`. |
+| `rules: string[]` | Nonempty text entries joined by `; ` for the existing prompt-text `spec.rules`; embedded semicolons/newlines rejected to prevent ambiguous flattening. |
+| `credentials`, `tokens` | Rejected, including arrays. Inline secrets are forbidden; use saved `credential_id`. Saved credential IDs are validated on the compatibility create, preview and spec-changing edit paths and rechecked at launch. |
+| `scheduled_at` | ISO-8601 timestamp with explicit UTC offset and whole-second precision; absolute instant is converted to `rule.start_local`. Creation without a canonical rule uses `UTC`; updates of a rule retain its named IANA timezone and derive the local time/fold from the timestamp. |
+| `recurrence` | Only explicit `once`, `daily`, `weekly`, `monthly` map to existing calendar rule kinds. Original aliases, hourly and elapsed-interval values are not assumed. Fork-only interval rules remain available in the nested schema. |
+| `recurrence_interval` | Strict integer 1–366 as `rule.every` for daily, weekly and monthly. For `once`, only 1 or omission is valid. A new recurring rule requires the interval explicitly; editing the same existing kind can retain its prior `every`. |
+| `enabled` | Existing boolean field. For flat creation, required explicitly because the original default is unknown. On versioned partial edits, omission retains the current status. |
+
+**Conflict and update rules.** An explicit null in a flat field is rejected,
+rather than being treated as omitted, clearing a stored value or using a
+default. Unsupported fields and recurrence values receive validation errors.
+Mixing flat assessment fields with `spec` is allowed only when the normalized
+values agree; mixing flat timing fields with `rule` is allowed only when they
+produce the same normalized calendar rule. Without an explicit recurrence or an
+existing/canonical calendar rule, `scheduled_at` is ambiguous and rejected.
+Switching recurrence kind to daily/weekly/monthly requires an explicit
+`recurrence_interval`; partial timestamp/interval edits of an existing
+supported kind retain its other calendar dimensions. An existing fork
+elapsed-interval rule is not silently converted from flat inputs. New
+recurring flat timestamps must have UTC offset zero; named-zone local
+recurrence must use the canonical `rule`, avoiding invented vendor DST
+semantics. Changing to canonical timezone rules still uses the fork's DST gap,
+fold and absent-month-day policies.
+
+`PUT /api/v1/scheduler/{id}` still requires the current **integer**
+`version`. Flat edits are resolved against the record inside the locked
+store update after the stale-version comparison; no stale read/merge/write
+window is introduced. `PATCH` and the intentional `{"enabled": boolean}`
+legacy toggle remain. Canonical nested create/edit/preview clients, the
+calendar editor, duplication, schedule history, one-shot execution claims,
+overdue coalescing and duplicate-prevention paths are unchanged.
+
+**Deferred verification cases (not executed here):** create/preview/update
+equivalence for all supported recurrence kinds; stale/concurrent PUT versions;
+PATCH partial edit retaining scope and credential references; explicit null,
+invalid/ambiguous recurrence and contradictory mixed schemas; naive/non-UTC
+recurring timestamps; spring gap and fall fold; monthly missing dates;
+overdue one-shot, disabled schedules and no catch-up loop; claim duplication
+under concurrent ticks; legacy enabled-only toggle; existing canonical editor,
+duplicate and history consumers. No full build, schedule execution, assessment
+launch or regression test was performed. This adapter does not establish
+licensed-vendor scheduling/runtime parity.

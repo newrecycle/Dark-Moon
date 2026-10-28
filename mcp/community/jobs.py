@@ -295,9 +295,23 @@ class Scheduler:
         self.stop_event = threading.Event()
         self.thread = None
 
+    def _validate_credential_refs(self, spec, state=None):
+        # Use the same saved-reference rule as Service.launch, at schedule
+        # definition time for compatibility requests. The normal launcher
+        # still rechecks references before any execution.
+        records = (state if state is not None else self.store.read()).get("credentials", {})
+        for key in ("credential_id", "assessment_credential_id", "assessment_token_id"):
+            if spec.get(key) and spec[key] not in records:
+                raise ValueError("Saved credential reference was not found")
+
     def definition(self, raw):
         from .calendar_rules import normalize_rule, next_occurrence
+        from .scheduler_compat import is_flat_create, normalize_create
+        flat = is_flat_create(raw)
+        raw = normalize_create(raw, launch_spec)
         spec = launch_spec(raw.get("spec", raw))
+        if flat:
+            self._validate_credential_refs(spec)
         enabled = raw.get("enabled", True)
         if not isinstance(enabled, bool) or not isinstance(raw.get("one_shot", False), bool):
             raise ValueError("enabled and one_shot must be boolean")
@@ -341,17 +355,24 @@ class Scheduler:
         return {"occurrences": rows, "timezone": str(zone), "gap_policy": "skip", "missing_month_day_policy": "skip", "definition": item}
 
     def update(self, schedule_id, raw):
-        if set(raw) - {"version", "enabled", "spec", "rule", "display_name"} or not set(raw) - {"version"}:
+        from .calendar_rules import normalize_rule, next_occurrence
+        from .scheduler_compat import is_flat_update, normalize_update
+        if not isinstance(raw, dict):
+            raise ValueError("Schedule body must be an object")
+        flat = is_flat_update(raw)
+        if (not flat and set(raw) - {"version", "enabled", "spec", "rule", "display_name"}
+                or not set(raw) - {"version"}):
             raise ValueError("Edit enabled, spec, rule or display_name with the current version")
         if "enabled" in raw and not isinstance(raw["enabled"], bool):
             raise ValueError("enabled must be boolean")
         legacy_toggle = set(raw) == {"enabled"}
         if not legacy_toggle and type(raw.get("version")) is not int:
             raise ValueError("Schedule edits require the current integer version")
-        spec = launch_spec(raw["spec"]) if "spec" in raw else None
-        from .calendar_rules import normalize_rule, next_occurrence
-        rule = normalize_rule(raw["rule"]) if "rule" in raw else None
-        name = raw.get("display_name")
+        # Validate nested-schema edits as before. Flat edits merge inside the
+        # locked transaction *after* checking the current version.
+        spec = launch_spec(raw["spec"]) if not flat and "spec" in raw else None
+        rule = normalize_rule(raw["rule"]) if not flat and "rule" in raw else None
+        name = raw.get("display_name") if not flat else None
         if name is not None and (not isinstance(name, str) or not name.strip() or len(name) > 160):
             raise ValueError("Schedule display name must contain 1 to 160 characters")
         def change(state):
@@ -360,15 +381,24 @@ class Scheduler:
             version = item.get("version", 1)
             if not legacy_toggle and raw["version"] != version:
                 raise ValueError("Schedule changed; reload its current version before saving")
-            spec_changed = spec is not None and spec != item["spec"]
-            rule_changed = rule is not None and rule != item.get("rule")
-            if spec is not None: item["spec"] = spec
-            if name is not None: item["display_name"] = name.strip()
+            edits = normalize_update(raw, item, launch_spec) if flat else raw
+            next_spec = launch_spec(edits["spec"]) if flat and "spec" in edits else spec
+            next_rule = normalize_rule(edits["rule"]) if flat and "rule" in edits else rule
+            next_name = edits.get("display_name") if flat else name
+            if next_name is not None and (not isinstance(next_name, str) or not next_name.strip() or len(next_name) > 160):
+                raise ValueError("Schedule display name must contain 1 to 160 characters")
+            if flat and next_spec is not None:
+                self._validate_credential_refs(next_spec, state)
+            spec_changed = next_spec is not None and next_spec != item["spec"]
+            rule_changed = next_rule is not None and next_rule != item.get("rule")
+            if next_spec is not None: item["spec"] = next_spec
+            if next_name is not None: item["display_name"] = next_name.strip()
             if rule_changed:
-                first = next_occurrence(rule)
+                first = next_occurrence(next_rule)
                 if first is None: raise ValueError("No supported occurrence remains")
-                item.update(rule=rule, next_run=first.isoformat(), one_shot=rule["kind"] == "once", interval_seconds=rule.get("seconds",86400))
-            if "enabled" in raw: item["enabled"] = raw["enabled"]
+                item.update(rule=next_rule, next_run=first.isoformat(), one_shot=next_rule["kind"] == "once",
+                            interval_seconds=next_rule.get("seconds", 86400))
+            if "enabled" in edits: item["enabled"] = edits["enabled"]
             if spec_changed or rule_changed:
                 item.update(last_claim_id=None, last_disposition="definition_changed", last_error=None)
                 item.pop("last_job_id", None)
