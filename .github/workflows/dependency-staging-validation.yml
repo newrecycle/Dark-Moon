@@ -1,0 +1,131 @@
+name: Dependency staging validation
+
+on:
+  pull_request:
+    branches: [deps]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate:
+    # Only the canonical Dependabot author can enter the automated staging lane.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.base.ref == 'deps' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Inspect PR file list using GitHub API
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename' > /tmp/dependency-pr-files
+          test -s /tmp/dependency-pr-files
+          python=0; client=0; action=0; n8n=0; vscode=0; grafana=0; go=0; actions=0
+          while IFS= read -r file; do
+            case "$file" in
+              mcp/requirements.txt|mcp/community/requirements.txt) python=1 ;;
+              integrations/upstream/client/package.json|integrations/upstream/client/package-lock.json) client=1 ;;
+              integrations/upstream/action/package.json|integrations/upstream/action/package-lock.json) action=1 ;;
+              integrations/upstream/n8n/package.json|integrations/upstream/n8n/package-lock.json) n8n=1 ;;
+              integrations/upstream/vscode/package.json|integrations/upstream/vscode/package-lock.json) vscode=1 ;;
+              integrations/upstream/grafana/plugin/package.json|integrations/upstream/grafana/plugin/package-lock.json) grafana=1 ;;
+              integrations/upstream/grafana/plugin/go.mod|integrations/upstream/grafana/plugin/go.sum) go=1 ;;
+              .github/workflows/*.yml|.github/workflows/*.yaml) actions=1 ;;
+              *)
+                echo "::error::Unexpected file in Dependabot PR: $file"
+                exit 1
+                ;;
+            esac
+          done < /tmp/dependency-pr-files
+          {
+            echo "TEST_PYTHON=$python"
+            echo "TEST_CLIENT=$client"
+            echo "TEST_ACTION=$action"
+            echo "TEST_N8N=$n8n"
+            echo "TEST_VSCODE=$vscode"
+            echo "TEST_GRAFANA=$grafana"
+            echo "TEST_GO=$go"
+            echo "TEST_ACTIONS=$actions"
+          } >> "$GITHUB_ENV"
+      - name: Validate Python dependency resolution and regressions
+        if: env.TEST_PYTHON == '1'
+        run: |
+          python -m pip install -r mcp/requirements.txt -r mcp/community/requirements.txt pytest
+          python -m pip check
+          (cd mcp && python -m pytest tests/test_live_push_fixes.py -q)
+      - name: Validate shared client
+        if: env.TEST_CLIENT == '1'
+        run: |
+          npm --prefix integrations/upstream/client ci --ignore-scripts
+          npm --prefix integrations/upstream/client run ci
+      - name: Validate GitHub Action client
+        if: env.TEST_ACTION == '1'
+        run: |
+          npm --prefix integrations/upstream/action ci --ignore-scripts
+          npm --prefix integrations/upstream/action run all
+      - name: Validate n8n integration
+        if: env.TEST_N8N == '1'
+        run: |
+          npm --prefix integrations/upstream/n8n ci --ignore-scripts
+          npm --prefix integrations/upstream/n8n run lint
+          npm --prefix integrations/upstream/n8n run test:unit
+          npm --prefix integrations/upstream/n8n run build
+      - name: Validate VS Code integration compilation
+        if: env.TEST_VSCODE == '1'
+        run: |
+          npm --prefix integrations/upstream/vscode ci --ignore-scripts
+          npm --prefix integrations/upstream/vscode run typecheck
+          npm --prefix integrations/upstream/vscode run compile-tests
+          npm --prefix integrations/upstream/vscode run package
+      - name: Validate Grafana frontend
+        if: env.TEST_GRAFANA == '1'
+        run: |
+          npm --prefix integrations/upstream/grafana/plugin ci --ignore-scripts
+          npm --prefix integrations/upstream/grafana/plugin run typecheck
+          npm --prefix integrations/upstream/grafana/plugin run test:ci -- --watch=false
+          npm --prefix integrations/upstream/grafana/plugin run build
+      - uses: actions/setup-go@v5
+        if: env.TEST_GO == '1'
+        with:
+          go-version-file: integrations/upstream/grafana/plugin/go.mod
+          cache-dependency-path: integrations/upstream/grafana/plugin/go.sum
+      - name: Validate Grafana Go modules
+        if: env.TEST_GO == '1'
+        working-directory: integrations/upstream/grafana/plugin
+        run: |
+          go mod verify
+          go test ./pkg/...
+          go build ./pkg/...
+      - name: Validate GitHub Actions YAML
+        if: env.TEST_ACTIONS == '1'
+        run: |
+          python -m pip install PyYAML
+          python - <<'PY'
+          import pathlib
+          import yaml
+          files = pathlib.Path('/tmp/dependency-pr-files').read_text().splitlines()
+          for file in files:
+              if file.startswith('.github/workflows/'):
+                  data = yaml.load(pathlib.Path(file).read_text(), Loader=yaml.BaseLoader)
+                  assert isinstance(data, dict) and 'jobs' in data and 'on' in data, file
+                  print(f'YAML parsed: {file}')
+          PY
