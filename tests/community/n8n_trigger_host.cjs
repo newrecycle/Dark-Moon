@@ -33,7 +33,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
  const run=args=>new Promise((resolve,reject)=>{const p=spawn(process.execPath,[cli,...args],{env,cwd:root});let out='';p.stdout.on('data',c=>out+=c);p.stderr.on('data',c=>out+=c);const timer=setTimeout(()=>{p.kill('SIGTERM');reject(Error('n8n CLI timeout'));},120000);p.on('error',reject);p.on('exit',code=>{clearTimeout(timer);code?reject(Error(out.slice(-3000))):resolve(out);});});
  const wait=async(label,predicate,timeout=80000)=>{const deadline=Date.now()+timeout;while(Date.now()<deadline){if(await predicate())return;await pause(250);}throw Error(label+' timed out\n'+log.slice(-3000));};
  const start=async()=>{host=spawn(process.execPath,[cli,'start'],{env,cwd:root});host.stdout.on('data',c=>log+=c);host.stderr.on('data',c=>log+=c);await wait('host readiness',async()=>{if(host.exitCode!==null)throw Error(log.slice(-3000));try{return(await fetch(base+'/healthz/readiness')).ok;}catch{return false;}},40000);};
- const stop=async()=>{if(!host||host.exitCode!==null)return;const exited=new Promise(resolve=>host.once('exit',resolve));host.kill('SIGTERM');await Promise.race([exited,pause(15000).then(()=>{if(host.exitCode===null)host.kill('SIGKILL');})]);};
+ const stop=async()=>{const current=host;if(!current||current.exitCode!==null)return;const exited=new Promise(resolve=>current.once('exit',resolve));const timer=setTimeout(()=>{if(current.exitCode===null)current.kill('SIGKILL');},15000);current.kill('SIGTERM');try{await exited;}finally{clearTimeout(timer);}};
  const api=async(route,method='GET',body)=>{const res=await fetch(base+route,{method,headers:{'Content-Type':'application/json',Cookie:cookie},...(body?{body:JSON.stringify(body)}:{})});const text=await res.text();assert.ok(res.ok,method+' '+route+' '+res.status+' '+text.slice(0,500));return JSON.parse(text).data;};
  const executions=async id=>(await api('/rest/executions?limit=100&filter='+encodeURIComponent(JSON.stringify({workflowId:id})))).results;
  const workflow=async mode=>{
@@ -68,4 +68,4 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
   await api('/rest/workflows/'+pollId+'/deactivate','POST',{});
   console.log(JSON.stringify({status:'passed',host:'n8n 2.45.4',checks:['poll activation primes without replay','scheduled transition','durable poll cursor across process restart','webhook credential secret absent from workflow export','HTTP 401 on invalid HMAC','safe downstream event projection','webhook registration reused across restart','replay suppressed after restart','deactivation removes remote registration and route'],root},null,2));
  }finally{await stop();mock.close();await fs.writeFile(path.join(root,'host.log'),log);}
-})().catch(e=>{console.error(e.stack);process.exitCode=1});
+})().catch(e=>{console.error(e.stack);if(e.cause)console.error('Cause:',String(e.cause));process.exitCode=1});

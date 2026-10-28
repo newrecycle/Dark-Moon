@@ -36,3 +36,23 @@ not proof of an untested host. An unavailable credential, license acceptance or
 native capability is recorded explicitly rather than silently skipped or called
 complete. Once a fix passes its relevant checks, update provenance and this
 ledger, push the checkpoint, and proceed to the next item.
+
+## 28 October audit intake
+
+The user supplied the pinned commercial audit ZIP and commits 84c9d36/7bcdf36.
+The [review](../pro-audit/2026-10-27/DARKMOON_AUDIT_REVIEW.md) identifies 13 static
+API discrepancies, 126 original packaged test functions, 52 route declarations
+(including aliases), and Nuitka-generated native interfaces. No original runtime
+response snapshots are present. Preserve the difference between static evidence,
+fork-tested behavior and original wire verification. The 76 generated acceptance
+rows are plans, not executed tests. The review's P0 method/path contracts are next,
+followed by credential/history/run/webhook projections and the remaining native
+host/IDE gaps. Existing fork security and independent extensions remain required.
+
+The network-disabled n8n run 40625693807 passed package/adversarial contracts,
+the real action workflow/credential checks, native polling and persisted poll
+cursor restart, HTTP 401 rejection and safe webhook output. The final webhook
+restart failed: the test's shutdown timeout captured the mutable host variable
+and could terminate a later host. The follow-up binds the timer to its own
+process and clears it after exit. Final webhook restart/replay/deactivation
+acceptance remains pending the rerun; it is not marked complete.
