@@ -788,11 +788,25 @@
           { campaignId: button.dataset.protectedPdf },
         );
       if (button.dataset.reportPreview) {
-        const r = await api(
-          `/api/v1/campaigns/${button.dataset.reportPreview}/report`,
-        );
-        details("Assessment report", "");
-        $("#detail-body").append(markdownPreview(r.content));
+        const cid = button.dataset.reportPreview, previousToken = token;
+        details("Assessment report", "<p>Evidence is withheld by the server.</p>");
+        if (identity?.role === "admin") {
+          const grant = await api("/api/v1/evidence/grants", {
+            method:"POST",body:JSON.stringify({kind:"report",id:cid})
+          });
+          if (!$("#detail").open || token !== previousToken ||
+              $("#detail-title").textContent !== "Assessment report") return;
+          const response = await api(`/api/v1/evidence/report/${encodeURIComponent(cid)}/reveal`, {
+            headers: {"X-Darkmoon-Evidence-Grant": grant.grant}
+          });
+          if (!$("#detail").open || token !== previousToken ||
+              $("#detail-title").textContent !== "Assessment report") return;
+          $("#detail-body").replaceChildren();
+          const output = document.createElement("section");
+          output.dataset.revealedContent = "true";
+          output.append(markdownPreview(response.data.content));
+          $("#detail-body").append(output);
+        }
       }
       if (button.dataset.projectAnalytics) {
         const result = await api(
@@ -991,6 +1005,9 @@
         });
       }
       if (kind === "protected_pdf") {
+        const grant = await api("/api/v1/evidence/grants", {
+          method:"POST",body:JSON.stringify({kind:"report_pdf",id:formState.campaignId})
+        });
         const res = await fetch(
           `/api/v1/campaigns/${encodeURIComponent(formState.campaignId)}/report/pdf`,
           {
@@ -998,6 +1015,7 @@
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
+              "X-Darkmoon-Evidence-Grant": grant.grant,
             },
             body: JSON.stringify({ password: raw.password, sign: true }),
           },
