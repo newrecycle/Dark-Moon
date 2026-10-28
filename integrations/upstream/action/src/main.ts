@@ -64,6 +64,7 @@ function writeReportFile(
   dir: string,
   campaignId: string
 ): string {
+  if (!/^[A-Za-z0-9_-]{1,200}$/.test(campaignId)) throw new Error("Unsafe campaign identity for report artifact.");
   fs.mkdirSync(dir, { recursive: true });
   const out = path.join(dir, `darkmoon-${campaignId}.${REPORT_EXT[format]}`);
   fs.writeFileSync(out, content, { encoding: 'utf8' });
@@ -250,6 +251,11 @@ export async function run(): Promise<void> {
     return;
   }
 
+  if (campaign.status !== 'completed') {
+    core.setFailed(`Assessment ended with status '${campaign.status}'; findings policy was not evaluated.`);
+    return;
+  }
+
   // Read findings once (evidence-free) for status counts, report, and a severity
   // fallback. Severity summary carries no status breakdown.
   let findings: Finding[] = [];
@@ -258,15 +264,12 @@ export async function run(): Promise<void> {
     findings = await client.listFindings({ campaignId: campaign.id });
     statusCounts = statusCountsFromFindings(findings);
   } catch (err) {
-    core.warning(`Could not read findings: ${safe(String(err))}`);
-    statusCounts = { exploited: 0, confirmed: 0, unconfirmed: 0, remediated: 0 };
+    core.setFailed(`Could not read findings; no findings verdict is available: ${safe(String(err))}`);
+    return;
   }
 
-  // Defensive: if the campaign's severity summary is empty but findings exist,
-  // recompute it from the findings so the gate/table are never falsely zero.
-  if (campaign.severity.total === 0 && findings.length > 0) {
-    campaign = { ...campaign, severity: severitySummaryFromFindings(findings) };
-  }
+  // Evaluate the fetched findings even when cached campaign counts disagree.
+  campaign = { ...campaign, severity: severitySummaryFromFindings(findings) };
 
   const reportPath = await fetchReport(client, campaign, inputs, findings);
 

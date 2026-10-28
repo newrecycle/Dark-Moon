@@ -8,6 +8,10 @@ on:
       - 'integrations/upstream/action/**'
       - 'integrations/upstream/gitlab/**'
       - 'tests/community/client_contract.cjs'
+      - 'tests/community/action_host.cjs'
+      - 'tests/community/sdk_fork_http.cjs'
+      - 'tests/community/client_snapshot.py'
+      - 'mcp/community/**'
       - '.github/workflows/community-sdk.yml'
 permissions:
   contents: read
@@ -25,3 +29,12 @@ jobs:
       - run: npm --prefix integrations/upstream/client ci --ignore-scripts
       - run: npm --prefix integrations/upstream/client run ci
       - run: node tests/community/client_contract.cjs
+      - run: python3 tests/community/client_snapshot.py
+      - run: npm --prefix integrations/upstream/action ci --ignore-scripts
+      - run: npm --prefix integrations/upstream/action run all
+      - run: node tests/community/action_host.cjs
+      - name: Install fork HTTP dependencies
+        run: |
+          python3 -m venv /tmp/darkmoon-sdk-env
+          /tmp/darkmoon-sdk-env/bin/pip install -r mcp/requirements.txt -r mcp/community/requirements.txt
+      - run: DARKMOON_TEST_PYTHON=/tmp/darkmoon-sdk-env/bin/python node tests/community/sdk_fork_http.cjs

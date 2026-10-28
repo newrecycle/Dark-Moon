@@ -197,3 +197,15 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 - 📚 **Docs:** https://docs.dark-moon.org
 - 🌐 **Website:** https://dark-moon.org
 - 🔗 **Related integrations:** [GitLab CI/CD](https://github.com/ASCIT31/darkmoon-gitlab) · [Jenkins](https://github.com/ASCIT31/darkmoon-jenkins) 
+
+## Dark-Moon fork snapshot
+
+This checkout vendors the repository's patched `0.2.1-darkmoon.1` client under
+the existing `@darkmoon/client` import name. This is a local dependency archive,
+not an npm release. Its hash and upstream source provenance are recorded in
+`../SOURCES.json`. Build from the lockfile to obtain the fork corrections.
+
+Only a completed assessment with successfully read findings can produce a policy
+verdict. Failed/stopped assessments and findings-read errors fail the action
+without generating an empty report. Counts and the severity gate use fetched
+findings, even when cached campaign statistics disagree. Reports remain optional.

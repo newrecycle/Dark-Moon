@@ -4,25 +4,19 @@
  * fixture tree. Proves the frozen-contract adapter maps real package output
  * into the shapes the extension UI consumes, including redaction gating.
  *
- * Skips itself cleanly if the package is not installed.
+ * Missing dependencies/fixtures fail the test rather than silently skipping it.
  */
 import * as assert from 'assert';
 import * as fs from 'fs';
+import * as path from 'path';
 import { createRealClient } from '../../src/darkmoon/realAdapter';
 import { redact } from '../../src/util/redact';
 
-const DATAROOT = '/home/mehdi/darkmoon-client/fixtures/dataroot';
+const DATAROOT = process.env.DARKMOON_CLIENT_FIXTURES || path.resolve(__dirname, '../../../../client/fixtures/dataroot');
+assert.ok(fs.existsSync(DATAROOT), 'SDK fixture directory is required');
+require.resolve('@darkmoon/client');
 
-function pkgAvailable(): boolean {
-  try {
-    require.resolve('@darkmoon/client');
-    return fs.existsSync(DATAROOT);
-  } catch {
-    return false;
-  }
-}
-
-(pkgAvailable() ? describe : describe.skip)(
+describe(
   'E2E: extension adapter over real @darkmoon/client (OSS)',
   () => {
     const client = createRealClient({ mode: 'oss', dataDir: DATAROOT });

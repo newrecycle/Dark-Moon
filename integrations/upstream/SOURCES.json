@@ -42,13 +42,20 @@
     "repository": "https://github.com/ASCIT31/darkmoon-action.git",
     "commit": "962b62a17c02bb989ef3b19bcda1b0c99968ba12",
     "license": "MIT",
-    "modified": false,
+    "modified": true,
     "excluded": [
       ".github/workflows/ci.yml",
       ".github/workflows/example-usage.yml",
       "docs/screenshots",
       "dist"
-    ]
+    ],
+    "client_snapshot": {
+      "source": "../client",
+      "version": "0.2.1-darkmoon.1",
+      "tarball_sha256": "cf103ead62b2b37dcbb7ba4da3a15f9827b1dd71a4131a7c12fa87f09908cafb",
+      "npm_published": false
+    },
+    "adaptation": "Replace legacy 0.1 client archive with patched local snapshot via existing @darkmoon/client import alias. Fail closed on failed/stopped assessments and unreadable findings; compute counts from fetched findings and constrain report filenames."
   },
   {
     "path": "integrations/upstream/gitlab",
@@ -79,12 +86,19 @@
     "repository": "https://github.com/ASCIT31/darkmoon-vscode.git",
     "commit": "75d0743cf6b3b0eeec5abe66ddbfbe1e636a50e7",
     "license": "MIT",
-    "modified": false,
+    "modified": true,
     "excluded": [
       ".github",
       "docs/screenshots",
       "test/screenshots"
-    ]
+    ],
+    "client_snapshot": {
+      "source": "../client",
+      "version": "0.2.1-darkmoon.1",
+      "tarball_sha256": "cf103ead62b2b37dcbb7ba4da3a15f9827b1dd71a4131a7c12fa87f09908cafb",
+      "npm_published": false
+    },
+    "adaptation": "Replace legacy 0.1 client archive with patched local snapshot via existing @darkmoon/client import alias. Portable required SDK fixture tests; native reveal-policy validation remains open."
   },
   {
     "path": "integrations/upstream/jetbrains",

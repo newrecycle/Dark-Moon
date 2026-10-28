@@ -117,3 +117,14 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 - 📚 **Docs:** https://docs.dark-moon.org
 - 🌐 **Website:** https://dark-moon.org
 - 🔗 **Related integrations:** [JetBrains](https://github.com/ASCIT31/darkmoon-jetbrains) · [SDK / CLI](https://github.com/ASCIT31/darkmoon-client) 
+
+## Dark-Moon fork snapshot
+
+This checkout vendors the repository's patched `0.2.1-darkmoon.1` client under
+the existing `@darkmoon/client` import name. This is a local dependency archive,
+not an npm release. Its hash and upstream source provenance are recorded in
+`../SOURCES.json`. Build from the lockfile to obtain the fork corrections.
+
+The real-adapter data tests require the sibling client fixture directory (or
+`DARKMOON_CLIENT_FIXTURES`); a missing directory is a failure, not a skipped test.
+Native extension-host and reveal-policy validation are tracked separately.

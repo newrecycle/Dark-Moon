@@ -158,6 +158,34 @@ describe('run (integration, real computeFailPolicy)', () => {
     setInput('full-report', 'false');
   });
 
+  it('fails closed when findings cannot be read instead of emitting an empty report', async () => {
+    listFindingsMock.mockRejectedValueOnce(new Error('read failure'));
+    const { run } = await import('../main.js');
+    await run();
+    expect(failedWith).toContain('Could not read findings');
+    expect(outputs['policy-failed']).toBeUndefined();
+    expect(outputs['report-path']).toBeUndefined();
+  });
+
+  it('does not evaluate a failed or stopped assessment as a clean scan', async () => {
+    const { run } = await import('../main.js');
+    for (const status of ['failed', 'stopped'] as const) {
+      waitMock.mockResolvedValueOnce({ ...campaign, status });
+      await run();
+      expect(failedWith).toContain(`status '${status}'`);
+      expect(outputs['policy-failed']).toBeUndefined();
+    }
+  });
+
+  it('recomputes a stale nonzero summary from fetched findings', async () => {
+    waitMock.mockResolvedValueOnce({ ...campaign, severity: { critical: 0, high: 0, medium: 0, low: 1, info: 0, total: 1 } });
+    const { run } = await import('../main.js');
+    await run();
+    expect(outputs['critical']).toBe('1');
+    expect(outputs['total-findings']).toBe('3');
+    expect(outputs['policy-failed']).toBe('true');
+  });
+
   it('masks the token BEFORE the first client call', async () => {
     const { run } = await import('../main.js');
     await run();

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Official GitHub Action for Darkmoon autonomous AI penetration testing (OSS + Pro).",
-  "author": "ASC-IT (SARL) — Darkmoon",
+  "author": "ASC-IT (SARL) \u2014 Darkmoon",
   "license": "MIT",
   "homepage": "https://github.com/ASCIT31/darkmoon-action#readme",
   "repository": {
@@ -26,7 +26,7 @@
   "dependencies": {
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.0",
-    "@darkmoon/client": "file:vendor/darkmoon-client-0.1.0.tgz"
+    "@darkmoon/client": "file:vendor/darkmoon_ai-client-0.2.1-darkmoon.1.tgz"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
