@@ -340,3 +340,43 @@ stripping, evidence/source/patch/probe/credential exclusion;
 role authorization, the shared collection/detail/lookup projection and
 finding-dialog error/empty states. Tests against the independent fork
 would only establish fork behavior. Original wire parity remains unverified.
+
+## Scheduler compatibility verification suite — 28 October 2026
+
+New offline suite: `tests/community/test_scheduler_compatibility.py`.
+The tests exercise the independent fork's flat-input adapter; they do **not**
+establish exact original-vendor runtime semantics, defaults or response parity.
+`test_calendar_scheduling.py` and `test_pro_contract_aliases.py`
+continue to protect the underlying calendar and PUT contract.
+
+The dedicated fixture cases cover:
+- Flat create/preview equivalence for explicit once, daily, weekly and monthly;
+  UTC offset normalization, whole-second validation, program/display naming,
+  scope arrays and rules text, saved credential existence and inline-secret rejection.
+- Partial edits: omission versus explicit null, explicit empty-list scope clearing,
+  preservation of omitted target/out-of-scope/credential/timing, name-only metadata,
+  timestamp-only and interval-only changes, and contradictory mixed schemas.
+- Invalid recurrence values, unverified defaults, unsupported recurrence units,
+  out-of-range/non-integer intervals, naive/non-UTC recurring instants and malformed fields.
+- Timezone/DST: historical spring gap skips, fall repeated-hour fold selection
+  from an explicit timestamp, UTC-local conversion and missing-month-day skipping.
+- Atomic optimistic version checks across concurrent flat updates, PUT missing/
+  boolean/stale versions, PATCH compatibility and the intentional versionless
+  enabled-only legacy toggle.
+- HTTP wrappers for both scheduler route families, preview immutability,
+  400 validation responses and 401/403 authorization.
+- One-shot due coalescing with an injected in-memory fake launcher; no real
+  assessment, executable, provider login, external request or third-party target.
+
+Run locally from the repository root after installing the community test
+dependencies:
+
+```sh
+PYTHONPATH=mcp python -m unittest discover -s tests/community \
+  -p 'test_scheduler_compatibility.py' -v
+```
+
+The existing `Campaign isolation regressions` GitHub workflow discovers the entire
+`tests/community` suite on a `pro` push. It also runs unrelated regression
+checks; results are therefore reported from the observed CI run, not assumed
+from a committed test file. Runtime/vendor parity remains unverified.
