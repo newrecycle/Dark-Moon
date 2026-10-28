@@ -213,6 +213,27 @@ def _safe_opencode(raw):
             "restart_required": raw.get("restart_required") is True}
 
 
+def _paths(items):
+    if not isinstance(items, list):
+        return []
+    result = []
+    for path in items[:100]:
+        if not isinstance(path, dict):
+            continue
+        result.append({
+            "id": path.get("id"), "campaign_id": path.get("campaign_id"),
+            "created_at": path.get("created_at"),
+            "title": "Reviewed path (evidence withheld)",
+            "valid": path.get("valid") is True,
+            "basis": "operator_review_of_recorded_evidence",
+            "steps": [{"edge_id": step.get("edge_id"), "finding_id": step.get("finding_id"),
+                       "evidence_sha256": step.get("evidence_sha256")}
+                      for step in path.get("steps", [])[:32] if isinstance(step, dict)],
+            "issues": ["Review is stale or unavailable"] if path.get("issues") else []
+        })
+    return result
+
+
 def minimize_response(path, content, kind):
     """Default read/write projection for both canonical and legacy workspace routes."""
     parts = path.split("?", 1)[0].strip("/").split("/")
@@ -224,6 +245,12 @@ def minimize_response(path, content, kind):
         return content
     if parts[2] == "targets" and len(parts) == 5 and parts[4] == "evolution":
         return content
+    if parts[2] == "campaigns" and len(parts) == 5 and parts[4] == "paths":
+        if isinstance(content, dict) and "data" in content:
+            return {"data": _paths(content.get("data")), "total": content.get("total", 0)}
+        if isinstance(content, dict) and "deleted" in content:
+            return {"deleted": content["deleted"]}
+        return {"data": _paths([content])[0]} if isinstance(content, dict) else {"data": []}
     if parts[2] == "pull-requests":
         return content
     if parts[2] == "run":
