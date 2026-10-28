@@ -280,8 +280,11 @@ def minimize_response(path, content, kind):
     if parts[2] == "targets" and len(parts) == 5 and parts[4] == "evolution":
         return content
     if parts[2] == "campaigns" and len(parts) == 5 and parts[4] == "paths":
-        if isinstance(content, dict) and "data" in content:
-            return {"data": _paths(content.get("data")), "total": content.get("total", 0)}
+        if isinstance(content, dict) and isinstance(content.get("data"), list):
+            return {"data": _paths(content["data"]), "total": content.get("total", 0)}
+        if isinstance(content, dict) and isinstance(content.get("data"), dict):
+            projected = _paths([content["data"]])
+            return {"data": projected[0] if projected else {}}
         if isinstance(content, dict) and "deleted" in content:
             return {"deleted": content["deleted"]}
         return {"data": _paths([content])[0]} if isinstance(content, dict) else {"data": []}
