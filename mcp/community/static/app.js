@@ -332,14 +332,13 @@ async function loadRunQueue(signal) {
     if (signal.aborted || request !== runQueueRequest || route !== "campaigns" || target !== $("#run-queue")) return;
     const seen = new Set(active.data.map((r) => r.run_id));
     const rows = [...active.data, ...recent.data.filter((r) => !seen.has(r.run_id))];
-    target.innerHTML = rows.length ? rows.map((j) => {
+    target.innerHTML = (rows.length ? rows.map((j) => {
       const campaign = snapshot.campaigns.find((c) => c.id === j.campaign_id);
       const title = campaign?.name || j.run_id;
-      const label = j.log_status === "unavailable" ? "Log unavailable" :
+      const label = !j.log_status ? "Active run" : j.log_status === "unavailable" ? "Log unavailable" :
         j.log_status === "missing" ? "Log not yet created" : "Log metadata available";
       return `<div class="list-item"><div><a class="clickable" data-job="${esc(j.run_id)}">${esc(title)}</a><small>Run ${esc(j.run_id)} · Campaign ${esc(j.campaign_id || "unavailable")} · ${esc(date(j.created_at))} · ${esc(label)}</small></div><div>${badge(j.state)} ${["queued", "running", "cancelling"].includes(j.state) && identity?.role !== "viewer" ? `<button class="secondary" data-cancel="${esc(j.run_id)}">Cancel</button>` : ""}</div></div>`;
-    }).join("") + `<div class="toolbar" aria-label="Run history pages"><button class="secondary" data-run-page="${Math.max(0, offset - 50)}" ${offset === 0 ? "disabled" : ""}>Previous</button><span>History ${recent.total ? offset + 1 : 0}–${offset + recent.data.length} of ${recent.total}</span><button class="secondary" data-run-page="${offset + 50}" ${recent.has_more ? "" : "disabled"}>Next</button></div>` :
-      empty("Queue is empty", "No retained run records.");
+    }).join("") : empty(offset ? "No records on this history page" : "Queue is empty", offset ? "Use Previous to browse earlier records." : "No retained run records.")) + `<div class="toolbar" aria-label="Run history pages"><button class="secondary" data-run-page="${Math.max(0, offset - 50)}" ${offset === 0 ? "disabled" : ""}>Previous</button><span>History ${recent.total && offset < recent.total ? offset + 1 : 0}–${offset + recent.data.length} of ${recent.total}</span><button class="secondary" data-run-page="${offset + 50}" ${recent.has_more ? "" : "disabled"}>Next</button></div>`;
   } catch (error) {
     if (!signal.aborted && request === runQueueRequest && route === "campaigns" && target === $("#run-queue"))
       target.textContent = "Run history unavailable: " + error.message;
