@@ -380,3 +380,43 @@ The existing `Campaign isolation regressions` GitHub workflow discovers the enti
 `tests/community` suite on a `pro` push. It also runs unrelated regression
 checks; results are therefore reported from the observed CI run, not assumed
 from a committed test file. Runtime/vendor parity remains unverified.
+
+## Credential discovery verification suite — 28 October 2026
+
+Added `tests/community/test_credential_discovery.py` as an offline,
+HTTP-level and use-site contract suite. The `Campaign isolation regressions`
+CI job runs this file explicitly before the existing full `mcp/tests` and
+`tests/community` regression command on `pro` changes.
+
+Coverage includes:
+- Exact administrator-only route registration and provider catalog; a stored
+  credential with ID `providers` cannot shadow catalog routing.
+- Credential creation, sealed-at-rest persistence, allowlisted masked detail,
+  list, update and delete; legacy custom labels and deliberately injected
+  unknown persisted fields.
+- Stable credential ID order; capability-specific filtering and explicit
+  HTTP 400 for blank, repeated, unknown and wrong-case capabilities.
+- Internal webhook-signing credentials never appear in list/detail/options,
+  cannot be mutated through normal credential routes, and are rejected
+  for user-consumer use.
+- Authentication and role matrix (anonymous, viewer, analyst, administrator),
+  analyst-only masked selector visibility, and session revocation after logout.
+- Target-login username requirement, successful queued launch with the three
+  credential reference fields, and rejection of unauthorized/hidden references
+  before queueing.
+- Fake-process privacy socket tokenization, asserted plaintext-over-stdin,
+  placeholder-only output, unsafe tokenization refusal; fake-process HTTPS
+  checkout asserting `GIT_ASKPASS` and no secret in argv.
+- Profile save and apply, model discovery, and OpenCode connection fail-closed
+  when an internal signing credential is supplied, before provider/network
+  operations.
+
+Isolation: fixtures use temporary storage and loopback HTTP only; Docker,
+Git checkout, and model/network entry points are mocked where called.
+No live provider, target scanner, vendor program, native host or deployment
+is invoked by the new tests.
+
+**Verification status:** source implementation and CI wiring committed;
+runtime results must be taken from the corresponding GitHub Actions run,
+not inferred from test source. Vendor response/body/schema parity and
+full hosted-product GUI parity remain unverified.
