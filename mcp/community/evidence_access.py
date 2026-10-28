@@ -41,13 +41,14 @@ FIELDS = frozenset({
     "ordering", "page_consistency", "has_evidence", "has_screenshot",
     "has_extracted_data", "redacted", "log_truncated",
     "active_states", "active_count", "pending_count", "completed_count",
-    "is_complete", "is_active", "risk_score", "overall_risk",
+    "is_complete", "is_active", "risk_score", "overall_risk", "date",
     "message", "event", "disposition", "status_code", "finding_count",
     "affected_findings", "duration_seconds", "score",
 })
 CONTAINERS = frozenset({
     "data", "items", "rows", "projects", "targets", "campaigns", "findings",
     "vulnerabilities", "infrastructure", "nodes", "edges", "paths",
+    "campaign_ids", "target_ids", "finding_ids", "before_ids",
     "jobs", "schedules", "remediations", "retests", "history", "events",
     "stats", "summary", "overview", "timeseries", "series", "points",
     "counts", "severity_distribution", "status_distribution",
@@ -59,7 +60,7 @@ CONTAINERS = frozenset({
 WORKSPACE_ROUTES = frozenset({
     "projects", "targets", "campaigns", "findings", "vulnerabilities",
     "dashboard", "overview", "run", "jobs", "remediations",
-    "pull-requests", "retest", "events", "scheduler", "schedules",
+    "pull-requests", "retest", "events",
     "options", "source-files", "integrations",
 })
 STATUS_VALUES = frozenset({
@@ -93,7 +94,7 @@ def _safe_value(key, value):
         return value if value in STATUS_VALUES else "unknown"
     if key in OPAQUE:
         return value[:200] if len(value) <= 200 else None
-    if key in ("created_at", "started_at", "finished_at", "discovered_at",
+    if key in ("date", "created_at", "started_at", "finished_at", "discovered_at",
                "recorded_at", "triaged_at", "due_at", "next_run", "last_run",
                "timestamp", "ts"):
         # Timestamps must be shaped as dates rather than arbitrary free text.
@@ -102,6 +103,51 @@ def _safe_value(key, value):
                "log_status", "content_policy", "ordering", "page_consistency"):
         return value if len(value) <= 40 and all(c.isalnum() or c in "_.:-" for c in value) else None
     return None
+
+
+def _counts(raw, keys):
+    return {k: v for k, v in raw.items() if k in keys and type(v) in (int, float)} if isinstance(raw, dict) else {}
+
+
+def _posture(raw):
+    """Typed posture analytics retain numeric summaries and stable IDs only."""
+    if not isinstance(raw, dict):
+        return {}
+    totals = {"projects", "targets", "campaigns", "findings", "active", "excluded",
+              "running_campaigns", "recorded_campaigns", "total_campaigns", "mean_seconds",
+              "proposals", "validated", "validated_share", "findings_with_proposals",
+              "unlinked_proposals", "findings_without_registered_target", "findings_without_campaign"}
+    severity = {"critical", "high", "medium", "low", "info", "unknown"}
+    def rows(items):
+        result = []
+        for obj in items[:10000] if isinstance(items, list) else []:
+            if not isinstance(obj, dict):
+                continue
+            row = {k: v for k, v in obj.items()
+                   if k in ("id", "project_id", "target_id", "latest_campaign_id",
+                            "status", "started_at", "risk", "findings", "active",
+                            "excluded", "campaigns", "duration_seconds")
+                   and (type(v) in (int, float) or isinstance(v, str) and len(v) <= 200)}
+            row["active_severity"] = _counts(obj.get("active_severity"), severity)
+            result.append(row)
+        return result
+    rem = raw.get("remediation") if isinstance(raw.get("remediation"), dict) else {}
+    raw_totals = raw.get("totals") if isinstance(raw.get("totals"), dict) else {}
+    risk = raw_totals.get("risk")
+    return {
+        "totals": {**_counts(raw_totals, totals),
+                   "risk": risk if risk in severity | {"none"} else "unknown"},
+        "severity_distribution": _counts(raw.get("severity_distribution"), severity),
+        "status_distribution": _counts(raw.get("status_distribution"), STATUS_VALUES),
+        "mitre_distribution": {},
+        "mitre_unmapped": raw.get("mitre_unmapped", 0),
+        "target_risk": rows(raw.get("target_risk")),
+        "campaign_history": rows(raw.get("campaign_history")),
+        "duration": _counts(raw.get("duration"), totals),
+        "remediation": {**_counts(rem, totals),
+                        "status_distribution": _counts(rem.get("status_distribution"), STATUS_VALUES)},
+        "coverage": _counts(raw.get("coverage"), totals)
+    }
 
 
 def public_projection(value, depth=0):
@@ -114,7 +160,13 @@ def public_projection(value, depth=0):
         return None
     projected = {}
     for key, item in value.items():
-        if key in ("source", "target") and isinstance(item, str):
+        if key == "posture":
+            projected[key] = _posture(item)
+        elif key == "content":
+            projected[key] = "Recorded evidence is withheld by default."
+        elif key in ("campaign_ids", "target_ids", "finding_ids", "before_ids") and isinstance(item, list):
+            projected[key] = [x for x in item[:10000] if isinstance(x, str) and len(x) <= 200]
+        elif key in ("source", "target") and isinstance(item, str):
             # Graph edges have stable vertex identities. These fields on
             # remediation records are paths, not safe graph references.
             if "kind" in value and "target" in value and "source" in value and len(item) <= 200:
