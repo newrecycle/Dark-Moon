@@ -39,7 +39,12 @@ case "$cmd" in
     printf '{"campaignId":"%s","verdict":"%s","failOn":["%s"],"offending":{},"total":5,"reason":"%s"}\n' \
       "$cid" "$verdict" "$failon" "$reason"
     exit $code;;
-  findings) cat "$DIR/findings.json"; exit 0;;
+  findings)
+    if [ "${DARKMOON_FAKE_FINDINGS_FAIL:-0}" = "1" ]; then
+      printf 'HTTP 401 SYNTHETIC_AUTH_RESPONSE_SECRET_NOT_FOR_LOGS\n' >&2
+      exit 1
+    fi
+    cat "$DIR/findings.json"; exit 0;;
   summary)  cat "$DIR/summary.json"; exit 0;;
   status)   cat "$DIR/status.json"; exit 0;;
   report)
