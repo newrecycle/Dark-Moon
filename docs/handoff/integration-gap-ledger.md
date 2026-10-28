@@ -71,3 +71,12 @@ durable evidence. The next fix adds an authenticated, transactional producer
 receipt journal, with no raw payloads, fail-closed admission, finite retention,
 and no eviction of fresh entries at capacity. See [receipt contract](webhook-receipts.md).
 Native replay/deactivation remains pending until the new offline host run passes.
+
+Offline run 40645301696 passed producer-backed replay suppression across process
+restart. Its remaining failure was an immediate post-deactivation registration
+assertion. The pinned n8n 2.45.4 workflow service can enqueue unpublish via its
+publication outbox, so the HTTP acknowledgment does not establish completed
+cleanup. Acceptance now waits at most 15 seconds each for remote registration
+deletion and route removal, retaining both required outcomes. The rerun remains
+pending; no cleanup success is claimed from the acknowledgment alone. All other
+applicable gates on 9d2833c passed.

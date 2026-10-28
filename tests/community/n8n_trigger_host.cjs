@@ -70,7 +70,11 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
   const output=execution.resultData.runData.Output[0].data.main[0];assert.doesNotMatch(JSON.stringify(output),/DO-NOT-FORWARD|disposable-trigger/);assert.equal(output[0].json.data.finding_id,'fixture_finding');
   console.log('Native trigger: restarting webhook receiver and replaying signed event');
   await stop();await start();assert.equal(hooks.size,1,'restart must reuse registration');assert.equal((await deliver('evt_persisted')).status,200);await pause(1500);assert.equal((await executions(hookId)).length,rows.length);
-  await api('/rest/workflows/'+hookId+'/deactivate','POST',{});assert.equal(hooks.size,0);assert.equal((await deliver('evt_after_deactivate')).status,404);
+  await api('/rest/workflows/'+hookId+'/deactivate','POST',{});
+  // Publication reconciliation is asynchronous in the pinned host. Require
+  // eventual remote cleanup and route removal, rather than racing its HTTP ack.
+  await wait('webhook deactivation cleanup',async()=>hooks.size===0,15000);
+  await wait('webhook route removal',async()=>(await deliver('evt_after_deactivate')).status===404,15000);
   await api('/rest/workflows/'+pollId+'/deactivate','POST',{});
   console.log(JSON.stringify({status:'passed',host:'n8n 2.45.4',checks:['poll activation primes without replay','scheduled transition','durable poll cursor across process restart','webhook credential secret absent from workflow export','HTTP 401 on invalid HMAC','safe downstream event projection','webhook registration reused across restart','producer-backed replay suppressed after restart','deactivation removes remote registration and route'],root},null,2));
  }finally{await stop();mock.close();await fs.writeFile(path.join(root,'host.log'),log);}
