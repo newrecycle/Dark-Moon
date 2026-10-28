@@ -22,6 +22,22 @@ let token = "",
   viewControl,
   scheduleMode = false;
 let currentDetailJob = "", lastFindingsHash = "", jobDetailRequest = 0;
+let findingDetailRequest = 0, currentFindingRef = "";
+async function grantedRequest(kind, id, path) {
+  const currentToken = token;
+  const issued = await api("/api/v1/evidence/grants", {
+    method: "POST",
+    body: JSON.stringify({kind, id})
+  });
+  if (!token || token !== currentToken) throw new Error("Session changed");
+  return api(path || `/api/v1/evidence/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/reveal`, {
+    headers: {"X-Darkmoon-Evidence-Grant": issued.grant}
+  });
+}
+function clearRevealedContent() {
+  findingDetailRequest++;
+  document.querySelectorAll("[data-revealed-content]").forEach(node => node.remove());
+}
 let runQueueOffset = 0, runActiveOffset = 0, runQueueRequest = 0, runQueueControl;
 const severityColors = {
   critical: "#fb8698",
@@ -54,6 +70,9 @@ function fail(error) {
   $("#error").hidden = false;
 }
 function lock() {
+  clearRevealedContent();
+  currentFindingRef = "";
+  $("#detail").open && $("#detail").close();
   token = "";
   snapshot = null;
   identity = null;
@@ -68,6 +87,7 @@ function lock() {
   $("#content").replaceChildren();
 }
 async function refresh() {
+  clearRevealedContent();
   const [state, who] = await Promise.all([
     api("/api/v1/overview"),
     api("/api/v1/auth/me"),
@@ -283,13 +303,16 @@ function evidenceMarkup(evidence) {
   );
 }
 async function showFinding(id, cid) {
+  const request = ++findingDetailRequest, previousToken = token;
+  currentFindingRef = `${cid}:${id}`;
   const c = await api(`/api/v1/campaigns/${encodeURIComponent(cid)}`),
     f = c.findings.find((x) => x.id === id);
   if (!f) throw new Error("Finding not found");
   const related = await api(`/api/v1/pull-requests/finding/${encodeURIComponent(id)}?campaign_id=${encodeURIComponent(cid)}`)
     .catch(() => null);
+  if (request !== findingDetailRequest || previousToken !== token || currentFindingRef !== `${cid}:${id}`) return;
   $("#detail-title").textContent = f.title || f.id;
-  const evidence = evidenceMarkup(f.evidence || f.evidence_output);
+  const evidence = '<p class="instructions">Recorded evidence is withheld by the server until an administrator authorizes a scoped reveal.</p>';
   $("#detail-body").innerHTML =
     `${badge(f.severity)} ${badge(f.status)} <span class="subtle">CVSS ${esc(f.cvss_score ?? "—")} · ${esc(f.discovered_by_agent || "")}</span>${[
       ["Endpoint", f.endpoint],
@@ -310,16 +333,42 @@ async function showFinding(id, cid) {
       )}<div class="detail-label">Recorded evidence</div>${evidence}${f.evidence_commands ? `<pre>${esc(f.evidence_commands)}</pre>` : ""}<div class="detail-label">Remediation guidance</div><div class="detail-text">${esc(f.remediation || "No guidance recorded.")}</div>${["confirmed", "exploited"].includes(f.status) ? `<div class="report-actions"><button class="primary" data-prepare-fix="${esc(id)}" data-cid="${esc(cid)}">Prepare local fix →</button></div>` : ""}<div class="detail-label">Operator triage</div><div class="toolbar"><select id="triage-status">${["unconfirmed", "confirmed", "exploited", "false_positive", "accepted_risk", "remediated", "resolved"].map((x) => `<option value="${x}" ${f.status === x ? "selected" : ""}>${x.replaceAll("_", " ")}</option>`).join("")}</select><button class="secondary" data-triage="${esc(id)}" data-cid="${esc(cid)}">Save triage</button></div><small>Operator triage does not constitute a validated remediation retest.</small>`;
   $("#detail-body").insertAdjacentHTML("beforeend",
     `<div class="detail-label">Linked remediation records</div>${related ? (related.data.length ? related.data.map(r => `<div class="list-item"><div><strong>${esc(r.id)}</strong><small>${esc(r.record_type === "published_pr" ? "Published PR" : "Local proposal")} · ${esc(r.status || "unknown")}</small></div><button class="secondary" data-remediation="${esc(r.id)}" data-cid="${esc(cid)}" data-proposal-finding="${esc(id)}">Review</button></div>`).join("") : '<p class="instructions">No linked remediation records.</p>') : '<p class="instructions">Linked remediation records unavailable.</p>'}`);
+  if (identity?.role === "admin") {
+    $("#detail-body").insertAdjacentHTML("beforeend",
+      `<button class="secondary" data-reveal-finding="${esc(id)}" data-cid="${esc(cid)}">Reveal recorded evidence (45-second grant)</button>`);
+  }
   applyRoles();
   if (!$("#detail").open) $("#detail").showModal();
 }
+async function revealFinding(id, cid) {
+  const request = findingDetailRequest, previousToken = token;
+  const result = await grantedRequest("finding", id);
+  if (request !== findingDetailRequest || currentFindingRef !== `${cid}:${id}` ||
+      previousToken !== token || !$("#detail").open) return;
+  const f = result.data;
+  if (f.campaign_id !== cid || f.id !== id) throw new Error("Revealed resource identity mismatch");
+  $("#detail-body [data-revealed-content]")?.remove();
+  $("#detail-body").insertAdjacentHTML("beforeend",
+    `<section data-revealed-content><h3>Authorized untrusted evidence</h3>${evidenceMarkup(f.evidence || f.evidence_output)}
+      <pre>${esc(f.description || "")}</pre><pre>${esc(f.endpoint || "")}</pre>
+      <pre>${esc(f.reproduction_steps || "")}</pre><pre>${esc(f.remediation || "")}</pre></section>`);
+}
 async function exportReport(cid, format) {
-  const res = await fetch(
-    `/api/v1/campaigns/${encodeURIComponent(cid)}/report.${format}`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  );
-  if (!res.ok) throw new Error((await res.json()).error);
-  const url = URL.createObjectURL(await res.blob()),
+  if (identity?.role !== "admin") throw new Error("Administrator access required for full evidence exports");
+  let body;
+  if (format === "pdf") {
+    const issued = await api("/api/v1/evidence/grants", {method:"POST",body:JSON.stringify({kind:"report_pdf",id:cid})});
+    const res = await fetch(`/api/v1/campaigns/${encodeURIComponent(cid)}/report.pdf`, {
+      headers: { Authorization: `Bearer ${token}`, "X-Darkmoon-Evidence-Grant": issued.grant }
+    });
+    if (!res.ok) throw new Error("Report export rejected");
+    body = await res.blob();
+  } else {
+    const reveal = await grantedRequest(format === "json" ? "campaign" : "report", cid);
+    body = new Blob([format === "json" ? JSON.stringify(reveal.data, null, 2) : reveal.data.content],
+      {type: format === "json" ? "application/json" : "text/markdown"});
+  }
+  const url = URL.createObjectURL(body),
     a = document.createElement("a");
   a.href = url;
   a.download = `${cid}.${format}`;
@@ -499,6 +548,9 @@ $("#setup-account").addEventListener("close", () => $("#setup-account-form").res
 $("#login").addEventListener("cancel", (e) => e.preventDefault());
 $("#detail").addEventListener("close", () => {
   currentDetailJob = "";
+  currentFindingRef = "";
+  clearRevealedContent();
+  $("#detail-body").replaceChildren();
   jobDetailRequest++;
 });
 $("#logout").addEventListener("click", async () => {
@@ -567,15 +619,13 @@ document.addEventListener("click", async (e) => {
     } else if (b.dataset.campaign) await showCampaign(b.dataset.campaign);
     else if (b.dataset.finding)
       await showFinding(b.dataset.finding, b.dataset.cid);
+    else if (b.dataset.revealFinding)
+      await revealFinding(b.dataset.revealFinding, b.dataset.cid);
     else if (b.dataset.export)
       await exportReport(b.dataset.cid, b.dataset.export);
     else if (b.dataset.patch) {
-      const res = await fetch(
-        `/api/v1/remediations/${encodeURIComponent(b.dataset.patch)}/patch`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      if (!res.ok) throw new Error((await res.json()).error);
-      const url = URL.createObjectURL(await res.blob()),
+      const result = await grantedRequest("patch", b.dataset.patch);
+      const url = URL.createObjectURL(new Blob([result.data.patch], {type:"text/x-diff"})),
         a = document.createElement("a");
       a.href = url;
       a.download = b.dataset.patch + ".patch";
@@ -588,7 +638,8 @@ document.addEventListener("click", async (e) => {
       const output = $("#job-log");
       if (output) output.textContent = "Loading untrusted output…";
       try {
-        const log = await api(`/api/v1/run/logs/${encodeURIComponent(id)}?raw=true&lines=100`);
+        const log = await grantedRequest("run", id,
+          `/api/v1/run/logs/${encodeURIComponent(id)}?raw=true&lines=100`);
         if (request === jobDetailRequest && currentDetailJob === id && $("#detail").open && $("#job-log")) {
           $("#job-log").textContent = log.data.map((row) => row.message).join("\n") || "No raw lines in the bounded window.";
           if (log.truncated) $("#job-log").textContent += "\n[output window truncated]";
