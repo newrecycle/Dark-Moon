@@ -87,6 +87,26 @@ test receipts but does not execute a workflow. HTTP 202 means accepted,
 not delivered. See [webhook-receipts.md](webhook-receipts.md) for schema,
 disabled-hook behavior and deferred security checks. No tests ran.
 
+## Run discovery and bounded logs (source-only)
+
+The run dispatcher now resolves literal `/run/active` and `/run/logs` ahead
+of the generic run-ID route. Queue records use one allowlisted public
+representation in detail, stop, overview and legacy job routes; run and campaign
+IDs remain separate. Active discovery distinguishes queued, running and a
+cancel-requested running state. Log-history queries validate filters and page
+deterministically; raw subprocess content is absent from default/collection
+responses. The only raw-output reads require explicit administrator opt-in and
+are limited by bytes, lines and line length without following symlinks.
+
+The campaign UI loads active runs and 50-record history pages independently
+from the full workspace snapshot, distinguishes unavailable logs and empty
+history, discards stale requests, and permits explicit bounded raw reveal to
+administrators. SSE keeps heartbeat/terminal behavior with privileged opt-in
+for its raw output frames. This is an intentional privacy boundary, not a
+commercial Pro wire-parity claim. See the 28 October compatibility record for
+route schemas, limit values, privacy caveats and deferred HTTP/browser cases.
+No assessment, vendor binary, tests or build was run for this increment.
+
 ## Deferred
 
 Behavioral tests, Kotlin/Java/Go/full TypeScript builds, packaged native hosts and
