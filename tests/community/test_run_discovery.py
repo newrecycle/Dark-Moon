@@ -187,6 +187,12 @@ class RunDiscoveryHTTP(fixtures.Fixture):
         self.assertNotIn("spec", projected)
         self.assertNotIn("error", projected)
 
+    def raw_grant(self, job, kind="run"):
+        status, body, _ = self.request("/api/v1/evidence/grants", "POST",
+                                       {"kind": kind, "id": job["id"]})
+        self.assertEqual(status, 201, body)
+        return {"X-Darkmoon-Evidence-Grant": json.loads(body)["grant"]}
+
     def test_log_privacy_roles_and_lifecycle_are_explicit(self):
         job = self.job("secret", status="succeeded",
                        started_at="2026-10-28T09:01:00+00:00",
@@ -209,7 +215,7 @@ class RunDiscoveryHTTP(fixtures.Fixture):
         for headers in (viewer, analyst):
             self.assertEqual(self.get(route + "?raw=true", headers=headers)[0], 403)
         self.assertEqual(self.get(route + "?raw=true", auth=False)[0], 401)
-        status, raw, _ = self.get(route + "?raw=true")
+        status, raw, _ = self.get(route + "?raw=true", headers=self.raw_grant(job))
         self.assertEqual(status, 200)
         self.assertTrue(raw["raw"])
         self.assertEqual(raw["data"][0]["message"], "PRIVATE-SUBPROCESS-OUTPUT")
@@ -225,14 +231,14 @@ class RunDiscoveryHTTP(fixtures.Fixture):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"A" * (2 * MAX_TAIL_BYTES) + b"\nshort-last\n")
         with patch("community.run_views.os.read", wraps=os.read) as read:
-            status, raw, _ = self.get("/api/v1/run/logs/" + job["id"] + "?raw=true&lines=1")
+            status, raw, _ = self.get("/api/v1/run/logs/" + job["id"] + "?raw=true&lines=1", headers=self.raw_grant(job))
         self.assertEqual(status, 200)
         self.assertTrue(raw["truncated"])
         self.assertEqual(raw["data"], [{"type": "untrusted_raw", "message": "short-last"}])
         self.assertTrue(read.called)
         self.assertTrue(all(call.args[1] <= MAX_TAIL_BYTES for call in read.call_args_list))
         path.write_bytes(b"Q" * (2 * MAX_TAIL_BYTES))
-        raw = self.get("/api/v1/run/logs/" + job["id"] + "?raw=true")[1]
+        raw = self.get("/api/v1/run/logs/" + job["id"] + "?raw=true", headers=self.raw_grant(job))[1]
         self.assertTrue(all(len(r["message"]) <= 512 for r in raw["data"]))
         self.assertLessEqual(len(raw["data"]), MAX_TAIL_LINES)
         chunk, offset, state, _ = stream_chunk(self.service.store, job["id"], 0)
@@ -245,20 +251,20 @@ class RunDiscoveryHTTP(fixtures.Fixture):
         job = self.job("unsafe")
         path = self.service.store.job_path(job["id"])
         route = "/api/v1/run/logs/" + job["id"] + "?raw=true"
-        self.assertEqual(self.get(route)[1]["log_status"], "missing")
-        self.assertTrue(all(row["type"] == "lifecycle" for row in self.get(route)[1]["data"]))
+        self.assertEqual(self.get(route, headers=self.raw_grant(job))[1]["log_status"], "missing")
+        self.assertTrue(all(row["type"] == "lifecycle" for row in self.get(route, headers=self.raw_grant(job))[1]["data"]))
         path.parent.mkdir(parents=True, exist_ok=True)
         outside = self.root / "outside-secret.txt"
         outside.write_text("PRIVATE-OUTSIDE")
         path.symlink_to(outside)
-        self.assertEqual(self.get(route)[1]["log_status"], "unavailable")
-        self.assertNotIn("PRIVATE-OUTSIDE", json.dumps(self.get(route)[1]))
+        self.assertEqual(self.get(route, headers=self.raw_grant(job))[1]["log_status"], "unavailable")
+        self.assertNotIn("PRIVATE-OUTSIDE", json.dumps(self.get(route, headers=self.raw_grant(job))[1]))
         path.unlink()
         path.mkdir()
-        self.assertEqual(self.get(route)[1]["log_status"], "unavailable")
+        self.assertEqual(self.get(route, headers=self.raw_grant(job))[1]["log_status"], "unavailable")
         path.rmdir()
         os.link(outside, path)
-        self.assertEqual(self.get(route)[1]["log_status"], "unavailable")
+        self.assertEqual(self.get(route, headers=self.raw_grant(job))[1]["log_status"], "unavailable")
 
     def test_sse_terminal_frames_keep_identity_and_hide_output_by_default(self):
         job = self.job("stream", status="succeeded", finished_at=now())
@@ -276,7 +282,7 @@ class RunDiscoveryHTTP(fixtures.Fixture):
         viewer = self.role("viewer")
         self.assertEqual(self.request(route + "?raw=true", headers=viewer)[0], 403)
         self.assertEqual(self.request(route + "?raw=true", auth=False)[0], 401)
-        status, untrusted, _ = self.request(route + "?raw=true")
+        status, untrusted, _ = self.request(route + "?raw=true", headers=self.raw_grant(job, "stream"))
         self.assertEqual(status, 200)
         self.assertIn(b"PRIVATE-STREAM-OUTPUT", untrusted)
         self.assertIn(b'"untrusted": true', untrusted)
