@@ -15,7 +15,7 @@
           <div class="dm-field">
             <label for="dm_base_url">Base URL</label>
             <input type="text" id="dm_base_url" placeholder="https://darkmoon.internal:8443" />
-            <span class="dm-help">No trailing slash. HTTPS strongly recommended.</span>
+            <span class="dm-help">Verified HTTPS is required by default. HTTP or unverified TLS requires explicit trusted-lab mode.</span>
           </div>
 
           <div class="dm-field">
@@ -29,7 +29,7 @@
           <div class="dm-field">
             <label for="dm_token">API token</label>
             <input type="password" id="dm_token" placeholder="paste Darkmoon Pro token" autocomplete="off" />
-            <span class="dm-help">Stored encrypted in storage/passwords under username "darkmoon". Leave blank to keep the existing token.</span>
+            <span class="dm-help">Stored encrypted under username "darkmoon" with a new credential reference on rotation. Leave blank only to retain the token for the same base URL.</span>
           </div>
 
           <button id="dm_save" class="btn btn-primary">Save configuration</button>

@@ -6,11 +6,11 @@ param.target = <string>
 
 param.action_kind = <string>
 * Either "retest" (POST /api/v1/retest) or "campaign" (POST /api/v1/run/campaign).
-* Defaults to "retest".
+* Defaults to "retest" when omitted. Unsupported/malformed values are rejected.
 
 param.scope_profile = <string>
 * Safe-harbor profile. "non-destructive" (default) is enforced unless the target
-* row in the allowlist explicitly authorizes a broader profile.
+* row in the allowlist explicitly authorizes the "authorized" profile. Other values are rejected.
 
 param.dry_run = <boolean>
 * When 1 (default), the action validates and logs its decision but does NOT call
@@ -18,3 +18,7 @@ param.dry_run = <boolean>
 
 param.max_per_hour = <integer>
 * Maximum launches per rolling hour (token bucket). Hard-capped by the script.
+
+# Guard semantics
+# Dry-run and live attempts both consume the rolling admission quota.
+# Quota errors/corrupt state fail closed. Launch acceptance does not prove completion.

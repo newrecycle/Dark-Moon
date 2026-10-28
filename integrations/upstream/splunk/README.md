@@ -195,3 +195,20 @@ admission, safe HEC host locators, UTC timestamps and permanent refusal/retry
 handling. Their prior isolated evidence does not verify the combined changes.
 See [implementation and verification handoff](../../../docs/handoff/splunk-forwarder-integration-2026-10-28.md)
 and [forwarder contract](forwarder/README.md). Testing/native acceptance is delegated.
+
+## Alert connection and credential rotation
+
+Setup stores each replacement token under a new opaque realm, then updates the
+connection's base URL, TLS flag and credential reference together. Older
+in-flight actions keep their original credential generation; old generations
+are retained rather than deleted during a save. Changing the base URL requires
+a token for that connection. Named empty-realm legacy keys remain supported,
+with ambiguity rejected and no fallback to unrelated app credentials.
+
+Management reads require HTTPS and verify remote/named-host certificates. Only
+a literal loopback HTTPS management endpoint may use its self-signed certificate;
+service URLs, headers and responses are bounded/validated before use. Alert
+action/scope/boolean values are strict, and invalid allowlists/quota state fail
+closed. Both dry-run and live attempts retain the existing rolling quota.
+These are source changes, not native Splunk verification; see
+[credential/action handoff](../../../docs/handoff/splunk-alert-credentials-2026-10-28.md).
