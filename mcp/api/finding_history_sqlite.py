@@ -177,6 +177,17 @@ def _recover_locked(db):
             db.execute("ROLLBACK")
             raise
         _checkpoint("after_apply_mark")
+    # Applied intents are recoverable until their atomic snapshot replacement
+    # has been acknowledged; keeping full before/after copies forever would
+    # grow quadratically with campaign finding count.
+    if db.execute("SELECT 1 FROM pending WHERE applied=1 LIMIT 1").fetchone():
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            db.execute("DELETE FROM pending WHERE applied=1")
+            db.execute("COMMIT")
+        except Exception:
+            db.execute("ROLLBACK")
+            raise
 
 
 def _check(db):
@@ -240,7 +251,7 @@ def append(campaign, finding, kind, previous=None, source="assessment"):
     d = _data()
     d.init_finding_history()
     item = _prepare_event(campaign, finding, kind, previous, source,
-                          event_key=("created:" + campaign["id"] + ":" + finding["id"])
+                          event_key=json.dumps(["created", campaign["id"], finding["id"]], separators=(",", ":"))
                           if kind == "finding.created" else None)
     try:
         with d._file_lock(d.FINDING_HISTORY_FILE):
@@ -283,7 +294,7 @@ def mutate(campaign, updater):
                 if before == after and kind is None:
                     return after, finding
                 item = _prepare_event(campaign, finding, kind, previous, source,
-                      event_key=("created:" + cid + ":" + finding["id"])
+                      event_key=json.dumps(["created", cid, finding["id"]], separators=(",", ":"))
                       if kind == "finding.created" else None) if kind else None
                 op_id = uuid.uuid4().hex
                 before_wire = json.dumps(before, ensure_ascii=False, allow_nan=False)
