@@ -73,6 +73,8 @@ intellijPlatform {
 tasks {
     test {
         useJUnit()
+        systemProperty("darkmoon.client.module", layout.projectDirectory.file("../client/dist/index.js").asFile.absolutePath)
+        systemProperty("darkmoon.client.fixtures", layout.projectDirectory.dir("../client/fixtures/dataroot").asFile.absolutePath)
         // Point the integration test at the darkmoon-ci test double + shared fixtures.
         // The child `node` process inherits DARKMOON_FIXTURES from this JVM's env.
         environment(

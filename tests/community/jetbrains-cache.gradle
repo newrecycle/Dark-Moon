@@ -1,0 +1,8 @@
+// Resolve test runtime jars without starting the vendor IDE or test JVM.
+allprojects {
+    tasks.register('cacheOfflineTestRuntime') {
+        doLast {
+            configurations.findAll { it.canBeResolved && it.name == 'testRuntimeClasspath' }.each { it.resolve() }
+        }
+    }
+}

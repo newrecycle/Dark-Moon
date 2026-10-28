@@ -1,0 +1,25 @@
+name: Community native JetBrains acceptance
+on:
+  workflow_dispatch:
+  push:
+    branches: [pro]
+    paths:
+      - 'integrations/upstream/jetbrains/**'
+      - 'integrations/upstream/client/**'
+      - 'tests/community/jetbrains*'
+      - 'tests/community/Dockerfile.jetbrains-host*'
+      - '.github/workflows/community-jetbrains.yml'
+permissions:
+  contents: read
+jobs:
+  jetbrains-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compile SDK, Kotlin client and pinned platform tests
+        run: docker build -f tests/community/Dockerfile.jetbrains-host -t darkmoon-jetbrains-host .
+      - name: Exercise Kotlin contracts and actual platform harness offline
+        run: docker run --rm --network none darkmoon-jetbrains-host

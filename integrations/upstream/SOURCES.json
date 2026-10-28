@@ -106,12 +106,13 @@
     "repository": "https://github.com/ASCIT31/darkmoon-jetbrains.git",
     "commit": "8e54c5375261f9c0243e5cb3c63e79ad2ad7289d",
     "license": "MIT",
-    "modified": false,
+    "modified": true,
     "excluded": [
       ".github",
       "docs/screenshots",
       "test/screenshots"
-    ]
+    ],
+    "adaptation": "Replace developer-specific absolute paths and silent native/bridge skips with required shared fork SDK fixtures. Add pinned, network-disabled native platform acceptance with JDK 21 runtime and declared JDK 17 compilation toolchain. Lifecycle and reveal corrections remain tracked in the integration gap ledger."
   },
   {
     "path": "integrations/upstream/splunk",

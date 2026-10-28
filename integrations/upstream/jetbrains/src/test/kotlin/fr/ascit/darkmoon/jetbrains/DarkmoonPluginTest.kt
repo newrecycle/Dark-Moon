@@ -156,8 +156,8 @@ class DarkmoonPluginTest : BasePlatformTestCase() {
     // ---- service integration over the darkmoon-ci test double --------------
 
     fun testOssRefreshViaService() {
-        val cmd = stubCommand() ?: return
-        if (!nodeAvailable()) return
+        val cmd = stubCommand() ?: error("The configured CLI stub is required")
+        assertTrue("Node is required for native contract tests", nodeAvailable())
         val s = DarkmoonSettings.getInstance()
         s.mode = ClientMode.OSS
         s.cliCommand = cmd
@@ -180,16 +180,17 @@ class DarkmoonPluginTest : BasePlatformTestCase() {
 
     /**
      * REAL end-to-end: drives CliDarkmoonClient through the shipped bridge, which
-     * calls the real @darkmoon/client library against the real OSS data dir. Skips
-     * cleanly when the foundation library or the data dir are not present on this
-     * machine (so the repo stays portable).
+     * calls the built fork SDK against the required, portable OSS fixtures.
+     * Missing prerequisites fail rather than silently skipping acceptance.
      */
     fun testRealLibraryViaBridge() {
-        if (!nodeAvailable()) return
-        val lib = File("/home/mehdi/darkmoon-client/dist/index.js")
-        val dataDir = File("/home/mehdi/Dark-Moon-prod/darkmoon-settings")
-        val bridge = System.getProperty("darkmoon.bridge")?.let { File(it) } ?: return
-        if (!lib.exists() || !dataDir.exists() || !bridge.exists()) return
+        assertTrue("Node is required for native contract tests", nodeAvailable())
+        val lib = File(System.getProperty("darkmoon.client.module") ?: "../client/dist/index.js")
+        val dataDir = File(System.getProperty("darkmoon.client.fixtures") ?: "../client/fixtures/dataroot")
+        val bridge = File(System.getProperty("darkmoon.bridge") ?: error("Bridge path is required"))
+        assertTrue("The built fork SDK is required", lib.exists())
+        assertTrue("The shared SDK fixture directory is required", dataDir.exists())
+        assertTrue("The shipped bridge is required", bridge.exists())
 
         val client = CliDarkmoonClient(
             CliConfig(
@@ -198,7 +199,7 @@ class DarkmoonPluginTest : BasePlatformTestCase() {
                 extraEnv = mapOf(
                     "DARKMOON_CLIENT_MODULE" to lib.absolutePath,
                     "DARKMOON_OSS_DATA_DIR" to dataDir.absolutePath,
-                    "DARKMOON_OSS_REPORTS_DIR" to File(dataDir.parentFile, "reports").absolutePath,
+                    "DARKMOON_OSS_REPORTS_DIR" to File(dataDir, "reports").absolutePath,
                 ),
                 timeoutMs = 60_000,
             )
@@ -222,23 +223,18 @@ class DarkmoonPluginTest : BasePlatformTestCase() {
         assertNotNull(withEv.evidence)
         assertTrue("evidence must be redacted by default", withEv.evidence!!.redacted)
 
-        // Report is data-dependent; keep it exception-safe (a thrown error on a
-        // pooled thread would be logged and fail the test) and assert only if ready.
-        val report = offEdt { runCatching { client.getReport(CampaignRef.of("camp_20260924_70602bf9"), ReportOptions()) }.getOrNull() }
-        if (report != null && report.ready) {
-            assertTrue("default report must be redacted", report.redacted)
-            val full = offEdt { runCatching { client.getReport(CampaignRef.of("camp_20260924_70602bf9"), ReportOptions(full = true, private = true)) }.getOrNull() }
-            if (full != null) {
-                assertFalse(full.redacted)
-                assertTrue("full report should be at least as complete as the redacted one",
-                    full.content.length >= report.content.length)
-            }
-        }
+        val report = offEdt { client.getReport(CampaignRef.of("camp_20260924_70602bf9"), ReportOptions()) }
+        assertTrue("The required fixture report must be ready", report.ready)
+        assertTrue("Default report must be redacted", report.redacted)
+        val full = offEdt { client.getReport(CampaignRef.of("camp_20260924_70602bf9"), ReportOptions(full = true, private = true)) }
+        assertFalse(full.redacted)
+        assertTrue("Full fixture report includes the target", full.content.contains("127.0.0.1"))
+
     }
 
     fun testProGatingViaService() {
-        val cmd = stubCommand() ?: return
-        if (!nodeAvailable()) return
+        val cmd = stubCommand() ?: error("The configured CLI stub is required")
+        assertTrue("Node is required for native contract tests", nodeAvailable())
         val s = DarkmoonSettings.getInstance()
         s.mode = ClientMode.PRO
         s.cliCommand = cmd

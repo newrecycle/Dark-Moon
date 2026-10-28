@@ -1,0 +1,20 @@
+FROM node:24-bookworm AS sdk
+WORKDIR /sdk
+COPY integrations/upstream/client/package*.json ./
+RUN npm ci --ignore-scripts --no-audit --no-fund
+COPY integrations/upstream/client/ ./
+RUN npm run build
+
+FROM eclipse-temurin:21-jdk-jammy
+RUN apt-get update && apt-get install -y --no-install-recommends openjdk-17-jdk-headless git libxrender1 libxtst6 libxi6 libfreetype6 libfontconfig1 && rm -rf /var/lib/apt/lists/*
+COPY --from=sdk /usr/local/bin/node /usr/local/bin/node
+WORKDIR /workspace/integrations/upstream/jetbrains
+ENV GRADLE_USER_HOME=/opt/darkmoon-gradle DARKMOON_DISABLE_GROWTH_CTA=1
+COPY integrations/upstream/jetbrains/ ./
+COPY --from=sdk /sdk/package.json /workspace/integrations/upstream/client/package.json
+COPY --from=sdk /sdk/dist/ /workspace/integrations/upstream/client/dist/
+COPY integrations/upstream/client/fixtures/ /workspace/integrations/upstream/client/fixtures/
+COPY tests/community/jetbrains-cache.gradle /tmp/jetbrains-cache.gradle
+RUN ./gradlew --no-daemon :client:testClasses testClasses --init-script /tmp/jetbrains-cache.gradle cacheOfflineTestRuntime :client:cacheOfflineTestRuntime --stacktrace
+COPY tests/community/jetbrains_host.sh /opt/jetbrains_host.sh
+CMD ["sh", "/opt/jetbrains_host.sh"]
