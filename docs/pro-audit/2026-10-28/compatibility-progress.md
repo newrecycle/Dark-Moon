@@ -485,3 +485,61 @@ outdated expectation rejecting a newly supported flat target edit and an
 unrelated webhook role-fixture duplicate username. Subsequent independent
 `pro` commits updated those test cases. Do not interpret the earlier full
 suite as passing; the subsequent [full community regression run](https://github.com/newrecycle/Dark-Moon/actions/runs/40664888923) at `0434b9d1c1e5a5269f34d3698a04f8184853be6e` **passed 401 tests and 66 subtests**; the offline Node campaign/graph/finding checks also passed. This is fork regression coverage, not proof of vendor parity.
+
+
+## Finding lifecycle verification — observed 28 October 2026
+
+The independent fork's target-evolution, finding-history and finding-to-remediation
+read increment is now covered by an offline, repeatable regression suite.
+This updates the earlier **deferred verification** heading for these routes;
+that earlier section documents the implementation checkpoint, not a current
+assertion that no tests have run.
+
+- [Implementation and HTTP/storage test commit](https://github.com/newrecycle/Dark-Moon/commit/99dd93485b5d758e259dac0f1e526f5a07e2fa90):
+  added `tests/community/test_finding_lifecycle.py` (10 test methods),
+  isolated `FINDING_HISTORY_FILE` in temporary fixtures, and made malformed
+  on-disk journals return an internal storage error (HTTP 500) rather than an
+  incorrect bad-request error (400). This is distinct from invalid client
+  query parameters, which remain HTTP 400.
+- [Focused workflow and browser checks](https://github.com/newrecycle/Dark-Moon/commit/2295fcf0e488ca117eb6101778ad9763f315e855):
+  added `.github/workflows/finding-lifecycle-verification.yml`.
+  Its [observed run](https://github.com/newrecycle/Dark-Moon/actions/runs/40665274418)
+  **passed 10 tests**, Python compilation of lifecycle sources, and Node
+  syntax checks of the dashboard and browser test. It does not access an
+  original licensed runtime.
+- [Campaign isolation regressions](https://github.com/newrecycle/Dark-Moon/actions/runs/40665274332)
+  on the same browser-check commit **passed 403 tests and 66 unittest
+  subtests**, including the 10 new lifecycle tests. Campaign binding, graph
+  and finding-query Node checks passed. A prior
+  [run](https://github.com/newrecycle/Dark-Moon/actions/runs/40664852455)
+  on the lifecycle test commit passed 401 tests and 66 subtests. Counts
+  change as other integration verification is committed to `pro`.
+- [Community browser acceptance](https://github.com/newrecycle/Dark-Moon/actions/runs/40665274368)
+  **passed** with new checks in the existing finding dialog for a valid empty
+  remediation link set, an exact linked local proposal and an explicitly
+  unavailable API result. These use a disposable local fixture; the failure
+  case uses a mocked HTTP 503 response and does not call external services.
+- [Existing Tests workflow](https://github.com/newrecycle/Dark-Moon/actions/runs/40665274329)
+  also passed. [Community runtime validation](https://github.com/newrecycle/Dark-Moon/actions/runs/40664852378)
+  had already succeeded on the earlier implementation/test commit, exercising
+  the independent fork on its owned test environment, not a vendor license.
+
+The Python tests assert deterministic campaign ordering (including ties and
+undated campaigns), current-snapshot semantics rather than fictional history,
+unknown/idle targets, exact finding and target identity, journal activation
+without backfill, actual live creation/triage updates, unchanged-status omission,
+concurrent thread writes, durable reinitialization, strict/duplicate/blank
+query rejection, 1–500 history page bounds and pagination metadata, explicit
+many-to-many remediation links across campaigns, no synthetic short-ID match,
+multiple proposals, incomplete publication state, restricted publication URLs,
+shared collection/detail/lookup projection, redaction and viewer/anonymous auth.
+
+**Remaining boundaries:** the journal is not a cross-file transaction with
+the retained finding snapshot; OS crash and process-kill recovery between writes,
+multi-process append ordering, very large journals, concurrent page inserts
+and long-term retention still need operational testing. Offset pages are not
+snapshot-isolated. The documented mutation paths, not every external writer,
+produce journal events. The browser's unavailable-data case is simulated.
+No original licensed vendor HTTP response, native commercial UI or live
+third-party target was involved. Neither vendor wire parity nor unconditional
+regression freedom is claimed.

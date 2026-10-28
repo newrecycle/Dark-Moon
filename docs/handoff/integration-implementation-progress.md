@@ -145,3 +145,19 @@ finding states by dated campaign, not past point-in-time risk. Local proposals
 remain separate from published PR metadata. Tests, builds and licensed
 vendor runtime checks remain deferred; no vendor wire parity or regression
 freedom is asserted.
+
+
+## Finding lifecycle verification follow-up — 28 October 2026
+
+Implementation commit `9c8d6a8` now has dedicated offline HTTP/storage
+tests ([commit `99dd9348`](https://github.com/newrecycle/Dark-Moon/commit/99dd93485b5d758e259dac0f1e526f5a07e2fa90)),
+browser detail assertions and a focused repeatable CI gate
+([commit `2295fcf0`](https://github.com/newrecycle/Dark-Moon/commit/2295fcf0e488ca117eb6101778ad9763f315e855)).
+The [focused run](https://github.com/newrecycle/Dark-Moon/actions/runs/40665274418)
+passed 10/10 tests; the [full community campaign suite](https://github.com/newrecycle/Dark-Moon/actions/runs/40665274332)
+passed 403 tests and 66 subtests; the
+[browser run](https://github.com/newrecycle/Dark-Moon/actions/runs/40665274368)
+passed. These are independent-fork results, not original-vendor wire parity.
+Historical backfill, crash-atomic snapshot/journal writes and native vendor
+comparisons remain unsupported or unverified. Detailed cases and limitations
+are in the [dated compatibility review](../pro-audit/2026-10-28/compatibility-progress.md).
