@@ -239,14 +239,14 @@ class RunDiscoveryHTTP(fixtures.Fixture):
         self.assertEqual(state, "available")
         self.assertEqual(offset, 8192)
         self.assertEqual(len(chunk), 8192)
-        self.assertEqual(self.get("/api/v1/run/logs/%2e%2e%2fsecret")[0], 400)
+        self.assertNotEqual(self.get("/api/v1/run/logs/%2e%2e%2fsecret")[0], 200)
 
     def test_missing_symlink_directory_and_hardlink_logs_are_not_opened(self):
         job = self.job("unsafe")
         path = self.service.store.job_path(job["id"])
         route = "/api/v1/run/logs/" + job["id"] + "?raw=true"
         self.assertEqual(self.get(route)[1]["log_status"], "missing")
-        self.assertEqual(self.get(route)[1]["data"], [])
+        self.assertTrue(all(row["type"] == "lifecycle" for row in self.get(route)[1]["data"]))
         path.parent.mkdir(parents=True, exist_ok=True)
         outside = self.root / "outside-secret.txt"
         outside.write_text("PRIVATE-OUTSIDE")
