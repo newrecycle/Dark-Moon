@@ -36,36 +36,67 @@ class CredentialVault:
         key = os.environ.get("DARKMOON_SECRET_KEY")
         self.box = Fernet(key.encode() if key else base64.urlsafe_b64encode(private_key(store.root / "vault.key")))
 
-    def save(self, raw, credential_id=None, *, internal=False):
-        secret = raw.get("secret")
-        if not isinstance(secret, str) or not 1 <= len(secret) <= 65536:
-            raise ValueError("A non-empty secret is required (at most 64 KiB)")
+    def save(self, raw, credential_id=None, *, internal=False, actor=None):
+        from .credential_policy import VERSION, validate
+        if not isinstance(raw, dict):
+            raise ValueError("Credential body must be an object")
         credential_id = identifier(credential_id) if credential_id else "cred_" + uuid.uuid4().hex[:16]
-        item = {"id": credential_id, "name": str(raw.get("name", "Credential"))[:160],
-                "provider": str(raw.get("provider", "generic"))[:80], "username": str(raw.get("username", ""))[:160],
-                "sealed": self.box.encrypt(secret.encode()).decode(), "hint": "********", "created_at": now()}
-        if internal:
-            item["internal"] = True
-        self.store.save("credentials", item)
-        return self.public(item)
+        def change(state):
+            credentials = state.setdefault("credentials", {})
+            old = credentials.get(credential_id)
+            if old and old.get("internal") and not internal:
+                raise KeyError("Credential not found")
+            structured = ("adapter" in raw or "model_version" in raw or
+                          "scope" in raw or "owner_id" in raw or "grants" in raw or
+                          "revoked" in raw or (old and old.get("model_version") == VERSION))
+            policy = validate(raw, state, actor, old) if structured else {}
+            secret = raw.get("secret")
+            if secret is None and old and structured:
+                sealed = old.get("sealed")
+            elif isinstance(secret, str) and 1 <= len(secret) <= 65536:
+                sealed = self.box.encrypt(secret.encode()).decode()
+            else:
+                raise ValueError("A non-empty secret is required (at most 64 KiB)")
+            if not isinstance(sealed, str) or not sealed:
+                raise ValueError("Credential secret is missing")
+            name = raw.get("name", (old or {}).get("name", "Credential"))
+            provider = raw.get("provider", (old or {}).get("provider", "generic"))
+            username = raw.get("username", (old or {}).get("username", ""))
+            if not all(isinstance(v, str) for v in (name, provider, username)) or len(name) > 160 or len(provider) > 80 or len(username) > 160:
+                raise ValueError("Invalid credential metadata")
+            item = {"id": credential_id, "name": name, "provider": provider,
+                    "username": username, "sealed": sealed,
+                    "hint": "********", "created_at": (old or {}).get("created_at", now())}
+            if internal or (old and old.get("internal")):
+                item["internal"] = True
+            item.update(policy)
+            credentials[credential_id] = item
+            return self.public(item)
+        return self.store.update(change)
 
     @staticmethod
     def public(item):
-        # Explicit allowlist: never forward extension fields or internal secrets.
         from .credential_catalog import capabilities
+        from .credential_policy import VERSION, metadata
         def string(key):
-            value = item.get(key)
-            return value if isinstance(value, str) else ""
-        return {"id": string("id"), "name": string("name"),
-                "provider": string("provider"), "username": string("username"),
-                "created_at": string("created_at"), "hint": "********",
-                "set": bool(item.get("sealed")), "capabilities": capabilities(item)}
+            v = item.get(key)
+            return v if isinstance(v, str) else ""
+        result = {"id": string("id"), "name": string("name"),
+                  "provider": string("provider"), "username": string("username"),
+                  "created_at": string("created_at"), "hint": "********",
+                  "set": bool(item.get("sealed")), "capabilities": capabilities(item)}
+        if item.get("model_version") == VERSION:
+            result.update(metadata(item))
+        return result
 
-    def list(self, capability=None):
+    def list(self, capability=None, *, actor=None, for_use=False):
         from .credential_catalog import allows, check_capability
+        from .credential_policy import may_use
         check_capability(capability)
-        records = sorted(self.store.items("credentials"), key=lambda row: str(row.get("id", "")))
-        return [self.public(item) for item in records if allows(item, capability)]
+        state = self.store.read()
+        rows = sorted(state.get("credentials", {}).values(), key=lambda r: str(r.get("id", "")))
+        return [self.public(item) for item in rows if allows(item, capability) and
+                (not for_use or may_use(item, actor, state))]
 
     def get(self, credential_id, capability=None):
         from .credential_catalog import allows
@@ -74,10 +105,15 @@ class CredentialVault:
             raise KeyError("Credential not found")
         return self.public(item)
 
-    def require(self, credential_id, capability):
-        # Even a guessed internal webhook signing key is not selectable.
-        self.get(credential_id, capability)
-        return identifier(credential_id)
+    def require(self, credential_id, capability, *, actor=None):
+        from .credential_catalog import allows
+        from .credential_policy import may_use
+        identifier(credential_id)
+        state = self.store.read()
+        item = state.get("credentials", {}).get(credential_id)
+        if not item or not allows(item, capability) or not may_use(item, actor, state):
+            raise KeyError("Credential unavailable")
+        return credential_id
 
     def resolve(self, credential_id):
         item = self.store.get("credentials", identifier(credential_id))
@@ -87,8 +123,11 @@ class CredentialVault:
 
     def delete(self, credential_id):
         def change(state):
-            if state.setdefault("credentials", {}).pop(identifier(credential_id), None) is None:
-                raise KeyError(credential_id)
+            records = state.setdefault("credentials", {})
+            item = records.get(identifier(credential_id))
+            if not item or item.get("internal"):
+                raise KeyError("Credential not found")
+            del records[credential_id]
             return {"deleted": credential_id}
         return self.store.update(change)
 
