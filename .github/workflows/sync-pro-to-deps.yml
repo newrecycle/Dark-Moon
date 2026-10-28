@@ -1,13 +1,19 @@
 name: Sync pro into deps
+
 on:
   push:
     branches: [pro]
+  schedule:
+    - cron: '17 7 * * *'
   workflow_dispatch:
+
 permissions:
   contents: write
+
 concurrency:
   group: dependency-branch-sync
   cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -15,18 +21,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: pro
+          ref: deps
           fetch-depth: 0
-      - name: Advance deps without discarding commits
+          persist-credentials: true
+      - name: Merge pro into deps without rewriting staging history
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin pro
-          if git ls-remote --exit-code --heads origin deps >/dev/null; then
-            git fetch origin deps
-            if ! git merge-base --is-ancestor origin/deps origin/pro; then
-              echo "deps contains unpromoted commits; preserving both branches."
-              exit 0
-            fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin pro deps
+          git checkout -B deps origin/deps
+
+          if git merge-base --is-ancestor origin/pro HEAD; then
+            echo 'deps already contains pro; nothing to sync.'
+            exit 0
           fi
-          git push origin origin/pro:refs/heads/deps
+
+          # Merge, never reset or force-push: preserve any staged dependency updates.
+          if ! git -c merge.conflictstyle=diff3 merge --no-ff --no-edit origin/pro; then
+            git merge --abort || true
+            echo '::error::Conflict merging pro into deps. Resolve the branch conflict manually; deps was not rewritten.'
+            exit 1
+          fi
+
+          # A concurrent update to deps must reject this push instead of losing commits.
+          git push origin HEAD:refs/heads/deps
