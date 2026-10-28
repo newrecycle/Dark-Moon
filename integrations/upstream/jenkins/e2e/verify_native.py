@@ -132,6 +132,11 @@ def native():
         ("missing_node", "FAILURE", None),
     ]
     for scenario, expected, expected_issues in cases:
+        # Stage the test case before the Pipeline schedules its agent step.
+        # No scenario data is passed as a CLI scan argument or a secret.
+        cmd("docker", "exec", AGENT, "sh", "-c",
+            "printf '%s' \"$1\" > '/opt/synthetic data/scenario-native.txt'",
+            "fixture", scenario)
         before = safe_json(base + "/job/darkmoon-native/api/json?tree=nextBuildNumber")["nextBuildNumber"]
         body = urllib.parse.urlencode({"SCENARIO": scenario}).encode()
         http(base + "/job/darkmoon-native/buildWithParameters", method="POST", data=body, headers=auth)
