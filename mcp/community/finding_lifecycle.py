@@ -43,7 +43,7 @@ def history_page(params):
             raise KeyError(target)
     def number(key, default, maximum):
         raw = params.get(key, [str(default)])[0]
-        if not re.fullmatch(r"[0-9]{1,10}", raw):
+        if not re.fullmatch(r"[0-9]{1,19}" if key == "snapshot_seq" else r"[0-9]{1,10}", raw):
             raise ValueError(key + " must be a nonnegative decimal integer")
         value = int(raw)
         if value > maximum or (key == "limit" and value == 0):

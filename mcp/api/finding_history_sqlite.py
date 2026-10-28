@@ -359,7 +359,7 @@ def read(*, target_id=None, limit=None, offset=0, snapshot_seq=None):
                 raise
         return {"recording_started_at": started, "events": events,
                 "total": total, "snapshot_seq": bound}
-    except (sqlite3.Error, OSError, UnicodeError, TypeError, RecursionError) as exc:
+    except (sqlite3.Error, OSError, UnicodeError, ValueError, TypeError, RecursionError) as exc:
         raise d.FindingHistoryUnavailable("Finding index read failed") from exc
 
 
