@@ -870,15 +870,13 @@ const assert = require("node:assert/strict");
     assert.match(await page.locator("#detail-body").innerText(), /No linked remediation records/);
     await page.locator("[data-prepare-fix]").click();
     await page.locator("#remediation-dialog[open]").waitFor();
+    // Repository paths are no longer sent in default workspace choices.
+    // A local administrator supplies the known owned fixture path explicitly.
+    assert.equal(await page.locator("#remediation-form input[name=repo]").inputValue(), "");
+    await page.locator("#remediation-form input[name=repo]").fill(fixture.source_repo);
     assert.equal(
-      await page.locator("#remediation-form input[name=repo]").inputValue(),
-      fixture.source_repo,
-    );
-    assert.equal(
-      await page
-        .locator("#remediation-form select[name=source_files] option")
-        .count(),
-      1,
+      await page.locator("#remediation-form select[name=source_files] option").count(), 0,
+      "Unscoped source-file enumeration must remain unavailable",
     );
     await page
       .locator("#remediation-form textarea[name=edits]")
