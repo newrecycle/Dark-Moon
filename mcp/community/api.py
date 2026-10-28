@@ -15,6 +15,7 @@ from api import json_storage as data
 from . import reports
 from .operations import evidence_meta, overview, safe_finding, timeseries
 from .store import identifier, now
+from .run_views import active_runs, log_collection, log_detail, log_metadata, public_run
 
 ROUTERS = ["projects", "targets", "campaigns", "vulnerabilities", "dashboard", "run", "scheduler", "auth",
            "credentials", "pull-requests", "system", "webhooks", "events", "retest", "metrics"]
@@ -235,28 +236,39 @@ class API:
                 return False
             return True
         if resource == "run":
-            if method == "POST" and parts[1:] == ["campaign"]:
+            # Literal collection routes must precede generic /run/{run_id}.
+            if method == "GET" and parts == ["run", "active"]:
+                if query:
+                    raise ValueError("Active runs do not accept query parameters")
+                handler.send(active_runs(self.store))
+            elif method == "GET" and parts == ["run", "logs"]:
+                handler.send(log_collection(self.store, handler))
+            elif method == "POST" and parts[1:] == ["campaign"]:
                 job = self.service.launch(handler.body(), key=handler.headers.get("Idempotency-Key"))
                 handler.send({"run_id": job["id"], "campaign_id": job["campaign_id"], "status": job["status"]}, status=202)
             elif len(parts) == 3 and method == "GET" and parts[1] == "logs":
                 job = self.store.get("jobs", identifier(parts[2]))
                 if not job:
                     raise KeyError(parts[2])
-                log = self.store.job_path(job["id"])
-                lines = log.read_text(errors="replace").splitlines() if log.exists() else []
-                handler.send({"data": [{"message": line} for line in lines[-2000:]], "status": job["status"], "campaign_id": job["campaign_id"]})
+                handler.send(log_detail(self.store, handler, job, admin=admin))
             elif len(parts) == 3 and parts[2] == "stop" and method in {"POST", "DELETE"}:
-                if method == "POST": handler.body()
-                handler.send(self.service.queue.cancel(parts[1]))
+                if method == "POST":
+                    handler.body()
+                handler.send(public_run(self.service.queue.cancel(identifier(parts[1]))))
             elif len(parts) == 3 and parts[2] == "stream" and method == "GET":
                 if not self.store.get("jobs", identifier(parts[1])):
                     raise KeyError(parts[1])
-                handler.run_events(parts[1])
-            elif len(parts) == 2 and method == "GET":
+                raw = query.get("raw", "false")
+                if raw not in {"true", "false"} or set(query) - {"raw"}:
+                    raise ValueError("Only raw=true or raw=false is supported for stream")
+                if raw == "true" and not admin:
+                    raise PermissionError("Administrator access is required for raw launcher output")
+                handler.run_events(parts[1], reveal_output=raw == "true")
+            elif len(parts) == 2 and method == "GET" and parts[1] not in {"active", "logs"}:
                 job = self.store.get("jobs", identifier(parts[1]))
                 if not job:
                     raise KeyError(parts[1])
-                handler.send({"run_id": job["id"], **job})
+                handler.send(public_run(job) | log_metadata(self.store, job))
             else:
                 return False
             return True
