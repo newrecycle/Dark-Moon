@@ -1,5 +1,7 @@
 # Systematic integration continuation
 
+> **New actual-Pro baseline (2026-10-27):** [image reference](actual-pro-image-baseline-2026-10-27.md), [52-route crosswalk](actual-pro-endpoint-crosswalk-2026-10-27.md) and [implementation parity backlog](actual-pro-parity-ledger-2026-10-27.md). This pre-existing ledger tracks **integration host validation**, not measured parity with the vendor binary.
+
 Scope: finish integration gaps sequentially, test against this fork, push tested
 checkpoints to `pro`, and continue searching until remaining gaps are either
 resolved or require a concrete unavailable capability. No PR, external message,

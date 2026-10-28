@@ -1,5 +1,7 @@
 # Reconstructed Pro features on current master
 
+> **Actual commercial Pro image reference (2026-10-27):** [pinned package evidence](handoff/actual-pro-image-baseline-2026-10-27.md), [exact 52-endpoint crosswalk](handoff/actual-pro-endpoint-crosswalk-2026-10-27.md), and [prioritized parity ledger](handoff/actual-pro-parity-ledger-2026-10-27.md). This matrix describes the **independent fork**, not demonstrated commercial runtime parity. The vendor packaged backend/frontend and test contracts are available for inspection, but original TypeScript / compiled native Python source and live vendor HTTP results remain unverified. Maintain stronger fork security.
+
 Base: **ASCIT31/Dark-Moon master `b52d4d73c325427e4d2fa5f3cbf87dd889cc6300`**.
 The original reconstruction contains the feature changes only. Current `pro`
 subsequently merged upstream through `2b65cad`. The UI/provider update intentionally
