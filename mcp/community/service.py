@@ -300,23 +300,21 @@ class Service:
         status = raw.get("status")
         if status not in {"unconfirmed", "confirmed", "exploited", "false_positive", "accepted_risk", "remediated", "resolved"}:
             raise ValueError("Invalid triage status")
-        # Operator triage is distinct from exploit/retest evidence.
-        path = data.VULNERABILITIES_DIR / f"{campaign_id}.json"
-        with data._file_lock(path):
-            findings = data.load_vulnerabilities(campaign_id)
+        campaign = data.load_campaign(campaign_id)
+        if not campaign:
+            raise KeyError(campaign_id)
+        # Event + recoverable snapshot intent commit in one SQLite transaction.
+        def update(findings):
             finding = next((f for f in findings if f.get("id") == finding_id), None)
             if not finding:
                 raise KeyError(finding_id)
             old_status = finding.get("status")
             finding.update(status=status, triaged_at=now(), triage_source="operator")
-            data.save_vulnerabilities(campaign_id, findings)
-            if old_status != status:
-                campaign = data.load_campaign(campaign_id)
-                if not campaign:
-                    raise KeyError(campaign_id)
-                data.record_finding_event(campaign, finding, "finding.status_changed",
-                                          previous_status=old_status, source="operator_triage")
-            return finding
+            event = "finding.status_changed" if old_status != status else None
+            return findings, finding, event, old_status, "operator_triage"
+
+        _, finding = data.mutate_finding_snapshot(campaign, update)
+        return finding
 
     def metadata(self):
         # Explicit allowlist: never forward hosts, titles, endpoints, evidence,

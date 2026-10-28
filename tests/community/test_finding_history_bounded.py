@@ -28,6 +28,9 @@ class BoundedFindingHistoryTests(fixtures.Fixture):
     request = fixtures.HTTPTests.request
 
     def setUp(self):
+        # Synthetic JSONL rewrite fixtures explicitly opt in to reimport.
+        self.legacy_fixture = patch.dict(os.environ, {"DARKMOON_TEST_ALLOW_HISTORY_REIMPORT": "1"})
+        self.legacy_fixture.start()
         super().setUp()
         for tid in ("t1", "t2"):
             data.save_target({"id": tid})
@@ -40,6 +43,7 @@ class BoundedFindingHistoryTests(fixtures.Fixture):
         self.server.server_close()
         self.thread.join(5)
         super().tearDown()
+        self.legacy_fixture.stop()
 
     def get(self, suffix=""):
         status, content, _ = self.request("/api/v1/vulnerabilities/history" + suffix)
@@ -246,9 +250,12 @@ class BoundedFindingHistoryTests(fixtures.Fixture):
     def test_valid_unicode_fsync_and_restart_without_backfill(self):
         campaign = {"id": "camp", "target_id": "t1", "project_id": "é-東京"}
         finding = {"id": "issue_é", "status": "已確認"}
-        with patch.object(data.os, "fsync", wraps=os.fsync) as synced:
-            created = data.record_finding_event(campaign, finding, "finding.created", source="手動")
-            self.assertGreaterEqual(synced.call_count, 1)
+        created = data.record_finding_event(campaign, finding, "finding.created", source="手動")
+        # SQLite FULL synchronous calls native fsync instead of Python os.fsync.
+        import sqlite3
+        from api import finding_history_sqlite as indexed
+        with sqlite3.connect(indexed.database_path()) as db:
+            self.assertEqual(db.execute("PRAGMA synchronous").fetchone()[0], 2)
         self.assertEqual(created["project_id"], "é-東京")
         self.assertEqual(self.get("?target_id=t1")[1]["data"][0]["status"], "已確認")
         before = data.FINDING_HISTORY_FILE.read_bytes()
@@ -289,8 +296,9 @@ class BoundedFindingHistoryTests(fixtures.Fixture):
         data.init_finding_history()
         self.assertEqual(data.load_finding_history()["total"], 68)
 
-    def test_reader_scan_blocks_on_writer_lock_and_unblocks_after_release(self):
+    def test_indexed_reader_does_not_hold_shared_journal_write_lock(self):
         self.rewrite([self.event("a")])
+        self.assertEqual(data.load_finding_history(limit=1)["total"], 1)
         started, finished = threading.Event(), threading.Event()
         elapsed = []
         def reader():
@@ -305,13 +313,12 @@ class BoundedFindingHistoryTests(fixtures.Fixture):
             thread = threading.Thread(target=reader)
             thread.start()
             self.assertTrue(started.wait(2))
-            self.assertFalse(finished.wait(0.15))
-        self.assertTrue(finished.wait(2))
+            self.assertTrue(finished.wait(2), "indexed reader unexpectedly acquired the journal write lock")
         thread.join(2)
-        self.assertGreaterEqual(elapsed[0], 0.12)
-        print("journal_lock_wait_seconds=%.4f" % elapsed[0], flush=True)
+        self.assertLess(elapsed[0], 2)
+        print("indexed_reader_while_writer_lock_seconds=%.4f" % elapsed[0], flush=True)
 
-    def test_large_journal_retains_bounded_memory_and_scans_under_lock(self):
+    def test_large_journal_indexed_deep_page_memory_and_latency(self):
         # Large enough to reveal a full-materialization regression without making
         # an ordinary CI gate a benchmark of the runner's disk throughput.
         count = 25000
@@ -325,10 +332,11 @@ class BoundedFindingHistoryTests(fixtures.Fixture):
                 out.flush()
                 os.fsync(out.fileno())
         size = data.FINDING_HISTORY_FILE.stat().st_size
+        self.assertEqual(data.load_finding_history(limit=1)["total"], count)
         tracemalloc.start()
         begin = time.perf_counter()
         try:
-            result = data.load_finding_history(target_id="t1", limit=50, offset=400)
+            result = data.load_finding_history(target_id="t1", limit=50, offset=12000)
             elapsed = time.perf_counter() - begin
             _, peak = tracemalloc.get_traced_memory()
         finally:
@@ -338,5 +346,5 @@ class BoundedFindingHistoryTests(fixtures.Fixture):
         self.assertEqual(result["events"], sorted(result["events"], key=lambda r: (r["recorded_at"], r["id"])))
         self.assertLess(peak, 20 * 1024 * 1024, "Bounded page must not load whole journal")
         self.assertLess(elapsed, 30, "Full scan exceeded offline CI budget")
-        print("history_benchmark rows=%d bytes=%d elapsed_seconds=%.3f peak_traced_bytes=%d"
+        print("history_indexed_deep_benchmark rows=%d bytes=%d elapsed_seconds=%.3f peak_traced_bytes=%d"
               % (count, size, elapsed, peak), flush=True)
