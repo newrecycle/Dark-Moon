@@ -2,7 +2,7 @@ name: Community native VS Code acceptance
 on:
   workflow_dispatch:
   push:
-    branches: [pro, agent/vscode-native-acceptance-20261028]
+    branches: [pro]
     paths:
       - 'integrations/upstream/vscode/**'
       - 'integrations/upstream/client/fixtures/**'
