@@ -28,6 +28,7 @@ FIELDS = frozenset({
     "parent_id", "parent_node_id", "node_id", "source_id", "target_node_id",
     "status", "state", "severity", "risk_level", "verdict", "kind", "type",
     "record_type", "provider", "category", "format", "role", "published", "valid",
+    "mitre_attack_id", "iso27001_control", "cve",
     "enabled", "has_more", "paging_limit_reached", "raw", "truncated",
     "cancel_requested", "synthetic", "complete", "validated", "passed",
     "total", "limit", "offset", "next_offset", "count", "total_findings",
@@ -90,6 +91,12 @@ def _safe_value(key, value):
         return value if value in ("Run queued", "Run started", "Run finished", "Cancellation requested") else None
     if key == "event":
         return value if re.fullmatch(r"(campaign|finding|pr|remediation|retest|webhook)\.[a-z_]{1,32}", value) else None
+    if key == "mitre_attack_id":
+        return value if re.fullmatch(r"T[0-9]{4}(?:\.[0-9]{3})?", value) else None
+    if key == "iso27001_control":
+        return value if re.fullmatch(r"A\.[0-9]{1,2}(?:\.[0-9]{1,2})?", value) else None
+    if key == "cve":
+        return value if re.fullmatch(r"CVE-[0-9]{4}-[0-9]{4,10}", value) else None
     if key in ("status", "state", "severity", "verdict", "risk_level", "disposition"):
         return value if value in STATUS_VALUES else "unknown"
     if key in OPAQUE:
