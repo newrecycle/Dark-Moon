@@ -321,8 +321,8 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
             String raw = runExec.stdout == null ? "" : runExec.stdout;
             listener.getLogger().println("[darkmoon] Invalid CLI run response (chars=" + raw.length()
                     + ", object=" + raw.stripLeading().startsWith("{")
-                    + ", campaignId-field=" + raw.contains("\\\"campaignId\\\"")
-                    + ", verdict-field=" + raw.contains("\\\"verdict\\\"") + ").");
+                    + ", campaignId-field=" + raw.contains("\"campaignId\"")
+                    + ", verdict-field=" + raw.contains("\"verdict\"") + ").");
             throw new AbortException("Could not parse the CLI run verdict; no trustworthy assessment result is available.");
         }
         String campaignId = verdict.getCampaignId();
