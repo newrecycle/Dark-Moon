@@ -4,14 +4,12 @@
 set -euo pipefail
 D='/opt/synthetic data'
 R='/opt/synthetic reports'
-# The Pipeline passes a unique program/scenario over the real CLI launch
-# grammar, avoiding assumptions about Jenkins withEnv propagation to the
-# plugin's EnvVars. Reject a missing or unknown case rather than defaulting.
+# The real Pipeline writes its synthetic case to the agent-local fixture
+# directory. The CLI still launches this script with its ordinary prompt and
+# correlation nonce. Never default a missing fixture to a success-shaped scan.
 S=""
-PROMPT="${1:-}"
-if [[ "$PROMPT" == *PROGRAM=* ]]; then
-  S="${PROMPT##*PROGRAM=}"
-  S="${S%% *}"
+if [ -f "$D/scenario-native.txt" ]; then
+  S="$(cat "$D/scenario-native.txt")"
 fi
 case "$S" in
   high|empty|nonempty_pass|medium|missing_findings|malformed_findings|wrong_findings_type|foreign_findings|failed|stopped|timed_out|running|ambiguous_campaigns) ;;
