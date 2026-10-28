@@ -2,7 +2,7 @@ name: Community native VS Code acceptance
 on:
   workflow_dispatch:
   push:
-    branches: [pro]
+    branches: [pro, agent/vscode-native-acceptance-20261028]
     paths:
       - 'integrations/upstream/vscode/**'
       - 'integrations/upstream/client/fixtures/**'
@@ -19,7 +19,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Prepare pinned editor and build extension
-        run: docker build -f tests/community/Dockerfile.vscode-host -t darkmoon-vscode-host .
-      - name: Exercise the real extension host offline
-        run: docker run --rm --network none darkmoon-vscode-host
+      - name: Build with declared Node 24, TypeScript and pinned VS Code 1.106.3
+        run: docker build --progress=plain -f tests/community/Dockerfile.vscode-host -t darkmoon-vscode-host .
+      - name: Verify ordinary Node unit and real-adapter contracts offline
+        run: >
+          docker run --rm --network none --entrypoint sh darkmoon-vscode-host -c
+          'cd integrations/upstream/vscode &&
+          node node_modules/mocha/bin/mocha.js --reporter dot out/test/node/*.test.js'
+      - name: Execute the actual packaged VSIX inside pinned extension host
+        run: >
+          timeout --signal=TERM --kill-after=10s 240s
+          docker run --rm --network none --memory=3g --shm-size=512m
+          --pids-limit=512 darkmoon-vscode-host
