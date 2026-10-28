@@ -139,7 +139,10 @@ def _posture(raw):
                    "risk": risk if risk in severity | {"none"} else "unknown"},
         "severity_distribution": _counts(raw.get("severity_distribution"), severity),
         "status_distribution": _counts(raw.get("status_distribution"), STATUS_VALUES),
-        "mitre_distribution": {},
+        "mitre_distribution": _counts(raw.get("mitre_distribution"),
+                                      {key for key in (raw.get("mitre_distribution") or {})
+                                       if isinstance(key, str) and
+                                       re.fullmatch(r"T[0-9]{4}(?:\\.[0-9]{3})?", key)}),
         "mitre_unmapped": raw.get("mitre_unmapped", 0),
         "target_risk": rows(raw.get("target_risk")),
         "campaign_history": rows(raw.get("campaign_history")),
