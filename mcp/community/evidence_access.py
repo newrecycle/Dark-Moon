@@ -187,6 +187,32 @@ def public_projection(value, depth=0):
     return projected
 
 
+def _safe_opencode(raw):
+    """Preserve nonsecret provider selection metadata without URLs or tokens."""
+    if not isinstance(raw, dict):
+        raw = {}
+    providers = []
+    for p in raw.get("providers", [])[:500] if isinstance(raw.get("providers"), list) else []:
+        if not isinstance(p, dict):
+            continue
+        providers.append({
+            "id": str(p.get("id", ""))[:100],
+            "name": str(p.get("name", ""))[:100],
+            "connected": p.get("connected") is True,
+            "auth_type": str(p.get("auth_type", "none"))[:40],
+            "base_url": "",
+            "models": [{"id": str(m.get("id", ""))[:100], "name": str(m.get("name", ""))[:100]}
+                       for m in p.get("models", [])[:1000] if isinstance(m, dict)],
+            "methods": [{"index": m.get("index", 0), "type": str(m.get("type", ""))[:40],
+                         "label": str(m.get("label", ""))[:60]}
+                        for m in p.get("methods", [])[:100] if isinstance(m, dict)]
+        })
+    return {"providers": providers, "active_model": str(raw.get("active_model", ""))[:100],
+            "live": raw.get("live") is True, "warning": "",
+            "source": "metadata_only", "oauth_available": raw.get("oauth_available") is True,
+            "restart_required": raw.get("restart_required") is True}
+
+
 def minimize_response(path, content, kind):
     """Default read/write projection for both canonical and legacy workspace routes."""
     parts = path.split("?", 1)[0].strip("/").split("/")
@@ -199,7 +225,7 @@ def minimize_response(path, content, kind):
         # remain useful; never echo arbitrary source paths or raw records.
         return {
             "assessment": content.get("assessment", {}),
-            "opencode": None,
+            "opencode": _safe_opencode(content.get("opencode")),
             "repositories": [],
             "targets": public_projection(content.get("targets", [])),
             "campaigns": public_projection(content.get("campaigns", [])),
