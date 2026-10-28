@@ -651,8 +651,7 @@ Service-only credentials require the workspace-token principal, including
 when defining schedules. Retest and alternate campaign routes preserve caller
 identity rather than silently claiming service privileges.
 
-Reference: [credential adapter and ownership decisions]
-(../../handoff/credential-adapters-ownership-2026-10-28.md).
+Reference: [credential adapter and ownership decisions](../../handoff/credential-adapters-ownership-2026-10-28.md).
 These are intentionally explicit fork policy choices and should not be
 mistaken for vendor-specific owner, field, default or response equivalence.
 Provider HTTP calls, assessment launch execution and external delivery
