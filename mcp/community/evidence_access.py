@@ -6,6 +6,7 @@ retest comparison and remediation implementation retain their original data.
 import hashlib
 import hmac
 import os
+import re
 import secrets
 import stat
 import time
@@ -41,7 +42,7 @@ FIELDS = frozenset({
     "has_extracted_data", "redacted", "log_truncated",
     "active_states", "active_count", "pending_count", "completed_count",
     "is_complete", "is_active", "risk_score", "overall_risk",
-    "message", "disposition", "status_code", "finding_count",
+    "message", "event", "disposition", "status_code", "finding_count",
     "affected_findings", "duration_seconds", "score",
 })
 CONTAINERS = frozenset({
@@ -52,7 +53,7 @@ CONTAINERS = frozenset({
     "counts", "severity_distribution", "status_distribution",
     "category_distribution", "by_severity", "by_status",
     "verdicts", "verdicts_summary", "active_states", "result",
-    "log", "target", "source", "destination", "metadata",
+    "log", "target", "destination", "metadata",
     "scope", "graph", "links", "timeline", "analytics",
 })
 WORKSPACE_ROUTES = frozenset({
@@ -86,6 +87,8 @@ def _safe_value(key, value):
         return None
     if key == "message":
         return value if value in ("Run queued", "Run started", "Run finished", "Cancellation requested") else None
+    if key == "event":
+        return value if re.fullmatch(r"(campaign|finding|pr|remediation|retest|webhook)\.[a-z_]{1,32}", value) else None
     if key in ("status", "state", "severity", "verdict", "risk_level", "disposition"):
         return value if value in STATUS_VALUES else "unknown"
     if key in OPAQUE:
@@ -111,7 +114,12 @@ def public_projection(value, depth=0):
         return None
     projected = {}
     for key, item in value.items():
-        if key in CONTAINERS:
+        if key in ("source", "target") and isinstance(item, str):
+            # Graph edges have stable vertex identities. These fields on
+            # remediation records are paths, not safe graph references.
+            if "kind" in value and "target" in value and "source" in value and len(item) <= 200:
+                projected[key] = item
+        elif key in CONTAINERS:
             if isinstance(item, (dict, list)):
                 projected[key] = public_projection(item, depth + 1)
             # An opaque string in a structural field is never safe.
@@ -130,6 +138,22 @@ def minimize_response(path, content, kind):
     parts = path.split("?", 1)[0].strip("/").split("/")
     if len(parts) < 3 or parts[:2] != ["api", "v1"] or parts[2] not in WORKSPACE_ROUTES:
         return content
+    if parts[2] == "source-files":
+        return {"files": [], "truncated": True, "evidence_reveal_required": True}
+    if parts[2] == "options" and isinstance(content, dict):
+        # Static launch-form catalogs and vault's existing masked credentials
+        # remain useful; never echo arbitrary source paths or raw records.
+        return {
+            "assessment": content.get("assessment", {}),
+            "opencode": None,
+            "repositories": [],
+            "targets": public_projection(content.get("targets", [])),
+            "campaigns": public_projection(content.get("campaigns", [])),
+            "findings": public_projection(content.get("findings", [])),
+            "credentials": public_projection(content.get("credentials", [])),
+            "credential_choices": {k: public_projection(v) for k, v in content.get("credential_choices", {}).items()
+                                   if k in ("assessment_login", "assessment_token", "source_checkout", "provider_api_key")},
+        }
     if isinstance(content, (dict, list)):
         return public_projection(content)
     if isinstance(content, str) and (kind.startswith("text/") or kind == "text/markdown"):
