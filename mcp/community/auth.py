@@ -161,6 +161,23 @@ class Accounts:
                 raise ValueError("Initial account setup is already complete")
             if username in users:
                 raise ValueError("Username already exists")
+            # A recreated username is a new principal, not a resurrection of
+            # past private ownership, grants, sessions or queued launches.
+            for credential in state.get("credentials", {}).values():
+                if credential.get("model_version") == 1:
+                    if credential.get("owner_id") == username:
+                        credential["revoked"] = True
+                    if username in credential.get("grants", []):
+                        credential["grants"] = [g for g in credential["grants"] if g != username]
+            for session_id, session in list(state.get("sessions", {}).items()):
+                if session.get("user_id") == username:
+                    del state["sessions"][session_id]
+            for job in state.get("jobs", {}).values():
+                if (job.get("status") == "queued" and
+                    isinstance(job.get("request_actor"), dict) and
+                    job["request_actor"].get("id") == username):
+                    job.update(status="cancelled", finished_at=now(),
+                               error="Queued principal no longer exists")
             users[username] = user
             return self.public(user)
         return self.store.update(create)
