@@ -160,7 +160,9 @@ def public_projection(value, depth=0):
         return None
     projected = {}
     for key, item in value.items():
-        if key == "posture":
+        if key == "active_states" and isinstance(item, list):
+            projected[key] = [x for x in item if isinstance(x, str) and x in STATUS_VALUES]
+        elif key == "posture":
             projected[key] = _posture(item)
         elif key == "content":
             projected[key] = "Recorded evidence is withheld by default."
