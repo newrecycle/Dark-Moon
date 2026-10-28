@@ -264,7 +264,11 @@ class HTTPTests(Fixture):
         cid = self.campaign()
         for path in (f"/api/v1/campaigns/{cid}",f"/api/v1/campaigns/{cid}/graph",f"/api/v1/campaigns/{cid}/report.md",f"/api/v1/campaigns/{cid}/report.json"):
             self.assertEqual(self.request(path)[0],200)
-        status, body, headers = self.request(f"/api/v1/campaigns/{cid}/report.pdf")
+        self.assertEqual(self.request(f"/api/v1/campaigns/{cid}/report.pdf")[0],403)
+        status, grant, _ = self.request('/api/v1/evidence/grants','POST',{'kind':'report_pdf','id':cid})
+        self.assertEqual(status,201)
+        status, body, headers = self.request(f"/api/v1/campaigns/{cid}/report.pdf",
+             headers={'X-Darkmoon-Evidence-Grant':json.loads(grant)['grant']})
         self.assertEqual(status, 200)
         self.assertTrue(body.startswith(b"%PDF"))
         self.assertEqual(headers["Content-Type"], "application/pdf")
