@@ -203,3 +203,26 @@ contract before append. Internal unpaged reads remain available, but the HTTP
 route always pages. Full scans, lock duration, retention/indexing and separate
 snapshot/journal writes remain limitations. Behavioral/resource verification is
 delegated after this source/AST checkpoint.
+
+## Grafana verification follow-up — 28 October 2026
+
+Grafana's delegated behavioral verification now has an executed, passing
+[offline Go/frontend CI gate](https://github.com/newrecycle/Dark-Moon/actions/runs/40725844906).
+It uses the declared Go 1.26.3 and Node 22 toolchains, runs `gofmt` in CI,
+`go test -race ./pkg/...`, `go build ./pkg/...`, `npm ci --ignore-scripts`,
+`npm run typecheck`, `npm run test:ci -- --watch=false` and
+`npm run build`. The new Go and React tests cover exactly scoped retest
+references, completed-vs-running comparison requirements, UTC time ranges,
+ISO week rollover and sparse null gaps, nullable CVSS, malformed frames,
+datasource explicit selection and stale responses, plus redirect and evidence
+metadata protections.
+
+A native [Grafana 13.1 disposable-host acceptance gate](../../.github/workflows/grafana-native-host.yml)
+is separately configured to build packaged Mage/webpack artifacts and query
+a synthetic API via Grafana on an isolated Docker network. Initial native
+harness runs revealed an obsolete image reference, an inaccessible
+internal-network host port and an endpoint lookup mismatch. Those harness
+issues were corrected without modifying other consumers. The latest
+GitHub Actions run remains the authoritative native outcome; the passing
+offline suite does not assert native Grafana success. No commercial Pro
+binary, external provider, real scan, deployment or Jenkins work was run.
