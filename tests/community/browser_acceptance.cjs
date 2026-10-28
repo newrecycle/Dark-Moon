@@ -114,12 +114,19 @@ const assert = require("node:assert/strict");
     const fulfill = (route, body) => route.fulfill({
       status:200,contentType:'application/json',body:JSON.stringify(body)});
     const activeHandler = route => fulfill(route, {data:[mockRun],total:1,
+      limit:50,offset:0,has_more:false,next_offset:null,paging_limit_reached:false,
+      ordering:'created_at_desc,id_desc',page_consistency:'live_offset',
       active_states:['queued','running','cancelling']});
     const historyHandler = route => {
       const offset = Number(new URL(route.request().url()).searchParams.get('offset') || 0);
-      const item = offset ? mockOld : {...mockRun, log_status:'missing',log_bytes:0};
-      return fulfill(route, {data:[item],total:51,limit:50,offset,
-        has_more:offset === 0,ordering:'created_at_desc,id_desc',content_policy:'metadata_only'});
+      const data = offset ? [mockOld] :
+        [{...mockRun,log_status:'missing',log_bytes:0},
+         ...Array.from({length:49},(_,i)=>({...mockOld,id:'job_history_'+i,
+            run_id:'job_history_'+i,log_status:'missing',log_bytes:0}))];
+      return fulfill(route, {data,total:51,limit:50,offset,
+        has_more:offset === 0,next_offset:offset === 0 ? 50 : null,
+        paging_limit_reached:false,ordering:'created_at_desc,id_desc',
+        page_consistency:'live_offset',content_policy:'metadata_only'});
     };
     const detailHandler = route => fulfill(route, {...mockRun,log_status:'available',log_bytes:22});
     const logDetailHandler = route => {
@@ -148,6 +155,68 @@ const assert = require("node:assert/strict");
     await page.getByText('PRIVATE-MOCK-OUTPUT',{exact:true}).waitFor();
     await page.locator('#detail .close-dialog').click();
     for (const [matcher,handler] of mockRoutes) await page.unroute(matcher,handler);
+    // High-cardinality live paging: each pager moves independently. Live
+    // totals can shrink after a page has been selected; only that pager rewinds.
+    const activeRecords = Array.from({length:122},(_,i)=>({
+      id:'job_series_'+String(i).padStart(3,'0'),run_id:'job_series_'+String(i).padStart(3,'0'),
+      campaign_id:fixture.campaign_id,status:i%2?'running':'queued',
+      state:i%2?'running':'queued',created_at:'2026-10-28T09:00:00Z'}));
+    const historyRecords = Array.from({length:121},(_,i)=>({
+      ...activeRecords[i],log_status:'missing',log_bytes:0}));
+    let activeTotal = 122, historyTotal = 121, malformedActive = false;
+    const pageOf = (records,total,request) => {
+      const offset = Number(new URL(request.url()).searchParams.get('offset') || 0);
+      const data = records.slice(0,total).slice(offset,offset+50);
+      const end = offset+data.length;
+      const has_more = end < total && end <= 100000;
+      return {data,total,limit:50,offset,has_more,
+        next_offset:has_more?end:null,paging_limit_reached:end<total&&!has_more,
+        ordering:'created_at_desc,id_desc',page_consistency:'live_offset'};
+    };
+    const manyActive = route => {
+      if (malformedActive) return fulfill(route,{data:{},total:'invalid'});
+      return fulfill(route,{...pageOf(activeRecords,activeTotal,route.request()),
+        active_states:['queued','running','cancelling']});
+    };
+    const manyHistory = route => fulfill(route,{
+      ...pageOf(historyRecords,historyTotal,route.request()),
+      content_policy:'metadata_only'});
+    await page.route(routeActive,manyActive);
+    await page.route(routeLogs,manyHistory);
+    await page.locator('nav a[href="#overview"]').click();
+    await page.locator('nav a[href="#campaigns"]').click();
+    await page.getByText('Active 1–50 of 122',{exact:true}).waitFor();
+    await page.getByText('History 1–50 of 121',{exact:true}).waitFor();
+    assert.equal(await page.locator('[data-job="job_series_000"]').count(),1);
+    await page.locator('[data-active-run-page="50"]').click();
+    await page.getByText('Active 51–100 of 122',{exact:true}).waitFor();
+    await page.getByText('History 1–50 of 121',{exact:true}).waitFor();
+    await page.locator('[data-run-page="50"]').click();
+    await page.getByText('History 51–100 of 121',{exact:true}).waitFor();
+    await page.getByText('Active 51–100 of 122',{exact:true}).waitFor();
+    await page.locator('[data-active-run-page="100"]').click();
+    await page.getByText('Active 101–122 of 122',{exact:true}).waitFor();
+    activeTotal = 7; historyTotal = 8;
+    await page.evaluate(() => loadRunQueue(viewControl.signal));
+    await page.getByText('Active 1–7 of 7',{exact:true}).waitFor();
+    await page.getByText('History 1–8 of 8',{exact:true}).waitFor();
+    assert.deepEqual(await page.evaluate(()=>[runActiveOffset,runQueueOffset]),[0,0]);
+    // Inconsistent metadata must not be rendered as trusted run links.
+    malformedActive = true;
+    await page.evaluate(() => loadRunQueue(viewControl.signal));
+    await page.getByText('Run history unavailable: Run collection did not match the expected metadata contract',{exact:true}).waitFor();
+    malformedActive = false;
+    await page.evaluate(() => loadRunQueue(viewControl.signal));
+    await page.getByText('Active 1–7 of 7',{exact:true}).waitFor();
+    // Superseded page loads must not overwrite the current page.
+    await page.evaluate(() => {
+      runActiveOffset=50;loadRunQueue(viewControl.signal);
+      runActiveOffset=0;loadRunQueue(viewControl.signal);
+    });
+    await page.getByText('Active 1–7 of 7',{exact:true}).waitFor();
+    assert.equal(await page.locator('[data-active-run-page="50"]').count(),0);
+    await page.unroute(routeActive,manyActive);
+    await page.unroute(routeLogs,manyHistory);
     const failActive = route => route.fulfill({status:503,contentType:'application/json',
       body:JSON.stringify({error:'Fixture discovery unavailable'})});
     await page.route(routeActive,failActive);
@@ -155,6 +224,13 @@ const assert = require("node:assert/strict");
     await page.locator('nav a[href="#campaigns"]').click();
     await page.getByText('Run history unavailable: Fixture discovery unavailable').waitFor();
     await page.unroute(routeActive,failActive);
+    assert.deepEqual(await page.evaluate(() => {
+      runActiveOffset=50;runQueueOffset=50;lock();
+      return [runActiveOffset,runQueueOffset,runQueueRequest>0];
+    }),[0,0,true]);
+    await page.locator('#token').fill(fixture.token);
+    await page.locator('#login-form button[type=submit]').click();
+    await page.locator('#login').waitFor({state:'hidden'});
     await page.locator('nav a[href="#overview"]').click();
     assert.equal(await page.locator('#setup-account-form [name=password]').inputValue(),'');
     assert.equal(await page.locator('#token').inputValue(),'');
