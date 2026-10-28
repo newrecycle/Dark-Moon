@@ -4,8 +4,20 @@
 set -euo pipefail
 D='/opt/synthetic data'
 R='/opt/synthetic reports'
-S="${DM_SCENARIO:-high}"
-ID="camp_native_$(date +%s)_$$"
+# The Pipeline passes a unique program/scenario over the real CLI launch
+# grammar, avoiding assumptions about Jenkins withEnv propagation to the
+# plugin's EnvVars. Reject a missing or unknown case rather than defaulting.
+S=""
+PROMPT="${1:-}"
+if [[ "$PROMPT" == *PROGRAM=* ]]; then
+  S="${PROMPT##*PROGRAM=}"
+  S="${S%% *}"
+fi
+case "$S" in
+  high|empty|nonempty_pass|medium|missing_findings|malformed_findings|wrong_findings_type|foreign_findings|failed|stopped|timed_out|running) ;;
+  *) echo "Synthetic fixture scenario unavailable" >&2; exit 2;;
+esac
+ID="camp_native_$(date +%s)_$"
 STATUS=completed
 case "$S" in
   failed|stopped|timed_out|running) STATUS="$S";;
