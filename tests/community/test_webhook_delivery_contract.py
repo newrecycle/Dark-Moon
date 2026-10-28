@@ -51,7 +51,8 @@ class WebhookInspectionHTTPTests(fixtures.Fixture):
 
     def other_role(self, role):
         username = "webhook_" + role
-        self.service.accounts.create(username, "a-long-webhook-role-password", role)
+        if not self.service.store.get("users", username):
+            self.service.accounts.create(username, "a-long-webhook-role-password", role)
         token = self.service.accounts.login(username, "a-long-webhook-role-password", "127.0.0.1")["token"]
         return {"Authorization": "Bearer " + token}
 

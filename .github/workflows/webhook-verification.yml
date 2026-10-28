@@ -1,0 +1,33 @@
+name: Webhook offline verification
+on:
+  workflow_dispatch:
+  push:
+    branches: [pro]
+    paths:
+      - 'mcp/community/api.py'
+      - 'mcp/community/operations.py'
+      - 'mcp/community/store.py'
+      - 'mcp/community/auth.py'
+      - 'mcp/community/server.py'
+      - 'tests/community/test_webhook_delivery_contract.py'
+      - 'tests/community/test_webhook_receipts.py'
+      - '.github/workflows/webhook-verification.yml'
+permissions:
+  contents: read
+jobs:
+  webhook-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install fork test dependencies
+        run: python -m pip install pytest -r mcp/requirements.txt -r mcp/community/requirements.txt
+      - name: Verify loopback REST, queue, receipt, mock TLS/DNS safety
+        env:
+          PYTHONPATH: mcp
+        run: python -m pytest tests/community/test_webhook_delivery_contract.py tests/community/test_webhook_receipts.py -q
