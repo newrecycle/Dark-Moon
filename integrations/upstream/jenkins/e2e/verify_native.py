@@ -12,6 +12,12 @@ import urllib.parse
 import urllib.request
 import uuid
 import xml.etree.ElementTree as ET
+from http.cookiejar import CookieJar
+
+# The Jenkins CSRF crumb is session-bound. Keep its cookie for subsequent
+# buildWithParameters requests instead of creating an unrelated HTTP session.
+urllib.request.install_opener(urllib.request.build_opener(
+    urllib.request.HTTPCookieProcessor(CookieJar())))
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -40,7 +46,10 @@ def http(url, method="GET", data=None, headers=None, missing=False):
     except urllib.error.HTTPError as exc:
         if missing and exc.code == 404:
             return None
-        raise
+        detail = exc.read(900).decode("utf-8", errors="replace")
+        raise AssertionError("Jenkins HTTP " + str(exc.code) + " on " +
+                             urllib.parse.urlsplit(url).path + ": " +
+                             re.sub(r"(?i)(token|secret|password)[^<> ]*", "[REDACTED]", detail)) from None
 
 
 def eventually(check, timeout=TIMEOUT):
