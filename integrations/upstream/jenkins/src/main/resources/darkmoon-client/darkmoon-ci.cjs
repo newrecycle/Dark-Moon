@@ -1345,12 +1345,9 @@ var OssLocalBackend = class {
       ref.campaignId = fresh[0].id;
       return fresh[0].id;
     }
-    fresh.sort((a, b) => b.mtimeMs - a.mtimeMs);
-    this.log.warn(
-      `Multiple new campaigns since launch (${fresh.map((x) => x.id).join(", ")}). Concurrent OSS runs share one data dir \u2014 run one container/compose-project per job. Attributing to newest by mtime.`
-    );
-    ref.campaignId = fresh[0].id;
-    return fresh[0].id;
+    // Sorting by mtime is not an exact run identity. Fail closed if another
+    // process created a candidate campaign concurrently.
+    throw new CorrelationFailed("Multiple new OSS campaigns match this launch; identity is ambiguous.");
   }
   async readCampaignFile(id) {
     const p = path.join(this.campaignsDir, `${id}.json`);
