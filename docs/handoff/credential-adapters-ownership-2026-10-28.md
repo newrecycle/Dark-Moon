@@ -56,7 +56,10 @@ Cached HTTPS checkout never bypasses credential authorization.
 ## Revocation and queued work
 
 Deleting a credential, removing/demoting its owner or a grantee, or removing
-a sharing grant immediately stops future eligibility. A queued assessment
+a sharing grant stops future eligibility. Recreating a deleted local account
+with the same username, or reprovisioning an absent OIDC subject, invalidates
+orphaned private credentials, removes former sharing grants, clears stale
+bearer sessions and cancels old queued jobs for that principal. A queued assessment
 rechecks its recorded request principal and all saved references before any
 subprocess/privacy tokenizer invocation; stale references cause a generic
 failure with no secret in the job error. New structured credentials may be
@@ -65,6 +68,10 @@ same credential ID. To restore access, create a replacement credential ID.
 Changing owner/grants preserves ciphertext when the secret is omitted.
 Already-running external subprocesses are not retroactively stopped by a
 credential revocation; the boundary is rechecked before execution and use.
+Keys already copied to a native provider credential file, existing checkout
+artifacts and remote systems are not automatically erased or rotated; operators
+must revoke those independently. Credential revocation prevents subsequent
+fork-managed uses, not every downstream copy already made.
 
 ## Legacy compatibility and migration
 
