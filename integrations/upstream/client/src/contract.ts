@@ -1,10 +1,9 @@
 /**
  * @darkmoon_ai/client — FROZEN public contract (§2.2 of the integrations plan).
  *
- * These types are the single source of truth that the 5 official integrations
- * (GitHub Actions, GitLab CI/CD, Jenkins, VS Code, JetBrains) build against.
- * A Kotlin port (JetBrains) mirrors these shapes and reuses the same
- * conformance fixtures. DO NOT change method signatures or the canonical enum
+ * These types are the single source of truth for the retained SDK consumers
+ * (GitHub Actions, GitLab CI/CD, Jenkins and VS Code).
+ * DO NOT change method signatures or the canonical enum
  * value sets without bumping CONTRACT_VERSION (semver) and the fixtures.
  */
 
