@@ -171,3 +171,43 @@ class EvidenceHTTPTests(fixtures.Fixture):
         self.assertEqual(status, 200)
         self.assertIn(EVIDENCE_CANARY, body.decode())
         self.assertNotIn(EVIDENCE_CANARY, self.request(f"/api/v1/run/logs/{job['id']}")[1].decode())
+    def test_public_events_proposal_and_error_never_reflect_evidence_canaries(self):
+        self.service.store.save("remediations", {
+            "id": "rem_canary", "campaign_id": self.cid, "finding_id": self.fid,
+            "status": "proposed", "title": SOURCE_CANARY,
+            "validation": {"before": [{"name": EVIDENCE_CANARY, "passed": False,
+                                      "output": SOURCE_CANARY}]}})
+        self.service.store.save("events", {
+            "id": "evt_canary", "event": "finding.created", "timestamp": "2026-10-28T00:00:00Z",
+            "data": {"title": SOURCE_CANARY, "evidence": EVIDENCE_CANARY}})
+        for path in ("/api/v1/pull-requests", "/api/v1/pull-requests/rem_canary",
+                     "/api/v1/events/history"):
+            status, body, _ = self.request(path)
+            self.assertEqual(status, 200, path)
+            self.assertNotIn(SOURCE_CANARY, body.decode(), path)
+            self.assertNotIn(EVIDENCE_CANARY, body.decode(), path)
+        response = self.request(f"/api/v1/campaigns/{self.cid}/findings/{self.fid}",
+                                "PATCH", {"status": EVIDENCE_CANARY})
+        self.assertIn(response[0], (400, 403))
+        self.assertNotIn(EVIDENCE_CANARY, response[1].decode())
+
+    def test_password_rotation_revokes_session_grant_across_relogin(self):
+        admin = self.role("admin", "evidence_rotating_admin")
+        issued = self.grant("finding", self.fid, headers=admin)[1]
+        status, body, _ = self.request("/api/v1/auth/password", "POST", {
+            "old_password": "a-long-evidence-access-password",
+            "new_password": "a-new-long-evidence-password"
+        }, headers=admin)
+        self.assertEqual(status, 200, body)
+        self.assertEqual(self.reveal("finding", self.fid, issued["grant"], admin)[0], 401)
+        new_token = self.service.accounts.login("evidence_rotating_admin",
+                                               "a-new-long-evidence-password", "127.0.0.1")["token"]
+        self.assertEqual(self.reveal("finding", self.fid, issued["grant"],
+                          {"Authorization": "Bearer " + new_token})[0], 403)
+
+    def test_source_file_enumeration_is_denied_before_running_git(self):
+        with patch("subprocess.run", side_effect=AssertionError("must not invoke git")) as shell:
+            response = self.request("/api/v1/source-files?repo=/tmp/evidence-canary")
+        self.assertEqual(response[0], 403)
+        self.assertNotIn(EVIDENCE_CANARY, response[1].decode())
+        shell.assert_not_called()
