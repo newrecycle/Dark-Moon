@@ -26,8 +26,8 @@ five-collection contract without weakening authentication or result guards.
 guards on Linux and the alert/setup subset on Windows. Linux requires OpenSSL
 for the temporary owned TLS certificate. Windows deliberately excludes the
 POSIX special-file case; its process-lock admission and setup tests still run.
-Hosted runs have not yet been observed at the time this checkpoint is written.
-Do not infer success from workflow submission or from an older branch run.
+Observed hosted results and the two checkout failures are recorded below.
+Each result is scoped to its named commit and actual test boundary.
 
 ## Remaining limits
 
@@ -69,3 +69,23 @@ the eight-process quota ceiling, passed. All 13 Windows Node setup tests passed.
 The same commit's [Tests run 40766256759](https://github.com/newrecycle/Dark-Moon/actions/runs/40766256759)
 also passed. These observed results complete the available offline verification
 for both source increments; no licensed Splunk host/SPL/SDK claim is added.
+
+## Observed finding-scoped retest result
+
+Feature commit `c92c39958e6b4bcfc0baf03466ef6c6c80f34c98` adds explicit
+finding-mode preflight and exact campaign/target guards. Its
+[Splunk run 40767933407](https://github.com/newrecycle/Dark-Moon/actions/runs/40767933407)
+passed both jobs: Linux ran 65 Python tests with no skips, 13 Node tests and all
+seven legacy guards; Windows ran 16 alert methods, with 15 passed and one
+POSIX-only skip, plus 13 Node tests passed. Linux includes the new exact-scope
+mock cases, real owned-loopback scoped POST and real Operations reference checks
+with the launcher mocked. The package check also passed.
+
+The same commit's [campaign isolation run 40767933416](https://github.com/newrecycle/Dark-Moon/actions/runs/40767933416)
+passed: its focused preflight reported 20 tests and eight subtests; the full
+backend suite reported 420 tests and 209 subtests. Graph navigation and finding
+query checks passed. Tests, community SDK/CI contracts, browser acceptance,
+webhook offline verification and community runtime validation also passed.
+The broader native n8n workflow was still in progress when this entry was
+written; no result is inferred for it. These runs do not establish native
+Splunk, proprietary scanner or real assessment behavior.

@@ -50,14 +50,21 @@ and POST are separate requests; native/admin mutation races are not claimed
 transactionally isolated. Successful launch or `not_observed` is not proof of
 exploit retest, deployment or repair, and no vendor wire parity is asserted.
 
-Observed local verification at this feature checkpoint: 65 Python tests passed,
-including mocked exact-scope rejection cases, actual owned-loopback scoped POST,
-and the real fork Operations reference checks with its launcher mocked. The
-seven legacy alert guard assertions passed. The existing 13 Node setup tests
-were unchanged; the previous hosted Linux/Windows result is documented in
-`docs/validation/splunk-offline-2026-10-28.md`, not claimed as a hosted result for
-this later feature. The new feature's hosted gate is recorded only after its
-actual run is observed. Native Splunk/SPL/form behavior remains unverified.
+Observed local verification: 65 Python tests and all seven legacy alert guard
+assertions passed. Coverage includes mocked exact-scope rejection cases, an
+actual owned-loopback scoped POST, and real fork Operations reference checks
+with its launcher mocked. All 13 Node setup tests also passed.
+
+Hosted [run 40767933407](https://github.com/newrecycle/Dark-Moon/actions/runs/40767933407)
+on feature commit `c92c39958e6b4bcfc0baf03466ef6c6c80f34c98` passed Linux
+(65 Python tests, 13 Node tests and seven legacy guards) and Windows (15 alert
+tests passed, one POSIX-only case skipped, 13 Node tests passed). The same
+commit's [campaign isolation run 40767933416](https://github.com/newrecycle/Dark-Moon/actions/runs/40767933416)
+passed, including 420 backend tests and 209 subtests plus graph/finding-query
+checks. Tests, community SDK/CI contracts, browser acceptance, webhook offline
+verification and community runtime validation also passed on that commit.
+These are observed offline/mock/owned-fixture results; native Splunk/SPL/form
+behavior remains unverified.
 
 Tests use synthetic metadata, temporary files, mocked launchers and owned
 loopback servers. They do not contact a provider, execute a real assessment,
