@@ -119,10 +119,10 @@ def handler_for(service, allowed_hosts):
                 self.close_connection = True
                 return self.send({"error": "Cross-origin requests are disabled"}, status=403)
             path = unquote(urlsplit(self.path).path)
-            if method == "GET" and path in {"/", "/callback", "/app.js", "/app.css", "/workspace.js"}:
+            if method == "GET" and path in {"/", "/callback", "/app.js", "/app.css", "/workspace.js", "/paths.js"}:
                 name, kind = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
                               "/callback": ("index.html", "text/html"), "/workspace.js": ("workspace.js", "text/javascript"),
-                              "/app.css": ("app.css", "text/css")}[path]
+                              "/app.css": ("app.css", "text/css"), "/paths.js": ("paths.js", "text/javascript")}[path]
                 return self.send((STATIC / name).read_bytes(), kind)
             if method == "GET" and path == "/healthz":
                 return self.send({"status": "ok"})
@@ -170,7 +170,7 @@ def handler_for(service, allowed_hosts):
                     if parts[2] == "findings":
                         return self.send(campaign["findings"])
                     if parts[2] == "graph":
-                        return self.send(graph_for(parts[1]))
+                        return self.send(service.graph(parts[1]))
                     if parts[2] == "report.md":
                         return self.send(reports.markdown(campaign), "text/markdown", filename=parts[1] + ".md")
                     if parts[2] == "report.pdf":

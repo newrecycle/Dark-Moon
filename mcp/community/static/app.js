@@ -60,6 +60,7 @@ function lock() {
   identity = null;
   streamControl?.abort();
   $("#setup-account").close();
+  viewControl?.abort();
   $("#setup-account-form").reset();
   $("#login").showModal();
   $("#content").replaceChildren();
@@ -244,7 +245,7 @@ function render() {
         )}</select><span class="subtle">${items.length} findings</span></div><section class="panel flush">${findingsTable(items)}</section>`;
   } else if (route === "surface") {
     $("#content").innerHTML =
-      `<div class="toolbar">${campaignSelect()}<button class="secondary" id="vr-button" disabled>Checking VR…</button><button class="secondary" id="surface-tour">Tour finding locations</button></div><div class="panel"><div class="map-layout"><div class="surface-stage"><div id="surface-controls"></div><canvas id="surface-canvas" class="surface" aria-label="Interactive three dimensional infrastructure graph"></canvas><div id="surface-tour-card" hidden></div><p class="map-caption">Drag to orbit · Scroll to zoom · Select a node to inspect. Lines show recorded containment and connections.</p></div><div class="map-info" id="map-info">Choose an assessment to explore its infrastructure.</div></div></div>`;
+      `<div class="toolbar">${campaignSelect()}<button class="secondary" id="vr-button" disabled>Checking VR…</button><button class="secondary" id="surface-tour">Tour finding locations</button></div><div class="panel"><div class="map-layout"><div class="surface-stage"><div id="surface-controls"></div><canvas id="surface-canvas" class="surface" aria-label="Interactive three dimensional infrastructure graph"></canvas><div id="surface-tour-card" hidden></div><p class="map-caption">Drag to orbit · Scroll to zoom · Select a node to inspect. Lines show recorded containment and connections.</p></div><div class="map-info" id="map-info">Choose an assessment to explore its infrastructure.</div></div></div><section id="recorded-paths" class="panel"></section>`;
     if (campaignId) drawSurface(campaignId, viewControl.signal).catch(fail);
   } else if (route === "schedules") {
     $("#content").innerHTML =
@@ -646,7 +647,7 @@ async function drawSurface(cid, signal) {
     zoom = 1,
     drag = null,
     selected = "",
-    frame;
+    frame, pathController = null, highlightedEdge = "";
   info.innerHTML = `<h3>${nodes.length} infrastructure nodes</h3><p class="instructions">${graph.edges.length} recorded relationships · ${graph.findings.length} findings</p><p class="instructions">Select a node to inspect its metadata and explicitly linked findings. This map does not infer an exploitation path.</p>`;
   if (!nodes.length)
     info.innerHTML = empty(
@@ -681,7 +682,8 @@ async function drawSurface(cid, signal) {
       const a = ids.get(e.source),
         b = ids.get(e.target);
       if (!a || !b) continue;
-      ctx.strokeStyle = e.kind === "observed" ? "#9f93df" : "#3a5067";
+      ctx.strokeStyle = e.id === highlightedEdge ? "#b2f4cd" : e.kind === "observed" ? "#9f93df" : "#3a5067";
+      ctx.lineWidth = e.id === highlightedEdge ? 4 : 1;
       ctx.beginPath();
       ctx.moveTo(...a.screen);
       ctx.lineTo(...b.screen);
@@ -829,6 +831,7 @@ async function drawSurface(cid, signal) {
     }
   }, {signal});
   function stopTour(restoreFocus = true) {
+    pathController?.stop(false);
     card.hidden = true;
     tour.textContent = "Tour finding locations";
     if (restoreFocus) tour.focus();
@@ -859,6 +862,18 @@ async function drawSurface(cid, signal) {
     showStep();
     $("#surface-free").focus();
   }, { signal });
+  if (window.setupRecordedPaths && $("#recorded-paths")) {
+    pathController = window.setupRecordedPaths({graph, cid, signal, card,
+      stopLocationTour: () => stopTour(false),
+      highlight: edgeId => { highlightedEdge = edgeId; },
+      selectStep: edge => {
+        const node = ids.get(edge.target);
+        if (!node) throw new Error("Graph changed; reopen this assessment's surface");
+        selectNode(node, true);
+        angle = -Math.atan2(node.p[2], node.p[0]) + 0.25;
+      },
+    });
+  }
   signal.addEventListener("abort", () => cancelAnimationFrame(frame), { once: true });
   draw();
   const vr = $("#vr-button");

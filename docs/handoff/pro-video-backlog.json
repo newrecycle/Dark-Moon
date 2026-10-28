@@ -173,7 +173,7 @@
       ],
       "acceptance": "Unconnected nodes never become a kill chain; each tour step resolves to supporting evidence; invalid paths are rejected. Card, graph selection and inspector remain usable together; keyboard can move between steps and return to free exploration; reduced motion disables animated reframing.",
       "evidence": "Pro 01:55\u201302:18; A: infra-orbital.gif sampled frames across 0\u2013181, only tour steps 1/4 and 2/4 observed; V: Pro tour 120s database step 3, 128s file exposure step 4, Finish action",
-      "implementation_progress": "Partial implementation: see implementation-progress.md; remaining acceptance is not claimed complete."
+      "implementation_progress": "Persisted operator-reviewed directed paths, same-campaign node/finding/evidence validation, evidence fingerprints, stale-reference blocking, create/delete UI and accessible step playback implemented and tested. Camera reframes instantly. Automated exploit verification, editing/history and headset playback remain open; see recorded-paths.md."
     },
     {
       "id": "G03",

@@ -4,6 +4,7 @@ Updated 27 October 2026. Branch `pro`. This is the current state; ticket baselin
 
 ## Implemented in the video-driven increments
 
+- G02 recorded paths: operator-reviewed, ordered directed connections with same-campaign, node-linked finding evidence, immutable evidence fingerprints and a persisted reviewer identity. Creation rejects containment-only, disconnected, repeated, unsupported or evidence-free steps. Graph reads and every playback step revalidate references; changed/deleted evidence or connections make a path unavailable. The graph supports creation/deletion, Back/Next/Finish, technical rationale and supporting evidence navigation. Finding-location tours remain separate; no automated exploit verification is claimed. See [contract and validation](recorded-paths.md).
 - Manual graph tour with Back/Next/Finish and Explore freely, derived from actual assets with explicitly linked findings. Manual selection, close and resetting the selector to its empty option exit the tour and keep inspector state consistent. The desktop card sits inside the map; mobile controls remain in flow.
 - Keyboard asset selector, type/address/endpoint/technology summaries, per-asset severity totals, readable finding cards with CVSS/category/status/MITRE, expandable raw metadata and close/focus restoration.
 - In-inspector finding detail and Back, current-record linkage checks, unavailable/deleted finding states and protection from stale asynchronous responses. Proposal badges require real same-campaign records. Proposal review verifies finding/campaign ownership; report actions retain campaign identity.
@@ -29,7 +30,7 @@ This is full-track machine-transcription and visual sample/storyboard review. Di
 
 ## Remaining implementation and validation
 
-- **G02:** persisted evidence-backed attack paths, edge/evidence validation and technical step detail. The finding-location tour does not claim an exploitation chain.
+- **G02 follow-up:** current paths are operator-reviewed annotations rather than independently verified exploitation chains. Automated observation producers, path editing/version history and headset playback are not implemented. Persisted paths, directed-edge/evidence validation and accessible step playback are implemented.
 - **D01/D02/I07:** dashboard hierarchy/metrics with exact denominators, broader page styling, full-window graph and exact visual comparisons. Current screenshots establish reviewed layouts at two viewports, not pixel parity.
 - **C01/C02/F01/F02/R01:** campaign grouping/scope and live-console refinements, persistent filters/sort/paging, richer impact/fix disposition, report roadmap and further export states.
 - **P01:** complete server-side redacted projection, controlled reveal/expiry and end-to-end absence checks. The safe integration feed is already restricted; the authenticated workspace still has raw evidence views.

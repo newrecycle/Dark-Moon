@@ -175,6 +175,79 @@ const assert = require("node:assert/strict");
         await page.locator("#surface-tour").click();
         await page.screenshot({path:path.join(screenshots,"surface-tour.png"),fullPage:true});
         await page.locator("#surface-free").click();
+        await page.locator("#recorded-paths h3").waitFor();
+        await page.locator("#path-editor summary").click();
+        await page.locator('#path-form [name="title"]').fill('Reviewed <script>path</script>');
+        const firstEdge = await page.locator('[data-path-edge="0"] option').nth(1).getAttribute('value');
+        await page.locator('[data-path-edge="0"]').selectOption(firstEdge);
+        await page.locator('[data-path-finding="0"]').selectOption(await page.locator('[data-path-finding="0"] option').nth(1).getAttribute('value'));
+        await page.locator('[data-path-rationale="0"]').fill('Fixture entry response supports the recorded service connection.');
+        await page.locator('#path-add-step').click();
+        await page.locator('[data-path-edge="1"]').selectOption(await page.locator('[data-path-edge="1"] option').nth(1).getAttribute('value'));
+        await page.locator('[data-path-finding="1"]').selectOption(await page.locator('[data-path-finding="1"] option').nth(1).getAttribute('value'));
+        await page.locator('[data-path-rationale="1"]').fill('Fixture service evidence supports the recorded database connection.');
+        await page.locator('#path-form [name="reviewed"]').check();
+        await page.locator('#path-form [type="submit"]').click();
+        await page.locator('#path-status').filter({hasText:'Reviewed path saved'}).waitFor();
+        const recordedPathId = await page.locator('#path-select').inputValue();
+        assert.ok(recordedPathId.startsWith('path_'));
+        await page.locator('#path-play').click();
+        await page.locator('#surface-tour-card').filter({hasText:'Recorded path · Step 1 of 2'}).waitFor();
+        assert.equal(await page.locator('#path-back').isDisabled(),true);
+        await page.locator('#surface-tour-card summary').click();
+        assert.match(await page.locator('#surface-tour-card').innerText(),/Fixture entry response/);
+        assert.equal(await page.locator('#surface-tour-card [data-finding]').getAttribute('data-cid'),await page.locator('#campaign-select').inputValue());
+        assert.equal(await page.evaluate(()=>window.injected),undefined);
+        await page.screenshot({path:path.join(screenshots,'recorded-path.png'),fullPage:true});
+        await page.locator('#path-next').click();
+        await page.locator('#surface-tour-card').filter({hasText:'Step 2 of 2'}).waitFor();
+        await page.locator('#path-back').click();
+        await page.locator('#surface-tour-card').filter({hasText:'Step 1 of 2'}).waitFor();
+        await page.locator('#path-free').click();
+        assert.equal(await page.locator('#path-play').evaluate(el=>document.activeElement===el),true);
+        await page.locator('#path-play').click();
+        await page.locator('#path-next').waitFor();
+        await page.locator('#path-next').click();
+        await page.locator('#path-next').filter({hasText:'Finish'}).waitFor();
+        await page.locator('#path-next').click();
+        assert.equal(await page.locator('#surface-tour-card').isVisible(),false);
+        await page.locator('#path-play').click();
+        await page.locator('#path-next').waitFor();
+        await page.locator('#surface-node').selectOption(await asset.getAttribute('value'));
+        assert.equal(await page.locator('#surface-tour-card').isVisible(),false);
+        await page.locator('nav a[href="#findings"]').click();
+        await page.locator('nav a[href="#surface"]').click();
+        await page.locator('#path-select').selectOption(recordedPathId);
+        assert.equal(await page.locator('#path-play').isDisabled(),false);
+        // Exercise playback's own freshness check independently of SSE rerender.
+        await page.evaluate(() => streamControl.abort());
+        await page.locator('#path-play').click();
+        await page.locator('#path-next').waitFor();
+        const pathCampaign = await page.locator('#campaign-select').inputValue();
+        const staleFinding = await page.evaluate(async cid => (await api(`/api/v1/campaigns/${cid}/paths`)).data[0].steps[1].finding_id, pathCampaign);
+        await page.evaluate(async ({cid, finding}) => api(`/api/v1/campaigns/${cid}/findings/${finding}`, {method:'PATCH',body:JSON.stringify({status:'false_positive'})}), {cid:pathCampaign,finding:staleFinding});
+        await page.locator('#path-next').click();
+        await page.locator('#path-status').filter({hasText:'Path unavailable'}).waitFor();
+        assert.equal(await page.locator('#surface-tour-card').isVisible(),false);
+        assert.equal(await page.locator('#path-play').isDisabled(),true);
+        await page.evaluate(async ({cid, finding}) => api(`/api/v1/campaigns/${cid}/findings/${finding}`, {method:'PATCH',body:JSON.stringify({status:'confirmed'})}), {cid:pathCampaign,finding:staleFinding});
+        await page.locator('nav a[href="#findings"]').click();
+        await page.locator('nav a[href="#surface"]').click();
+        await page.locator('#path-select').selectOption(recordedPathId);
+        await page.emulateMedia({reducedMotion:'reduce'});
+        await page.setViewportSize({width:390,height:844});
+        await page.locator('#path-play').click();
+        await page.locator('#path-free').waitFor();
+        await page.locator('#surface-tour-card').scrollIntoViewIfNeeded();
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true);
+        await page.screenshot({path:path.join(screenshots,'recorded-path-mobile.png'),fullPage:true});
+        await page.locator('#path-free').click();
+        await page.emulateMedia({reducedMotion:'no-preference'});
+        await page.setViewportSize({width:1440,height:1000});
+        await page.locator('#surface-close').click();
+        await page.locator('#path-delete').click();
+        await page.locator('#path-status').filter({hasText:'Recorded path deleted'}).waitFor();
+        await page.evaluate(() => { connect(); });
         await page.setViewportSize({width:390,height:844});
         await page.locator("#surface-node").selectOption(await asset.getAttribute("value"));
         assert.equal(await page.locator("#surface-close").isVisible(),true);
@@ -731,6 +804,7 @@ const assert = require("node:assert/strict");
             "literal evidence/XSS",
             "filters",
             "3D canvas",
+            "recorded path create/persist/tour/delete, stale-evidence stop, reduced motion and mobile layout",
             "local remediation via real subprocess",
             "original repo unchanged",
             "PDF download",

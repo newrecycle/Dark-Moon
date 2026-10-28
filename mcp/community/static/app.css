@@ -754,6 +754,12 @@ select option {
 #surface-tour-card[hidden] { display: none; }
 .map-info .list-item { width: 100%; text-align: left; white-space: normal; }
 .map-info pre { overflow-wrap: anywhere; white-space: pre-wrap; }
+#recorded-paths { margin-top: 18px; }
+#recorded-paths label { display: grid; gap: 8px; margin: 12px 0; }
+#recorded-paths .path-review { display: flex; align-items: flex-start; }
+#recorded-paths .path-review input { width: auto; margin-top: 4px; }
+#path-draft fieldset { border: 1px solid var(--line); margin: 16px 0; min-width: 0; }
+#recorded-paths select, #recorded-paths textarea { max-width: 100%; }
 
 .asset-fields { display: grid; gap: 10px; }
 .asset-fields dt { color: var(--muted); font-size: 11px; }
@@ -773,6 +779,7 @@ select option {
 .map-info .secondary { white-space: normal; }
 #surface-tour-card { position: absolute; left: 16px; bottom: 50px; width: min(420px, calc(100% - 32px)); box-sizing: border-box; background: var(--panel, #101620); border-radius: 8px; box-shadow: 0 10px 32px #0008; }
 #surface-tour-card .toolbar { flex-wrap: wrap; margin-bottom: 0; }
+#surface-tour-card { max-height: min(420px, 60vh); overflow: auto; }
 @media (max-width: 1050px) and (min-width: 721px) {
   .map-info { border-left: 0; border-top: 1px solid var(--line); }
 }

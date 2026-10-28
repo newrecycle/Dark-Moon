@@ -76,6 +76,16 @@ for i, (host, name) in enumerate(
                 "discovered_by_agent": "web-assessment",
             },
         )
+    # Explicit fixture observations, separate from structural containment.
+    nodes = data.load_infrastructure(campaign["campaign_id"])
+    service_id = next(n["id"] for n in nodes if n.get("node_type") == "service")
+    database_id = next(n["id"] for n in nodes if n.get("name") == "PostgreSQL")
+    nodes[0]["connections"] = [service_id]
+    next(n for n in nodes if n["id"] == service_id)["connections"] = [database_id]
+    data._write_json(data.INFRASTRUCTURE_DIR / (campaign["campaign_id"] + ".json"), nodes)
+    findings = data.load_vulnerabilities(campaign["campaign_id"])
+    findings[1]["node_id"] = service_id
+    data.save_vulnerabilities(campaign["campaign_id"], findings)
     record = data.load_campaign(campaign["campaign_id"])
     record.update(
         status="completed",

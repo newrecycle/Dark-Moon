@@ -80,6 +80,17 @@ class API:
         if resource in {"credentials", "webhooks"} or parts[:2] in (["auth", "users"], ["system", "integrity"]):
             if not admin:
                 raise PermissionError("Administrator access is required")
+        if resource == "campaigns" and len(parts) in {3, 4} and parts[2] == "paths":
+            from .attack_paths import create_path, delete_path
+            if method == "GET" and len(parts) == 3:
+                handler.send(envelope(self.service.graph(parts[1])["paths"]))
+            elif method == "POST" and len(parts) == 3:
+                handler.send({"data": create_path(self.service, parts[1], handler.body(), identity)}, status=201)
+            elif method == "DELETE" and len(parts) == 4:
+                handler.send(delete_path(self.service, parts[1], parts[3]))
+            else:
+                return False
+            return True
         if resource == "auth":
             if method == "GET" and parts == ["auth", "me"]:
                 handler.send({"user": identity})
@@ -171,8 +182,7 @@ class API:
                 campaign = self.service.campaign(parts[1])
                 handler.send({"campaign_id": campaign["id"], "format": "markdown", "content": reports.markdown(campaign)})
             elif parts[2:] == ["infrastructure"]:
-                from .service import graph_for
-                handler.send({"data": graph_for(parts[1])})
+                handler.send({"data": self.service.graph(parts[1])})
             else:
                 return False
             return True

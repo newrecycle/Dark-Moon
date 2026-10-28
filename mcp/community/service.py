@@ -23,15 +23,19 @@ def graph_for(campaign_id):
     ids = {n.get("id") for n in nodes}
     for node in nodes:
         parent = node.get("parent_node_id") or node.get("parent_id")
-        if parent in ids and (parent, node.get("id")) not in seen:
-            seen.add((parent, node.get("id")))
+        if parent in ids and (parent, node.get("id"), "contains") not in seen:
+            seen.add((parent, node.get("id"), "contains"))
             edges.append({"source": parent, "target": node["id"], "kind": "contains"})
         for connection in node.get("connections", []) or []:
             other = connection.get("target") if isinstance(connection, dict) else connection
-            if isinstance(other, str) and other in ids and (node.get("id"), other) not in seen:
-                seen.add((node.get("id"), other))
+            if isinstance(other, str) and other in ids and (node.get("id"), other, "observed") not in seen:
+                seen.add((node.get("id"), other, "observed"))
                 edges.append({"source": node["id"], "target": other, "kind": "observed"})
-    return {"nodes": nodes, "edges": edges, "findings": data.load_vulnerabilities(campaign_id)}
+    for edge in edges:
+        edge["id"] = "edge_" + hashlib.sha256(json.dumps(
+            [edge["source"], edge["target"], edge["kind"]], separators=(",", ":")
+        ).encode()).hexdigest()[:24]
+    return {"campaign_id": campaign_id, "nodes": nodes, "edges": edges, "findings": data.load_vulnerabilities(campaign_id)}
 
 
 class Service:
@@ -257,6 +261,13 @@ class Service:
         result["stats"] = {s: sum(str(v.get("severity", "info")).lower() == s for v in result["findings"]) for s in SEVERITIES}
         result["stats"]["total_findings"] = len(result["findings"])
         return result
+
+    def graph(self, campaign_id):
+        self.campaign(campaign_id)
+        graph = graph_for(campaign_id)
+        from .attack_paths import list_paths
+        graph["paths"] = list_paths(self.store, campaign_id, graph)
+        return graph
 
     def snapshot(self):
         findings = data.load_all_vulnerabilities()
