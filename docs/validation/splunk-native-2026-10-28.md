@@ -58,3 +58,28 @@ Known unresolved cross-version boundaries include app-install/reload behavior,
 effective `props.conf`/EVAL precedence, Splunk Web form selectors, native
 `storage/passwords` permissions and old realm retirement, actor/session
 behavior in the installed action, and native HEC/search indexing visibility.
+
+
+## Published pro verification — implementation commit f4c0e18f
+
+The [native-harness offline prerequisite and regression workflow](https://github.com/newrecycle/Dark-Moon/actions/runs/40778316584)
+on commit [f4c0e18f](https://github.com/newrecycle/Dark-Moon/commit/f4c0e18f7e900bd6a89417dbbd9b07a9fd74707c)
+**passed**: 73 Python tests, 13 Node setup tests, all seven
+legacy alert-guard assertions, Python compilation and Node syntax checks.
+The final native prerequisite invocation returned **exit 3, NATIVE UNAVAILABLE**,
+as required when no authorized host is configured; this is NOT native acceptance.
+
+The **unchanged existing** [Splunk Linux/Windows offline integration verification](https://github.com/newrecycle/Dark-Moon/actions/runs/40778316581)
+on the same commit also **passed**. Linux executed 73 Python tests
+(including packaging and real owned-loopback HTTP/TLS), 13 Node setup tests
+and seven legacy guards. Windows executed 16 alert tests (15 passed,
+one POSIX-only case skipped) and 13 Node setup tests. This verifies
+preservation of the established offline gates on `pro`.
+
+The manual-only native workflow had **not been triggered**, because no
+operator-provided licensed disposable Splunk Enterprise instance, self-hosted
+runner, Splunk management user, local HEC token or native SplunkJS host was
+available. Native installation, search-time EVAL and SPL results, actual
+SplunkJS settings writes and installed Splunk alert invocation remain
+**UNAVAILABLE/UNVERIFIED**. Native compatibility cannot be inferred from the
+successful offline checks or from the harness source.
