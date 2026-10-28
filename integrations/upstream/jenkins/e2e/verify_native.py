@@ -117,6 +117,7 @@ def native():
         ("malformed_findings", "FAILURE", None),
         ("wrong_findings_type", "FAILURE", None),
         ("foreign_findings", "FAILURE", None),
+        ("ambiguous_campaigns", "FAILURE", None),
         ("failed", "FAILURE", None),
         ("stopped", "FAILURE", None),
         ("timed_out", "FAILURE", None),
