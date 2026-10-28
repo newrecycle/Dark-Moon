@@ -420,3 +420,50 @@ is invoked by the new tests.
 runtime results must be taken from the corresponding GitHub Actions run,
 not inferred from test source. Vendor response/body/schema parity and
 full hosted-product GUI parity remain unverified.
+
+## Active-run/log verification follow-up — 28 October 2026
+
+The source-only implementation above has a dedicated, reproducible **offline**
+regression gate at [run-discovery-verification.yml](../../../.github/workflows/run-discovery-verification.yml).
+It compiles the modified run/API/queue/server/service/store Python modules and
+test sources, parses the dashboard JavaScript with `node --check`, and runs the
+focused HTTP and compatibility suites without launching assessments.
+
+**Observed GitHub Actions results, not inferred from source:**
+
+- [Focused run/log verification — success](https://github.com/newrecycle/Dark-Moon/actions/runs/40664772710),
+  commit `aa44d6a54ba96a29e5f109a4756ca519eb2b79d5`:
+  **11/11** new offline run/log HTTP tests passed and **10/10** existing
+  compatibility tests passed. Python compilation and JavaScript syntax checks
+  passed. The prior attempt
+  [40664622186](https://github.com/newrecycle/Dark-Moon/actions/runs/40664622186)
+  correctly reported a failing *older scheduler test assertion* after the
+  separately implemented flat-input adapter made `target` a supported update.
+  Its invalid-input fixture was corrected to use a genuinely unsupported key,
+  without altering the scheduler adapter.
+- [Community browser acceptance — success](https://github.com/newrecycle/Dark-Moon/actions/runs/40664888578),
+  commit `0434b9d1c1e5a5269f34d3698a04f8184853be6e`:
+  the existing offline browser workflow completed successfully with new
+  Playwright checks for empty run history, active-run display, history page
+  transitions, structured log details, administrator opt-in output and
+  unavailable API presentation.
+
+The 11 new HTTP cases exercise literal-route precedence and authentication,
+queued/running/cancelling versus all terminal states, distinct job/campaign
+IDs, exact idempotent cancellation, filters/sorted offset pages, malformed
+query rejection, safe serialization across modern and legacy routes,
+viewer/analyst versus administrator output access, lifecycle-only logs,
+65,536-byte tail bounds and oversized lines, missing/unsafe log files
+(symlink, directory, hardlink), SSE terminal identity and raw opt-in. The
+browser uses **intercepted fixture HTTP responses**, not a licensed vendor
+service; it never starts an assessment. Tests are at
+`tests/community/test_run_discovery.py` and additions in
+`tests/community/browser_acceptance.cjs`.
+
+**Still unverified:** commercial vendor schema/response/runtime equivalence;
+real provider assessments; native hosted-product clients; continuous
+running-SSE disconnect, log-rotation races and complete 8-MiB output
+transport; browser stale-response timing under adversarial network scheduling;
+and full cross-consumer SDK/native builds. These must not be described as
+passing from the focused gate. Existing source-only limitations and untrusted
+raw-log warnings remain in force.
