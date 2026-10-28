@@ -234,6 +234,37 @@ def _paths(items):
     return result
 
 
+def _safe_pr_response(body):
+    """Preserve the PR/proposal identity projection but not editable free text."""
+    def record(p):
+        if not isinstance(p, dict):
+            return {}
+        result = {key: p.get(key) for key in (
+            "id", "campaign_id", "status", "state", "record_type",
+            "published", "publication_recorded", "provider", "pr_id",
+            "published_at", "confidence")}
+        result["finding_ids"] = [x for x in p.get("finding_ids", [])[:1000]
+                                 if isinstance(x, str) and len(x) <= 200]
+        # Only the finding_lifecycle._public_url validation makes publication
+        # links safe: no credentials, fragments or query and a PR detail path.
+        from .finding_lifecycle import _public_url
+        result["url"] = _public_url(p.get("url"))
+        validation = p.get("validation")
+        if isinstance(validation, dict):
+            result["validation"] = {
+                stage: [{key: v.get(key) for key in ("kind", "passed", "exit_code", "timed_out")
+                          if type(v.get(key)) in (str, int, bool)}
+                         for v in validation.get(stage, [])[:100] if isinstance(v, dict)]
+                for stage in ("before", "after") if isinstance(validation.get(stage), list)}
+        return result
+    if isinstance(body, dict) and isinstance(body.get("data"), list):
+        return {**{key: body[key] for key in ("finding_id", "campaign_ids", "total") if key in body},
+                "data": [record(p) for p in body["data"][:10000]]}
+    if isinstance(body, dict) and isinstance(body.get("data"), dict):
+        return {"data": record(body["data"])}
+    return body
+
+
 def minimize_response(path, content, kind):
     """Default read/write projection for both canonical and legacy workspace routes."""
     parts = path.split("?", 1)[0].strip("/").split("/")
@@ -252,7 +283,7 @@ def minimize_response(path, content, kind):
             return {"deleted": content["deleted"]}
         return {"data": _paths([content])[0]} if isinstance(content, dict) else {"data": []}
     if parts[2] == "pull-requests":
-        return content
+        return _safe_pr_response(content)
     if parts[2] == "run":
         return content  # run_views uses explicit safe serializers; raw access requires a grant
     if parts[2] == "dashboard" and parts[3:] == ["posture"]:
