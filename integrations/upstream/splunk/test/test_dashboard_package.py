@@ -65,6 +65,20 @@ class DashboardPackageContracts(unittest.TestCase):
                 self.assertEqual(section["disabled"], "1")
                 self.assertEqual(section["action.darkmoon_campaign.param.dry_run"], "1")
 
+    def test_finding_scope_controls_and_examples_are_wired_without_changing_default(self):
+        settings = self.config("alert_actions.conf")["darkmoon_campaign"]
+        self.assertEqual(settings["param.retest_scope"], "target")
+        form = ET.parse(DEFAULT / "data/ui/alerts/darkmoon_campaign.html")
+        names = {element.attrib.get("name") for element in form.iter()}
+        for key in ("retest_scope", "campaign_id", "finding_id"):
+            self.assertIn("action.darkmoon_campaign.param." + key, names)
+        searches = self.config("savedsearches.conf")
+        for name in ("Darkmoon - Exploited finding -> auto retest", "Darkmoon - Regression verdict -> retest"):
+            self.assertEqual(searches[name]["action.darkmoon_campaign.param.retest_scope"], "finding")
+            self.assertEqual(searches[name]["disabled"], "1")
+            self.assertEqual(searches[name]["action.darkmoon_campaign.param.dry_run"], "1")
+        self.assertIn("finding_campaign_id", searches["Darkmoon - Regression verdict -> retest"]["search"])
+
     @unittest.skipIf(os.name == "nt", "GNU tar package recipe is verified on Linux")
     def test_actual_package_contains_views_and_guards_without_local_secrets(self):
         with tempfile.TemporaryDirectory() as directory:

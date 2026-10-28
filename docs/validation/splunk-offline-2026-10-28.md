@@ -57,3 +57,15 @@ sparse checkout, before any tests ran. The corrected job now consumes only the
 portable Splunk source artifact produced by its successful Linux job in the
 same workflow. It does not disable NTFS protections or alter other integrations.
 Windows test success remains pending the artifact-based run.
+
+## Observed corrected hosted result
+
+[Run 40766256740](https://github.com/newrecycle/Dark-Moon/actions/runs/40766256740)
+on `898e4851f04b2a975ea48dabc12ce77bed7e8d7d` passed both jobs.
+Linux: 56 Python tests, 13 Node tests, all seven legacy guards, actual package
+build and owned-loopback HTTP/TLS checks passed. Windows: 12 alert test methods
+ran with the one explicitly POSIX-only case skipped; the other 11, including
+the eight-process quota ceiling, passed. All 13 Windows Node setup tests passed.
+The same commit's [Tests run 40766256759](https://github.com/newrecycle/Dark-Moon/actions/runs/40766256759)
+also passed. These observed results complete the available offline verification
+for both source increments; no licensed Splunk host/SPL/SDK claim is added.

@@ -226,3 +226,24 @@ and the alert/setup subset on Windows. Fixtures use synthetic secrets and owned
 loopback HTTP/TLS only. Tests cover the actual package build; they do not run a
 licensed Splunk host or establish native SPL/SDK behavior. See
 [observed verification](../../../docs/validation/splunk-offline-2026-10-28.md).
+
+## Finding-scoped retest actions
+
+Choose **One finding in an exact base campaign** to retain the triggering
+finding's campaign context instead of selecting whichever campaign is latest
+for its target. Provide explicit campaign/finding IDs or use the result's
+`finding_campaign_id` (then `campaign_id`) and `finding_id`. The action verifies
+the saved target, exact campaign and exact finding through authenticated bounded
+public metadata before requesting `campaign_id` plus `finding_ids: [id]`.
+Missing, mismatched or declared-partial metadata refuses launch.
+
+The default remains target-wide for existing actions. The two example finding/
+regression searches now select finding mode, remain disabled and retain dry-run.
+Dry-run validates local configuration/allowlist/quota but does not claim remote
+scope verification. The fork API rejects missing explicit base campaigns or
+explicit campaign/target mismatches instead of falling back to another baseline.
+
+This selects comparison findings and category focus. It does not narrow an
+assessment to one endpoint: original engagement scope and safe-harbor terms
+remain, and absence is not proof of a fix. See
+[finding-retest contract](../../../docs/handoff/splunk-finding-retests-2026-10-28.md).

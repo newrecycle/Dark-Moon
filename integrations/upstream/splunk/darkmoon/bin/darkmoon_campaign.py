@@ -323,13 +323,40 @@ def rate_limit_ok(max_per_hour):
             except OSError: pass
 
 
-def darkmoon_call(base_url, token, verify_tls, action_kind, host, scope_profile):
+def metadata_records(base, path, token, context, params=None):
+    """Read bounded public collections; declared partial metadata is insufficient."""
+    if path not in ("/api/v1/targets", "/api/v1/campaigns", "/api/v1/vulnerabilities"):
+        raise ValueError("Unsupported metadata read")
+    url = base + path + ("?" + urllib.parse.urlencode(params) if params else "")
+    request = urllib.request.Request(url, headers={"Authorization": "Bearer " + token, "Accept": "application/json"})
+    with open_request(request, context, OUTBOUND_TIMEOUT) as response:
+        raw = response.read(MAX_RESPONSE_BYTES + 1)
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise ValueError("Metadata exceeds the size limit")
+        payload = json.loads(raw.decode("utf-8"))
+    rows = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise ValueError("Invalid metadata collection")
+    if "total" in payload and (type(payload["total"]) is not int or payload["total"] != len(rows)):
+        raise ValueError("Metadata collection is incomplete")
+    if ("offset" in payload and (type(payload["offset"]) is not int or payload["offset"] != 0)
+            or "has_more" in payload and payload["has_more"] is not False
+            or payload.get("next_offset") is not None):
+        raise ValueError("Metadata collection is incomplete")
+    return rows
+
+
+def darkmoon_call(base_url, token, verify_tls, action_kind, host, scope_profile, campaign_id=None, finding_id=None):
     """POST to the Darkmoon Pro REST API. Returns (ok, message)."""
     if (type(verify_tls) is not bool or not auth_value(token)
             or action_kind not in ("retest", "campaign")
             or scope_profile not in ("non-destructive", "authorized")
             or not isinstance(host, str) or not host or normalize_host(host) != host):
         return False, "invalid authenticated launch configuration"
+    scoped = campaign_id is not None or finding_id is not None
+    if scoped and (action_kind != "retest" or not isinstance(campaign_id, str) or not _ID_RE.fullmatch(campaign_id)
+                   or not isinstance(finding_id, str) or not _ID_RE.fullmatch(finding_id)):
+        return False, "finding-scoped retests need exact campaign and finding IDs"
     try:
         base = connection_url(base_url, verify_tls)
     except ValueError:
@@ -346,19 +373,25 @@ def darkmoon_call(base_url, token, verify_tls, action_kind, host, scope_profile)
         # The allowlist contains hosts; the REST retest contract needs a saved
         # target ID. Resolve it through authenticated metadata, never a result's
         # untrusted ID or a hostname masquerading as an ID.
-        request = urllib.request.Request(base + "/api/v1/targets", headers={"Authorization": "Bearer " + token, "Accept": "application/json"})
         try:
-            with open_request(request, ctx, OUTBOUND_TIMEOUT) as response:
-                raw = response.read(8 * 1024 * 1024 + 1)
-                if len(raw) > 8 * 1024 * 1024: return False, "target metadata exceeds the size limit"
-                records = json.loads(raw.decode("utf-8"))
-            rows = records.get("data") if isinstance(records, dict) else None
-            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows): return False, "invalid target metadata"
-            matches = [row for row in rows if normalize_host(row.get("host") or "") == host]
+            rows = metadata_records(base, "/api/v1/targets", token, ctx)
+            matches = [row for row in rows if normalize_host(row.get("host") or row.get("ip") or "") == host]
             if len(matches) != 1 or not isinstance(matches[0].get("id"), str) or not _ID_RE.fullmatch(matches[0]["id"]): return False, "allowlisted host needs one unambiguous saved target"
             payload = {"target_id": matches[0]["id"], "safe_harbor": scope_profile}
+            if scoped:
+                campaigns = metadata_records(base, "/api/v1/campaigns", token, ctx, {"target_id": payload["target_id"]})
+                matched = [row for row in campaigns if row.get("id") == campaign_id]
+                if len(matched) != 1 or matched[0].get("target_id") != payload["target_id"]:
+                    return False, "selected base campaign does not match the saved target"
+                findings = metadata_records(base, "/api/v1/vulnerabilities", token, ctx,
+                                            {"campaign_id": campaign_id, "target_id": payload["target_id"], "q": finding_id})
+                matched = [row for row in findings if row.get("id") == finding_id]
+                if (len(matched) != 1 or matched[0].get("campaign_id") != campaign_id
+                        or matched[0].get("target_id") != payload["target_id"]):
+                    return False, "selected finding does not match the saved campaign and target"
+                payload.update(campaign_id=campaign_id, finding_ids=[finding_id])
         except Exception:
-            return False, "saved target could not be resolved with the current credentials"
+            return False, "saved target or finding scope could not be verified with the current credentials"
         path = "/api/v1/retest"
     url = base + path
 
@@ -391,6 +424,10 @@ def darkmoon_call(base_url, token, verify_tls, action_kind, host, scope_profile)
                 return False, "launch returned conflicting retest references"
             if action_kind == "retest" and data.get("target_id") is not None and data["target_id"] != payload["target_id"]:
                 return False, "launch returned a different saved target"
+            if scoped and data.get("base_campaign_id") != campaign_id:
+                return False, "launch did not confirm the selected base campaign"
+            if scoped and "before_ids" in data and data["before_ids"] != [finding_id]:
+                return False, "launch returned a different finding selection"
             return True, "accepted %s launch (ref=%s); completion is not yet established" % (action_kind, ref)
     except urllib.error.HTTPError as e:
         return False, "Darkmoon HTTP %s" % e.code
@@ -421,6 +458,24 @@ def main():
         if not isinstance(scope_profile, str) or scope_profile not in ("non-destructive", "authorized"):
             raise ValueError("Unsupported scope profile")
         dry_run = flag(cfg.get("dry_run", "1"))
+        retest_scope = cfg.get("retest_scope", "target")
+        if retest_scope not in ("target", "finding") or action_kind != "retest" and retest_scope != "target":
+            raise ValueError("Unsupported retest scope")
+        campaign_id = finding_id = None
+        if retest_scope == "finding":
+            campaign_id = cfg.get("campaign_id")
+            finding_id = cfg.get("finding_id")
+            if campaign_id is None or campaign_id == "":
+                campaign_id = result.get("finding_campaign_id")
+                if campaign_id is None or campaign_id == "":
+                    campaign_id = result.get("campaign_id")
+            if finding_id is None or finding_id == "":
+                finding_id = result.get("finding_id")
+            if (not isinstance(campaign_id, str) or not _ID_RE.fullmatch(campaign_id)
+                    or not isinstance(finding_id, str) or not _ID_RE.fullmatch(finding_id)):
+                raise ValueError("Finding retests need exact campaign/finding references")
+        elif cfg.get("campaign_id") not in (None, "") or cfg.get("finding_id") not in (None, ""):
+            raise ValueError("Finding references require finding retest scope")
     except Exception:
         log("alert payload or configuration is invalid")
         sys.exit(2)
@@ -458,8 +513,8 @@ def main():
         sys.exit(5)
 
     if dry_run:
-        log("DRY-RUN: would %s host='%s' profile='%s' (allowlisted, %s/%s this hour)"
-            % (action_kind, host, scope_profile, used, cap))
+        log("DRY-RUN: would %s host='%s' profile='%s' scope='%s' (allowlisted, %s/%s this hour; remote scope not verified)"
+            % (action_kind, host, scope_profile, retest_scope, used, cap))
         sys.exit(0)
 
     base_url, verify_tls, realm = get_settings(server_uri, session_key, with_binding=True)
@@ -471,7 +526,8 @@ def main():
         log("no Darkmoon API token in storage/passwords (run app Set up); aborting")
         sys.exit(7)
 
-    ok, msg = darkmoon_call(base_url, token, verify_tls, action_kind, host, scope_profile)
+    ok, msg = darkmoon_call(base_url, token, verify_tls, action_kind, host, scope_profile,
+                            campaign_id=campaign_id, finding_id=finding_id)
     log(("%s for host='%s' profile='%s'" % (msg, host, scope_profile)))
     sys.exit(0 if ok else 8)
 

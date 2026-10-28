@@ -4,6 +4,7 @@ on:
     branches: [pro]
     paths:
       - 'integrations/upstream/splunk/**'
+      - 'mcp/community/operations.py'
       - '.github/workflows/splunk-verification.yml'
   workflow_dispatch:
 permissions:

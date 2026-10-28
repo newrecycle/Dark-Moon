@@ -13,6 +13,7 @@ import threading
 import unittest
 import urllib.error
 from http.server import HTTPServer
+from urllib.parse import urlsplit, parse_qs
 from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
@@ -40,10 +41,18 @@ class LoopbackHandler(mock.Handler):
             '/api/v1/pull-requests': [{'id':'proposal_mock','published':False,'finding_ids':['finding_mock']}],
             '/api/v1/retest': [{'id':'retest_complete','status':'completed','target_id':'target_mock01','base_campaign_id':'camp_mock','new_campaign_id':'camp_new','findings':[{'finding_id':'finding_mock','verdict':'not_observed'}]}]
         }
-        if self.path in records:
+        path = urlsplit(self.path).path
+        if path in records:
             if self.headers.get('Authorization') != 'Bearer TESTTOKEN':
                 return self._send(401, {'error':'fixture authentication required'})
-            return self._send(200, {'data':records[self.path]})
+            rows = records[path]
+            params = parse_qs(urlsplit(self.path).query)
+            for key in ('target_id','campaign_id'):
+                if key in params:
+                    rows = [row for row in rows if row.get(key) == params[key][0]]
+            if 'q' in params:
+                rows = [row for row in rows if params['q'][0] in row.get('id','')]
+            return self._send(200, {'data':rows,'total':len(rows)})
         return super().do_GET()
 
     def do_POST(self):
@@ -104,6 +113,16 @@ class LoopbackContracts(unittest.TestCase):
         self.assertNotIn('TESTTOKEN',json.dumps(self.server.events))
         self.assertEqual([row['event']['record_type'] for row in events if row['sourcetype']=='darkmoon:retest'],['lifecycle','comparison'])
         self.assertEqual(next(row for row in events if row['event'].get('verdict'))['event']['verdict'],'not_observed')
+
+    def test_finding_scoped_action_posts_the_exact_base_and_selected_finding(self):
+        ok, message = alert.darkmoon_call(self.base,'TESTTOKEN',False,'retest','demo-shop.local','non-destructive',
+                                          campaign_id='camp_mock',finding_id='finding_mock')
+        self.assertTrue(ok,message)
+        calls = json.loads(self.calls.read_text())
+        self.assertEqual(len(calls),1)
+        self.assertEqual(calls[0]['payload']['campaign_id'],'camp_mock')
+        self.assertEqual(calls[0]['payload']['finding_ids'],['finding_mock'])
+        self.assertEqual(calls[0]['payload']['target_id'],'target_mock01')
 
     def test_actual_http_redirect_is_not_followed(self):
         with self.assertRaises(urllib.error.HTTPError) as error:

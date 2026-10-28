@@ -15,9 +15,36 @@
     <label class="control-label">Action</label>
     <div class="controls">
       <splunk-select name="action.darkmoon_campaign.param.action_kind" id="darkmoon_campaign_action_kind" value="retest">
-        <option value="retest">Retest (validate a prior finding)</option>
+        <option value="retest">Retest (compare a prior assessment)</option>
         <option value="campaign">Campaign (fresh assessment)</option>
       </splunk-select>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">Retest scope</label>
+    <div class="controls">
+      <splunk-select name="action.darkmoon_campaign.param.retest_scope" id="darkmoon_campaign_retest_scope" value="target">
+        <option value="target">Target-wide (existing behavior)</option>
+        <option value="finding">One finding in an exact base campaign</option>
+      </splunk-select>
+      <span class="help-block">Finding mode verifies the saved target, base campaign and finding before launch. Missing or mismatched references are refused.</span>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">Base campaign ID</label>
+    <div class="controls">
+      <splunk-text-input name="action.darkmoon_campaign.param.campaign_id" id="darkmoon_campaign_campaign_id"></splunk-text-input>
+      <span class="help-block">Finding mode only. Leave blank to use finding_campaign_id, then campaign_id, from the triggering result.</span>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">Finding ID</label>
+    <div class="controls">
+      <splunk-text-input name="action.darkmoon_campaign.param.finding_id" id="darkmoon_campaign_finding_id"></splunk-text-input>
+      <span class="help-block">Finding mode only. Leave blank to use the triggering finding_id. The ID must belong to the selected base campaign.</span>
     </div>
   </div>
 

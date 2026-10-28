@@ -305,6 +305,11 @@ class Operations:
 
     def launch_retest(self, raw):
         campaign = data.load_campaign(identifier(raw.get("campaign_id"))) if raw.get("campaign_id") else None
+        if raw.get("campaign_id") and not campaign:
+            # An exact base must never degrade to another campaign on a target.
+            raise KeyError("Base campaign")
+        if campaign and raw.get("target_id") and identifier(raw["target_id"]) != campaign.get("target_id"):
+            raise ValueError("Base campaign does not belong to the requested target")
         if not campaign and raw.get("target_id"):
             reference = str(raw["target_id"])
             targets = {t["id"] for t in data.load_targets() if reference in (t["id"], t.get("host"), t.get("ip"))}
@@ -312,6 +317,8 @@ class Operations:
         if not campaign:
             raise KeyError("Base campaign")
         target = data.load_target(campaign["target_id"])
+        if not target:
+            raise KeyError("Saved target")
         selected = raw.get("finding_ids", [])
         if not isinstance(selected, list) or any(not isinstance(x, str) for x in selected):
             raise ValueError("finding_ids must be a string array")

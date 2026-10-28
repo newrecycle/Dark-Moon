@@ -208,6 +208,80 @@ class AlertContracts(unittest.TestCase):
                 self.assertFalse(alert.darkmoon_call("https://owned.invalid", "fixture-token", True, "retest", "owned.invalid", "non-destructive")[0])
                 self.assertEqual(network.call_count, 1)
 
+    def scoped_request(self, changes=None, campaign="base", finding="selected"):
+        responses = {
+            "/api/v1/targets": {"data": [{"id": "t", "host": "owned.invalid"}], "total": 1},
+            "/api/v1/campaigns": {"data": [{"id": "base", "target_id": "t"}], "total": 1},
+            "/api/v1/vulnerabilities": {"data": [{"id": "selected", "campaign_id": "base", "target_id": "t"}], "total": 1},
+            "/api/v1/retest": {"id": "r", "retest_id": "r", "target_id": "t", "base_campaign_id": "base", "before_ids": ["selected"], "status": "running"},
+        }
+        responses.update(changes or {})
+        calls = []
+        def reply(request, context, timeout):
+            calls.append(request)
+            return Response(responses[alert.urlsplit(request.full_url).path])
+        with patch.object(alert, "open_request", side_effect=reply):
+            result = alert.darkmoon_call("https://owned.invalid", "fixture-token", True, "retest", "owned.invalid", "non-destructive", campaign_id=campaign, finding_id=finding)
+        return result, calls
+
+    def test_finding_scope_reads_metadata_then_posts_exact_selection(self):
+        (ok, message), calls = self.scoped_request()
+        self.assertTrue(ok, message)
+        self.assertEqual([request.get_method() for request in calls], ["GET", "GET", "GET", "POST"])
+        self.assertTrue(all(request.get_header("Authorization") == "Bearer fixture-token" for request in calls))
+        self.assertEqual(json.loads(calls[-1].data), {"target_id": "t", "campaign_id": "base", "finding_ids": ["selected"], "safe_harbor": "non-destructive"})
+        self.assertIn("campaign_id=base", calls[2].full_url)
+        self.assertIn("q=selected", calls[2].full_url)
+        self.assertNotIn("/campaigns/base", calls[1].full_url, "Do not fetch a full finding/evidence campaign body")
+
+    def test_finding_scope_never_falls_back_on_foreign_missing_or_partial_metadata(self):
+        cases = [
+            ("/api/v1/campaigns", {"data": []}),
+            ("/api/v1/campaigns", {"data": [{"id": "base", "target_id": "foreign"}]}),
+            ("/api/v1/campaigns", {"data": [{"id": "base", "target_id": "t"}], "total": 2}),
+            ("/api/v1/vulnerabilities", {"data": [{"id": "selected-prefix", "campaign_id": "base", "target_id": "t"}]}),
+            ("/api/v1/vulnerabilities", {"data": [{"id": "selected", "campaign_id": "foreign", "target_id": "t"}]}),
+            ("/api/v1/vulnerabilities", {"data": [{"id": "selected", "campaign_id": "base", "target_id": "foreign"}]}),
+            ("/api/v1/vulnerabilities", {"data": [{"id": "selected", "campaign_id": "base", "target_id": "t"}], "has_more": True}),
+            ("/api/v1/vulnerabilities", {"data": [], "offset": 1}),
+            ("/api/v1/vulnerabilities", {"data": [], "next_offset": 1}),
+            ("/api/v1/vulnerabilities", {"data": [{"id": "selected", "campaign_id": "base", "target_id": "t"}] * 2}),
+        ]
+        for path, response in cases:
+            with self.subTest(path=path, response=response):
+                (ok, message), calls = self.scoped_request({path: response})
+                self.assertFalse(ok)
+                self.assertTrue(all(request.get_method() == "GET" for request in calls))
+        with patch.object(alert, "open_request", side_effect=OSError("PRIVATE")) as network:
+            ok, message = alert.darkmoon_call("https://owned.invalid", "fixture-token", True, "retest", "owned.invalid", "non-destructive", campaign_id="base", finding_id="f")
+            self.assertFalse(ok)
+            self.assertEqual(network.call_count, 1)
+            self.assertNotIn("PRIVATE", message)
+
+    def test_finding_scope_requires_launch_to_confirm_the_base_and_selection(self):
+        for response in ({"retest_id": "r", "base_campaign_id": "foreign"},
+                         {"retest_id": "r"},
+                         {"retest_id": "r", "base_campaign_id": "base", "before_ids": ["other"]}):
+            with self.subTest(response=response):
+                (ok, message), calls = self.scoped_request({"/api/v1/retest": response})
+                self.assertFalse(ok)
+                self.assertEqual(calls[-1].get_method(), "POST")
+                self.assertNotIn("accepted", message)
+
+    def test_finding_mode_uses_scoped_result_context_or_explicit_overrides(self):
+        for overrides, expected in (({}, "base"), ({"campaign_id": "override"}, "override")):
+            payload = {"configuration": {"target": "owned.invalid", "dry_run": "0", "retest_scope": "finding", **overrides},
+                       "result": {"finding_campaign_id": "base", "campaign_id": "new", "finding_id": "selected"}}
+            with patch.object(alert, "get_settings", return_value=("https://owned.invalid", True, REALM)), patch.object(alert, "get_token", return_value="fixture-token"), patch.object(alert, "darkmoon_call", return_value=(True, "accepted")) as launch:
+                self.assertEqual(self.main(payload)[0], 0)
+                self.assertEqual(launch.call_args.kwargs, {"campaign_id": expected, "finding_id": "selected"})
+        for cfg in ({"retest_scope": "finding"}, {"retest_scope": "other"},
+                    {"retest_scope": "finding", "action_kind": "campaign", "campaign_id": "base", "finding_id": "f"},
+                    {"retest_scope": "target", "finding_id": "f"}):
+            with self.subTest(cfg=cfg), patch.object(alert, "darkmoon_call") as launch:
+                self.assertEqual(self.main({"configuration": cfg})[0], 2)
+                launch.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
