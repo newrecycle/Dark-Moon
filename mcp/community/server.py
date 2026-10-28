@@ -21,6 +21,7 @@ from api import json_storage as data
 from . import reports
 from .service import Service, graph_for
 from .store import Store, identifier
+from .run_views import log_detail, log_metadata, public_run, stream_chunk
 
 STATIC = Path(__file__).with_name("static")
 
@@ -191,17 +192,17 @@ def handler_for(service, allowed_hosts):
                 if not job:
                     raise KeyError(parts[1])
                 if method == "GET" and len(parts) == 2:
-                    return self.send(job)
+                    return self.send(public_run(job) | log_metadata(service.store, job))
                 if method == "GET" and parts[2:] == ["log"]:
-                    log = service.store.job_path(parts[1])
-                    content = log.read_bytes() if log.exists() else b""
-                    return self.send(content, "text/plain")
+                    log = log_detail(service.store, self, job, admin=identity.get("role") == "admin")
+                    # Keep the legacy plain-text response type, not unrestricted output.
+                    return self.send("\n".join(row["message"] for row in log["data"]), "text/plain")
                 if method == "POST" and parts[2:] == ["cancel"]:
                     self.body()
                     cancelled = service.queue.cancel(parts[1])
                     if cancelled["status"] == "cancelled":
                         service._finished(cancelled)
-                    return self.send(cancelled)
+                    return self.send(public_run(cancelled))
             if method == "POST" and parts == ["schedules"]:
                 return self.send(service.scheduler.create(self.body()), status=201)
             if len(parts) == 2 and parts[0] == "schedules":
@@ -257,7 +258,9 @@ def handler_for(service, allowed_hosts):
                 previous = digest
                 time.sleep(1)
 
-        def run_events(self, run_id):
+        def run_events(self, run_id, reveal_output=False):
+            # The SSE transport remains live; output frames require deliberate
+            # administrator opt-in because raw subprocess output is untrusted.
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-store")
@@ -267,13 +270,18 @@ def handler_for(service, allowed_hosts):
             offset = 0
             for _ in range(30):
                 job = service.store.get("jobs", run_id)
-                path = service.store.job_path(run_id)
-                text = path.read_text(errors="replace") if path.exists() else ""
-                if len(text) > offset:
-                    self.wfile.write(("data: "+json.dumps({"type": "output", "text": text[offset:], "campaign_id": job["campaign_id"]})+"\n\n").encode())
-                    offset = len(text)
+                if job is None:
+                    self.wfile.write(("data: "+json.dumps({"type": "run_error", "status": "unavailable", "run_id": run_id})+"\n\n").encode())
+                    self.wfile.flush()
+                    return
+                if reveal_output:
+                    chunk, offset, _, _ = stream_chunk(service.store, run_id, offset)
+                    if chunk:
+                        self.wfile.write(("data: "+json.dumps({"type": "output", "text": chunk.decode("utf-8", errors="replace"),
+                            "run_id": run_id, "campaign_id": job["campaign_id"], "untrusted": True})+"\n\n").encode())
                 if job["status"] not in {"queued", "running"}:
-                    self.wfile.write(("data: "+json.dumps({"type": "run_completed" if job["status"] == "succeeded" else "run_error", "status": job["status"], "campaign_id": job["campaign_id"]})+"\n\n").encode())
+                    self.wfile.write(("data: "+json.dumps({"type": "run_completed" if job["status"] == "succeeded" else "run_error",
+                        "status": job["status"], "run_id": run_id, "campaign_id": job["campaign_id"]})+"\n\n").encode())
                     self.wfile.flush()
                     return
                 self.wfile.write(b": heartbeat\n\n")
