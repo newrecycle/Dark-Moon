@@ -331,8 +331,8 @@ class Scheduler:
             raise ValueError("Preview clock must have a timezone")
         clock = clock.astimezone(timezone.utc)
         current, rows = instant(item["next_run"]), []
-        from zoneinfo import ZoneInfo
-        zone = ZoneInfo(item.get("rule", {}).get("timezone", "UTC"))
+        from .calendar_rules import zone_for
+        zone = zone_for(item.get("rule", {}).get("timezone", "UTC"))
         for _ in range(5):
             rows.append({"utc": current.isoformat(), "local": current.astimezone(zone).isoformat(), "overdue": current < clock})
             if item["one_shot"]: break
@@ -360,14 +360,16 @@ class Scheduler:
             version = item.get("version", 1)
             if not legacy_toggle and raw["version"] != version:
                 raise ValueError("Schedule changed; reload its current version before saving")
+            spec_changed = spec is not None and spec != item["spec"]
+            rule_changed = rule is not None and rule != item.get("rule")
             if spec is not None: item["spec"] = spec
             if name is not None: item["display_name"] = name.strip()
-            if rule is not None:
+            if rule_changed:
                 first = next_occurrence(rule)
                 if first is None: raise ValueError("No supported occurrence remains")
                 item.update(rule=rule, next_run=first.isoformat(), one_shot=rule["kind"] == "once", interval_seconds=rule.get("seconds",86400))
             if "enabled" in raw: item["enabled"] = raw["enabled"]
-            if set(raw) & {"spec", "rule", "display_name"}:
+            if spec_changed or rule_changed:
                 item.update(last_claim_id=None, last_disposition="definition_changed", last_error=None)
                 item.pop("last_job_id", None)
             item.update(version=version+1, updated_at=now())

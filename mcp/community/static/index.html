@@ -258,7 +258,7 @@
             <label>When the clock repeats<select name="schedule_fold"><option value="0">First occurrence</option><option value="1">Second occurrence</option></select></label>
           </div>
           <label class="check"><input type="checkbox" name="schedule_enabled" checked> Schedule enabled</label>
-          <p class="instructions">Calendar rules keep the selected local time. Nonexistent DST times and months without the selected day are skipped. Missed occurrences run once; overlapping runs are skipped. Saving a rule re-anchors its next occurrence.</p>
+          <p class="instructions">Calendar rules keep the selected local time. Nonexistent DST times and months without the selected day are skipped. Missed occurrences run once; overlapping runs are skipped. Changing a rule re-anchors its next occurrence; name-only edits preserve timing.</p>
           <button type="button" class="secondary" id="schedule-preview-button">Preview next occurrences</button>
           <div id="schedule-preview" role="status"></div>
         </div>

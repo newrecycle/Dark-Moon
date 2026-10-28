@@ -86,7 +86,7 @@ def seal_state(store, source, destination, decrypt=False):
 
 
 def doctor(repo, store):
-    modules = {n: bool(importlib.util.find_spec(n)) for n in ("reportlab", "cryptography", "jwt", "pyhanko", "pypdf")}
+    modules = {n: bool(importlib.util.find_spec(n)) for n in ("reportlab", "cryptography", "jwt", "pyhanko", "pypdf", "tzdata")}
     return {"data_dir": str(data.DATA_DIR), "reports_dir": str(data.REPORTS_DIR), "state_private": store.root.stat().st_mode & 0o077 == 0,
             "launcher_exists": (Path(repo)/"darkmoon.sh").is_file(), "docker_cli": bool(shutil.which("docker")),
             "dependencies": modules, "integrity": verify(repo, store),

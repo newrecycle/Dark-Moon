@@ -26,13 +26,16 @@ name is separate from the assessment/program name.
 
 Preview lists up to five occurrences with local offsets and UTC timestamps.
 Preview does not create a schedule, queue a job, or contact a target. Past first
-occurrences are marked overdue. Timezone data comes from the system or packaged
-`tzdata`; future civil-time changes use the installed timezone database.
+occurrences are marked overdue. Calendar calculations explicitly use packaged
+`tzdata`, independent of the host OS timezone database. Timezone updates take
+effect after an application restart; future civil-time changes use the installed
+package's rules. The readiness check includes this dependency.
 
 ## Editing and history
 
 The WebUI supports edit, preview, duplicate paused, pause/resume, delete and
-history. Editing a rule re-anchors its next occurrence. The full assessment
+history. Changing a rule re-anchors its next occurrence; unchanged rules and
+name-only saves preserve the next due time and prior job metadata. The full assessment
 scope and saved credential references are retained by the editor. Concurrent
 edits require the current integer `version`; stale saves fail explicitly.
 Pausing/deleting cannot resurrect a record through a stale scheduler snapshot
@@ -68,11 +71,18 @@ schedules and history. No new external service or automation account is used.
 
 ## Validation
 
-293 combined MCP/community tests and 17 subtests passed. Calendar cases cover
-Edmonton's 2026 spring gap/fall fold, every-two-week anchoring, month-end skips,
+295 combined MCP/community tests and 17 subtests passed. Calendar cases cover
+Edmonton's historical 2024 spring gap/fall fold, every-two-week anchoring, month-end skips,
 leap years, legacy intervals, late starts, restart history, concurrent edits,
 simultaneous scheduler claims, bounded overlap history, failed one-shot claims,
 explicit re-arm, edit-during-launch and route authorization.
+
+The initial hosted pass exposed newer timezone data than the local system,
+which invalidated tests that assumed fixed Edmonton offsets in future years.
+Tests now exercise historical DST transitions and check future local/UTC
+equivalence without hardcoding future political rules. Packaged timezone data
+is used consistently. A follow-up also prevents name-only/full-form saves from
+resetting an unchanged recurrence to its original past anchor.
 
 Chromium acceptance covers calendar preview with offsets, monthly creation,
 full-scope editing, stale-save rejection, nonexistent-time errors, one-time

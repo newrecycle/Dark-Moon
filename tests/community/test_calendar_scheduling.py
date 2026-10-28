@@ -21,26 +21,26 @@ class CalendarTests(fixtures.Fixture):
         return normalize_rule({"kind":kind,"timezone":"America/Edmonton","start_local":start,**extra})
 
     def test_daily_skips_spring_gap_without_moving_wall_time(self):
-        rule=self.rule()
-        self.assertEqual(next_occurrence(rule),utc("2026-03-07T09:30Z"))
-        self.assertEqual(next_occurrence(rule,utc("2026-03-07T09:30Z")),utc("2026-03-09T08:30Z"))
+        rule=self.rule(start="2024-03-09T02:30")
+        self.assertEqual(next_occurrence(rule),utc("2024-03-09T09:30Z"))
+        self.assertEqual(next_occurrence(rule,utc("2024-03-09T09:30Z")),utc("2024-03-11T08:30Z"))
 
     def test_fall_fold_is_explicit_and_occurs_once(self):
-        for fold, expected in ((0,"2026-11-01T07:30Z"),(1,"2026-11-01T08:30Z")):
-            rule=self.rule(start="2026-11-01T01:30",fold=fold)
+        for fold, expected in ((0,"2024-11-03T07:30Z"),(1,"2024-11-03T08:30Z")):
+            rule=self.rule(start="2024-11-03T01:30",fold=fold)
             first=next_occurrence(rule);self.assertEqual(first,utc(expected))
-            self.assertEqual(next_occurrence(rule,first),utc("2026-11-02T08:30Z"))
+            self.assertEqual(next_occurrence(rule,first),utc("2024-11-04T08:30Z"))
 
     def test_weekly_every_two_weeks_stays_anchored_across_dst(self):
-        rule=self.rule("weekly","2026-03-01T10:00",every=2)
-        self.assertEqual(next_occurrence(rule,utc("2026-03-01T17:00Z")),utc("2026-03-15T16:00Z"))
-        self.assertEqual(next_occurrence(rule,utc("2026-03-30T00:00Z")),utc("2026-04-12T16:00Z"))
+        rule=self.rule("weekly","2024-03-03T10:00",every=2)
+        self.assertEqual(next_occurrence(rule,utc("2024-03-03T17:00Z")),utc("2024-03-17T16:00Z"))
+        self.assertEqual(next_occurrence(rule,utc("2024-04-01T00:00Z")),utc("2024-04-14T16:00Z"))
 
     def test_monthly_skips_missing_day_and_leap_year_boundaries(self):
         rule=self.rule("monthly","2026-01-31T09:00")
         self.assertEqual(next_occurrence(rule,utc("2026-01-31T16:00Z")),utc("2026-03-31T15:00Z"))
-        leap=self.rule("monthly","2024-02-29T09:00",every=12)
-        self.assertEqual(next_occurrence(leap,utc("2024-02-29T16:00Z")),utc("2028-02-29T16:00Z"))
+        leap=self.rule("monthly","2024-02-29T09:00",every=12,timezone="UTC")
+        self.assertEqual(next_occurrence(leap,utc("2024-02-29T09:00Z")),utc("2028-02-29T09:00Z"))
 
     def test_one_time_gap_and_invalid_rules_are_rejected(self):
         for raw in ({"kind":"once","timezone":"America/Edmonton","start_local":"2026-03-08T02:30"},
@@ -73,7 +73,7 @@ class CalendarTests(fixtures.Fixture):
 
     def test_preview_has_offsets_and_no_side_effects(self):
         before=copy.deepcopy(self.service.store.read())
-        result=self.service.scheduler.preview({"target":"example.invalid","rule":self.rule("daily","2026-10-31T01:30")},clock=utc("2026-10-30T00:00Z"))
+        result=self.service.scheduler.preview({"target":"example.invalid","rule":self.rule("daily","2024-11-02T01:30")},clock=utc("2024-11-01T00:00Z"))
         self.assertEqual(len(result["occurrences"]),5)
         self.assertTrue(result["occurrences"][0]["local"].endswith("-06:00"))
         self.assertTrue(result["occurrences"][-1]["local"].endswith("-07:00"))
@@ -99,13 +99,34 @@ class CalendarTests(fixtures.Fixture):
         scheduler=Scheduler(self.service.store,lambda *a,**k:None)
         item=scheduler.create({"target":"example.invalid","next_run":"2020-01-01T00:00:00Z"})
         def launch(*args,**kwargs):
-            scheduler.update(item["id"],{"version":1,"display_name":"New definition"})
+            scheduler.update(item["id"],{"version":1,"display_name":"New definition","spec":{"target":"other.invalid"}})
             return {"id":"job_old"}
         scheduler.launch=launch;scheduler.tick()
         current=self.service.store.get("schedules",item["id"])
         self.assertEqual(current["display_name"],"New definition")
         self.assertNotIn("last_job_id",current)
         self.assertEqual(scheduler.history(item["id"])[0]["job_id"],"job_old")
+
+    def test_name_only_full_form_edit_does_not_reanchor_existing_rule(self):
+        scheduler=self.service.scheduler
+        item=scheduler.create({"target":"example.invalid","rule":self.rule("daily","2026-01-01T09:00")})
+        clock=utc("2026-10-27T18:03Z");scheduler.tick(clock)
+        current=self.service.store.get("schedules",item["id"])
+        edited=scheduler.update(item["id"],{"version":1,"display_name":"Renamed","spec":current["spec"],
+                                            "rule":current["rule"],"enabled":True})
+        self.assertEqual(edited["next_run"],current["next_run"])
+        self.assertEqual(edited["last_job_id"],current["last_job_id"])
+        self.assertEqual(edited["last_disposition"],"queued")
+        scheduler.tick(clock)
+        self.assertEqual(len(scheduler.history(item["id"])),1)
+
+    def test_changed_rule_reanchors_but_noop_save_preserves_next_due(self):
+        scheduler=self.service.scheduler
+        item=scheduler.create({"target":"example.invalid","rule":self.rule("daily","2026-01-01T09:00")})
+        scheduler.tick(utc("2026-10-27T18:03Z"))
+        changed=self.rule("weekly","2027-01-01T10:00")
+        edited=scheduler.update(item["id"],{"version":1,"rule":changed})
+        self.assertEqual(utc(edited["next_run"]),next_occurrence(changed))
 
     def test_explicit_rearm_creates_a_new_job_not_an_idempotent_replay(self):
         item=self.service.scheduler.create({"target":"example.invalid","rule":self.rule("once","2026-01-01T09:00")})

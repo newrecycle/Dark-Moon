@@ -6,7 +6,25 @@ without the anchor's day are skipped. Existing elapsed intervals stay elapsed.
 import calendar
 import re
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
+from importlib.resources import files
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+
+@lru_cache(maxsize=128)
+def zone_for(name):
+    # Use our declared timezone package consistently instead of whichever
+    # distribution database happened to ship on the host. Updates take effect
+    # after the application restarts, just like ZoneInfo's normal cache.
+    if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_+./-]+",name) or any(p in {"", ".", ".."} for p in name.split("/")):
+        raise ZoneInfoNotFoundError(name)
+    try:
+        with files("tzdata.zoneinfo").joinpath(*name.split("/")).open("rb") as stream:
+            return ZoneInfo.from_file(stream, key=name)
+    except ModuleNotFoundError:
+        raise ValueError("Calendar timezone data is missing; install the community requirements (tzdata)") from None
+    except (OSError, ValueError):
+        raise ZoneInfoNotFoundError(name) from None
 
 
 def local_time(value):
@@ -40,8 +58,8 @@ def normalize_rule(raw):
     if not isinstance(name, str) or len(name) > 100:
         raise ValueError("Choose a named IANA timezone")
     try:
-        zone = ZoneInfo(name)
-    except (ZoneInfoNotFoundError, ValueError):
+        zone = zone_for(name)
+    except ZoneInfoNotFoundError:
         raise ValueError("Unknown IANA timezone") from None
     start = local_time(raw.get("start_local"))
     every, fold = raw.get("every", 1), raw.get("fold", 0)
@@ -64,7 +82,7 @@ def normalize_rule(raw):
 
 
 def next_occurrence(rule, after=None):
-    start, zone = local_time(rule["start_local"]), ZoneInfo(rule["timezone"])
+    start, zone = local_time(rule["start_local"]), zone_for(rule["timezone"])
     kind, every = rule["kind"], rule["every"]
     if after is not None and (after.tzinfo is None or after.utcoffset() is None):
         raise ValueError("Occurrence boundary must have a timezone")
