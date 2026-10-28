@@ -264,7 +264,7 @@ def minimize_response(path, content, kind):
         # remain useful; never echo arbitrary source paths or raw records.
         return {
             "assessment": content.get("assessment", {}),
-            "opencode": _safe_opencode(content.get("opencode")),
+            "opencode": _safe_opencode(content["opencode"]) if isinstance(content.get("opencode"), dict) else None,
             "repositories": [],
             "targets": public_projection(content.get("targets", [])),
             "campaigns": public_projection(content.get("campaigns", [])),
