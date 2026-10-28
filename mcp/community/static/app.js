@@ -775,7 +775,17 @@ async function drawSurface(cid, signal) {
   picker.addEventListener("change", () => {
     const n = ids.get(picker.value);
     if (n) selectNode(n);
+    else clearInspector();
   }, { signal });
+  function clearInspector() {
+    inspectorVersion++;
+    if (!card.hidden) stopTour(false);
+    selected = "";
+    info.classList.remove("has-selection");
+    picker.value = "";
+    info.innerHTML = `<p class="instructions">Select an asset to inspect its metadata and linked findings.</p>`;
+    picker.focus();
+  }
   function selectNode(n, fromTour = false) {
     if (!fromTour && !card.hidden) stopTour(false);
     inspectorVersion++;
@@ -788,15 +798,7 @@ async function drawSurface(cid, signal) {
     const fields = [["Type", n.node_type], ["Address", n.ip_address || n.ip || n.address], ["Endpoint", n.endpoint || n.url], ["Technology", n.technology || n.service || n.os]];
     const summary = fields.filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(typeof value === "object" ? JSON.stringify(value) : value)}</dd></div>`).join("");
     info.innerHTML = `<button class="secondary" id="surface-close">Close inspector</button><h3>${esc(n.label || n.id)}</h3><dl class="asset-fields">${summary}</dl><div class="asset-severities" aria-label="Linked findings by severity">${totals.map(item => `<span>${badge(item.severity)} ${item.count}</span>`).join("")}</div><details><summary>Asset metadata</summary><pre>${esc(JSON.stringify(metadata, null, 2))}</pre></details><h3>${n.linked.length} explicitly linked findings</h3>${n.linked.length ? n.linked.map(f => `<button class="list-item" data-surface-finding="${esc(f.id)}">${badge(f.severity)} ${proposals.some(p => (p.finding_ids || []).includes(f.id)) ? '<span class="badge">Proposal recorded</span>' : ""}<span class="finding-score">CVSS ${esc(f.cvss_score ?? "—")}</span><strong>${esc(f.title || "Untitled finding")}</strong><small>${esc([f.category, f.status].filter(Boolean).join(" · "))}</small><small>${esc([f.mitre_attack_id, f.mitre_attack_name].filter(Boolean).join(" · "))}</small></button>`).join("") : empty("No linked findings", "No findings are explicitly linked to this asset.")}`;
-    $("#surface-close").addEventListener("click", () => {
-      inspectorVersion++;
-      if (!card.hidden) stopTour(false);
-      selected = "";
-      info.classList.remove("has-selection");
-      picker.value = "";
-      info.innerHTML = `<p class="instructions">Select an asset to inspect its metadata and linked findings.</p>`;
-      picker.focus();
-    }, { signal });
+    $("#surface-close").addEventListener("click", clearInspector, { signal });
   }
   info.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-surface-finding]");

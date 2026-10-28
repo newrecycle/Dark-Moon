@@ -132,6 +132,9 @@ const assert = require("node:assert/strict");
         await page.locator("#map-info h3").waitFor();
         const asset = page.locator("#surface-node option").nth(1);
         await page.locator("#surface-node").selectOption(await asset.getAttribute("value"));
+        await page.locator("#surface-node").selectOption("");
+        assert.match(await page.locator("#map-info").innerText(), /Select an asset/);
+        await page.locator("#surface-node").selectOption(await asset.getAttribute("value"));
         await page.locator("#surface-close").click();
         await page.locator("#surface-node").evaluate(el => {
           if (document.activeElement !== el) throw new Error("Inspector did not return focus");

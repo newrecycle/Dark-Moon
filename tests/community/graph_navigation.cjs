@@ -59,6 +59,10 @@ async function run(graph, options = {}) {
   assert.match(el('#map-info').innerHTML,/Empty asset/);
   click('#surface-tour');click('#surface-close');
   assert.equal(el('#surface-tour-card').hidden,true);assert.equal(focus(),'#surface-node');
+  click('#surface-tour');el('#surface-node').value='';el('#surface-node').events.change();
+  assert.equal(el('#surface-tour-card').hidden,true);
+  assert.match(el('#map-info').innerHTML,/Select an asset/);
+  assert.equal(focus(),'#surface-node');
   abort.abort();
   const panel=await run(graph,{proposals:[
     {id:'p1',campaign_id:'campaign-1',finding_ids:['f1'],title:'Actual fix',status:'validated'},

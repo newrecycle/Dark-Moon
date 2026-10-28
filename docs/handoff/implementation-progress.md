@@ -4,7 +4,7 @@ Updated 27 October 2026. Branch `pro`. This is the current state; ticket baselin
 
 ## Implemented in the video-driven increments
 
-- Manual graph tour with Back/Next/Finish and Explore freely, derived from actual assets with explicitly linked findings. Manual selection/close exits the tour. The desktop card sits inside the map; mobile controls remain in flow.
+- Manual graph tour with Back/Next/Finish and Explore freely, derived from actual assets with explicitly linked findings. Manual selection, close and resetting the selector to its empty option exit the tour and keep inspector state consistent. The desktop card sits inside the map; mobile controls remain in flow.
 - Keyboard asset selector, type/address/endpoint/technology summaries, per-asset severity totals, readable finding cards with CVSS/category/status/MITRE, expandable raw metadata and close/focus restoration.
 - In-inspector finding detail and Back, current-record linkage checks, unavailable/deleted finding states and protection from stale asynchronous responses. Proposal badges require real same-campaign records. Proposal review verifies finding/campaign ownership; report actions retain campaign identity.
 - Mobile asset inspector sheet and screenshot-driven card styling fixes. Fixture screenshots and a structural comparison are in [the full-track review](full-track-review.md); browser CI retains screenshots.
@@ -24,6 +24,7 @@ This is full-track machine-transcription and visual sample/storyboard review. Di
 - Local Chromium acceptance passed, including initial setup, settings/provider fixtures, graph panel/Back, responsive inspector, report navigation, remediation and exports. Model OAuth fixture flows are distinct from real provider-account verification.
 - [Hosted browser on the responsive/report checkpoint](https://github.com/newrecycle/Dark-Moon/actions/runs/40604535323) and [its actual Docker/provider + owned-loopback run](https://github.com/newrecycle/Dark-Moon/actions/runs/40604535342) passed. [Follow-up browser](https://github.com/newrecycle/Dark-Moon/actions/runs/40605263580) also passed.
 - **[Real native n8n host CI passed](https://github.com/newrecycle/Dark-Moon/actions/runs/40605263744)**: n8n 2.45.4 encrypted credential import, package loading, workflow execution, campaign-filtered finding output, downstream safe metadata and editor credential tests accepting valid/rejecting invalid token/password values. See [recorded contract](../validation/n8n-native-host-20261027.json).
+- The first-use checkpoint 559ee2b also passed all hosted gates: [browser](https://github.com/newrecycle/Dark-Moon/actions/runs/40605917628), [actual Docker/provider + owned-loopback](https://github.com/newrecycle/Dark-Moon/actions/runs/40605917786), and [native n8n host/editor](https://github.com/newrecycle/Dark-Moon/actions/runs/40605917646).
 - Imported SDK contract and n8n HMAC/replay tests pass. Native OpenCode 1.19.4 catalog/config readback and disposable key storage checks pass. No operator provider credentials are configured; real subscription login and inference entitlement remain unverified. The local environment has no Docker engine; hosted image results are separate evidence.
 
 ## Remaining implementation and validation
