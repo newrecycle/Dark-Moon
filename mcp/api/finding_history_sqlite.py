@@ -31,11 +31,22 @@ def _checkpoint(name):
     if os.environ.get("DARKMOON_HISTORY_FAIL_AT") == name:
         os._exit(97)
 
+def _fsync_directory(path):
+    """Persist newly created SQLite/WAL names and atomic JSON rename entries."""
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+    fd = os.open(str(path), flags)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 
 @contextmanager
 def _connect():
     p = database_path()
     p.parent.mkdir(parents=True, exist_ok=True)
+    first_creation = not p.exists()
     db = sqlite3.connect(str(p), timeout=30, isolation_level=None)
     db.execute("PRAGMA busy_timeout=30000")
     db.execute("PRAGMA journal_mode=WAL")
@@ -67,6 +78,8 @@ def _connect():
         CREATE INDEX IF NOT EXISTS pending_unapplied ON pending(applied);
     """)
         db.execute("PRAGMA user_version=1")
+    if first_creation:
+        _fsync_directory(p.parent)
     try:
         yield db
     finally:
@@ -167,7 +180,12 @@ def _recover_locked(db):
                 raise d.FindingHistoryUnavailable("Finding snapshot diverged from committed history intent")
             _checkpoint("before_snapshot_replace")
             d._write_json(path, new)
-        _checkpoint("after_snapshot_replace")
+            _checkpoint("after_snapshot_replace")
+            _fsync_directory(path.parent)
+        else:
+            # The mirror was written before an interrupted applied-marker
+            # commit; persist its directory entry before acknowledging intent.
+            _fsync_directory(path.parent)
         db.execute("BEGIN IMMEDIATE")
         try:
             _checkpoint("before_apply_mark")
