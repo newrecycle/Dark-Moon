@@ -2,7 +2,7 @@
 
 This GitLab component is a thin consumer of the portable **`darkmoon-ci`** CLI
 shipped by `@darkmoon_ai/client` (its own `CONTRACT.md` is the frozen source of
-truth — `/home/mehdi/darkmoon-client/CONTRACT.md`, `CONTRACT_VERSION = 1.0.0`).
+truth — `../client/CONTRACT.md`, `CONTRACT_VERSION = 1.0.0`).
 The component never reimplements the CLI; it invokes it and maps its output to
 GitLab report formats.
 
@@ -54,7 +54,7 @@ fields on shared surfaces:
   `scan`/`vulnerabilities` per the live schema; severity mapped to Title-case;
   `identifiers` carry the Darkmoon category, an enriched CWE, CVE and MITRE
   ATT&CK id; `location.file` = endpoint path; `description` = `title` only;
-  `solution` = `remediation`.
+  free-form remediation is omitted from shared reports.
 
 ## Safety (§4) honoured
 
@@ -68,3 +68,14 @@ fields on shared surfaces:
   JSON are attached only when `expose-full-report: true` (internal, opt-in).
 - Secrets come from masked+protected CI/CD variables via the environment, never
   argv, never echoed.
+
+## Fork error contract
+
+Missing/malformed input, wrong envelope or item types, unknown severities and
+invalid CVSS values produce tool-error exit 1. Diagnostic SAST reports use
+`scan.status: failure`; an empty diagnostic array does not establish zero
+findings. The component propagates run, findings-read and mapping errors as 1,
+so allowing findings-gate exit 2 never tolerates a tool failure. Missing campaign
+identity is an error even if the CLI claims exit 0. Explicit valid `[]` remains
+a successful empty result after a valid completed CLI verdict. Disabled SAST
+output is omitted rather than represented by a synthetic successful empty scan.

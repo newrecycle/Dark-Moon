@@ -13,7 +13,7 @@ metadata) reaches these shared reports. The finding `description`/`evidence`
 obtained separately via `darkmoon-ci report --full --private` as an internal,
 opt-in artifact.
 
-Stdlib only; degrades gracefully (missing/invalid input -> valid empty reports).
+Stdlib only; invalid input emits failure-status diagnostic reports and exit 1.
 This is part of the GitLab component, not the darkmoon-ci CLI.
 """
 from __future__ import annotations
@@ -22,6 +22,7 @@ import argparse
 import datetime as _dt
 import hashlib
 import json
+import math
 import re as _re
 import sys
 from typing import Any, Dict, List
@@ -104,19 +105,34 @@ def load_findings(path: str) -> List[Dict[str, Any]]:
     try:
         with open(path, "r", encoding="utf-8") as fh:
             data = json.load(fh)
-    except FileNotFoundError:
-        _warn("findings file not found: %s -> empty reports" % path)
-        return []
     except (OSError, ValueError) as exc:
-        _warn("cannot parse findings (%s) -> empty reports" % exc)
-        return []
+        raise ValueError("Cannot read a valid findings document") from exc
     if isinstance(data, list):
         arr = data
-    elif isinstance(data, dict):
-        arr = data.get("findings") or data.get("data") or []
+    elif isinstance(data, dict) and "findings" in data:
+        arr = data["findings"]
+    elif isinstance(data, dict) and "data" in data:
+        arr = data["data"]
     else:
-        arr = []
-    return [f for f in arr if isinstance(f, dict)]
+        raise ValueError("Findings document needs an array or a findings/data array")
+    if not isinstance(arr, list):
+        raise ValueError("Findings envelope needs an array")
+    seen_ids = set()
+    for f in arr:
+        if not isinstance(f, dict) or not isinstance(f.get("id"), str) or not f["id"].strip():
+            raise ValueError("Each finding needs a string identity")
+        if f["id"] in seen_ids:
+            raise ValueError("Findings document contains duplicate identities")
+        seen_ids.add(f["id"])
+        if not isinstance(f.get("severity"), str) or f["severity"] not in CQ_SEVERITY:
+            raise ValueError("Each finding needs a recognized severity")
+        for key in ("title", "category", "endpoint", "cve", "mitreAttackId", "mitreAttackName"):
+            if f.get(key) is not None and not isinstance(f[key], str):
+                raise ValueError("Finding text metadata has an invalid type")
+        score = f.get("cvssScore")
+        if score is not None and (isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score) or not 0 <= score <= 10):
+            raise ValueError("Finding CVSS score is invalid")
+    return arr
 
 
 def to_code_quality(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -159,7 +175,7 @@ def _identifiers(f: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def to_sast(findings: List[Dict[str, Any]], schema_version: str,
-            tool_version: str, edition: str) -> Dict[str, Any]:
+            tool_version: str, edition: str, failed: bool = False) -> Dict[str, Any]:
     vulns: List[Dict[str, Any]] = []
     for f in findings:
         path = _endpoint_to_path(f.get("endpoint"))
@@ -172,9 +188,6 @@ def to_sast(findings: List[Dict[str, Any]], schema_version: str,
             "identifiers": _identifiers(f),
             "location": {"file": path, "start_line": 1},
         }
-        solution = str(f.get("remediation") or "").strip()
-        if solution:
-            vuln["solution"] = solution
         vulns.append(vuln)
     vendor = {"name": "ASC-IT — Darkmoon"}
     engine = {"id": "darkmoon", "name": "Darkmoon", "version": tool_version, "vendor": vendor}
@@ -182,7 +195,7 @@ def to_sast(findings: List[Dict[str, Any]], schema_version: str,
     return {
         "version": schema_version,
         "scan": {
-            "type": "sast", "status": "success",
+            "type": "sast", "status": "failure" if failed else "success",
             "start_time": now, "end_time": now,
             "analyzer": dict(engine), "scanner": dict(engine),
         },
@@ -204,19 +217,26 @@ def main(argv: List[str]) -> int:
     ap.add_argument("--sast-schema-version", default=DEFAULT_SAST_SCHEMA_VERSION)
     ap.add_argument("--tool-version", default="unknown")
     ap.add_argument("--edition", default="oss")
+    ap.add_argument("--scan-failed", action="store_true", help="Mark diagnostic reports as an unsuccessful assessment")
     args = ap.parse_args(argv)
 
-    findings = load_findings(args.findings)
+    failed = args.scan_failed
+    try:
+        findings = load_findings(args.findings)
+    except ValueError as exc:
+        _warn(str(exc) + "; assessment result is unavailable")
+        findings = []
+        failed = True
 
     cq = to_code_quality(findings)
     _write(args.codequality, cq)
     _warn("wrote %d code-quality entries -> %s" % (len(cq), args.codequality))
 
     if args.sast:
-        sast = to_sast(findings, args.sast_schema_version, args.tool_version, args.edition)
+        sast = to_sast(findings, args.sast_schema_version, args.tool_version, args.edition, failed=failed)
         _write(args.sast, sast)
         _warn("wrote %d SAST vulnerabilities -> %s" % (len(sast["vulnerabilities"]), args.sast))
-    return 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

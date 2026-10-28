@@ -17,10 +17,10 @@ gates, Docker/provider, owned-loopback and real n8n host checks passed.
 
 | Integration | Baseline evidence | Concrete gaps / next validation |
 | --- | --- | --- |
-| n8n | Package build and 25 existing checks pass; native n8n 2.45.4 host previously passed | Fix explicit launch correlation, partial-poll cursor loss, campaign-qualified finding identity, safe event projection, local-proposal vs PR events, failed cleanup retention. New adversarial contract tests pass locally. Native trigger activation/restart/persistence validation in progress. Local host execution was blocked by automatic review after n8n attempted vendor API traffic. Both host tests now require OS-level network isolation and CI runs them with Docker --network none; optional banners/whats-new/license refresh are also disabled. Signing secrets move from exportable static data to encrypted credentials; actual HTTP rejection status is set explicitly. |
+| n8n | Package 25 checks, 12 adversarial contracts, HMAC tests and native host lifecycle pass in offline run 40646332504 | Exact identity; atomic campaign-qualified cursors; allowlisted output; encrypted signing secret; transactional producer-backed replay admission. Real polling, credential tests, restart, duplicate suppression and asynchronous deactivation cleanup verified in Docker --network none. Original commercial producer receipt-extension support remains unverified. |
 | SDK / CLI | Patched local snapshot: lint, types, build, 98 tests plus built CLI adversarial checks | Exact launch/run/root-session correlation; authenticated reads, body/idle-stream deadlines, typed identity/schema failures, no redirect forwarding. Failed/stopped campaigns produce CLI error 1; stale zero counts cannot hide fetched findings. Patched archive is now consumed by the Action and VS Code; actual fork HTTP checks pass. |
 | GitHub Action | Patched snapshot; build, types, 30 tests and executed bundled-action checks pass | Failed/stopped assessments and findings-read errors fail closed; counts derive from fetched findings. Real toolkit outputs and SARIF verified for high/empty/failed/auth/malformed cases over owned HTTP; no comments posted. Hosted runner rerun pending. |
-| GitLab | Schema pin 15.2.5 and all 15 mapper assertions pass | Mapper silently turns malformed/missing findings into clean empty reports. Audit template exit handling and test strict error propagation; native runner still unverified. |
+| GitLab | Schema pin 15.2.5; strict mapper and exact generated YAML script cases pass locally | Run identity, findings-read, parse and mapping errors become exit 1 and failed-scan SAST diagnostics; exit 2 remains the optional nonblocking gate. Real GitLab runner/server and report ingestion still need a configured disposable host. |
 | VS Code | Updated client; types/build and all 12 data-layer/real-adapter tests pass | Removed developer-home path and silent skip. Native extension host plus scoped, expiring, trusted-local report/finding reveal still open. |
 | JetBrains | Source/test inventory located; not yet run in this continuation | Run client/plugin tests and host fixtures; current local Java is 17. The native build's declared JDK/runtime requirements must be respected. |
 | Jenkins | Source/tests and isolated Docker host recipe located; not yet run | Build HPI and run Jenkins harness/host cases for fail vs unstable precedence, empty results and scanner errors. Local Docker/Maven are absent; hosted CI is available. |
@@ -80,3 +80,10 @@ cleanup. Acceptance now waits at most 15 seconds each for remote registration
 deletion and route removal, retaining both required outcomes. The rerun remains
 pending; no cleanup success is claimed from the acknowledgment alone. All other
 applicable gates on 9d2833c passed.
+
+Offline native n8n run **40646332504** completed successfully, including all
+restart, producer-receipt replay and eventual deactivation outcomes. This closes
+the pending lifecycle validation above. Patched SDK/Action/VS Code checkpoint
+1ac3a8d also passed hosted SDK/CLI, consumer snapshot, bundled Action and real-fork
+HTTP acceptance, both regression gates and browser acceptance. These are fork
+results; no commercial Pro runtime was executed.

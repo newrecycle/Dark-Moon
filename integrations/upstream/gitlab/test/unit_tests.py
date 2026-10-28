@@ -87,14 +87,31 @@ def test_object_wrapper(tmp):
 def test_degradation(tmp):
     cq, sast = os.path.join(tmp, "cq3.json"), os.path.join(tmp, "sast3.json")
     r = run_mapper(os.path.join(tmp, "nope.json"), cq, sast)
-    check(r.returncode == 0, "missing findings file -> mapper exits 0 (no crash)")
+    check(r.returncode == 1, "missing findings file -> tool error, never clean success")
     check(json.loads(open(cq).read()) == [], "missing input -> empty code-quality array")
     check(json.loads(open(sast).read())["vulnerabilities"] == [], "missing input -> empty SAST vulns")
     open(os.path.join(tmp, "bad.json"), "w").write("{not json")
     r = run_mapper(os.path.join(tmp, "bad.json"), cq, sast)
-    check(r.returncode == 0, "malformed findings file -> mapper exits 0 (no crash)")
+    check(r.returncode == 1, "malformed findings file -> tool error, never clean success")
+    check(json.loads(open(sast).read())["scan"]["status"] == "failure", "invalid input marks the SAST scan failed")
     v = subprocess.run([sys.executable, VALIDATE, cq, sast], capture_output=True, text=True)
     check(v.returncode == 0, "empty reports still validate against live schemas")
+
+
+def test_strict_inputs(tmp):
+    cq, sast = os.path.join(tmp, "strict-cq.json"), os.path.join(tmp, "strict-sast.json")
+    fp = os.path.join(tmp, "strict.json")
+    for value in ({}, {"data": {}}, [None], [{}], [dict(FINDING, severity="unknown")], [dict(FINDING, title={"secret": "PRIVATE"})], [dict(FINDING, cvssScore=True)], [dict(FINDING, cvssScore=100)], [FINDING, FINDING]):
+        with open(fp, "w") as fh:
+            json.dump(value, fh)
+        result = run_mapper(fp, cq, sast)
+        check(result.returncode == 1 and json.loads(open(sast).read())["scan"]["status"] == "failure", "invalid envelope/item/identity/severity/CVSS fails closed")
+        check("PRIVATE" not in result.stderr, "parse error does not echo finding contents")
+    for value in ([], {"findings": []}, {"data": []}):
+        with open(fp, "w") as fh:
+            json.dump(value, fh)
+        result = run_mapper(fp, cq, sast)
+        check(result.returncode == 0 and json.loads(open(sast).read())["scan"]["status"] == "success", "explicit empty array is a valid result")
 
 
 def main():
@@ -102,6 +119,7 @@ def main():
         print("== finding shape + redaction (§4) =="); test_shape_and_redaction(tmp)
         print("== object wrapper =="); test_object_wrapper(tmp)
         print("== degradation (§2.4) =="); test_degradation(tmp)
+        print("== strict boundaries =="); test_strict_inputs(tmp)
     print("\n== UNIT SUMMARY: %d passed, %d failed ==" % (n_pass, n_fail))
     return 1 if n_fail else 0
 

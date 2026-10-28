@@ -127,7 +127,7 @@ spec:
       command -v python3 >/dev/null 2>&1 || { echo "[darkmoon] ERROR: python3 (>=3.8) required for report mapping"; exit 1; }
 
       mkdir -p "$DM_OUTPUT_DIR"
-      printf '%s' "$MAPPER_B64" | python3 -c "import sys,base64;open('$DM_OUTPUT_DIR/dm_report.py','wb').write(base64.b64decode(sys.stdin.read()))"
+      printf '%s' "$MAPPER_B64" | python3 -c "import sys,base64;open(sys.argv[1],'wb').write(base64.b64decode(sys.stdin.read()))" "$DM_OUTPUT_DIR/dm_report.py"
 
       # Fold focus/severity into the Darkmoon target line.
       T="$DM_TARGET"
@@ -155,35 +155,44 @@ spec:
       set -e
       echo "[darkmoon] darkmoon-ci run exit code: $rc"
 
-      # Pull the campaign id from the verdict, then fetch redaction-safe findings.
-      CID=$(python3 - "$DM_OUTPUT_DIR/run.json" <<'PY'
-      import json, sys
+      # Tool failures, missing identities and failed findings reads cannot pass.
+      case "$rc" in 0|2) ;; *) rc=1 ;; esac
+      CID=$(python3 - "$DM_OUTPUT_DIR/run.json" <<'PYCODE'
+      import json, re, sys
       try:
-          print(json.load(open(sys.argv[1])).get("campaignId", ""))
-      except Exception:
+          data = json.load(open(sys.argv[1]))
+          cid = data.get("campaignId")
+          assert isinstance(cid, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,200}", cid)
+          assert data.get("verdict") in ("pass", "fail")
+          print(cid)
+      except (OSError, ValueError, AttributeError, AssertionError):
           print("")
-      PY
+      PYCODE
       )
       if [ -n "$CID" ]; then
-        dm findings "$CID" --json > "$DM_OUTPUT_DIR/findings.json" || echo "[]" > "$DM_OUTPUT_DIR/findings.json"
+        if ! dm findings "$CID" --json > "$DM_OUTPUT_DIR/findings.json"; then
+          rc=1
+        fi
         if [ "${DM_EXPOSE_FULL}" = "true" ]; then
           dm report "$CID" --out "$DM_OUTPUT_DIR/darkmoon-report.md" || true
         fi
       else
+        rc=1
         echo "[]" > "$DM_OUTPUT_DIR/findings.json"
       fi
 
-      # Map to GitLab reports (always; empty input -> valid empty reports).
+      # Strict mapping retains diagnostic artifacts with scan.status=failure.
+      # A mapping error overrides even a findings-gate exit 2 with tool-error 1.
+      set -- --findings "$DM_OUTPUT_DIR/findings.json" --codequality gl-code-quality-report.json --edition "$DM_MODE"
+      [ "$rc" -eq 1 ] && set -- "$@" --scan-failed
       if [ "${DM_EMIT_SAST}" = "true" ]; then
-        python3 "$DM_OUTPUT_DIR/dm_report.py" --findings "$DM_OUTPUT_DIR/findings.json" \
-          --codequality gl-code-quality-report.json --sast gl-sast-report.json --edition "$DM_MODE" \
-          || echo "[darkmoon] WARN: mapping produced no reports"
+        set -- "$@" --sast gl-sast-report.json
       else
-        python3 "$DM_OUTPUT_DIR/dm_report.py" --findings "$DM_OUTPUT_DIR/findings.json" \
-          --codequality gl-code-quality-report.json --edition "$DM_MODE" \
-          || echo "[darkmoon] WARN: mapping produced no reports"
-        python3 "$DM_OUTPUT_DIR/dm_report.py" --findings /dev/null \
-          --codequality /tmp/_dm_cq_ignore.json --sast gl-sast-report.json || true
+        rm -f gl-sast-report.json
+      fi
+      if ! python3 "$DM_OUTPUT_DIR/dm_report.py" "$@"; then
+        rc=1
+        echo "[darkmoon] report mapping failed; assessment result is unavailable"
       fi
 
       # Threat model §4: withhold the full report + raw findings unless opted in.
@@ -192,7 +201,7 @@ spec:
       fi
       rm -f "$DM_OUTPUT_DIR/dm_report.py" /tmp/_dm_cq_ignore.json 2>/dev/null || true
 
-      # Propagate the CLI's exit code: 0 pass, 2 findings-gate, 1 tool/usage error.
+      # Exit 0 pass, 2 findings-gate, 1 tool/read/parse/mapping error.
       exit $rc
   artifacts:
     when: always

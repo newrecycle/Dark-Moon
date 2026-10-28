@@ -6,7 +6,7 @@
 # launch -> wait -> correlate -> fail-policy -> findings path runs end to end.
 # The prompt is $1 (ignored). Paths come from the environment.
 set -eu
-FIX=/home/mehdi/darkmoon-client/fixtures/dataroot
+FIX=${DARKMOON_CLIENT_FIXTURES:-$(CDPATH= cd -- "$(dirname -- "$0")/../../../client/fixtures/dataroot" && pwd)}
 CID=camp_20260924_70602bf9
 mkdir -p "$DM_E2E_DATADIR/campaigns" "$DM_E2E_DATADIR/vulnerabilities" "$DM_E2E_REPORTS"
 cp "$FIX/campaigns/$CID.json"        "$DM_E2E_DATADIR/campaigns/$CID.json"

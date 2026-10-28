@@ -210,3 +210,16 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 - 📚 **Docs:** https://docs.dark-moon.org
 - 🌐 **Website:** https://dark-moon.org
 - 🔗 **Related integrations:** [GitHub Actions](https://github.com/ASCIT31/darkmoon-action) · [Jenkins](https://github.com/ASCIT31/darkmoon-jenkins) 
+
+## Dark-Moon fork corrections
+
+Findings-read, malformed-input and mapping failures produce exit 1. Invalid
+input produces failure-status SAST diagnostics, rather than a successful empty
+scan. Only exit 2 represents a findings gate and can be made nonblocking with
+`allow_failure_exit_codes: [2]`. Free-form remediation is withheld from shared
+reports alongside evidence and descriptions. Explicit valid empty arrays remain
+valid. When SAST output is disabled, no synthetic successful SAST artifact is
+created. See `CONTRACT.md` and the generated job-script acceptance test at
+`../../../tests/community/gitlab_contract.py`. That test executes the shipped
+script with owned protocol fixtures; it does not establish GitLab server/runner
+or artifact-ingestion compatibility.

@@ -62,12 +62,13 @@
     "repository": "https://github.com/ASCIT31/darkmoon-gitlab.git",
     "commit": "872477ff47de35dd49c5b15b4dad42863c6fd4c0",
     "license": "MIT",
-    "modified": false,
+    "modified": true,
     "excluded": [
       ".github",
       "docs/screenshots",
       "test/screenshots"
-    ]
+    ],
+    "adaptation": "Strict finding envelope/item/severity/CVSS/identity validation; failure-status SAST diagnostic reports and tool-error 1 on run identity, findings-read or mapping errors; no free-form remediation on shared reports; no synthetic successful SAST when disabled; safe decoder path argument and portable fixture harness paths. Generated YAML script contract is tested; genuine GitLab host acceptance remains unverified."
   },
   {
     "path": "integrations/upstream/jenkins",

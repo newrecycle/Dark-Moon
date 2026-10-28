@@ -14,10 +14,11 @@
 # full report withheld by default (§4).
 set -u
 
-REPO=/home/mehdi/darkmoon-gitlab
+REPO=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 VENDOR=$REPO/test/vendor
 RUNNER=$VENDOR/gitlab-runner
-CLIENT=/home/mehdi/darkmoon-client
+CLIENT=${DARKMOON_CLIENT_ROOT:-$REPO/../client}
+[ -x "$RUNNER" ] || { echo "Set up an explicit compatible disposable GitLab runner at $RUNNER; no native runner acceptance has run."; exit 1; }
 WORK=$(mktemp -d /tmp/dm-runner-XXXXXX)
 
 # ensure the real CLI is built

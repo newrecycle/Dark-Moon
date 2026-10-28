@@ -11,13 +11,14 @@ typed YAML. TEST harness only — not part of the component.
 Usage: render_flat.py out.yml key=value [key=value ...]
 """
 import json
+from pathlib import Path
 import re
 import sys
 
 import yaml
 
 TOKEN = re.compile(r"\$\[\[\s*inputs\.([a-zA-Z0-9_.-]+)\s*\]\]")
-TEMPLATE = "/home/mehdi/darkmoon-gitlab/templates/scan/template.yml"
+TEMPLATE = Path(__file__).resolve().parents[1] / "templates/scan/template.yml"
 
 
 def render_value(meta, raw):
