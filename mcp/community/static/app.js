@@ -189,18 +189,8 @@ function render() {
     if (new URLSearchParams(location.hash.split("?")[1]).get("targets") === "all") $("#posture-targets").scrollIntoView();
   } else if (route === "campaigns") {
     $("#content").innerHTML =
-      `<section class="panel flush"><div class="section-top"><div><h3>All assessments</h3><p>Select one to review its findings, report and infrastructure.</p></div></div>${campaignsTable(s.campaigns)}</section><section class="panel"><div class="section-top"><h3>Execution queue</h3><span class="subtle">One assessment at a time</span></div>${
-        s.jobs.length
-          ? s.jobs
-              .slice()
-              .reverse()
-              .map(
-                (j) =>
-                  `<div class="list-item"><div><a class="clickable" data-job="${esc(j.id)}">${esc(j.spec.name)}</a><small>${esc(j.spec.target)} · ${esc(date(j.created_at))}</small></div><div>${badge(j.status)} ${["queued", "running"].includes(j.status) ? `<button class="secondary" data-cancel="${esc(j.id)}">Cancel</button>` : ""}</div></div>`,
-              )
-              .join("")
-          : empty("Queue is empty")
-      }</section>`;
+      `<section class="panel flush"><div class="section-top"><div><h3>All assessments</h3><p>Select one to review its findings, report and infrastructure.</p></div></div>${campaignsTable(s.campaigns)}</section><section class="panel"><div class="section-top"><h3>Execution queue and run logs</h3><span class="subtle">Lifecycle metadata; raw output restricted</span></div><div id="run-queue" role="status">Loading runs…</div></section>`;
+    loadRunQueue(viewControl.signal);
   } else if (route === "findings") {
     renderFindings();
   } else if (route === "surface") {
@@ -328,18 +318,49 @@ async function exportReport(cid, format) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+async function loadRunQueue(signal) {
+  const target = $("#run-queue");
+  if (!target) return;
+  try {
+    const [active, recent] = await Promise.all([
+      api("/api/v1/run/active", {signal}),
+      api("/api/v1/run/logs?limit=50&offset=0", {signal}),
+    ]);
+    if (signal.aborted || route !== "campaigns" || target !== $("#run-queue")) return;
+    const seen = new Set(active.data.map((r) => r.run_id));
+    const rows = [...active.data, ...recent.data.filter((r) => !seen.has(r.run_id))];
+    target.innerHTML = rows.length ? rows.map((j) => {
+      const campaign = snapshot.campaigns.find((c) => c.id === j.campaign_id);
+      const title = campaign?.name || j.run_id;
+      const label = j.log_status === "unavailable" ? "Log unavailable" :
+        j.log_status === "missing" ? "Log not yet created" : "Log metadata available";
+      return `<div class="list-item"><div><a class="clickable" data-job="${esc(j.run_id)}">${esc(title)}</a><small>Run ${esc(j.run_id)} · Campaign ${esc(j.campaign_id || "unavailable")} · ${esc(date(j.created_at))} · ${esc(label)}</small></div><div>${badge(j.state)} ${["queued", "running", "cancelling"].includes(j.state) && identity?.role !== "viewer" ? `<button class="secondary" data-cancel="${esc(j.run_id)}">Cancel</button>` : ""}</div></div>`;
+    }).join("") + (recent.has_more ? '<p class="instructions">Showing the newest 50 history records. More pages are available through the logs API.</p>' : "") :
+      empty("Queue is empty", "No retained run records.");
+  } catch (error) {
+    if (!signal.aborted && route === "campaigns" && target === $("#run-queue"))
+      target.textContent = "Run history unavailable: " + error.message;
+  }
+}
 async function showJob(id) {
-  const j = await api(`/api/v1/jobs/${encodeURIComponent(id)}`);
   currentDetailJob = id;
-  $("#detail-title").textContent = j.spec.name;
-  $("#detail-body").innerHTML =
-    `${badge(j.status)}<p class="detail-text">${esc(j.error || "Launcher output is shown below. Cancelling the launcher may leave work running inside the agent container; inspect its session before rerunning.")}</p><pre id="job-log"></pre>`;
-  const res = await fetch(`/api/v1/jobs/${encodeURIComponent(id)}/log`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  $("#job-log").textContent = await res.text();
-  applyRoles();
+  $("#detail-title").textContent = "Run " + id;
+  $("#detail-body").textContent = "Loading run and log metadata…";
   if (!$("#detail").open) $("#detail").showModal();
+  try {
+    const [j, log] = await Promise.all([
+      api(`/api/v1/run/${encodeURIComponent(id)}`),
+      api(`/api/v1/run/logs/${encodeURIComponent(id)}`),
+    ]);
+    if (currentDetailJob !== id || !$("#detail").open) return;
+    $("#detail-title").textContent = "Run " + j.run_id;
+    $("#detail-body").innerHTML = `${badge(j.state)}<p>Campaign: ${esc(j.campaign_id || "unavailable")}</p><p class="detail-text">Log: ${esc(log.log_status)}. Structured lifecycle messages only by default.</p><pre id="job-log"></pre>${identity?.role === "admin" && log.log_status === "available" ? `<button class="secondary" data-raw-job="${esc(id)}">Reveal untrusted raw output (may contain secrets)</button>` : ""}`;
+    $("#job-log").textContent = log.data.map((row) => row.message).join("\n") || "No lifecycle messages available.";
+    applyRoles();
+  } catch (error) {
+    if (currentDetailJob === id && $("#detail").open)
+      $("#detail-body").textContent = "Run details unavailable: " + error.message;
+  }
 }
 async function launchDialog(schedule = false, record = null) {
   try {
@@ -490,11 +511,24 @@ document.addEventListener("click", async (e) => {
       a.download = b.dataset.patch + ".patch";
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } else if (b.dataset.rawJob) {
+      const id = b.dataset.rawJob;
+      if (identity?.role !== "admin") return;
+      const output = $("#job-log");
+      if (output) output.textContent = "Loading untrusted output…";
+      try {
+        const log = await api(`/api/v1/run/logs/${encodeURIComponent(id)}?raw=true&lines=100`);
+        if (currentDetailJob === id && $("#detail").open && $("#job-log")) {
+          $("#job-log").textContent = log.data.map((row) => row.message).join("\n") || "No raw lines in the bounded window.";
+          if (log.truncated) $("#job-log").textContent += "\n[output window truncated]";
+        }
+      } catch (error) {
+        if (currentDetailJob === id && $("#job-log")) $("#job-log").textContent = "Log unavailable: " + error.message;
+      }
     } else if (b.dataset.job) await showJob(b.dataset.job);
     else if (b.dataset.cancel) {
-      await api(`/api/v1/jobs/${b.dataset.cancel}/cancel`, {
-        method: "POST",
-        body: "{}",
+      await api(`/api/v1/run/${encodeURIComponent(b.dataset.cancel)}/stop`, {
+        method: "DELETE",
       });
       await refresh();
     } else if (b.id === "new-schedule") launchDialog(true);
