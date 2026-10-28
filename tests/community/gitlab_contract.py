@@ -15,7 +15,7 @@ component = root / 'integrations/upstream/gitlab'
 with tempfile.TemporaryDirectory(prefix='darkmoon-gitlab-') as temp:
     work = Path(temp)
     flat = work / 'pipeline.yml'
-    subprocess.run([sys.executable, str(component / 'test/render_flat.py'), str(flat), 'target=owned.invalid', 'mode=pro', 'allow_failure_exit_codes=[2]'], check=True, capture_output=True)
+    subprocess.run([sys.executable, str(component / 'test/render_flat.py'), str(flat), 'target=owned.invalid', 'mode=pro', 'allow_failure_exit_codes=[2]', 'fail-on=none'], check=True, capture_output=True)
     pipeline = yaml.safe_load(flat.read_text())
     job = pipeline['darkmoon_scan']
     assert job['allow_failure'] == {'exit_codes': [2]}
@@ -28,15 +28,22 @@ case=os.environ['DM_TEST_CASE']
 if sys.argv[1]=='run':
  if case=='missing-id': print('{}');sys.exit(0)
  if case=='run-error': sys.exit(1)
- print(json.dumps({'campaignId':'camp_fixture','verdict':'fail' if case=='gate' else 'pass'}))
- sys.exit(2 if case=='gate' else 0)
+ gate = case=='gate'
+ empty = case=='empty'
+ print(json.dumps({'campaignId':'camp_fixture',
+    'verdict':'fail' if gate else 'pass',
+    'total':0 if empty else 1,
+    'failOn':['critical','high'] if gate else [],
+    'offending':{'high':1} if gate else {},
+    'reason':'fixture'}))
+ sys.exit(2 if gate else 0)
 if sys.argv[1]=='findings':
  if case=='read-error':sys.exit(1)
  if case=='malformed':print('{');sys.exit(0)
  if case=='envelope':print('{}');sys.exit(0)
  if case=='bad-item':print('[null]');sys.exit(0)
  if case=='empty':print('[]');sys.exit(0)
- print(json.dumps([{'id':'finding_fixture','severity':'high','title':'Loopback finding','remediation':'DO-NOT-LEAK-REMEDIATION','evidence':{'raw':'DO-NOT-LEAK-EVIDENCE'}}]))
+ print(json.dumps([{'id':'finding_fixture','campaignId':'camp_fixture','severity':'high','title':'Loopback finding','remediation':'DO-NOT-LEAK-REMEDIATION','evidence':{'raw':'DO-NOT-LEAK-EVIDENCE'}}]))
  sys.exit(0)
 sys.exit(1)
 ''')
@@ -44,7 +51,7 @@ sys.exit(1)
     for case, expected in [('valid', 0), ('gate', 2), ('empty', 0), ('read-error', 1), ('malformed', 1), ('envelope', 1), ('bad-item', 1), ('missing-id', 1), ('run-error', 1)]:
         case_dir = work / case
         case_dir.mkdir()
-        env = {**os.environ, **{key: str(value) for key,value in job['variables'].items()}, 'PATH': str(work) + os.pathsep + os.environ['PATH'], 'DM_TEST_CASE': case}
+        env = {**os.environ, **{key: str(value) for key,value in job['variables'].items()}, 'PATH': str(work) + os.pathsep + os.environ['PATH'], 'DM_TEST_CASE': case, 'DM_FAIL_ON': 'critical,high' if case == 'gate' else 'none'}
         # A quote in a configured directory must remain data in the decoder.
         env['DM_OUTPUT_DIR'] = "output with ' quote"
         result = subprocess.run(['sh', str(script)], cwd=case_dir, env=env, text=True, capture_output=True, timeout=15)

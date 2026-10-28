@@ -83,7 +83,12 @@ include:
 The findings gate is CLI exit code **2**. The default `allow_failure_exit_codes`
 (`[250]`, a code the CLI never emits) makes the job **block**. Listing `2` makes
 the gate non-blocking while genuine tool/usage errors (exit `1`) still fail the
-pipeline.
+pipeline. **GitLab does not ingest SAST findings from a failed job, including
+a nonblocking (allowed-to-fail) job.** To check GitLab security ingestion for
+nonempty findings, use `fail-on: ""` (mapped to the patched CLI's explicit
+`none` policy), then perform a separate blocking gate in another job if needed.
+All `artifacts:reports` files are still uploaded when a job fails, but an
+uploaded SAST artifact is not proof of ingested findings.
 
 ## Inputs
 
@@ -151,11 +156,11 @@ message if either is missing.
 ### Installing the CLI on the runner
 
 ```bash
-# from the published package (recommended):
-npm i -g @darkmoon_ai/client         # provides the `darkmoon-ci` bin
-# or a pinned tarball built from source:
-#   cd darkmoon-client && npm run build && npm pack
-#   npm i -g darkmoon-client-<version>.tgz
+# For this fork's acceptance, use the patched CLI in this checkout:
+cd integrations/upstream/client
+npm ci && npm run build
+# Point a disposable runner PATH wrapper at dist/cli/darkmoon-ci.cjs.
+# Do not silently substitute an unverified upstream npm package.
 ```
 
 ## Severity mapping
@@ -222,3 +227,60 @@ created. See `CONTRACT.md` and the generated job-script acceptance test at
 `../../../tests/community/gitlab_contract.py`. That test executes the shipped
 script with owned protocol fixtures; it does not establish GitLab server/runner
 or artifact-ingestion compatibility.
+
+## Generated job, runner and server-ingestion acceptance (2026-10-28)
+
+The integration ships a self-contained generated component. The authoritative
+sources are `templates/scan/template.yml.in` and
+`src/darkmoon_gitlab_report.py`; `build/render_template.py` regenerates
+`templates/scan/template.yml`. The GitHub workflow
+`.github/workflows/gitlab-integration-verification.yml` checks a byte-for-byte
+re-render, the pinned SAST schema, the mapper, and the actual generated job script
+under disposable CLI-protocol fixtures. These are **schema/OS shell checks**,
+not proof of GitLab server ingestion.
+
+The generated job now checks the second findings read against the actual CLI
+`run` verdict's exact campaign identity, total findings count, per-severity
+offending counts, fail policy and exit code. Any disagreement becomes exit 1,
+with failure-state diagnostic JSON rather than a clean empty assessment.
+Finding titles containing URLs, endpoint userinfo/query/fragment data and
+unexpected identifier metadata are withheld from shared reports. Missing CLI
+with Python available also emits failure-state reports. Scanner failures remain
+exit 1; only a genuine findings gate is exit 2.
+
+The native runner gate uses the **fork-patched** client at
+`integrations/upstream/client` (version `0.2.1-darkmoon.1`) and an isolated
+GitLab Runner **15.11.1**. This is a **legacy compatibility** check:
+`gitlab-runner exec shell` is removed in supported modern runner versions;
+local `exec` does not exercise server registration, artifact upload or report
+ingestion. No runner is registered with a public service.
+
+**Server ingestion requires a separate owned disposable GitLab instance,
+a registered runner scoped to that test project, and a GitLab Ultimate
+entitlement/feature availability to inspect project vulnerability findings.**
+For an actual successful nonempty scan, run the generated component with
+`fail-on: ""` on the owned test project and record its actual job/pipeline IDs.
+`test/verify_ingestion.py` is an opt-in read-only localhost-only API verifier:
+it confirms the job succeeded, GitLab stored the SAST report and the server's
+pipeline-scoped vulnerability findings contain a Darkmoon SAST result. It must
+never be pointed at an unrelated GitLab instance. A 403/404 or absent finding
+is **not** treated as an empty success.
+
+Run on the disposable GitLab host only:
+
+```bash
+export GITLAB_ACCEPTANCE_OWNED=yes
+export GITLAB_ACCEPTANCE_URL=http://127.0.0.1:8929
+export GITLAB_ACCEPTANCE_PROJECT_ID=<test-project-id>
+export GITLAB_ACCEPTANCE_JOB_ID=<successful-job-id>
+export GITLAB_ACCEPTANCE_PIPELINE_ID=<pipeline-id>
+export GITLAB_ACCEPTANCE_TOKEN=<temporary-read-only-token>
+python3 integrations/upstream/gitlab/test/verify_ingestion.py
+```
+
+Use the version's supported GitLab security-report ingestion contract and
+verify the scanned project permits the SAST report type. The pinned JSON schema
+alone cannot establish successful ingestion. Do not confuse an allowed-to-fail
+gate, report upload, or runner-only execution with security dashboard findings.
+
+See [the observed 28 October acceptance record](ACCEPTANCE-2026-10-28.md) for native Runner and schema results, plus the separate unverified GitLab server-ingestion boundary.
