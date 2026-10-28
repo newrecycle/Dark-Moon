@@ -13,6 +13,7 @@ from .store import identifier, now
 
 SUPPORTED_STATUSES = {"confirmed", "exploited", "remediated", "resolved"}
 MAX_REVISIONS = 100
+MAX_REVIEW_BYTES = 8 * 1024 * 1024
 
 
 class PathConflictError(ValueError):
@@ -110,6 +111,12 @@ def keep_revision(state, path):
     value = revision(path)
     if key in revisions and revisions[key] != value:
         raise ValueError("Recorded path revision conflicts with retained history")
+    if key not in revisions:
+        def size(row):
+            return len(json.dumps(row, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+        retained = sum(size(row) for row in revisions.values() if row.get("campaign_id") == path["campaign_id"])
+        if retained + size(value) > MAX_REVIEW_BYTES:
+            raise ValueError("Campaign path reviews exceed the 8 MiB review payload budget; no history was removed")
     revisions.setdefault(key, value)
 
 

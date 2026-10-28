@@ -27,8 +27,12 @@ Current records stay in `attack_paths`; review snapshots are in
 transaction. The original creator remains recorded_by; edits add reviewed_by
 and updated_at. Returned records cannot mutate retained snapshots. Legacy paths
 read as version 1, and their first edit/deletion records the original review.
-A path stops at 100 immutable revisions; nothing is evicted to allow another
-edit. Existing 100-path-per-campaign and 32-step limits remain.
+A path stops at 100 immutable revisions, and each campaign has an 8 MiB
+retained-review payload budget measured as compact UTF-8 JSON. Nothing is
+evicted to allow another edit. A rejected save leaves both current and historic
+records unchanged; deleting an already-retained current review needs no new
+budget. This does not bound the whole control-state file/RSS across campaigns
+or provide an archive/retention policy. Existing 100-path-per-campaign and 32-step limits remain.
 
 Each save validates same-campaign findings, supported statuses, current evidence,
 asset linkage and contiguous nonrepeated directed observed connections. A fresh
@@ -116,3 +120,28 @@ Path projection now preserves version metadata and dictionary-versus-list
 response envelopes while retaining default rationale withholding. This is a
 path-specific compatibility adjustment to the evidence worker's projection,
 not an expansion of the general evidence allowlist.
+
+### First observed hosted result and follow-up
+
+Feature commit [31ca698](https://github.com/newrecycle/Dark-Moon/commit/31ca698fd9e237fee25402ec93e6968d003a8c61)
+passed the dedicated [core path/event run 40779542775](https://github.com/newrecycle/Dark-Moon/actions/runs/40779542775):
+27 Python tests and 35 subtests passed, and real Chromium component acceptance
+passed create/edit/history, stale saves, revision-pinned playback, focus/expiry
+clearing, escaping and responsive checks. Screenshots were retained as artifacts.
+
+Its broad workspace browser run exposed an immediate disabled-button assertion
+before the asynchronous review reveal completed. Worker commit eb703fc supplies the wait for the
+actual enabled state and retains the assertion; its equivalent fix is preserved
+without duplication in this follow-up. The isolated component had
+already verified the same asynchronous flow using Playwright's action waits.
+
+A local full run on the preceding integrated baseline passed 469 tests and 254
+subtests. An exact 31ca698 rerun found 471 passed, 254 subtests and one failure
+in the independently added proposal-canary fixture: it saved a record in the
+control-state collection, while PR lookup reads actual remediation result files.
+The owning worker fixed that fixture in 918dc46, which is integrated into this
+follow-up. Neither failure is recorded as passing. Final full/hosted results
+must be recorded after observing their corrected runs.
+
+The follow-up adds the retained-review byte budget and atomic rejection test;
+its focused path/contract suite passes 28 tests and 35 subtests locally.

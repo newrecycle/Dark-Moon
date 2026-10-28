@@ -3,6 +3,7 @@ import copy
 import json
 import threading
 import concurrent.futures
+from unittest.mock import patch
 
 import test_community as fixtures
 from api import json_storage as data
@@ -117,6 +118,18 @@ class AttackPathTests(PathFixture):
         with self.assertRaisesRegex(ValueError, "100 immutable"):
             update_path(self.service, self.cid, first["id"], self.body | {"version": 100}, self.identity)
         self.assertEqual(self.service.store.path.read_bytes(), before)
+
+    def test_retained_review_byte_budget_rejects_atomically_without_eviction(self):
+        first = self.create()
+        before = self.service.store.path.read_bytes()
+        with patch("community.attack_paths.MAX_REVIEW_BYTES", 1):
+            with self.assertRaisesRegex(ValueError, "8 MiB review payload"):
+                update_path(self.service, self.cid, first["id"], self.body | {"version": 1}, self.identity)
+            # Deleting a version already retained needs no additional budget.
+            self.assertEqual(self.service.store.path.read_bytes(), before)
+            delete_path(self.service, self.cid, first["id"])
+        self.assertTrue(path_history(self.service, self.cid, first["id"])["deleted"])
+        self.assertEqual(path_history(self.service, self.cid, first["id"])["total"], 1)
 
     def test_persistence_without_copying_raw_evidence(self):
         result = self.create()
