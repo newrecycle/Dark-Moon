@@ -23,89 +23,38 @@ from typing import Any, Callable, Dict, List, Optional
 _OPENCODE_DB = Path.home() / ".local" / "share" / "opencode" / "opencode-dev.db"
 
 
-def _is_subagent_session(session_id: str) -> bool:
-    """Return True if this session is a sub-agent (has a parent_id in opencode DB).
+def _run_campaign_frag(session_id: str, opencode_session_id: Optional[str] = None) -> str:
+    """Keep explicit launch IDs; resolve only the caller's exact OpenCode ancestry.
 
-    Strategy: build a set of 8-char hex fragments from all sub-agent session IDs,
-    then check if session_id appears in that set.
+    The plugin supplies the complete root ID using the native session API. Exact
+    DB ancestry also supports direct MCP clients supplying a child ID. Never use
+    the newest unrelated root, an eight-character window, or a truncated key.
+    The privacy/MCP session ID remains separate from this run identity.
     """
-    if not _OPENCODE_DB.exists():
-        return False
+    identity = opencode_session_id or session_id
+    if not isinstance(identity, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,160}", identity):
+        raise ValueError("Campaign run identity must be a complete safe session ID")
+    if not opencode_session_id or not _OPENCODE_DB.exists():
+        return identity
     try:
-        conn = sqlite3.connect(str(_OPENCODE_DB), timeout=2)
-        cur = conn.execute(
-            "SELECT id FROM session WHERE parent_id IS NOT NULL"
-        )
-        subagent_sessions = [r[0] for r in cur.fetchall()]
-        conn.close()
-
-        for sid in subagent_sessions:
-            clean = sid.replace("ses_", "").replace("-", "")
-            # Generate all 8-char windows and check for match
-            for i in range(len(clean) - 7):
-                if clean[i:i + 8] == session_id:
-                    return True
-    except Exception:
-        pass
-    return False
-
-
-def _find_parent_campaign_id(session_id: str) -> Optional[str]:
-    """
-    For a sub-agent session, find the campaign_id of the parent session.
-    Returns the parent campaign_id string, or None if not found.
-
-    Strategy: look up the parent session_id from the DB, then find a campaign
-    whose session_id matches an 8-char fragment of the parent session.
-    """
-    if not _OPENCODE_DB.exists():
-        return None
-    try:
-        conn = sqlite3.connect(str(_OPENCODE_DB), timeout=2)
-        # Find the parent session_id for this sub-agent session
-        cur = conn.execute(
-            "SELECT parent_id FROM session WHERE parent_id IS NOT NULL"
-        )
-        all_parent_ids = [r[0] for r in cur.fetchall()]
-        conn.close()
-
-        # Build set of 8-char fragments for this session_id to find its parent row
-        # Then find which parent_id corresponds to our session_id
-        conn = sqlite3.connect(str(_OPENCODE_DB), timeout=2)
-        cur = conn.execute(
-            "SELECT id, parent_id FROM session WHERE parent_id IS NOT NULL"
-        )
-        rows = cur.fetchall()
-        conn.close()
-
-        parent_session_id = None
-        for (sid, pid) in rows:
-            clean_sid = sid.replace("ses_", "").replace("-", "")
-            for i in range(len(clean_sid) - 7):
-                if clean_sid[i:i + 8] == session_id:
-                    parent_session_id = pid
-                    break
-            if parent_session_id:
-                break
-
-        if not parent_session_id:
-            return None
-
-        # Clean the parent session id to get 8-char fragment
-        clean_parent = parent_session_id.replace("ses_", "").replace("-", "")
-        parent_fragments = {clean_parent[i:i+8] for i in range(len(clean_parent) - 7)}
-
-    except Exception:
-        return None
-
-    # Search all campaigns for one whose session_id matches a parent fragment
-    from api.json_storage import load_campaigns
-    for campaign in load_campaigns():
-        camp_session = str(campaign.get("session_id", ""))
-        if camp_session in parent_fragments:
-            return campaign.get("id")
-
-    return None
+        conn = sqlite3.connect(_OPENCODE_DB.resolve().as_uri() + "?mode=ro", uri=True, timeout=2)
+        try:
+            seen = set()
+            while identity not in seen and len(seen) < 64:
+                seen.add(identity)
+                row = conn.execute("SELECT parent_id FROM session WHERE id = ?", (identity,)).fetchone()
+                if row is None or not row[0]:
+                    return identity
+                identity = str(row[0])
+                if not re.fullmatch(r"[A-Za-z0-9_-]{1,160}", identity):
+                    raise ValueError("Invalid OpenCode parent session ID")
+            raise ValueError("Cyclic or excessive OpenCode session ancestry")
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        # The native plugin already supplied the root; unavailable/migrating DBs
+        # must not make us borrow another run or replace a unique WebUI ID.
+        return opencode_session_id
 
 from api.json_storage import (
     INFRASTRUCTURE_DIR,
@@ -117,6 +66,7 @@ from api.json_storage import (
     save_target,
     save_campaign,
     load_campaign,
+    load_campaigns,
     find_target_by_host_or_ip,
     find_project_by_target_id,
     _read_json,
@@ -385,6 +335,7 @@ def init_live_campaign(
     ports: Optional[List[Dict[str, Any]]] = None,
     technologies: Optional[List[Dict[str, Any]]] = None,
     os_info: str = "",
+    opencode_session_id: Optional[str] = None,
 ) -> Dict[str, str]:
     """
     Initialize a live campaign. Creates project + target + campaign skeleton.
@@ -392,6 +343,7 @@ def init_live_campaign(
     """
     now = _now_iso()
     today = _today_compact()
+    run_id = _run_campaign_frag(session_id, opencode_session_id)
 
     ports = ports or []
     technologies = technologies or []
@@ -479,13 +431,14 @@ def init_live_campaign(
             "last_seen": now,
         })
 
-    # Check if this session is a sub-agent
-    is_subagent = _is_subagent_session(session_id)
-
-    # If sub-agent: reuse the parent campaign instead of creating a new one
-    parent_campaign_id = None
-    if is_subagent:
-        parent_campaign_id = _find_parent_campaign_id(session_id)
+    # Reuse only the explicitly bound run. Preserve finding counts, report state,
+    # original target and privacy session on repeated root/child initialization.
+    is_subagent = bool(opencode_session_id and opencode_session_id != run_id)
+    campaign_id = f"camp_{today}_{run_id}"
+    existing_campaign = (next((c for c in load_campaigns()
+        if c.get("opencode_session_id") == run_id), None)
+        if opencode_session_id else load_campaign(campaign_id))
+    parent_campaign_id = existing_campaign.get("id") if existing_campaign else None
 
     if parent_campaign_id:
         # Sub-agent: push nodes into the PARENT campaign, don't create a new campaign
@@ -513,16 +466,15 @@ def init_live_campaign(
             "project_id": project_id,
             "target_id": target_id,
             "campaign_id": parent_campaign_id,
-            "status": "subagent_merged_into_parent",
+            "status": "subagent_merged_into_parent" if is_subagent else "campaign_reused",
         }
-
-    campaign_id = f"camp_{today}_{session_id}"
 
     campaign = {
         "id": campaign_id,
         "project_id": project_id,
         "target_id": target_id,
         "session_id": session_id,
+        "opencode_session_id": run_id if opencode_session_id else None,
         "is_subagent": is_subagent,
         "date": now,
         "duration_seconds": 0,

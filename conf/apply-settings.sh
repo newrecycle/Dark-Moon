@@ -171,7 +171,7 @@ cat > "$OPENCODE_CONFIG_FILE" <<EOF
     ${MCP_DARKMOON}
   },
 
-  "plugin": ["file:///opt/darkmoon/plugins/darkmoon-privacy.ts", "file:///opt/darkmoon/plugins/darkmoon-growth-cta.ts"],
+  "plugin": ["file:///opt/darkmoon/plugins/darkmoon-privacy.ts", "file:///opt/darkmoon/plugins/darkmoon-growth-cta.ts", "file:///opt/darkmoon/plugins/darkmoon-campaign.ts"],
 
   "permission": { "*": "allow" },
 

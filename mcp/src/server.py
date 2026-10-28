@@ -623,6 +623,7 @@ def dashboard_init_campaign(
     target_ip: str,
     project_name: str = "Darkmoon Assessment",
     methodology: str = "ISO 27001 / NIST SP 800-115 / MITRE ATT&CK",
+    opencode_session_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Initialize a live campaign for the Darkmoon Dashboard.
@@ -637,6 +638,10 @@ def dashboard_init_campaign(
         target_ip: Target IP address
         project_name: Name for the assessment project
         methodology: Methodology string
+        opencode_session_id: Complete root session ID, supplied by the local
+            OpenCode campaign plugin. Separate from the privacy session_id.
+            Other clients may supply their own immutable run ID; if omitted,
+            this call starts a fresh campaign rather than guessing from a DB.
 
     Returns:
         Dictionary with project_id, target_id, campaign_id.
@@ -656,6 +661,7 @@ def dashboard_init_campaign(
         target_ip=target_ip,
         project_name=project_name,
         methodology=methodology,
+        opencode_session_id=opencode_session_id or "mcp_" + uuid.uuid4().hex,
     )
 
 
