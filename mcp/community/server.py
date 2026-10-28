@@ -157,9 +157,9 @@ def handler_for(service, allowed_hosts):
                 return self.send(service.snapshot()[parts[0]])
             if method == "POST" and parts == ["campaigns"]:
                 job = service.launch(self.body(), key=self.headers.get("Idempotency-Key"))
-                return self.send(job, status=202)
+                return self.send(public_run(job), status=202)
             if method == "POST" and parts == ["remediations"]:
-                return self.send(service.prepare_remediation(self.body()), status=202)
+                return self.send(public_run(service.prepare_remediation(self.body())), status=202)
             if method == "GET" and len(parts) == 3 and parts[0] == "remediations" and parts[2] == "patch":
                 proposal_id = identifier(parts[1])
                 path = service.store.root / "remediation" / proposal_id / "fix.patch"
