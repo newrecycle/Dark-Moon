@@ -56,3 +56,10 @@ restart failed: the test's shutdown timeout captured the mutable host variable
 and could terminate a later host. The follow-up binds the timer to its own
 process and clears it after exit. Final webhook restart/replay/deactivation
 acceptance remains pending the rerun; it is not marked complete.
+
+The first audit-driven implementation increment adds secure password-change,
+run-stop DELETE and version-required scheduler PUT aliases. See the
+[typed evidence and method/input contract](../pro-audit/2026-10-28/compatibility-progress.md).
+API03's vendor flat schedule-payload adapter is still open, and none of the rows
+are labeled vendor-wire verified. The other ten static discrepancy rows remain
+in the systematic queue alongside the native integration-host work.

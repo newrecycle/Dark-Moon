@@ -75,7 +75,7 @@ class API:
         query = {k: v[-1] for k, v in parse_qs(urlsplit(handler.path).query).items()}
         resource = parts[0]
         admin = identity.get("role") == "admin"
-        if method != "GET" and identity.get("role") == "viewer" and parts not in (["auth", "logout"], ["auth", "password"]):
+        if method != "GET" and identity.get("role") == "viewer" and parts not in (["auth", "logout"], ["auth", "password"], ["auth", "change-password"]):
             raise PermissionError("This account has read-only access")
         if resource in {"credentials", "webhooks"} or parts[:2] in (["auth", "users"], ["system", "integrity"]):
             if not admin:
@@ -100,6 +100,11 @@ class API:
             elif method == "POST" and parts == ["auth", "password"]:
                 raw = handler.body()
                 handler.send(self.service.accounts.password(identity, raw.get("old_password"), raw.get("new_password")))
+            elif method == "POST" and parts == ["auth", "change-password"]:
+                raw = handler.body()
+                if set(raw) != {"current_password", "new_password"}:
+                    raise ValueError("Use current_password and new_password")
+                handler.send(self.service.accounts.password(identity, raw["current_password"], raw["new_password"], renew=True))
             elif method == "POST" and parts == ["auth", "setup"]:
                 if identity.get("authentication") != "workspace-token":
                     raise PermissionError("Use the private workspace recovery token for initial setup")
@@ -240,8 +245,8 @@ class API:
                 log = self.store.job_path(job["id"])
                 lines = log.read_text(errors="replace").splitlines() if log.exists() else []
                 handler.send({"data": [{"message": line} for line in lines[-2000:]], "status": job["status"], "campaign_id": job["campaign_id"]})
-            elif len(parts) == 3 and parts[2] == "stop" and method == "POST":
-                handler.body()
+            elif len(parts) == 3 and parts[2] == "stop" and method in {"POST", "DELETE"}:
+                if method == "POST": handler.body()
                 handler.send(self.service.queue.cancel(parts[1]))
             elif len(parts) == 3 and parts[2] == "stream" and method == "GET":
                 if not self.store.get("jobs", identifier(parts[1])):
@@ -271,13 +276,16 @@ class API:
                 handler.send({"data":item} if wrapped else item, status=201)
             elif len(parts) == 3 and parts[2] == "history" and method == "GET":
                 handler.send(envelope(scheduler.history(parts[1])))
-            elif len(parts) == 2 and method in {"GET", "PATCH", "DELETE"}:
+            elif len(parts) == 2 and method in {"GET", "PATCH", "PUT", "DELETE"}:
                 item = self.store.get("schedules", identifier(parts[1]))
                 if not item: raise KeyError(parts[1])
                 if method == "GET": handler.send({"data":item} if wrapped else item)
                 elif method == "DELETE": handler.send(scheduler.delete(parts[1]))
                 else:
-                    item = scheduler.update(parts[1], handler.body())
+                    raw = handler.body()
+                    if method == "PUT" and type(raw.get("version")) is not int:
+                        raise ValueError("PUT schedule edits require the current integer version")
+                    item = scheduler.update(parts[1], raw)
                     handler.send({"data":item} if wrapped else item)
             else:
                 return False

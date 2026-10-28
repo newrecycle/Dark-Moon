@@ -150,19 +150,29 @@ class Accounts:
     def logout(self, identity):
         self.store.update(lambda state: state.setdefault("sessions", {}).pop(identity.get("session_id"), None))
 
-    def password(self, identity, old, new):
-        user = self.store.get("users", identity["id"])
-        if not user or not user.get("salt"):
-            raise ValueError("This identity does not use a local password; create a local account or manage it at your SSO provider")
-        digest = hashlib.pbkdf2_hmac("sha256", str(old).encode(), bytes.fromhex(user["salt"]), 600000).hex()
-        if not hmac.compare_digest(digest, user["password_hash"]):
-            raise PermissionError("Current password is incorrect")
-        if not isinstance(new, str) or not 12 <= len(new) <= 1024:
+    def password(self, identity, old, new, *, renew=False):
+        if not isinstance(old, str) or not isinstance(new, str):
+            raise ValueError("Current and new passwords must be strings")
+        if not 12 <= len(new) <= 1024:
             raise ValueError("Password must be between 12 and 1024 characters")
-        user["salt"] = secrets.token_hex(16)
-        user["password_hash"] = hashlib.pbkdf2_hmac("sha256", new.encode(), bytes.fromhex(user["salt"]), 600000).hex()
-        user["auth_version"] = user.get("auth_version", 1)+1
-        self.store.save("users", user)
+        def rotate(state):
+            user = state.get("users", {}).get(identity["id"])
+            if not user or not user.get("salt"):
+                raise ValueError("This identity does not use a local password; create a local account or manage it at your SSO provider")
+            digest = hashlib.pbkdf2_hmac("sha256", old.encode(), bytes.fromhex(user["salt"]), 600000).hex()
+            if not hmac.compare_digest(digest, user["password_hash"]):
+                raise PermissionError("Current password is incorrect")
+            user["salt"] = secrets.token_hex(16)
+            user["password_hash"] = hashlib.pbkdf2_hmac("sha256", new.encode(), bytes.fromhex(user["salt"]), 600000).hex()
+            user["auth_version"] = user.get("auth_version", 1)+1
+            # Verify and rotate inside the same transaction: concurrent changes
+            # cannot both validate the old hash or reuse an auth version.
+            return user
+        updated = self.store.update(rotate)
+        if renew:
+            # Bind the replacement token to THIS rotation's version. A later
+            # rotation revokes it even if session issuance happens afterwards.
+            return self.issue(updated) | {"changed": True, "reauthenticate": False, "message": "Password updated"}
         return {"changed": True, "reauthenticate": True}
 
     def oidc_config(self):

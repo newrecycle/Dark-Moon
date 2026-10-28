@@ -113,3 +113,13 @@ To include extracted original code and compiled JS in shareable archives, pass `
 ## Essential limits
 
 A binary implementation is not a lossless encoding of the developer's original algorithm, variable names, comments, intended business rules or TypeScript source. `.pyi` and tests document *contracts* and intended outcomes; native binary analysis produces approximate machine-level behavior. To validate exact API results and actual remediation side effects, you need an authorized licensed instance, representative disposable fixtures, and controlled execution. This script deliberately does **not** launch pentests, change records, publish PRs, or attempt to bypass commercial runtime checks. Use the generated acceptance matrix to design explicit, isolated tests for those mutation paths.
+### Focused typed-contract intake
+
+`extract_typed_contracts.py ARCHIVE --output PATH` statically parses selected
+request/remediation text interfaces from the user-supplied audit ZIP. It emits
+model fields, source hashes and line references, preserving erased defaults as
+unknown. Prompt constants are represented only by names/lengths/fingerprints.
+It never imports vendor modules, executes native binaries, or copies commercial
+code/prompt bodies into the output. The 28 October independent implementation
+uses [the generated index](../../docs/pro-audit/2026-10-28/typed-contracts.json)
+as declaration evidence, not runtime compatibility proof.

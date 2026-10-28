@@ -1,0 +1,1486 @@
+{
+  "evidence_level": "static_declarations_only",
+  "genuine_vendor_runtime_executed": false,
+  "vendor_image": "ascit/opencode-darkmoon-pro@sha256:48248382877ec1fd7362d2268656956268129d5ea565befab3a24436ea2fc907",
+  "unknown_defaults_policy": "Ellipses in generated stubs stay unknown; optional annotations do not establish default values or update semantics.",
+  "sources": [
+    {
+      "path": "raw/api/routes_auth.py",
+      "sha256": "e98e084025a92bfa1f2b0b739df8612335460c4a9b0eeab609b2639e40351f15"
+    },
+    {
+      "path": "raw/api/routes_run.pyi",
+      "sha256": "2b0c5a73411a51870d1eed4e4db3e4f2450118d6b2eac55b4dddc917e10158de"
+    },
+    {
+      "path": "raw/api/routes_scheduler.pyi",
+      "sha256": "dc12cd567d61cb259f3f8ac3aaead52c23e327b061792343d063e694af944ad4"
+    },
+    {
+      "path": "raw/api/routes_credentials.pyi",
+      "sha256": "f5569bde93dbae7937099c3a031a099be15300b5be2d83fb6e1d99341a1753b8"
+    },
+    {
+      "path": "raw/api/routes_webhooks.pyi",
+      "sha256": "c1e5c0698b978687447a2494cfe64b5c321dd5e92decba2b6bbf3021a44743a2"
+    },
+    {
+      "path": "raw/api/routes_retest.pyi",
+      "sha256": "3aa080e5cb7c958529bec982ec18e28f8cc52aa4c1265a95b558799d664ea240"
+    },
+    {
+      "path": "raw/remediation/models.pyi",
+      "sha256": "98d0f07b4baad96993fa4bba89d17635fbbf84caf926d10c2e4085502f60ff37"
+    },
+    {
+      "path": "raw/remediation/pipeline.pyi",
+      "sha256": "01bff122a84ed394a7e5e55f500ff022f431f62faecc0946371e1bba123da51b"
+    },
+    {
+      "path": "raw/remediation/patcher.pyi",
+      "sha256": "471300a15080d619fdecac0d0623c94d9f2057ef503ea2f50d11161faba8da63"
+    }
+  ],
+  "models": [
+    {
+      "module": "raw/api/routes_auth.py",
+      "name": "LoginRequest",
+      "line": 130,
+      "bases": [
+        "BaseModel"
+      ],
+      "fields": [
+        {
+          "name": "username",
+          "annotation": "str",
+          "line": 131,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "password",
+          "annotation": "str",
+          "line": 132,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/api/routes_auth.py",
+      "name": "ChangePasswordRequest",
+      "line": 135,
+      "bases": [
+        "BaseModel"
+      ],
+      "fields": [
+        {
+          "name": "current_password",
+          "annotation": "str",
+          "line": 136,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "new_password",
+          "annotation": "str",
+          "line": 137,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/api/routes_run.pyi",
+      "name": "CampaignRunRequest",
+      "line": 31,
+      "bases": [
+        "BaseModel"
+      ],
+      "fields": [
+        {
+          "name": "target",
+          "annotation": "str",
+          "line": 32,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "program",
+          "annotation": "Optional[str]",
+          "line": 33,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "targets",
+          "annotation": "Optional[List[str]]",
+          "line": 34,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "out_of_scope",
+          "annotation": "Optional[List[str]]",
+          "line": 35,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "exclude",
+          "annotation": "Optional[List[str]]",
+          "line": 36,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "focus",
+          "annotation": "Optional[List[str]]",
+          "line": 37,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "credentials",
+          "annotation": "Optional[List[str]]",
+          "line": 38,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "tokens",
+          "annotation": "Optional[List[str]]",
+          "line": 39,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "noise",
+          "annotation": "Optional[str]",
+          "line": 40,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "severity",
+          "annotation": "Optional[str]",
+          "line": 41,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "format",
+          "annotation": "Optional[str]",
+          "line": 42,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "rules",
+          "annotation": "Optional[List[str]]",
+          "line": 43,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "safe_harbor",
+          "annotation": "Optional[str]",
+          "line": 44,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "git_repo",
+          "annotation": "Optional[str]",
+          "line": 45,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "credential_id",
+          "annotation": "Optional[str]",
+          "line": 46,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "create_repo",
+          "annotation": "Optional[bool]",
+          "line": 47,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "remediate",
+          "annotation": "Optional[bool]",
+          "line": 48,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/api/routes_scheduler.pyi",
+      "name": "ScheduledCampaignCreate",
+      "line": 19,
+      "bases": [
+        "BaseModel"
+      ],
+      "fields": [
+        {
+          "name": "name",
+          "annotation": "Optional[str]",
+          "line": 20,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "target",
+          "annotation": "str",
+          "line": 21,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "program",
+          "annotation": "Optional[str]",
+          "line": 22,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "targets",
+          "annotation": "Optional[List[str]]",
+          "line": 23,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "out_of_scope",
+          "annotation": "Optional[List[str]]",
+          "line": 24,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "exclude",
+          "annotation": "Optional[List[str]]",
+          "line": 25,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "focus",
+          "annotation": "Optional[List[str]]",
+          "line": 26,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "credentials",
+          "annotation": "Optional[List[str]]",
+          "line": 27,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "tokens",
+          "annotation": "Optional[List[str]]",
+          "line": 28,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "git_repo",
+          "annotation": "Optional[str]",
+          "line": 29,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "credential_id",
+          "annotation": "Optional[str]",
+          "line": 30,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "create_repo",
+          "annotation": "Optional[bool]",
+          "line": 31,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "remediate",
+          "annotation": "Optional[bool]",
+          "line": 32,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "noise",
+          "annotation": "Optional[str]",
+          "line": 33,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "severity",
+          "annotation": "Optional[str]",
+          "line": 34,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "format",
+          "annotation": "Optional[str]",
+          "line": 35,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "rules",
+          "annotation": "Optional[List[str]]",
+          "line": 36,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "safe_harbor",
+          "annotation": "Optional[str]",
+          "line": 37,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "scheduled_at",
+          "annotation": "str",
+          "line": 38,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "recurrence",
+          "annotation": "Optional[str]",
+          "line": 39,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "recurrence_interval",
+          "annotation": "int",
+          "line": 40,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "enabled",
+          "annotation": "bool",
+          "line": 41,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/api/routes_scheduler.pyi",
+      "name": "ScheduledCampaignUpdate",
+      "line": 44,
+      "bases": [
+        "BaseModel"
+      ],
+      "fields": [
+        {
+          "name": "name",
+          "annotation": "Optional[str]",
+          "line": 45,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "target",
+          "annotation": "Optional[str]",
+          "line": 46,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "program",
+          "annotation": "Optional[str]",
+          "line": 47,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "targets",
+          "annotation": "Optional[List[str]]",
+          "line": 48,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "out_of_scope",
+          "annotation": "Optional[List[str]]",
+          "line": 49,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "exclude",
+          "annotation": "Optional[List[str]]",
+          "line": 50,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "focus",
+          "annotation": "Optional[List[str]]",
+          "line": 51,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "credentials",
+          "annotation": "Optional[List[str]]",
+          "line": 52,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "tokens",
+          "annotation": "Optional[List[str]]",
+          "line": 53,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "git_repo",
+          "annotation": "Optional[str]",
+          "line": 54,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "credential_id",
+          "annotation": "Optional[str]",
+          "line": 55,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "create_repo",
+          "annotation": "Optional[bool]",
+          "line": 56,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "remediate",
+          "annotation": "Optional[bool]",
+          "line": 57,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "noise",
+          "annotation": "Optional[str]",
+          "line": 58,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "severity",
+          "annotation": "Optional[str]",
+          "line": 59,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "format",
+          "annotation": "Optional[str]",
+          "line": 60,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "rules",
+          "annotation": "Optional[List[str]]",
+          "line": 61,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "safe_harbor",
+          "annotation": "Optional[str]",
+          "line": 62,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "scheduled_at",
+          "annotation": "Optional[str]",
+          "line": 63,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "recurrence",
+          "annotation": "Optional[str]",
+          "line": 64,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "recurrence_interval",
+          "annotation": "Optional[int]",
+          "line": 65,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "enabled",
+          "annotation": "Optional[bool]",
+          "line": 66,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/api/routes_credentials.pyi",
+      "name": "CredentialCreate",
+      "line": 13,
+      "bases": [
+        "BaseModel"
+      ],
+      "fields": [
+        {
+          "name": "name",
+          "annotation": "str",
+          "line": 14,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "provider",
+          "annotation": "str",
+          "line": 15,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "fields",
+          "annotation": "Dict[str, Any]",
+          "line": 16,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/api/routes_credentials.pyi",
+      "name": "CredentialUpdate",
+      "line": 19,
+      "bases": [
+        "BaseModel"
+      ],
+      "fields": [
+        {
+          "name": "name",
+          "annotation": "Optional[str]",
+          "line": 20,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "fields",
+          "annotation": "Optional[Dict[str, Any]]",
+          "line": 21,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/api/routes_webhooks.pyi",
+      "name": "WebhookCreate",
+      "line": 13,
+      "bases": [
+        "BaseModel"
+      ],
+      "fields": [
+        {
+          "name": "url",
+          "annotation": "str",
+          "line": 14,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "events",
+          "annotation": "Optional[List[str]]",
+          "line": 15,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "secret",
+          "annotation": "Optional[str]",
+          "line": 16,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "format",
+          "annotation": "str",
+          "line": 17,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/api/routes_retest.pyi",
+      "name": "RetestRequest",
+      "line": 13,
+      "bases": [
+        "BaseModel"
+      ],
+      "fields": [
+        {
+          "name": "target_id",
+          "annotation": "Optional[str]",
+          "line": 14,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "campaign_id",
+          "annotation": "Optional[str]",
+          "line": 15,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "finding_ids",
+          "annotation": "Optional[List[str]]",
+          "line": 16,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "safe_harbor",
+          "annotation": "Optional[str]",
+          "line": 17,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/remediation/models.pyi",
+      "name": "Finding",
+      "line": 10,
+      "bases": [],
+      "fields": [
+        {
+          "name": "id",
+          "annotation": "str",
+          "line": 11,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "title",
+          "annotation": "str",
+          "line": 12,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "severity",
+          "annotation": "str",
+          "line": 13,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "category",
+          "annotation": "str",
+          "line": 14,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "status",
+          "annotation": "str",
+          "line": 15,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "description",
+          "annotation": "str",
+          "line": 16,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "endpoint",
+          "annotation": "str",
+          "line": 17,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "remediation",
+          "annotation": "str",
+          "line": 18,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "cve",
+          "annotation": "Optional[str]",
+          "line": 19,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "evidence",
+          "annotation": "Dict[str, Any]",
+          "line": 20,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/remediation/models.pyi",
+      "name": "CodeLocation",
+      "line": 33,
+      "bases": [],
+      "fields": [
+        {
+          "name": "path",
+          "annotation": "str",
+          "line": 34,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "start_line",
+          "annotation": "int",
+          "line": 35,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "end_line",
+          "annotation": "int",
+          "line": 36,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "snippet",
+          "annotation": "str",
+          "line": 37,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "score",
+          "annotation": "float",
+          "line": 38,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "reason",
+          "annotation": "str",
+          "line": 39,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/remediation/models.pyi",
+      "name": "Patch",
+      "line": 45,
+      "bases": [],
+      "fields": [
+        {
+          "name": "diff",
+          "annotation": "str",
+          "line": 46,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "explanation",
+          "annotation": "str",
+          "line": 47,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "files",
+          "annotation": "List[str]",
+          "line": 48,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "root_cause",
+          "annotation": "str",
+          "line": 49,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "additions",
+          "annotation": "int",
+          "line": 50,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "deletions",
+          "annotation": "int",
+          "line": 51,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/remediation/models.pyi",
+      "name": "GateResult",
+      "line": 59,
+      "bases": [],
+      "fields": [
+        {
+          "name": "name",
+          "annotation": "str",
+          "line": 60,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "passed",
+          "annotation": "bool",
+          "line": 61,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "detail",
+          "annotation": "str",
+          "line": 62,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "evidence",
+          "annotation": "Dict[str, Any]",
+          "line": 63,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/remediation/models.pyi",
+      "name": "ValidationResult",
+      "line": 69,
+      "bases": [],
+      "fields": [
+        {
+          "name": "reproduced",
+          "annotation": "bool",
+          "line": 70,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "gates",
+          "annotation": "List[GateResult]",
+          "line": 71,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "confidence",
+          "annotation": "float",
+          "line": 72,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/remediation/models.pyi",
+      "name": "PRResult",
+      "line": 81,
+      "bases": [],
+      "fields": [
+        {
+          "name": "provider",
+          "annotation": "str",
+          "line": 82,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "repo",
+          "annotation": "str",
+          "line": 83,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "url",
+          "annotation": "str",
+          "line": 84,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "number",
+          "annotation": "Optional[int]",
+          "line": 85,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "branch",
+          "annotation": "str",
+          "line": 86,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "base",
+          "annotation": "str",
+          "line": 87,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "state",
+          "annotation": "str",
+          "line": 88,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "error",
+          "annotation": "str",
+          "line": 89,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/remediation/models.pyi",
+      "name": "RemediationOutcome",
+      "line": 95,
+      "bases": [],
+      "fields": [
+        {
+          "name": "finding_id",
+          "annotation": "str",
+          "line": 96,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "finding_title",
+          "annotation": "str",
+          "line": 97,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "status",
+          "annotation": "str",
+          "line": 98,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "patch",
+          "annotation": "Optional[Patch]",
+          "line": 99,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "validation",
+          "annotation": "Optional[ValidationResult]",
+          "line": 100,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "pr",
+          "annotation": "Optional[PRResult]",
+          "line": 101,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "attempts",
+          "annotation": "int",
+          "line": 102,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "message",
+          "annotation": "str",
+          "line": 103,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/remediation/pipeline.pyi",
+      "name": "ReproPlan",
+      "line": 16,
+      "bases": [],
+      "fields": [
+        {
+          "name": "spec",
+          "annotation": "Any",
+          "line": 17,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "exploit",
+          "annotation": "Probe",
+          "line": 18,
+          "default": {
+            "known": true,
+            "kind": "no_default_declaration"
+          }
+        },
+        {
+          "name": "variants",
+          "annotation": "List[Probe]",
+          "line": 19,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "normal",
+          "annotation": "List[Probe]",
+          "line": 20,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "test_command",
+          "annotation": "str",
+          "line": 21,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    },
+    {
+      "module": "raw/remediation/pipeline.pyi",
+      "name": "RemediationConfig",
+      "line": 25,
+      "bases": [],
+      "fields": [
+        {
+          "name": "campaign_id",
+          "annotation": "str",
+          "line": 26,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "repo",
+          "annotation": "str",
+          "line": 27,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "provider",
+          "annotation": "str",
+          "line": 28,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "credential_fields",
+          "annotation": "Dict[str, str]",
+          "line": 29,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "create_repo",
+          "annotation": "bool",
+          "line": 30,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "dry_run",
+          "annotation": "bool",
+          "line": 31,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "work_dir",
+          "annotation": "str",
+          "line": 32,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "base_branch",
+          "annotation": "str",
+          "line": 33,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "max_attempts",
+          "annotation": "int",
+          "line": 34,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "min_confidence",
+          "annotation": "float",
+          "line": 35,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "link",
+          "annotation": "bool",
+          "line": 36,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        },
+        {
+          "name": "author_email",
+          "annotation": "str",
+          "line": 37,
+          "default": {
+            "known": false,
+            "reason": "erased_in_stub"
+          }
+        }
+      ]
+    }
+  ],
+  "prompt_constants_metadata_only": [
+    {
+      "name": "_PATCH_SYSTEM",
+      "source": "raw/remediation/patcher.pyi",
+      "line": 33,
+      "text_recovered": true,
+      "characters": 1472,
+      "sha256": "0a8af77dfabf537e5fd5035765bac90e1c823d4898ee8533b42e7014375e8543"
+    },
+    {
+      "name": "_JUDGE_SYSTEM",
+      "source": "raw/remediation/patcher.pyi",
+      "line": 80,
+      "text_recovered": true,
+      "characters": 393,
+      "sha256": "2a72fc932ba352863447deafb66e143abd0080d0ef7543f72eda0e8624e9c1dc"
+    }
+  ]
+}

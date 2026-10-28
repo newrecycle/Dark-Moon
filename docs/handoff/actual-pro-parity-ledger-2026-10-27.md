@@ -50,3 +50,12 @@ Status: **D** observed difference; **N** no exact route found; **P** present/par
 ## Things not proven by extracted image
 
 Original Angular TypeScript source, original native Python logic, live licensed Pro API behavior, commercial remediation success, VR hardware experience and production auth/security configuration have not been recovered/tested. Do not label these verified merely because their compiled modules or public product descriptions exist.
+
+## 28 October implementation continuation
+
+The table above remains the static baseline. The [dated implementation record](../pro-audit/2026-10-28/compatibility-progress.md)
+tracks the first fork-tested API01/API02 method/input aliases and API03's
+version-protected PUT method. Original flat schedule payloads and authentic
+vendor runtime comparison remain open. [Typed declarations and unknown defaults](../pro-audit/2026-10-28/typed-contracts.json)
+are now independently indexed with source hashes; no vendor binaries, prompt
+bodies or raw commercial assets were added to this public repository.
