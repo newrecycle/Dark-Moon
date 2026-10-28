@@ -130,8 +130,15 @@ def native():
         endpoint = base + "/job/darkmoon-native/" + str(before)
         result = eventually(lambda: (lambda info: info if info and not info["building"] else None)(
             safe_json(endpoint + "/api/json?tree=number,building,result")))
-        assert result["result"] == expected, (scenario, result)
         log = http(endpoint + "/consoleText").decode("utf-8", errors="replace")
+        if result["result"] != expected:
+            safe_log = log
+            for forbidden in FORBIDDEN:
+                safe_log = safe_log.replace(forbidden, "[REDACTED]")
+            print("NATIVE_BUILD_MISMATCH scenario=" + scenario +
+                  " expected=" + expected + " actual=" + str(result["result"]) +
+                  "\n" + safe_log[-7000:], flush=True)
+            raise AssertionError(("unexpected Pipeline result", scenario, result))
         for forbidden in FORBIDDEN:
             assert forbidden not in log, ("secret leaked to build log", scenario, forbidden)
         assert "dm-agent" in log or "Running on" in log, ("not a remote Pipeline agent", scenario)
