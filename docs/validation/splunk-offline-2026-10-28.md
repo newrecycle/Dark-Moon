@@ -50,3 +50,10 @@ job failed before tests during full repository checkout because an unrelated
 SDK report fixture includes a colon in its filename. Its new sparse checkout
 selects only `integrations/upstream/splunk`; no SDK file is renamed or omitted
 from the Linux job. Windows test success remains pending the corrected run.
+
+The [sparse-checkout attempt 40765816714](https://github.com/newrecycle/Dark-Moon/actions/runs/40765816714)
+again passed Linux, but Windows Git rejected the unrelated tree path even with
+sparse checkout, before any tests ran. The corrected job now consumes only the
+portable Splunk source artifact produced by its successful Linux job in the
+same workflow. It does not disable NTFS protections or alter other integrations.
+Windows test success remains pending the artifact-based run.

@@ -30,20 +30,29 @@ jobs:
         run: node --test integrations/upstream/splunk/test/setup_contract.cjs
       - name: Preserve legacy alert guard coverage
         run: python integrations/upstream/splunk/test/test_alert_action.py
+      - name: Stage the tested portable source for Windows
+        run: tar --exclude=__pycache__ --exclude=dist --exclude=local -czf "$RUNNER_TEMP/splunk-test-source.tar.gz" -C integrations/upstream/splunk .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: splunk-test-source
+          path: ${{ runner.temp }}/splunk-test-source.tar.gz
+          retention-days: 3
   windows-alert-contracts:
+    needs: offline-contracts
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          sparse-checkout: integrations/upstream/splunk
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: splunk-test-source
+      - name: Extract only the tested Splunk subtree
+        run: python -c "import tarfile; tarfile.open('splunk-test-source.tar.gz').extractall('integrations/upstream/splunk', filter='data')"
       - name: Verify Windows alert and process-serialized quota
         run: python -m unittest discover -s integrations/upstream/splunk/test -p test_alert_contract.py -v
       - name: Verify setup callback and rotation contract
