@@ -70,7 +70,7 @@ jobs:
             -v "$PWD/integrations/upstream/grafana/plugin/dist:/var/lib/grafana/plugins/darkmoon-securityposture-app:ro" \
             -v "$RUNNER_TEMP/ds.yaml:/etc/grafana/provisioning/datasources/dm.yaml:ro" \
             -v "$RUNNER_TEMP/app.yaml:/etc/grafana/provisioning/plugins/dm.yaml:ro" \
-            grafana/grafana-oss:13.1.0
+            grafana/grafana:13.1
           for n in $(seq 1 100); do
             if curl -fsS --max-time 2 http://127.0.0.1:3009/api/health > "$RUNNER_TEMP/grafana-health.json"; then break; fi
             sleep 2
