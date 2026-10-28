@@ -8,6 +8,7 @@ export type DarkmoonQueryType =
   | 'targets'
   | 'timeseries'
   | 'pullrequests'
+  | 'remediation'
   | 'retest';
 
 export interface DarkmoonQuery extends DataQuery {

@@ -129,10 +129,17 @@ public class DarkmoonCliRunner {
         return exec(args);
     }
 
+    public Exec status(@NonNull String campaignId) throws IOException, InterruptedException {
+        List<String> args = base();
+        args.add("status"); args.add(campaignId); addBackend(args); args.add("--json");
+        return exec(args);
+    }
+
     private List<String> base() {
+        if (options.commandTokens != null) return new ArrayList<>(options.commandTokens);
         // cliPath may be "darkmoon-ci" or "node /path/darkmoon-ci.cjs".
         List<String> args = new ArrayList<>();
-        for (String tok : options.cliPath.trim().split("\\s+")) {
+        for (String tok : hudson.Util.tokenize(options.cliPath)) {
             if (!tok.isBlank()) {
                 args.add(tok);
             }
@@ -161,7 +168,7 @@ public class DarkmoonCliRunner {
         }
     }
 
-    /** In-memory accumulator for the internal CLI log (stderr + stdout), flushed to file each exec. */
+    /** Lifecycle metadata only; CLI bodies are never copied to an archived log. */
     private final StringBuilder logBuffer = new StringBuilder();
 
     private Exec exec(List<String> args) throws IOException, InterruptedException {
@@ -179,37 +186,48 @@ public class DarkmoonCliRunner {
             env.put("DARKMOON_PRO_URL", options.apiUrl);
         }
 
-        listener.getLogger().println("[darkmoon] $ " + cmd.toString());
+        String operation = args.size() > base().size() ? args.get(base().size()) : "command";
+        listener.getLogger().println("[darkmoon] Running " + operation);
 
-        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        // stdout -> captured string (machine JSON); stderr -> internal log only.
+        BoundedCapture stdout = new BoundedCapture();
+        // stdout is bounded machine JSON; raw stderr is discarded.
         Proc proc = launcher.launch()
                 .cmds(cmd)
                 .envs(env)
                 .pwd(workspace)
                 .stdout(stdout)
-                .stderr(stderr)
+                .stderr(java.io.OutputStream.nullOutputStream())
                 .start();
         int code;
         if (options.timeoutSeconds > 0) {
             code = proc.joinWithTimeout(
                     (long) options.timeoutSeconds + 120L, TimeUnit.SECONDS, listener);
         } else {
-            code = proc.join();
+            code = proc.joinWithTimeout("run".equals(operation) ? 3600L : 60L, TimeUnit.SECONDS, listener);
         }
-        String outStr = stdout.toString(StandardCharsets.UTF_8);
-        String errStr = stderr.toString(StandardCharsets.UTF_8);
-
-        // Accumulate an internal, archived record (secret-scrubbed by the CLI itself).
-        logBuffer.append("\n$ ").append(cmd.toString()).append(" (exit=").append(code).append(")\n");
-        if (!errStr.isEmpty()) {
-            logBuffer.append("--- stderr ---\n").append(errStr).append('\n');
-        }
-        logBuffer.append("--- stdout ---\n").append(outStr).append('\n');
+        if (stdout.truncated) throw new IOException("CLI response exceeded the size limit; result is unavailable");
+        String outStr = stdout.content();
+        // Keep lifecycle metadata only. Finding bodies and arbitrary CLI error
+        // text are not safe merely because they are called an internal log.
+        logBuffer.append(operation).append(" exit=").append(code).append('\n');
         logFile().write(logBuffer.toString(), "UTF-8");
 
         return new Exec(code, outStr);
+    }
+
+    private static final class BoundedCapture extends java.io.OutputStream {
+        private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        private static final int LIMIT = 8 * 1024 * 1024;
+        volatile boolean truncated;
+        @Override public synchronized void write(int value) {
+            if (bytes.size() < LIMIT) bytes.write(value); else truncated = true;
+        }
+        @Override public synchronized void write(byte[] value, int offset, int length) {
+            int count = Math.min(length, LIMIT - bytes.size());
+            if (count < length) truncated = true;
+            if (count > 0) bytes.write(value, offset, count);
+        }
+        synchronized String content() { return bytes.toString(StandardCharsets.UTF_8); }
     }
 
     private String relative(FilePath file) {
@@ -232,6 +250,7 @@ public class DarkmoonCliRunner {
     /** Immutable configuration for a runner instance. */
     public static final class Options {
         final String cliPath;
+        final List<String> commandTokens;
         final String target;
         final String mode;
         final String apiUrl;
@@ -246,6 +265,7 @@ public class DarkmoonCliRunner {
 
         private Options(Builder b) {
             this.cliPath = (b.cliPath == null || b.cliPath.isBlank()) ? "darkmoon-ci" : b.cliPath;
+            this.commandTokens = b.commandTokens == null ? null : List.copyOf(b.commandTokens);
             this.target = b.target;
             this.mode = (b.mode == null || b.mode.isBlank()) ? "auto" : b.mode;
             this.apiUrl = b.apiUrl;
@@ -265,6 +285,7 @@ public class DarkmoonCliRunner {
 
         public static final class Builder {
             private String cliPath;
+            private List<String> commandTokens;
             private String target;
             private String mode;
             private String apiUrl;
@@ -281,6 +302,8 @@ public class DarkmoonCliRunner {
                 this.cliPath = v;
                 return this;
             }
+
+            public Builder commandTokens(List<String> value) { this.commandTokens = value; return this; }
 
             public Builder target(String v) {
                 this.target = v;

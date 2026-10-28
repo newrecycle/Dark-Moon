@@ -30,6 +30,8 @@ class ReportsPanel(private val project: Project) : JPanel(BorderLayout()) {
         wrapStyleWord = true
     }
     private var campaignId: String? = null
+    private var selection = 0L
+    private val reveal = LocalReveal(project, this) { preview() }
 
     init {
         val toolbar = JToolBar().apply {
@@ -41,20 +43,29 @@ class ReportsPanel(private val project: Project) : JPanel(BorderLayout()) {
         }
         add(toolbar, BorderLayout.NORTH)
         add(JBScrollPane(area), BorderLayout.CENTER)
-        loadRedactedButton.addActionListener { campaignId?.let { load(it, full = false) } }
+        loadRedactedButton.addActionListener { reveal.revoke(); preview() }
         openFullButton.addActionListener { campaignId?.let { confirmFull(it) } }
     }
 
-    fun setCampaign(id: String?, target: String?) {
+    fun setCampaign(id: String?, @Suppress("UNUSED_PARAMETER") target: String?) {
+        selection++
+        reveal.revoke()
         campaignId = id
         loadRedactedButton.isEnabled = id != null
         openFullButton.isEnabled = id != null
         area.text = ""
         status.text = if (id == null) "Select a campaign in the Campaigns tab."
-        else "Campaign $id${target?.let { " — $it" } ?: ""}"
+        else "Campaign $id"
+        preview()
     }
 
     private fun confirmFull(id: String) {
+        if (!reveal.eligible()) {
+            Messages.showWarningDialog(project, "Full reports require a trusted, focused local IDE window.", "Report Hidden")
+            return
+        }
+        val expected = reveal.origin()
+        val version = selection
         val ok = Messages.showYesNoDialog(
             project,
             "The full report contains rehydrated real values (hosts, extracted data, evidence). " +
@@ -63,30 +74,45 @@ class ReportsPanel(private val project: Project) : JPanel(BorderLayout()) {
             "Open Locally", "Cancel",
             Messages.getWarningIcon(),
         )
-        if (ok == Messages.YES) load(id, full = true)
+        if (ok == Messages.YES && version == selection && campaignId == id) reveal.issue(id, expected)?.let { load(id, version, it) }
     }
 
-    private fun load(id: String, full: Boolean) {
+    private fun preview() {
+        val id = campaignId
+        val campaign = DarkmoonProjectService.getInstance(project).campaigns.firstOrNull { it.id == id }
+        area.text = if (campaign == null) "Refresh and select a campaign to view current summary metadata." else buildString {
+            append("Campaign ").append(campaign.id).append("\nStatus: ").append(campaign.status.wire)
+            val counts = campaign.severity
+            append("\nRetained summary counts: critical=").append(counts.critical).append(", high=").append(counts.high)
+            append(", medium=").append(counts.medium).append(", low=").append(counts.low).append(", info=").append(counts.info)
+            append("\n\nDetailed report text and evidence are hidden. Explicit local reveal expires after at most 60 seconds.")
+        }
+        area.caretPosition = 0
+        status.text = "Report summary — detailed text hidden"
+    }
+
+    private fun load(id: String, version: Long, grant: LocalReveal.Grant) {
         val service = DarkmoonProjectService.getInstance(project)
+        val connection = service.connectionStamp()
         object : Task.Backgroundable(project, "Loading Darkmoon report", true) {
             private var report: Report? = null
-            private var error: String? = null
             override fun run(indicator: ProgressIndicator) {
-                try { report = service.report(id, full) }
-                catch (e: Exception) { error = e.message ?: e.javaClass.simpleName }
+                try { report = service.report(id, true, connection) } catch (_: Exception) { report = null }
             }
             override fun onSuccess() {
-                val r = report
-                when {
-                    r == null -> { area.text = "Failed to load report: ${error ?: "unknown error"}" }
-                    !r.ready -> { area.text = "No report is available for this campaign yet."; status.text = "Report not ready" }
-                    else -> {
-                        area.text = r.content
-                        area.caretPosition = 0
-                        status.text = if (r.redacted) "Redaction-safe report" else "FULL report (local only)"
-                    }
+                val result = report
+                report = null
+                if (project.isDisposed || selection != version || campaignId != id || !reveal.valid(grant)) return
+                if (result == null || !result.ready || result.campaignId != id) {
+                    reveal.revoke()
+                    status.text = "Report unavailable for this selection and connection"
+                    return
                 }
+                area.text = result.content
+                area.caretPosition = 0
+                status.text = if (result.redacted) "Backend returned a redacted report" else "Full report — expires within 60 seconds"
             }
+            override fun onCancel() { if (selection == version) reveal.revoke() }
         }.queue()
     }
 }

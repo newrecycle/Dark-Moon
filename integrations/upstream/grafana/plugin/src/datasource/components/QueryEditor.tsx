@@ -13,6 +13,7 @@ const QUERY_TYPES: Array<SelectableValue<DarkmoonQueryType>> = [
   { label: 'Targets', value: 'targets' },
   { label: 'Time series', value: 'timeseries' },
   { label: 'Pull requests', value: 'pullrequests' },
+  { label: 'Local Remediation Proposals', value: 'remediation' },
   { label: 'Retest', value: 'retest' },
 ];
 
@@ -79,15 +80,15 @@ export function QueryEditor({ query, onChange, onRunQuery }: Props) {
       {queryType === 'timeseries' && (
         <Stack gap={1} wrap="wrap">
           <InlineField label="Metric" labelWidth={16}>
-            <Input id="q-metric" value={query.metric ?? ''} onChange={onText('metric')} placeholder="vulnerabilities_over_time" width={30} />
+            <Input id="q-metric" value={query.metric ?? ''} onChange={onText('metric')} placeholder="severity" width={30} />
           </InlineField>
           <InlineField label="Group by" labelWidth={16}>
-            <Input id="q-group" value={query.group ?? ''} onChange={onText('group')} placeholder="severity" width={24} />
+            <Input id="q-group" value={query.group ?? ''} onChange={onText('group')} placeholder="day" width={24} />
           </InlineField>
         </Stack>
       )}
 
-      {queryType === 'pullrequests' && (
+      {(queryType === 'pullrequests' || queryType === 'remediation') && (
         <InlineField label="Campaign ID" labelWidth={16}>
           <Input id="q-pr-campaign" value={query.campaign_id ?? ''} onChange={onText('campaign_id')} width={24} />
         </InlineField>

@@ -87,3 +87,34 @@ the pending lifecycle validation above. Patched SDK/Action/VS Code checkpoint
 1ac3a8d also passed hosted SDK/CLI, consumer snapshot, bundled Action and real-fork
 HTTP acceptance, both regression gates and browser acceptance. These are fork
 results; no commercial Pro runtime was executed.
+
+Native VS Code run 40647818948 built the editor/extension successfully but the
+initial host invocation has not exited within the expected test duration. A driver
+follow-up remains deferred in the working tree: direct cached-executable launch,
+a 240-second deadline, startup/extension logs and removal of the helper's implicit
+`--disable-workspace-trust`. Native success is still pending.
+
+## Integration-first continuation (28 October)
+
+User direction: **focus on integrations now; tests later**. Further test expansion,
+native-host debugging and test execution were paused. The implementation batch
+below is source-reviewed and syntax-checked where the local tools support it,
+not type/build/native validated. Earlier passing evidence does not validate it.
+
+| Consumer | Integration implementation | Later verification boundary |
+| --- | --- | --- |
+| JetBrains | Bundled bridge + patched SDK default; real OSS directory configuration; full reference forwarding, safe subprocess failures, bounded output/processes; trusted-local expiring reveal; selection/connection/credential binding | Kotlin compilation, platform API compatibility, packaging, UI and subprocess lifecycle |
+| Jenkins | Bundled CLI on agent; exact completed campaign plus strict findings; fetched-result gates; constrained artifact/log/argument handling; safe SARIF | Maven/HPI build and Jenkins native step/artifact behavior |
+| Grafana | Live datasource-backed app pages and config; posture/legacy adaptation; published PR vs local-proposal views; retest status; typed safe frames and aligned sparse trends; nested logo packaging | Frontend types/build, Go formatting/build, datasource/app/native host behavior |
+| Splunk | Typed identity-preserving projections; strict REST/HEC errors; saved-target resolution for retests; no redirects; serialized quota state; local-proposal sourcetype | Mapping/transport/concurrency behavior and a permitted host |
+| Action | Follow-up removes free-form bodies from JSON artifacts and URL query/fragment data from endpoint output | Artifact regression coverage |
+
+Direct Splunk HEC webhook format was previously advertised although this fork's
+dispatcher always emitted signed Darkmoon envelopes. Unsupported formats are
+now rejected explicitly. The authenticated HEC forwarder is the supported path;
+a separate HEC token is not replaced by a webhook signing secret.
+
+See [implementation detail](integration-implementation-progress.md). Original
+commercial wire parity, credential field/owner semantics, the broader static
+API discrepancy backlog and server-wide evidence policy remain separate open
+items. No vendor binaries, real assessments or external notifications ran.

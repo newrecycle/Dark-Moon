@@ -6,6 +6,7 @@ import com.intellij.credentialStore.generateServiceName
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.ide.passwordSafe.PasswordSafe
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Stores the Darkmoon Pro JWT in the IDE's PasswordSafe. The token never touches
@@ -15,6 +16,9 @@ import com.intellij.ide.passwordSafe.PasswordSafe
  * asserts that and is only ever called from pooled/background threads.
  */
 class DarkmoonSecretService {
+
+    private val generation = AtomicLong()
+    val revision: Long get() = generation.get()
 
     private val attributes: CredentialAttributes =
         CredentialAttributes(generateServiceName("Darkmoon", "pro-token"))
@@ -31,7 +35,7 @@ class DarkmoonSecretService {
         return try {
             PasswordSafe.instance.getPassword(attributes)
         } catch (e: Exception) {
-            thisLogger().warn("Failed to read Darkmoon token from PasswordSafe", e)
+            thisLogger().warn("Failed to read Darkmoon token from PasswordSafe")
             null
         }
     }
@@ -39,6 +43,7 @@ class DarkmoonSecretService {
     /** Stores (or clears, when null/blank) the Pro token. Off-EDT only. */
     fun setToken(token: String?) {
         assertOffEdt()
+        generation.incrementAndGet()
         try {
             if (token.isNullOrBlank()) {
                 PasswordSafe.instance.set(attributes, null)
@@ -46,7 +51,7 @@ class DarkmoonSecretService {
                 PasswordSafe.instance.set(attributes, Credentials(null, token))
             }
         } catch (e: Exception) {
-            thisLogger().warn("Failed to persist Darkmoon token to PasswordSafe", e)
+            thisLogger().warn("Failed to persist Darkmoon token to PasswordSafe")
         }
     }
 

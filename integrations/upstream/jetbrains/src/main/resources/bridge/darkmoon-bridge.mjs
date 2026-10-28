@@ -53,23 +53,20 @@ function readStdin() {
 }
 
 async function main() {
-  const spec = process.env.DARKMOON_CLIENT_MODULE || "@darkmoon/client";
+  const spec = process.env.DARKMOON_CLIENT_MODULE || new URL("./client/index.mjs", import.meta.url).href;
   const { DarkmoonClient } = await import(spec);
 
-  const client = new DarkmoonClient({
-    mode: flags.mode || process.env.DARKMOON_MODE || "auto",
-    pro: {
-      baseUrl: flags["base-url"] || process.env.DARKMOON_PRO_URL,
-      token: process.env.DARKMOON_TOKEN,
-      refuseInsecureDefault: false, // surface as a Capabilities.warning, don't throw
-    },
-    oss: {
-      dataDir: process.env.DARKMOON_OSS_DATA_DIR,
-      reportsDir: process.env.DARKMOON_OSS_REPORTS_DIR,
-    },
-  });
+  const config = { mode: flags.mode || process.env.DARKMOON_MODE || "auto" };
+  const baseUrl = flags["base-url"] || process.env.DARKMOON_PRO_URL;
+  if (baseUrl) config.pro = { baseUrl, token: process.env.DARKMOON_TOKEN, refuseInsecureDefault: true };
+  if (process.env.DARKMOON_OSS_DATA_DIR) config.oss = {
+    dataDir: process.env.DARKMOON_OSS_DATA_DIR,
+    reportsDir: process.env.DARKMOON_OSS_REPORTS_DIR,
+  };
+  const client = new DarkmoonClient(config);
 
   const cmd = pos[0];
+  const campaignRef = id => flags.correlation ? JSON.parse(flags.correlation) : id;
   const evidenceOpts = {
     includeEvidence: !!flags["include-evidence"],
     full: !!flags.full,
@@ -84,12 +81,12 @@ async function main() {
     if (flags["target-id"]) filter.targetId = flags["target-id"];
     out(await client.listCampaigns(filter));
   } else if (cmd === "campaign" && pos[1] === "get") {
-    out(await client.getCampaign(pos[2]));
+    out(await client.getCampaign(campaignRef(pos[2])));
   } else if (cmd === "campaign" && pos[1] === "status") {
     const ref = flags.correlation ? JSON.parse(flags.correlation) : pos[2];
     out(await client.getCampaignStatus(ref));
   } else if (cmd === "summary") {
-    out(await client.getSeveritySummary(pos[1]));
+    out(await client.getSeveritySummary(campaignRef(pos[1])));
   } else if (cmd === "findings" && pos[1] === "list") {
     const filter = {};
     if (flags.campaign) filter.campaignId = flags.campaign;
@@ -103,12 +100,12 @@ async function main() {
     out(await client.getFinding(pos[2], evidenceOpts));
   } else if (cmd === "report") {
     const opts = { full: !!flags.full, private: !!flags.private };
-    out(await client.getReport(pos[1], opts));
+    out(await client.getReport(campaignRef(pos[1]), opts));
   } else if (cmd === "launch") {
     const input = JSON.parse((await readStdin()) || "{}");
     out(await client.launchCampaign(input));
   } else if (cmd === "stream") {
-    for await (const ev of client.streamProgress(pos[1])) {
+    for await (const ev of client.streamProgress(campaignRef(pos[1]))) {
       process.stdout.write(JSON.stringify(stripRaw(ev)) + "\n");
     }
   } else {
@@ -119,6 +116,6 @@ async function main() {
 
 main().catch((err) => {
   // Errors are secret-scrubbed by the library; print the code/message only.
-  process.stderr.write("darkmoon-bridge error: " + (err && (err.code || err.message) || err) + "\n");
+  process.stderr.write("darkmoon-bridge error: " + (typeof err?.code === "string" && /^[A-Z_]+$/.test(err.code) ? err.code : "BRIDGE_FAILURE") + "\n");
   process.exit(1);
 });

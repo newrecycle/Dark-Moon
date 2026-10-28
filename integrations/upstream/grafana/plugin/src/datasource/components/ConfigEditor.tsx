@@ -24,7 +24,7 @@ export function ConfigEditor(props: Props) {
   };
 
   const onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onOptionsChange({ ...options, secureJsonData: { darkmoonToken: event.target.value } });
+    onOptionsChange({ ...options, secureJsonData: { ...options.secureJsonData, darkmoonToken: event.target.value } });
   };
 
   const onResetToken = () => {
@@ -46,7 +46,7 @@ export function ConfigEditor(props: Props) {
           width={48}
         />
       </InlineField>
-      <InlineField label="Mode" labelWidth={18} interactive tooltip={'auto detects the edition from the API; force OSS or Pro if needed'}>
+      <InlineField label="Mode" labelWidth={18} interactive tooltip={'Edition label for the REST installation. Every mode requires a reachable HTTP API.'}>
         <Select
           inputId="config-editor-mode"
           options={MODE_OPTIONS}
@@ -55,12 +55,12 @@ export function ConfigEditor(props: Props) {
           width={48}
         />
       </InlineField>
-      <InlineField label="API token" labelWidth={18} interactive tooltip={'Pro bearer token / JWT. Stored encrypted and only sent to the backend.'}>
+      <InlineField label="API token" labelWidth={18} interactive tooltip={'Dedicated Darkmoon account token. Stored encrypted and sent only by the backend to the configured API.'}>
         <SecretInput
           id="config-editor-token"
           isConfigured={secureJsonFields?.darkmoonToken}
           value={secureJsonData?.darkmoonToken}
-          placeholder="Bearer token (leave empty for OSS)"
+          placeholder="Darkmoon API bearer token"
           width={48}
           onReset={onResetToken}
           onChange={onTokenChange}

@@ -1,5 +1,6 @@
 package fr.ascit.darkmoon.jetbrains.settings
 
+import fr.ascit.darkmoon.client.ClientMode
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.ComboBox
@@ -25,6 +26,8 @@ class DarkmoonSettingsConfigurable : Configurable {
     private val baseUrlField = JBTextField()
     private val cliCommandField = JBTextField()
     private val workingDirField = JBTextField()
+    private val ossDataDirField = JBTextField()
+    private val ossReportsDirField = JBTextField()
     private val tokenField = JBPasswordField()
     private val growthCtaCheckbox = JCheckBox("Show the one-time GitHub star suggestion after the first findings")
 
@@ -47,9 +50,11 @@ class DarkmoonSettingsConfigurable : Configurable {
             .addLabeledComponent(JBLabel("Mode:"), modeCombo, 1, false)
             .addLabeledComponent(JBLabel("Pro base URL:"), baseUrlField, 1, false)
             .addComponentToRightColumn(JBLabel("Leave empty for OSS. Example: https://darkmoon.example.com"))
-            .addLabeledComponent(JBLabel("darkmoon-ci command:"), cliCommandField, 1, false)
-            .addComponentToRightColumn(JBLabel("On PATH, or e.g. \"node /opt/darkmoon/cli.cjs\""))
+            .addLabeledComponent(JBLabel("Bridge command:"), cliCommandField, 1, false)
+            .addComponentToRightColumn(JBLabel("Use bundled for the packaged bridge; custom commands must support the full GUI grammar."))
             .addLabeledComponent(JBLabel("Working directory:"), workingDirField, 1, false)
+            .addLabeledComponent(JBLabel("OSS data directory:"), ossDataDirField, 1, false)
+            .addLabeledComponent(JBLabel("OSS reports directory:"), ossReportsDirField, 1, false)
             .addLabeledComponent(JBLabel("Pro token (JWT):"), tokenField, 1, false)
             .addComponentToRightColumn(JBLabel("Stored in the IDE PasswordSafe, never in plugin settings."))
             .addComponent(growthCtaCheckbox)
@@ -69,15 +74,19 @@ class DarkmoonSettingsConfigurable : Configurable {
             baseUrlField.text != s.baseUrl ||
             cliCommandField.text != s.cliCommand ||
             workingDirField.text != s.workingDir ||
+            ossDataDirField.text != s.ossDataDir ||
+            ossReportsDirField.text != s.ossReportsDir ||
             growthCtaCheckbox.isSelected != s.growthCtaEnabled
     }
 
     override fun apply() {
         val s = DarkmoonSettings.getInstance()
-        s.state.mode = (modeCombo.selectedItem as? String) ?: "auto"
+        s.mode = when (modeCombo.selectedItem) { "oss" -> ClientMode.OSS; "pro" -> ClientMode.PRO; else -> ClientMode.AUTO }
         s.baseUrl = baseUrlField.text
         s.cliCommand = cliCommandField.text
         s.workingDir = workingDirField.text
+        s.ossDataDir = ossDataDirField.text
+        s.ossReportsDir = ossReportsDirField.text
         s.growthCtaEnabled = growthCtaCheckbox.isSelected
         if (tokenTouched) {
             val token = String(tokenField.password)
@@ -95,6 +104,8 @@ class DarkmoonSettingsConfigurable : Configurable {
         baseUrlField.text = s.baseUrl
         cliCommandField.text = s.cliCommand
         workingDirField.text = s.workingDir
+        ossDataDirField.text = s.ossDataDir
+        ossReportsDirField.text = s.ossReportsDir
         growthCtaCheckbox.isSelected = s.growthCtaEnabled
         tokenField.text = ""
         tokenTouched = false
@@ -103,8 +114,10 @@ class DarkmoonSettingsConfigurable : Configurable {
             val token = DarkmoonSecretService.getInstance().getToken()
             if (token != null) {
                 ApplicationManager.getApplication().invokeLater {
-                    tokenField.text = token
-                    tokenTouched = false
+                    if (!tokenTouched && panel != null) {
+                        tokenField.text = token
+                        tokenTouched = false
+                    }
                 }
             }
         }

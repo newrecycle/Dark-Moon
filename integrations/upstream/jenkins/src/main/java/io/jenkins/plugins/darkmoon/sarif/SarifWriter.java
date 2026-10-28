@@ -15,7 +15,7 @@ import java.util.Map;
  *
  * <p>This is the plugin's finding-to-issue mapping. Only redaction-safe fields are
  * emitted (title, category, severity, CVSS score/vector, MITRE ATT&amp;CK id,
- * endpoint, description, remediation) — never evidence, raw requests/responses or
+ * endpoint paths) — never free-form descriptions, remediation, raw requests/responses or
  * extracted data (§4 threat model). SARIF {@code level} is derived from severity:
  * critical/high -&gt; error, medium -&gt; warning, low/info -&gt; note.
  */
@@ -61,7 +61,7 @@ public final class SarifWriter {
             rule.put("id", e.getKey());
             rule.put("name", safeName(category, e.getKey()));
             rule.putObject("shortDescription").put("text", nonNull(category, e.getKey()));
-            rule.putObject("fullDescription").put("text", nonNull(f.getDescription(), nonNull(f.getTitle(), e.getKey())));
+            rule.putObject("fullDescription").put("text", nonNull(f.getTitle(), e.getKey()));
             rule.put("helpUri", INFO_URI);
             ObjectNode rprops = rule.putObject("properties");
             ArrayNode tags = rprops.putArray("tags");
@@ -92,7 +92,7 @@ public final class SarifWriter {
             // warnings-ng always has something to group on.
             ArrayNode locations = res.putArray("locations");
             ObjectNode loc = locations.addObject();
-            String where = nonNull(f.getEndpoint(), nonNull(f.getCategory(), "darkmoon"));
+            String where = endpointPath(f.getEndpoint());
             ObjectNode physical = loc.putObject("physicalLocation");
             physical.putObject("artifactLocation").put("uri", toUri(where));
             physical.putObject("region").put("startLine", 1);
@@ -140,11 +140,17 @@ public final class SarifWriter {
         if (cvss != null) {
             sb.append(" (CVSS ").append(cvss).append(')');
         }
-        String rem = f.getRemediation();
-        if (rem != null && !rem.isBlank()) {
-            sb.append("\nRemediation: ").append(rem.trim());
-        }
         return sb.toString();
+    }
+
+    private static String endpointPath(String endpoint) {
+        if (endpoint == null) return "darkmoon";
+        String value = endpoint.replaceFirst("^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\\s+", "").trim();
+        try {
+            if (value.startsWith("https://") || value.startsWith("http://")) value = java.net.URI.create(value).getRawPath();
+            if (value == null || !value.startsWith("/")) return "darkmoon";
+            return value.split("[?#]", 2)[0];
+        } catch (RuntimeException error) { return "darkmoon"; }
     }
 
     private static String toUri(String where) {

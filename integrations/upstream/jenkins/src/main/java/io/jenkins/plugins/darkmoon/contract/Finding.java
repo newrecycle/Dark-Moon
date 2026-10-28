@@ -18,6 +18,9 @@ public class Finding implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id;
+    private String campaignId;
+    public String getCampaignId() { return campaignId; }
+    public void setCampaignId(String value) { campaignId = value; }
     private String title;
     private Severity severity = Severity.INFO;
     private String status;

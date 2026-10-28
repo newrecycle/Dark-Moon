@@ -209,3 +209,8 @@ Only a completed assessment with successfully read findings can produce a policy
 verdict. Failed/stopped assessments and findings-read errors fail the action
 without generating an empty report. Counts and the severity gate use fetched
 findings, even when cached campaign statistics disagree. Reports remain optional.
+
+The current integration pass also withholds free-form descriptions/remediation
+from findings JSON artifacts and strips URL queries/fragments from endpoint
+metadata. Report-format selection is not permission to include extracted bodies.
+Verification of this follow-up is deferred with the rest of the integration batch.

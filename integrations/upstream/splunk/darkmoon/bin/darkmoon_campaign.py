@@ -21,12 +21,16 @@ Nothing sensitive is ever printed: tokens/session keys are scrubbed from logs.
 """
 
 import csv
+import math
+import tempfile
+from contextlib import contextmanager
 import json
 import os
 import re
 import sys
 import time
 import ssl
+from urllib.parse import urlsplit
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -42,6 +46,14 @@ _HOST_RE = re.compile(r"^(?=.{1,253}$)([a-zA-Z0-9_](?:[a-zA-Z0-9_-]{0,61}[a-zA-Z
 _IPV4_RE = re.compile(r"^(\d{1,3})(\.\d{1,3}){3}$")
 _SECRET_RE = re.compile(r"(?i)(bearer\s+|(?:token|secret|password|session[_-]?key|authorization)"
                         r"\"?\s*[:=]\s*\"?)([A-Za-z0-9._\-]{6,})")
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, new_url):
+        return None
+
+def open_request(request, context, timeout):
+    return urllib.request.build_opener(NoRedirect(), urllib.request.HTTPSHandler(context=context)).open(request, timeout=timeout)
 
 
 def log(msg):
@@ -62,7 +74,7 @@ def _splunk_get(server_uri, session_key, path, verify=True):
     if not verify:
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-    with urllib.request.urlopen(req, timeout=OUTBOUND_TIMEOUT, context=ctx) as r:
+    with open_request(req, ctx, OUTBOUND_TIMEOUT) as r:
         return json.loads(r.read().decode("utf-8"))
 
 
@@ -125,7 +137,7 @@ def load_allowlist():
 
 def normalize_host(raw):
     """Extract a bare host from a host or URL; return None if it is not valid."""
-    if not raw:
+    if not isinstance(raw, str) or not raw:
         return None
     raw = raw.strip()
     if "://" in raw:
@@ -145,42 +157,93 @@ def normalize_host(raw):
     return None
 
 
+@contextmanager
+def rate_lock(path):
+    fd = os.open(path, os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    with os.fdopen(fd, "a+b") as handle:
+        if os.name == "nt":
+            import msvcrt
+            if os.fstat(handle.fileno()).st_size == 0: handle.write(b"0"); handle.flush()
+            handle.seek(0); msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+            try: yield
+            finally: handle.seek(0); msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try: yield
+            finally: fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
 def rate_limit_ok(max_per_hour):
-    """Token bucket persisted under SPLUNK_HOME/var/run (writable, outside app)."""
-    cap = min(int(max_per_hour or DEFAULT_MAX_PER_HOUR), HARD_MAX_PER_HOUR)
-    state_dir = os.path.join(os.environ.get("SPLUNK_HOME", "/tmp"), "var", "run", "darkmoon")
-    state_file = os.path.join(state_dir, "ratelimit.json")
-    now = time.time()
-    window = 3600.0
+    """Process-serialized rolling quota; atomic replacement prevents lost state."""
+    cap = HARD_MAX_PER_HOUR
+    temporary = None
     try:
-        os.makedirs(state_dir, exist_ok=True)
-        hits = []
-        if os.path.exists(state_file):
-            with open(state_file, "r", encoding="utf-8") as fh:
-                hits = [t for t in json.load(fh) if now - t < window]
-        if len(hits) >= cap:
-            return False, cap, len(hits)
-        hits.append(now)
-        with open(state_file, "w", encoding="utf-8") as fh:
-            json.dump(hits, fh)
-        return True, cap, len(hits)
-    except Exception as e:
-        log("rate-limit state error (failing closed): %s" % e)
+        cap = min(int(max_per_hour or DEFAULT_MAX_PER_HOUR), HARD_MAX_PER_HOUR)
+        if cap < 1: return False, cap, -1
+        state_dir = os.path.join(os.environ.get("SPLUNK_HOME", "/tmp"), "var", "run", "darkmoon")
+        os.makedirs(state_dir, mode=0o700, exist_ok=True)
+        state_file = os.path.join(state_dir, "ratelimit.json")
+        with rate_lock(os.path.join(state_dir, "ratelimit.lock")):
+            now = time.time()
+            hits = []
+            if os.path.lexists(state_file):
+                fd = os.open(state_file, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+                with os.fdopen(fd, "r", encoding="utf-8") as source: values = json.load(source)
+                if not isinstance(values, list) or any(type(value) not in (int, float) or not math.isfinite(value) for value in values): raise ValueError("Invalid quota state")
+                hits = [value for value in values if now - value < 3600]
+            if len(hits) >= cap: return False, cap, len(hits)
+            hits.append(now)
+            fd, temporary = tempfile.mkstemp(prefix=".ratelimit-", dir=state_dir)
+            with os.fdopen(fd, "w", encoding="utf-8") as destination:
+                json.dump(hits, destination); destination.flush(); os.fsync(destination.fileno())
+            os.replace(temporary, state_file)
+            temporary = None
+            return True, cap, len(hits)
+    except Exception:
+        log("rate-limit state unavailable; failing closed")
         return False, cap, -1
+    finally:
+        if temporary:
+            try: os.unlink(temporary)
+            except OSError: pass
 
 
 def darkmoon_call(base_url, token, verify_tls, action_kind, host, scope_profile):
     """POST to the Darkmoon Pro REST API. Returns (ok, message)."""
+    base = base_url.rstrip("/")
+    parsed = urlsplit(base)
+    if parsed.scheme not in {"https", "http"} or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
+        return False, "invalid Darkmoon base URL"
+    if verify_tls and parsed.scheme != "https":
+        return False, "refusing non-HTTPS Darkmoon URL while TLS verification is on"
+    if base.endswith("/api/v1"): base = base[:-7]
+    ctx = ssl.create_default_context()
+    if not verify_tls:
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
     if action_kind == "campaign":
         path = "/api/v1/run/campaign"
         payload = {"target": host, "safe_harbor": scope_profile}
     else:
+        # The allowlist contains hosts; the REST retest contract needs a saved
+        # target ID. Resolve it through authenticated metadata, never a result's
+        # untrusted ID or a hostname masquerading as an ID.
+        request = urllib.request.Request(base + "/api/v1/targets", headers={"Authorization": "Bearer " + token, "Accept": "application/json"})
+        try:
+            with open_request(request, ctx, OUTBOUND_TIMEOUT) as response:
+                raw = response.read(8 * 1024 * 1024 + 1)
+                if len(raw) > 8 * 1024 * 1024: return False, "target metadata exceeds the size limit"
+                records = json.loads(raw.decode("utf-8"))
+            rows = records.get("data") if isinstance(records, dict) else None
+            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows): return False, "invalid target metadata"
+            matches = [row for row in rows if normalize_host(row.get("host") or "") == host]
+            if len(matches) != 1 or not isinstance(matches[0].get("id"), str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,200}", matches[0]["id"]): return False, "allowlisted host needs one unambiguous saved target"
+            payload = {"target_id": matches[0]["id"], "safe_harbor": scope_profile}
+        except Exception:
+            return False, "saved target could not be resolved with the current credentials"
         path = "/api/v1/retest"
-        payload = {"target_id": host, "safe_harbor": scope_profile}
-
-    url = base_url.rstrip("/") + path
-    if not url.lower().startswith("https://") and verify_tls:
-        return False, "refusing non-HTTPS Darkmoon URL while TLS verification is on"
+    url = base + path
 
     body = json.dumps(payload).encode("utf-8")
     headers = {"Content-Type": "application/json"}
@@ -193,14 +256,18 @@ def darkmoon_call(base_url, token, verify_tls, action_kind, host, scope_profile)
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
     try:
-        with urllib.request.urlopen(req, timeout=OUTBOUND_TIMEOUT, context=ctx) as r:
-            data = json.loads(r.read().decode("utf-8"))
-            ref = data.get("run_id") or data.get("retest_id") or "ok"
-            return True, "launched %s (ref=%s)" % (action_kind, ref)
+        with open_request(req, ctx, OUTBOUND_TIMEOUT) as r:
+            raw = r.read(1024 * 1024 + 1)
+            if len(raw) > 1024 * 1024: return False, "launch response exceeds the size limit"
+            data = json.loads(raw.decode("utf-8"))
+            if not isinstance(data, dict): return False, "launch returned no valid identity"
+            ref = data.get("retest_id") if action_kind == "retest" else data.get("campaign_id") or data.get("run_id")
+            if not isinstance(ref, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,200}", ref): return False, "launch returned no valid identity"
+            return True, "accepted %s launch (ref=%s); completion is not yet established" % (action_kind, ref)
     except urllib.error.HTTPError as e:
         return False, "Darkmoon HTTP %s" % e.code
     except Exception as e:
-        return False, "Darkmoon call failed: %s" % e
+        return False, "Darkmoon launch transport or response failed; completion is unverified"
 
 
 def main():

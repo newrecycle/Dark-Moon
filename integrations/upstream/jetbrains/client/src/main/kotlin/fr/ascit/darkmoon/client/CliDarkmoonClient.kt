@@ -1,6 +1,5 @@
 package fr.ascit.darkmoon.client
 
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
 import java.io.File
 
@@ -52,12 +51,12 @@ data class CliConfig(
  */
 class CliDarkmoonClient(
     private val config: CliConfig,
-    private val runner: ProcessRunner = DefaultProcessRunner(),
+    private val runner: ProcessRunner = DefaultProcessRunner(config.timeoutMs),
 ) : DarkmoonClient {
 
     private fun baseEnv(): Map<String, String> {
         val env = HashMap<String, String>(config.extraEnv)
-        config.tokenProvider?.invoke()?.let { if (it.isNotBlank()) env["DARKMOON_TOKEN"] = it }
+        if (config.tokenProvider != null) env["DARKMOON_TOKEN"] = config.tokenProvider.invoke().orEmpty()
         return env
     }
 
@@ -71,8 +70,7 @@ class CliDarkmoonClient(
         val argv = config.command + args + globalFlags()
         val res = runner.run(argv, baseEnv(), config.workingDir, stdin, config.timeoutMs)
         if (res.exitCode != 0) {
-            val err = res.stderr.trim().take(2000).ifEmpty { res.stdout.trim().take(500) }
-            throw DarkmoonClientException("darkmoon-ci ${args.firstOrNull()} failed (exit ${res.exitCode}): $err")
+            throw DarkmoonClientException("darkmoon-ci ${args.firstOrNull()} failed (exit ${res.exitCode}); assessment result is unavailable")
         }
         return res.stdout
     }
@@ -81,7 +79,7 @@ class CliDarkmoonClient(
         try {
             DarkmoonJson.decodeFromString<T>(json.trim())
         } catch (e: Exception) {
-            throw DarkmoonClientException("Malformed darkmoon-ci output: ${e.message}", e)
+            throw DarkmoonClientException("Malformed darkmoon-ci output; response contents are withheld")
         }
 
     private fun idOf(ref: CampaignRef): String = when (ref) {
@@ -90,8 +88,8 @@ class CliDarkmoonClient(
             ?: ref.handle.runId
             ?: throw DarkmoonClientException("Correlation handle has no resolvable campaign/run id yet")
         is CampaignRef.Launch -> ref.result.campaignId
-            ?: ref.result.runId
             ?: ref.result.correlation.campaignId
+            ?: ref.result.runId
             ?: ref.result.correlation.runId
             ?: throw DarkmoonClientException("Launch result has no resolvable campaign/run id yet")
     }
@@ -111,20 +109,35 @@ class CliDarkmoonClient(
         return decode(exec(listOf("launch"), stdin = json))
     }
 
+    private fun referenceArgs(args: List<String>, ref: CampaignRef): List<String> =
+        correlationJson(ref)?.let { args + listOf("--correlation", it) } ?: args
+
+    private fun expectedCampaignId(ref: CampaignRef): String? = when (ref) {
+        is CampaignRef.Id -> ref.id
+        is CampaignRef.Handle -> ref.handle.campaignId
+        is CampaignRef.Launch -> ref.result.campaignId ?: ref.result.correlation.campaignId
+    }
+
+    private fun checkedCampaign(ref: CampaignRef, campaign: Campaign): Campaign {
+        val expected = expectedCampaignId(ref)
+        if (expected != null && campaign.id != expected) throw DarkmoonClientException("Campaign identity does not match the request")
+        return campaign
+    }
+
     override fun getCampaign(ref: CampaignRef): Campaign =
-        decode(exec(listOf("campaign", "get", idOf(ref))))
+        checkedCampaign(ref, decode(exec(referenceArgs(listOf("campaign", "get", idOf(ref)), ref))))
 
     override fun getCampaignStatus(ref: CampaignRef): Campaign {
         val args = mutableListOf("campaign", "status", idOf(ref))
         correlationJson(ref)?.let { args += listOf("--correlation", it) }
-        return decode(exec(args))
+        return checkedCampaign(ref, decode(exec(args)))
     }
 
     override fun listCampaigns(filter: CampaignFilter): List<Campaign> {
         val args = mutableListOf("campaigns", "list")
         filter.status?.let { args += listOf("--status", it) }
         filter.targetId?.let { args += listOf("--target-id", it) }
-        return DarkmoonJson.decodeFromString(ListSerializer(Campaign.serializer()), exec(args).trim())
+        return decode(exec(args))
     }
 
     override fun listFindings(filter: FindingFilter, opts: FindingReadOptions): List<Finding> {
@@ -136,13 +149,15 @@ class CliDarkmoonClient(
         filter.category?.let { args += listOf("--category", it) }
         filter.status?.let { args += listOf("--status", it) }
         applyEvidenceFlags(args, opts)
-        return DarkmoonJson.decodeFromString(ListSerializer(Finding.serializer()), exec(args).trim())
+        return decode(exec(args))
     }
 
     override fun getFinding(id: String, opts: FindingReadOptions): Finding {
         val args = mutableListOf("finding", "get", id)
         applyEvidenceFlags(args, opts)
-        return decode(exec(args))
+        val finding: Finding = decode(exec(args))
+        if (finding.id != id) throw DarkmoonClientException("Finding identity does not match the request")
+        return finding
     }
 
     private fun applyEvidenceFlags(args: MutableList<String>, opts: FindingReadOptions) {
@@ -156,7 +171,7 @@ class CliDarkmoonClient(
     }
 
     override fun getSeveritySummary(ref: CampaignRef): SeveritySummary =
-        decode(exec(listOf("summary", idOf(ref))))
+        decode(exec(referenceArgs(listOf("summary", idOf(ref)), ref)))
 
     override fun getReport(ref: CampaignRef, opts: ReportOptions): Report {
         if (opts.full && !opts.private) {
@@ -166,21 +181,26 @@ class CliDarkmoonClient(
         }
         val args = mutableListOf("report", idOf(ref))
         if (opts.full) { args += "--full"; args += "--private" }
-        return decode(exec(args))
+        val report: Report = decode(exec(referenceArgs(args, ref)))
+        val expected = expectedCampaignId(ref)
+        if (expected != null && report.campaignId != expected) throw DarkmoonClientException("Report identity does not match the request")
+        return report
     }
 
     override fun waitForCompletion(ref: CampaignRef, opts: WaitOptions): Campaign {
-        val deadline = System.currentTimeMillis() + opts.timeoutMs
+        if (opts.timeoutMs <= 0 || opts.pollIntervalMs <= 0) throw DarkmoonClientException("Timeout and polling interval must be positive")
+        val started = System.nanoTime()
         var last: Campaign? = null
         var resolvedRef = ref
-        while (System.currentTimeMillis() < deadline) {
+        while ((System.nanoTime() - started) / 1_000_000 < opts.timeoutMs) {
             val c = getCampaignStatus(resolvedRef)
             if (last?.status != c.status) opts.onProgress?.invoke(c)
             last = c
             // Once we learn the campaign id, pin to it for cheaper subsequent polls.
-            if (resolvedRef !is CampaignRef.Id) resolvedRef = CampaignRef.Id(c.id)
+            if (resolvedRef !is CampaignRef.Id && c.id.isNotBlank() && !c.id.startsWith("run:")) resolvedRef = CampaignRef.Id(c.id)
             if (c.status.isTerminal) return c
-            Thread.sleep(opts.pollIntervalMs.coerceAtLeast(250))
+            val remaining = opts.timeoutMs - (System.nanoTime() - started) / 1_000_000
+            if (remaining > 0) Thread.sleep(minOf(opts.pollIntervalMs.coerceAtLeast(1), remaining))
         }
         val stuck = last
         if (stuck != null && !opts.failOnStuck) return stuck
@@ -190,10 +210,23 @@ class CliDarkmoonClient(
         )
     }
 
-    override fun streamProgress(ref: CampaignRef): Sequence<ProgressEvent> {
-        val args = config.command + listOf("stream", idOf(ref)) + globalFlags()
-        return runner.stream(args, baseEnv(), config.workingDir).mapNotNull { line ->
-            runCatching { DarkmoonJson.decodeFromString<ProgressEvent>(line) }.getOrNull()
+    override fun streamProgress(ref: CampaignRef): Sequence<ProgressEvent> = sequence {
+        val correlation = when (ref) {
+            is CampaignRef.Handle -> DarkmoonJson.encodeToString(ref.handle)
+            is CampaignRef.Launch -> DarkmoonJson.encodeToString(ref.result.correlation)
+            else -> null
         }
+        val args = config.command + listOf("stream", idOf(ref)) +
+            (correlation?.let { listOf("--correlation", it) } ?: emptyList()) + globalFlags()
+        var terminal = false
+        for (line in runner.stream(args, baseEnv(), config.workingDir)) {
+            val event: ProgressEvent = decode(line)
+            val expected = expectedCampaignId(ref)
+            if (expected != null && event.campaignId != null && event.campaignId != expected) throw DarkmoonClientException("Progress campaign identity does not match the request")
+            if (terminal) throw DarkmoonClientException("Progress stream emitted data after terminal completion")
+            yield(event)
+            terminal = event.terminal
+        }
+        if (!terminal) throw DarkmoonClientException("Progress stream closed before terminal completion")
     }
 }

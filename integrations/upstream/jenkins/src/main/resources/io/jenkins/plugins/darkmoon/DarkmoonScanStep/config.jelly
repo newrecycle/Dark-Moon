@@ -42,16 +42,16 @@
   </f:entry>
 
   <f:advanced>
-    <f:entry title="darkmoon-ci path" field="cliPath">
-      <f:textbox default="darkmoon-ci"/>
+    <f:entry title="CLI command (bundled, or a custom command)" field="cliPath">
+      <f:textbox default="bundled"/>
     </f:entry>
     <f:entry title="Output directory (workspace-relative)" field="outputDir">
       <f:textbox default="darkmoon-reports"/>
     </f:entry>
-    <f:entry title="Timeout (seconds, 0 = CLI default)" field="timeout">
+    <f:entry title="Timeout (seconds, 0 = bounded default)" field="timeout">
       <f:number default="0"/>
     </f:entry>
-    <f:entry title="Extra darkmoon-ci arguments" field="extraArgs">
+    <f:entry title="Extra scan options (program, focus, severity, exclude, out-of-scope, poll)" field="extraArgs">
       <f:textbox/>
     </f:entry>
     <f:entry title="OSS data dir" field="ossDataDir">

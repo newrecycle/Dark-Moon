@@ -28,6 +28,9 @@ Standard library only. Python 3.8+.
 """
 
 import argparse
+import math
+import hashlib
+from urllib.parse import urlsplit, urlunsplit
 import json
 import os
 import re
@@ -69,7 +72,23 @@ CAMPAIGN_STAT_KEYS = ["total_findings", "critical", "high", "medium", "low",
 INDEX_FIELDS = ["campaign_id", "project_id", "target_id", "severity", "status",
                 "verdict", "state", "event"]
 
+SAFE_FIELDS["darkmoon:remediation"] = ["proposal_id", "campaign_id", "finding_id", "status", "confidence", "validated", "published", "event", "ts", "contract_version"]
+BOOL_FIELDS = {"has_evidence", "validated", "published"}
+NUMBER_FIELDS = {"duration_seconds", "cvss_score", "confidence", "number"}
 CONTRACT_VERSION = "1"
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, new_url):
+        return None
+
+def open_request(request, context, timeout):
+    return urllib.request.build_opener(NoRedirect(), urllib.request.HTTPSHandler(context=context)).open(request, timeout=timeout)
+
+def checked_url(value):
+    parsed = urlsplit(value)
+    if parsed.scheme not in {"https", "http"} or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("Configure an HTTP(S) URL without credentials, query or fragment")
+    return value.rstrip("/")
 _SECRET_RE = re.compile(
     r"(?i)(bearer\s+|(?:token|secret|password|api[_-]?key|authorization)"
     r"\"?\s*[:=]\s*\"?)([A-Za-z0-9._\-]{6,})")
@@ -82,7 +101,7 @@ def scrub(value):
 
 
 def to_epoch(ts):
-    if isinstance(ts, (int, float)):
+    if isinstance(ts, (int, float)) and not isinstance(ts, bool) and math.isfinite(ts):
         return float(ts)
     if isinstance(ts, str) and ts:
         for fmt in ("%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z",
@@ -100,8 +119,21 @@ def pick_safe(sourcetype, obj):
     allowed = SAFE_FIELDS[sourcetype]
     out = {}
     for k in allowed:
-        if k in obj and obj[k] is not None:
-            out[k] = scrub(obj[k])
+        value = obj.get(k)
+        if k in BOOL_FIELDS:
+            if isinstance(value, bool): out[k] = value
+        elif k in NUMBER_FIELDS:
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0: out[k] = value
+        elif isinstance(value, str):
+            if k in {"endpoint", "url", "target", "repo"}:
+                method, separator, remainder = value.partition(" ")
+                if separator and method.upper() in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}: value = remainder.strip()
+                value = value.split("?", 1)[0].split("#", 1)[0]
+                try:
+                    parsed = urlsplit(value)
+                    if parsed.scheme in {"http", "https"}: value = urlunsplit((parsed.scheme, parsed.netloc.rsplit("@", 1)[-1], parsed.path, "", ""))
+                except ValueError: continue
+            out[k] = scrub(value)
     out["contract_version"] = CONTRACT_VERSION
     return out
 
@@ -111,13 +143,14 @@ def campaign_event(c):
     ev = {"running": "campaign.started", "completed": "campaign.completed",
           "stopped": "campaign.stopped", "aborted": "campaign.aborted"}.get(status, "campaign.updated")
     obj = dict(c)
+    obj["campaign_id"] = c.get("campaign_id") or c.get("id")
     obj["event"] = ev
     obj["ts"] = c.get("ts") or c.get("date") or c.get("finished_at") or ""
     safe = pick_safe("darkmoon:campaign", obj)
-    stats = c.get("stats") or {}
+    stats = c.get("stats") if isinstance(c.get("stats"), dict) else {}
     for k in CAMPAIGN_STAT_KEYS:
-        if k in stats and stats[k] is not None:
-            safe[k] = stats[k]
+        value = stats.get(k)
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0 and float(value).is_integer(): safe[k] = value
     return _envelope("darkmoon:campaign", safe, obj.get("ts"),
                      host=c.get("target") or "darkmoon")
 
@@ -127,6 +160,7 @@ def finding_event(f):
     ev = {"exploited": "finding.exploited", "confirmed": "finding.confirmed",
           "remediated": "finding.remediated"}.get(status, "finding.discovered")
     obj = dict(f)
+    obj["finding_id"] = f.get("finding_id") or f.get("id")
     obj["event"] = ev
     obj["ts"] = f.get("ts") or f.get("discovered_at") or ""
     ev_obj = f.get("evidence")
@@ -138,7 +172,8 @@ def finding_event(f):
 
 def retest_event(r):
     obj = dict(r)
-    obj["event"] = obj.get("event") or "retest.completed"
+    obj["retest_id"] = r.get("retest_id") or r.get("id")
+    obj["event"] = "retest.completed" if r.get("status") == "completed" else "retest.updated"
     obj["ts"] = r.get("ts") or ""
     safe = pick_safe("darkmoon:retest", obj)
     return _envelope("darkmoon:retest", safe, obj.get("ts"),
@@ -147,7 +182,18 @@ def retest_event(r):
 
 def pr_event(p):
     obj = dict(p)
-    obj["event"] = obj.get("event") or "pr.updated"
+    published = p.get("published")
+    number = p.get("number")
+    actual_pr = published is True or published is None and isinstance(p.get("provider"), str) and bool(p["provider"]) and isinstance(number, (int, float)) and not isinstance(number, bool) and math.isfinite(number) and number > 0
+    if not actual_pr:
+        obj["proposal_id"] = p.get("proposal_id") or p.get("id")
+        linked = p.get("finding_ids")
+        if isinstance(linked, list) and len(linked) == 1 and isinstance(linked[0], str): obj["finding_id"] = linked[0]
+        obj["event"] = "remediation.updated"
+        safe = pick_safe("darkmoon:remediation", obj)
+        return _envelope("darkmoon:remediation", safe, p.get("ts"))
+    obj["pr_id"] = p.get("pr_id") or p.get("id")
+    obj["event"] = "pr.updated"
     obj["ts"] = p.get("ts") or ""
     safe = pick_safe("darkmoon:pr", obj)
     return _envelope("darkmoon:pr", safe, obj.get("ts"),
@@ -161,9 +207,10 @@ def _envelope(sourcetype, safe_event, ts, host="darkmoon"):
     # keys to indexed fields would make them multivalued (indexed + extracted),
     # which breaks table/stats rendering. Search-time extraction is sufficient
     # for this app; INDEX_FIELDS is kept only for documentation.
+    safe_event["event_id"] = hashlib.sha256(json.dumps([sourcetype, safe_event], sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return {
         "time": to_epoch(ts),
-        "host": scrub(str(host)),
+        "host": scrub(host) if isinstance(host, str) else "darkmoon",
         "source": "darkmoon",
         "sourcetype": sourcetype,
         "event": safe_event,
@@ -171,15 +218,13 @@ def _envelope(sourcetype, safe_event, ts, host="darkmoon"):
 
 
 def build_events(data):
+    if not isinstance(data, dict): raise ValueError("Export must be an object of typed record arrays")
+    if not any(key in data for key in ("campaigns", "vulnerabilities", "retests", "pull_requests")): raise ValueError("Export has no recognized record arrays")
     events = []
-    for c in data.get("campaigns", []) or []:
-        events.append(campaign_event(c))
-    for f in data.get("vulnerabilities", []) or []:
-        events.append(finding_event(f))
-    for r in data.get("retests", []) or []:
-        events.append(retest_event(r))
-    for p in data.get("pull_requests", []) or []:
-        events.append(pr_event(p))
+    for key, convert in (("campaigns", campaign_event), ("vulnerabilities", finding_event), ("retests", retest_event), ("pull_requests", pr_event)):
+        values = data.get(key, [])
+        if not isinstance(values, list) or any(not isinstance(value, dict) for value in values): raise ValueError("Export contains an invalid record array")
+        events.extend(convert(value) for value in values)
     return events
 
 
@@ -190,8 +235,10 @@ def _get_json(url, headers, verify, timeout=20):
     if not verify:
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-    with urllib.request.urlopen(req, timeout=timeout, context=ctx) as r:
-        return json.loads(r.read().decode("utf-8"))
+    with open_request(req, ctx, timeout) as r:
+        body = r.read(32 * 1024 * 1024 + 1)
+        if len(body) > 32 * 1024 * 1024: raise ValueError("REST response exceeds the size limit")
+        return json.loads(body.decode("utf-8"))
 
 
 def poll_rest(base_url, token, verify):
@@ -199,22 +246,24 @@ def poll_rest(base_url, token, verify):
     if token:
         headers["Authorization"] = "Bearer " + token
     data = {}
-    base = base_url.rstrip("/")
+    base = checked_url(base_url)
+    if base.endswith("/api/v1"): base = base[:-7]
     for key, path in (("campaigns", "/api/v1/campaigns"),
                       ("vulnerabilities", "/api/v1/vulnerabilities"),
                       ("pull_requests", "/api/v1/pull-requests")):
-        try:
-            resp = _get_json(base + path, headers, verify)
-            data[key] = resp.get("data", []) if isinstance(resp, dict) else []
-        except Exception as e:
-            sys.stderr.write("poll %s failed: %s\n" % (path, e))
-            data[key] = []
+        resp = _get_json(base + path, headers, verify)
+        if not isinstance(resp, dict) or not isinstance(resp.get("data"), list): raise ValueError("REST response needs a data array")
+        if any(not isinstance(row, dict) for row in resp["data"]): raise ValueError("REST response contains invalid records")
+        data[key] = resp["data"]
     return data
 
 
 # --- output: HEC ------------------------------------------------------------
 def send_hec(hec_url, hec_token, events, verify, batch_size=100,
              max_retries=4, use_ack=False):
+    checked_url(hec_url)
+    if batch_size < 1 or batch_size > 1000: raise ValueError("Batch size must be between 1 and 1000")
+    if use_ack: raise ValueError("Indexer acknowledgment is not implemented; do not request it")
     channel = str(uuid.uuid4())
     headers = {"Authorization": "Splunk " + hec_token,
                "Content-Type": "application/json",
@@ -232,14 +281,14 @@ def send_hec(hec_url, hec_token, events, verify, batch_size=100,
         for attempt in range(max_retries + 1):
             try:
                 req = urllib.request.Request(hec_url, data=body, headers=headers, method="POST")
-                with urllib.request.urlopen(req, timeout=30, context=ctx) as r:
-                    r.read()
+                with open_request(req, ctx, 30) as r:
+                    result = json.loads(r.read(1024 * 1024).decode("utf-8"))
+                    if not isinstance(result, dict) or type(result.get("code")) is not int or result["code"] != 0: raise ValueError("HEC did not acknowledge successful admission")
                 sent += len(batch)
                 break
             except urllib.error.HTTPError as e:
-                if e.code in (400, 403):   # non-retryable
-                    sys.stderr.write("HEC rejected batch (HTTP %s), not retrying\n" % e.code)
-                    break
+                if 300 <= e.code < 500 and e.code != 429:
+                    raise RuntimeError("HEC rejected the batch (HTTP %s)" % e.code) from None
                 if attempt == max_retries:
                     raise
                 time.sleep(delay); delay = min(delay * 2, 16) + (0.1 * attempt)
@@ -290,4 +339,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try: main()
+    except Exception:
+        sys.stderr.write("Darkmoon forwarding failed; no successful delivery is claimed. Check source access, format and HEC admission.\n")
+        sys.exit(1)

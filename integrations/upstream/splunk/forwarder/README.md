@@ -4,8 +4,7 @@ A tiny, dependency-free (Python 3 stdlib) sender that pushes **safe** Darkmoon
 events to a Splunk HTTP Event Collector. Use it if you are **not** on the
 Darkmoon Pro webhook system.
 
-> Pro users can skip this entirely: point a Darkmoon webhook (`format=splunk_hec`)
-> at your HEC endpoint and the Darkmoon dispatcher formats the events for you.
+> Use this forwarder for authenticated HEC delivery from this fork. Direct `format=splunk_hec` webhook delivery is unsupported; a signing secret does not supply HEC authentication.
 
 ## What it emits
 
@@ -60,3 +59,21 @@ python3 darkmoon-to-hec.py --export sample.json --stdout
 
 Retries use exponential backoff with jitter; HTTP 400/403 are treated as
 non-retryable. Batches are newline-delimited JSON, chunked by `--batch-size`.
+
+## Fork implementation update
+
+The forwarder now maps REST record IDs into campaign/finding/PR identities,
+accepts typed scalar metadata and finite numeric counts, and distinguishes local
+proposals (`darkmoon:remediation`) from published PRs. Running or unknown retests
+are not labelled completed. Snapshot content fingerprints are included for
+consumer deduplication; repeated snapshots and ambiguous transport retries can
+still duplicate ingestion. This is not exactly-once delivery.
+
+REST read/shape failures stop the batch instead of substituting empty arrays.
+HEC delivery requires HTTP success plus JSON `code: 0`; rejection is an error,
+and indexer ACK mode is explicitly unsupported. Redirects are refused. The
+alert action resolves an allowlisted host to one saved REST target before a
+retest, keeps launch acceptance separate from completion, and serializes its
+rolling quota across processes with atomic state writes.
+
+Verification of these changes is deferred to the later test pass.

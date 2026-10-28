@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
+	"math"
+	"sort"
+		"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -46,7 +48,7 @@ func NewDatasource(_ context.Context, s backend.DataSourceInstanceSettings) (ins
 	ds := &Datasource{
 		settings: settings,
 		// TLS is verified by default; a 15s timeout bounds every call.
-		httpClient: &http.Client{Timeout: httpTimeout},
+		httpClient: &http.Client{Timeout: httpTimeout, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }},
 	}
 	ds.resHandler = httpadapter.New(ds.newResourceMux())
 	return ds, nil
@@ -91,10 +93,11 @@ func (d *Datasource) doGet(ctx context.Context, path string, params url.Values) 
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 32<<20))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, (32<<20)+1))
 	if err != nil {
 		return nil, resp.StatusCode, err
 	}
+	if len(body) > 32<<20 { return nil, resp.StatusCode, fmt.Errorf("upstream response exceeds the size limit") }
 	return body, resp.StatusCode, nil
 }
 
@@ -137,7 +140,12 @@ func pick(m map[string]any, allow ...string) map[string]any {
 			continue
 		}
 		if v, ok := m[k]; ok {
-			out[k] = v
+			switch value := v.(type) {
+			case string: out[k] = value
+			case bool: out[k] = value
+			case float64: if !math.IsNaN(value) && !math.IsInf(value, 0) { out[k] = value }
+			case json.Number: out[k] = value
+			}
 		}
 	}
 	return out
@@ -160,31 +168,32 @@ func asString(v any) string {
 	case json.Number:
 		return t.String()
 	default:
-		b, _ := json.Marshal(t)
-		return string(b)
+		return ""
 	}
 }
 
 func asFloat(v any) float64 {
-	switch t := v.(type) {
-	case float64:
-		return t
-	case json.Number:
-		f, _ := t.Float64()
-		return f
-	case string:
-		f, _ := strconv.ParseFloat(t, 64)
-		return f
-	case bool:
-		if t {
-			return 1
-		}
+	var value float64
+	switch typed := v.(type) {
+	case float64: value = typed
+	case json.Number: value, _ = typed.Float64()
+	default: return 0
 	}
-	return 0
+	if math.IsNaN(value) || math.IsInf(value, 0) { return 0 }
+	return value
 }
 
 func asInt(v any) int64 {
-	return int64(asFloat(v))
+	value := asFloat(v)
+	if value < 0 || value >= float64(math.MaxInt64) || math.Trunc(value) != value { return 0 }
+	return int64(value)
+}
+
+func nullableCount(row map[string]any, key string) *int64 {
+	value, ok := row[key].(float64)
+	if !ok || value < 0 || value >= float64(math.MaxInt64) || math.IsNaN(value) || math.IsInf(value, 0) || math.Trunc(value) != value { return nil }
+	count := int64(value)
+	return &count
 }
 
 func s(m map[string]any, k string) string  { return asString(m[k]) }
@@ -208,19 +217,23 @@ func extractList(raw []byte, keys ...string) ([]map[string]any, error) {
 		return nil, err
 	}
 	if arr, ok := top.([]any); ok {
-		return toMaps(arr), nil
+		rows := toMaps(arr)
+		if len(rows) != len(arr) { return nil, fmt.Errorf("upstream list contains invalid rows") }
+		return rows, nil
 	}
 	obj, ok := top.(map[string]any)
-	if !ok {
-		return nil, nil
-	}
+	if !ok { return nil, fmt.Errorf("upstream list needs an object or array") }
 	candidates := append(append([]string{}, keys...), "data", "items", "results", "list")
 	for _, k := range candidates {
-		if arr, ok := obj[k].([]any); ok {
-			return toMaps(arr), nil
+		if value, exists := obj[k]; exists {
+			arr, valid := value.([]any)
+			if !valid { return nil, fmt.Errorf("upstream list envelope needs an array") }
+			rows := toMaps(arr)
+			if len(rows) != len(arr) { return nil, fmt.Errorf("upstream list contains invalid rows") }
+			return rows, nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("upstream response has no recognized list")
 }
 
 func toMaps(arr []any) []map[string]any {
@@ -245,37 +258,14 @@ func (d *Datasource) CheckHealth(ctx context.Context, _ *backend.CheckHealthRequ
 		}, nil
 	}
 
-	body, status, err := d.doGet(ctx, "/api/v1/system/info", nil)
-	if err != nil {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Cannot reach Darkmoon API: %v", err),
-		}, nil
+	body, status, err := d.doGet(ctx, "/api/v1/campaigns", nil)
+	if err != nil || status < 200 || status >= 300 {
+		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Protected campaign read failed; check the URL, token and account permissions."}, nil
 	}
-	if status < 200 || status >= 300 {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Darkmoon API returned HTTP %d for /api/v1/system/info", status),
-		}, nil
+	if _, err := extractList(body, "campaigns"); err != nil {
+		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Campaign response did not match the integration contract."}, nil
 	}
-
-	info := map[string]any{}
-	_ = json.Unmarshal(body, &info)
-	edition := strings.ToLower(s(info, "edition"))
-	contract := firstNonEmpty(s(info, "contract_version"), s(info, "contractVersion"), s(info, "contract"))
-
-	if edition == models.ModePro || (edition == "" && d.settings.Mode == models.ModePro) {
-		msg := "Connected to Darkmoon Pro"
-		if contract != "" {
-			msg = fmt.Sprintf("Connected to Darkmoon Pro (contract %s)", contract)
-		}
-		return &backend.CheckHealthResult{Status: backend.HealthStatusOk, Message: msg}, nil
-	}
-
-	return &backend.CheckHealthResult{
-		Status:  backend.HealthStatusOk,
-		Message: "Connected to Darkmoon (OSS / community edition)",
-	}, nil
+	return &backend.CheckHealthResult{Status: backend.HealthStatusOk, Message: "Authenticated campaign read succeeded."}, nil
 }
 
 func firstNonEmpty(vals ...string) string {
@@ -347,6 +337,8 @@ func (d *Datasource) handleQuery(ctx context.Context, q backend.DataQuery) backe
 		return d.queryTimeseries(ctx, qm)
 	case "pullrequests", "pull-requests":
 		return d.queryPullRequests(ctx, qm)
+	case "remediation":
+		return d.queryRemediation(ctx, qm)
 	case "retest":
 		return d.queryRetest(ctx, qm)
 	default:
@@ -362,7 +354,7 @@ func errResp(err error) backend.DataResponse {
 func (d *Datasource) get(ctx context.Context, path string, params url.Values) ([]byte, *backend.DataResponse) {
 	body, status, err := d.doGet(ctx, path, params)
 	if err != nil {
-		r := errResp(fmt.Errorf("GET %s failed: %v", path, err))
+		r := errResp(fmt.Errorf("upstream request failed; response details are withheld"))
 		return nil, &r
 	}
 	if status < 200 || status >= 300 {
@@ -375,13 +367,25 @@ func (d *Datasource) get(ctx context.Context, path string, params url.Values) ([
 // ---- overview -------------------------------------------------------------
 
 func (d *Datasource) queryOverview(ctx context.Context) backend.DataResponse {
-	body, e := d.get(ctx, "/api/v1/dashboard/overview", nil)
-	if e != nil {
-		return *e
-	}
+	body, status, requestError := d.doGet(ctx, "/api/v1/dashboard/posture", nil)
+	modern := status != http.StatusNotFound
+	if requestError != nil { return errResp(fmt.Errorf("workspace posture read failed")) }
+	if !modern {
+		var failed *backend.DataResponse
+		body, failed = d.get(ctx, "/api/v1/dashboard/overview", nil)
+		if failed != nil { return *failed }
+	} else if status < 200 || status >= 300 { return errResp(fmt.Errorf("workspace posture read returned HTTP %d", status)) }
 	var obj map[string]any
-	if err := json.Unmarshal(body, &obj); err != nil {
-		return errResp(err)
+	if json.Unmarshal(body, &obj) != nil || obj == nil { return errResp(fmt.Errorf("invalid overview response")) }
+	if modern {
+		if s(obj, "cohort") != "all_retained_records_current_state" { return errResp(fmt.Errorf("unknown posture cohort")) }
+		totals := asObject(obj["totals"])
+		obj["projects_count"] = totals["projects"]; obj["targets_count"] = totals["targets"]
+		obj["campaigns_count"] = totals["campaigns"]; obj["total_vulnerabilities"] = totals["findings"]
+	}
+
+	for _, key := range []string{"projects_count", "targets_count", "campaigns_count", "total_vulnerabilities"} {
+		if nullableCount(obj, key) == nil { return errResp(fmt.Errorf("overview response needs valid aggregate counts")) }
 	}
 	safe := pick(obj, "projects_count", "targets_count", "campaigns_count", "total_vulnerabilities")
 
@@ -409,9 +413,12 @@ func distributionFrame(name string, m map[string]any) *data.Frame {
 	}
 	keys := make([]string, 0, len(m))
 	vals := make([]int64, 0, len(m))
-	for k, v := range m {
-		keys = append(keys, k)
-		vals = append(vals, asInt(v))
+	allowed := []string{"critical", "high", "medium", "low", "info"}
+	if name == "status_distribution" { allowed = []string{"exploited", "confirmed", "unconfirmed", "remediated", "false_positive", "accepted"} }
+	for _, key := range allowed {
+		if value, ok := m[key].(float64); ok && value >= 0 && math.Trunc(value) == value && !math.IsInf(value, 0) {
+			keys = append(keys, key); vals = append(vals, int64(value))
+		}
 	}
 	return data.NewFrame(name,
 		data.NewField("key", nil, keys),
@@ -433,9 +440,10 @@ func (d *Datasource) queryCampaigns(ctx context.Context) backend.DataResponse {
 
 	var (
 		id, targetID, status, risk, date        = []string{}, []string{}, []string{}, []string{}, []string{}
-		total, crit, high, med, low             = []int64{}, []int64{}, []int64{}, []int64{}, []int64{}
+		total, crit, high, med, low, info       = []*int64{}, []*int64{}, []*int64{}, []*int64{}, []*int64{}, []*int64{}
 	)
 	for _, r := range rows {
+		if s(r, "id") == "" { return errResp(fmt.Errorf("upstream row has no string identity")) }
 		safe := pick(r, "id", "target_id", "status", "overall_risk", "date")
 		stats := asObject(r["stats"])
 		id = append(id, s(safe, "id"))
@@ -443,11 +451,12 @@ func (d *Datasource) queryCampaigns(ctx context.Context) backend.DataResponse {
 		status = append(status, s(safe, "status"))
 		risk = append(risk, s(safe, "overall_risk"))
 		date = append(date, s(safe, "date"))
-		total = append(total, i(stats, "total_findings"))
-		crit = append(crit, i(stats, "critical"))
-		high = append(high, i(stats, "high"))
-		med = append(med, i(stats, "medium"))
-		low = append(low, i(stats, "low"))
+		total = append(total, nullableCount(stats, "total_findings"))
+		crit = append(crit, nullableCount(stats, "critical"))
+		high = append(high, nullableCount(stats, "high"))
+		med = append(med, nullableCount(stats, "medium"))
+		low = append(low, nullableCount(stats, "low"))
+		info = append(info, nullableCount(stats, "info"))
 	}
 
 	frame := data.NewFrame("campaigns",
@@ -461,6 +470,7 @@ func (d *Datasource) queryCampaigns(ctx context.Context) backend.DataResponse {
 		data.NewField("high", nil, high),
 		data.NewField("medium", nil, med),
 		data.NewField("low", nil, low),
+		data.NewField("info", nil, info),
 	)
 	return backend.DataResponse{Frames: data.Frames{frame}}
 }
@@ -491,6 +501,7 @@ func (d *Datasource) queryFindings(ctx context.Context, qm queryModel) backend.D
 	)
 	for _, r := range rows {
 		// NOTE: description, evidence, raw, payloads are intentionally excluded.
+		if s(r, "id") == "" { return errResp(fmt.Errorf("upstream row has no string identity")) }
 		safe := pick(r, "id", "title", "severity", "status", "category", "cve", "cvss_score", "mitre_attack_id", "endpoint")
 		id = append(id, s(safe, "id"))
 		title = append(title, s(safe, "title"))
@@ -500,7 +511,7 @@ func (d *Datasource) queryFindings(ctx context.Context, qm queryModel) backend.D
 		cve = append(cve, s(safe, "cve"))
 		cvss = append(cvss, f(safe, "cvss_score"))
 		mitre = append(mitre, s(safe, "mitre_attack_id"))
-		endpoint = append(endpoint, s(safe, "endpoint"))
+		endpoint = append(endpoint, metadataURL(s(safe, "endpoint")))
 	}
 
 	frame := data.NewFrame("findings",
@@ -533,14 +544,15 @@ func (d *Datasource) queryTargets(ctx context.Context, qm queryModel) backend.Da
 	}
 
 	id, host, risk, status := mk(), mk(), mk(), mk()
-	openVuln := []int64{}
+	openVuln := []*int64{}
 	for _, r := range rows {
+		if s(r, "id") == "" { return errResp(fmt.Errorf("upstream row has no string identity")) }
 		safe := pick(r, "id", "host", "risk_level", "status", "open_vuln")
 		id = append(id, s(safe, "id"))
 		host = append(host, s(safe, "host"))
 		risk = append(risk, s(safe, "risk_level"))
 		status = append(status, s(safe, "status"))
-		openVuln = append(openVuln, i(safe, "open_vuln"))
+		openVuln = append(openVuln, nullableCount(safe, "open_vuln"))
 	}
 
 	frame := data.NewFrame("targets",
@@ -573,31 +585,43 @@ func (d *Datasource) queryTimeseries(ctx context.Context, qm queryModel) backend
 		return errResp(err)
 	}
 
-	seriesRaw, _ := top["series"].([]any)
-	if seriesRaw == nil {
-		return backend.DataResponse{Frames: data.Frames{data.NewFrame("timeseries")}}
-	}
-
-	times := []time.Time{}
-	valueFields := []*data.Field{}
-	for idx, sr := range seriesRaw {
-		sm := asObject(sr)
-		name := firstNonEmpty(s(sm, "key"), s(sm, "name"), s(sm, "metric"), fmt.Sprintf("series_%d", idx))
-		points, _ := sm["points"].([]any)
-		vals := make([]float64, 0, len(points))
-		for pIdx, p := range points {
-			pm := asObject(p)
-			if idx == 0 {
-				times = append(times, parseTime(s(pm, "t")))
-			}
-			_ = pIdx
-			vals = append(vals, asFloat(firstNonNil(pm["value"], pm["v"])))
+	seriesRaw, valid := top["series"].([]any)
+	if !valid { return errResp(fmt.Errorf("timeseries response needs a series array")) }
+	type seriesValues struct { name string; values map[int64]float64 }
+	series := []seriesValues{}
+	instants := map[int64]time.Time{}
+	names := map[string]bool{}
+	for _, raw := range seriesRaw {
+		row, ok := raw.(map[string]any)
+		if !ok { return errResp(fmt.Errorf("invalid timeseries row")) }
+		name := s(row, "key")
+		points, ok := row["points"].([]any)
+		if name == "" || names[name] || !ok { return errResp(fmt.Errorf("timeseries needs unique keys and point arrays")) }
+		names[name] = true
+		values := map[int64]float64{}
+		for _, rawPoint := range points {
+			point, ok := rawPoint.(map[string]any)
+			if !ok { return errResp(fmt.Errorf("invalid timeseries point")) }
+			instant := parseTime(s(point, "t"))
+			value, ok := point["value"].(float64)
+			if instant.IsZero() || !ok || math.IsNaN(value) || math.IsInf(value, 0) { return errResp(fmt.Errorf("invalid timeseries timestamp or value")) }
+			key := instant.UnixNano()
+			if _, exists := values[key]; exists { return errResp(fmt.Errorf("duplicate timeseries timestamp")) }
+			values[key] = value; instants[key] = instant
 		}
-		valueFields = append(valueFields, data.NewField(name, nil, vals))
+		series = append(series, seriesValues{name: name, values: values})
 	}
-
+	keys := make([]int64, 0, len(instants))
+	for key := range instants { keys = append(keys, key) }
+	sort.Slice(keys, func(a, b int) bool { return keys[a] < keys[b] })
+	times := make([]time.Time, len(keys))
+	for index, key := range keys { times[index] = instants[key] }
 	fields := []*data.Field{data.NewField("t", nil, times)}
-	fields = append(fields, valueFields...)
+	for _, row := range series {
+		values := make([]*float64, len(keys))
+		for index, key := range keys { if value, ok := row.values[key]; ok { copy := value; values[index] = &copy } }
+		fields = append(fields, data.NewField(row.name, nil, values))
+	}
 	frame := data.NewFrame("timeseries", fields...)
 	frame.Meta = &data.FrameMeta{Type: data.FrameTypeTimeSeriesWide}
 	return backend.DataResponse{Frames: data.Frames{frame}}
@@ -647,16 +671,18 @@ func (d *Datasource) queryPullRequests(ctx context.Context, qm queryModel) backe
 	}
 
 	id, provider, repo, state, urlf, findingIDs := mk(), mk(), mk(), mk(), mk(), mk()
-	number := []int64{}
+	number := []*int64{}
 	for _, r := range rows {
-		safe := pick(r, "id", "provider", "repo", "number", "state", "url", "finding_ids")
+		published, explicit := r["published"].(bool)
+		if explicit && !published || !explicit && (s(r, "provider") == "" || i(r, "number") <= 0) { continue }
+		safe := pick(r, "id", "provider", "repo", "number", "state", "url")
 		id = append(id, s(safe, "id"))
 		provider = append(provider, s(safe, "provider"))
 		repo = append(repo, s(safe, "repo"))
-		number = append(number, i(safe, "number"))
+		number = append(number, nullableCount(safe, "number"))
 		state = append(state, s(safe, "state"))
-		urlf = append(urlf, s(safe, "url"))
-		findingIDs = append(findingIDs, joinIDs(safe["finding_ids"]))
+		urlf = append(urlf, metadataURL(s(safe, "url")))
+		findingIDs = append(findingIDs, joinIDs(r["finding_ids"]))
 	}
 
 	frame := data.NewFrame("pullrequests",
@@ -678,9 +704,31 @@ func joinIDs(v any) string {
 	}
 	parts := make([]string, 0, len(arr))
 	for _, el := range arr {
-		parts = append(parts, asString(el))
+		if id, valid := el.(string); valid { parts = append(parts, id) }
 	}
 	return strings.Join(parts, ",")
+}
+
+// ---- local remediation proposals (never a published-PR count) ---------------
+func (d *Datasource) queryRemediation(ctx context.Context, qm queryModel) backend.DataResponse {
+	params := url.Values{}
+	addParam(params, "campaign_id", qm.CampaignID)
+	body, failed := d.get(ctx, "/api/v1/pull-requests", params)
+	if failed != nil { return *failed }
+	rows, err := extractList(body, "pull_requests", "pullRequests")
+	if err != nil { return errResp(err) }
+	ids, campaigns, findings, statuses, confidence := mk(), mk(), mk(), mk(), mk()
+	for _, row := range rows {
+		published, explicit := row["published"].(bool)
+		if !explicit || published { continue }
+		if s(row, "id") == "" { return errResp(fmt.Errorf("proposal has no identity")) }
+		ids = append(ids, s(row, "id")); campaigns = append(campaigns, s(row, "campaign_id"))
+		findings = append(findings, joinIDs(row["finding_ids"])); statuses = append(statuses, s(row, "status"))
+		confidence = append(confidence, s(row, "confidence"))
+	}
+	frame := data.NewFrame("local_proposals", data.NewField("proposal_id", nil, ids), data.NewField("campaign_id", nil, campaigns),
+		data.NewField("finding_ids", nil, findings), data.NewField("status", nil, statuses), data.NewField("judge_confidence", nil, confidence))
+	return backend.DataResponse{Frames: data.Frames{frame}}
 }
 
 // ---- retest ---------------------------------------------------------------
@@ -693,6 +741,9 @@ func (d *Datasource) queryRetest(ctx context.Context, qm queryModel) backend.Dat
 	if e != nil {
 		return *e
 	}
+	var header map[string]any
+	if json.Unmarshal(body, &header) != nil || s(header, "retest_id") != qm.RetestID { return errResp(fmt.Errorf("retest response identity does not match")) }
+	state := data.NewFrame("retest_state", data.NewField("retest_id", nil, []string{qm.RetestID}), data.NewField("status", nil, []string{s(header, "status")}))
 	rows, err := extractList(body, "findings")
 	if err != nil {
 		return errResp(err)
@@ -715,7 +766,7 @@ func (d *Datasource) queryRetest(ctx context.Context, qm queryModel) backend.Dat
 		data.NewField("base_status", nil, base),
 		data.NewField("new_status", nil, nw),
 	)
-	return backend.DataResponse{Frames: data.Frames{frame}}
+	return backend.DataResponse{Frames: data.Frames{state, frame}}
 }
 
 // ---------------------------------------------------------------------------
@@ -738,13 +789,23 @@ func (d *Datasource) newResourceMux() *http.ServeMux {
 		}
 		body, status, err := d.doGet(r.Context(), "/api/v1/vulnerabilities/"+url.PathEscape(id)+"/evidence-meta", nil)
 		if err != nil {
-			log.DefaultLogger.Error("finding-meta proxy failed", "err", err.Error())
+			log.DefaultLogger.Error("finding-meta proxy failed")
 			http.Error(w, `{"error":"upstream request failed"}`, http.StatusBadGateway)
 			return
 		}
+		if status < 200 || status >= 300 { http.Error(w, `{"error":"upstream metadata read failed"}`, status); return }
+		var source map[string]any
+		if json.Unmarshal(body, &source) != nil || s(source, "vuln_id") != id { http.Error(w, `{"error":"invalid metadata response"}`, http.StatusBadGateway); return }
+		output := pick(source, "vuln_id", "has_evidence", "has_screenshot", "has_extracted_data", "redacted")
+		counts := map[string]any{}
+		for _, key := range []string{"commands", "payloads", "screenshots", "logs", "requests"} {
+			value, ok := asObject(source["counts"])[key].(float64)
+			if !ok || value < 0 || math.Trunc(value) != value || math.IsInf(value, 0) { http.Error(w, `{"error":"invalid metadata counts"}`, http.StatusBadGateway); return }
+			counts[key] = value
+		}
+		output["counts"] = counts
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		_, _ = w.Write(body)
+		_ = json.NewEncoder(w).Encode(output)
 	})
 	return mux
 }
@@ -752,6 +813,15 @@ func (d *Datasource) newResourceMux() *http.ServeMux {
 // ---------------------------------------------------------------------------
 // small helpers
 // ---------------------------------------------------------------------------
+
+func metadataURL(value string) string {
+	fields := strings.Fields(value)
+	if len(fields) > 1 { switch strings.ToUpper(fields[0]) { case "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS": value = strings.TrimSpace(strings.TrimPrefix(value, fields[0])) } }
+	parts := strings.SplitN(value, "?", 2)
+	value = strings.SplitN(parts[0], "#", 2)[0]
+	if parsed, err := url.Parse(value); err == nil && parsed.Host != "" { parsed.User = nil; return parsed.String() }
+	return value
+}
 
 func mk() []string { return []string{} }
 

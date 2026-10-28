@@ -162,3 +162,22 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 - 📚 **Docs:** https://docs.dark-moon.org
 - 🌐 **Website:** https://dark-moon.org
 - 🔗 **Related integrations:** [GitHub Actions](https://github.com/ASCIT31/darkmoon-action) · [GitLab CI/CD](https://github.com/ASCIT31/darkmoon-gitlab) 
+
+## Fork integration implementation
+
+The default `bundled` command ships the patched `0.2.1-darkmoon.1` portable CLI
+in the HPI and copies it to the agent workspace; Node.js 18+ is required on the
+agent. The previous default `darkmoon-ci` setting also selects this bundled
+snapshot. Explicit custom CLI commands are parsed as quoted argument lists.
+
+A successful run verdict must be followed by an exact, completed campaign status
+and a valid findings array. Failed status, unreadable/malformed findings, missing
+configured credentials or unsupported exit codes stop the step. Counts and
+fail/unstable precedence use fetched findings. Empty findings remain valid after
+successful completion. Stale generated artifacts are removed at the next run.
+Only named outputs are archived; job permissions determine artifact visibility.
+
+Archived CLI logs now contain execution metadata, not stdout/stderr bodies or
+command arguments. Output buffering and process duration are bounded. Extra
+arguments are limited to supported scan options; credentials and backend options
+use dedicated configuration fields. Verification is deferred to the later pass.

@@ -15,6 +15,7 @@ export const copyFilePatterns = [
   { from: '../CHANGELOG.md', to: '.', force: true },
   { from: '**/*.json', to: '.' },
   { from: '**/query_help.md', to: '.', noErrorOnMissing: true },
+  { from: 'datasource/img/**/*', to: '.' },
   ...logoPaths.map((logoPath) => ({ from: logoPath, to: logoPath })),
   ...screenshotPaths.map((screenshotPath) => ({
     from: screenshotPath,

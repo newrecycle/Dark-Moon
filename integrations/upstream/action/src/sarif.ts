@@ -56,7 +56,7 @@ function ruleIdFor(f: Finding): string {
  */
 export function redactFindingForArtifact(f: Finding): Omit<Finding, 'raw'> {
   const { raw: _raw, ...rest } = f as Finding & { raw?: unknown };
-  return { ...rest, evidence: null };
+  return { ...rest, endpoint: f.endpoint ? redact(f.endpoint.split(/[?#]/, 1)[0]!) : null, description: null, remediation: null, evidence: null };
 }
 
 export interface SarifOptions {
@@ -84,7 +84,7 @@ export function buildSarif(findings: Finding[], opts: SarifOptions = {}): string
 
     // Location: Darkmoon findings target running endpoints, not source files.
     // Anchor to a synthetic path so code scanning still ingests the alert.
-    const endpoint = f.endpoint ? redact(f.endpoint) : '';
+    const endpoint = f.endpoint ? redact(f.endpoint.split(/[?#]/, 1)[0]!) : '';
     const artifactUri = endpoint
       ? `darkmoon/${endpoint.replace(/^https?:\/\//i, '').replace(/[^a-zA-Z0-9._/-]+/g, '_')}`
       : `darkmoon/finding/${f.id}`;

@@ -67,6 +67,9 @@ class DarkmoonToolWindowPanel(private val project: Project) : JPanel(BorderLayou
     private val reportsPanel = ReportsPanel(project)
 
     private var capabilities: Capabilities? = null
+    private var refreshVersion = 0L
+    private var findingsVersion = 0L
+    private var loadedConnection: List<Any>? = null
 
     init {
         vulnTable.rowSorter = vulnSorter
@@ -150,7 +153,13 @@ class DarkmoonToolWindowPanel(private val project: Project) : JPanel(BorderLayou
         campaignsTable.selectionModel.addListSelectionListener { e ->
             if (e.valueIsAdjusting) return@addListSelectionListener
             val viewRow = campaignsTable.selectedRow
-            if (viewRow < 0) return@addListSelectionListener
+            if (viewRow < 0) {
+                findingsVersion++
+                vulnModel.setFindings(emptyList())
+                findingDetail.clear()
+                reportsPanel.setCampaign(null, null)
+                return@addListSelectionListener
+            }
             val campaign = campaignsModel.campaignAt(campaignsTable.convertRowIndexToModel(viewRow))
                 ?: return@addListSelectionListener
             reportsPanel.setCampaign(campaign.id, campaign.target)
@@ -160,7 +169,8 @@ class DarkmoonToolWindowPanel(private val project: Project) : JPanel(BorderLayou
         vulnTable.selectionModel.addListSelectionListener { e ->
             if (e.valueIsAdjusting) return@addListSelectionListener
             val viewRow = vulnTable.selectedRow
-            if (viewRow < 0) return@addListSelectionListener
+            if (viewRow < 0) { findingDetail.clear(); return@addListSelectionListener }
+            if (loadedConnection != service.connectionStamp()) { refresh(); return@addListSelectionListener }
             val finding = vulnModel.findingAt(vulnTable.convertRowIndexToModel(viewRow))
                 ?: return@addListSelectionListener
             findingDetail.showFinding(finding)
@@ -168,6 +178,15 @@ class DarkmoonToolWindowPanel(private val project: Project) : JPanel(BorderLayou
     }
 
     private fun refresh() {
+        val version = ++refreshVersion
+        findingsVersion++
+        loadedConnection = null
+        capabilities = null
+        launchButton.isEnabled = false
+        campaignsModel.setCampaigns(emptyList())
+        vulnModel.setFindings(emptyList())
+        findingDetail.clear()
+        reportsPanel.setCampaign(null, null)
         refreshButton.isEnabled = false
         object : Task.Backgroundable(project, "Refreshing Darkmoon", true) {
             private var caps: Capabilities? = null
@@ -182,14 +201,16 @@ class DarkmoonToolWindowPanel(private val project: Project) : JPanel(BorderLayou
                 }
             }
             override fun onSuccess() {
+                if (project.isDisposed || version != refreshVersion) return
                 refreshButton.isEnabled = true
                 val c = caps
                 capabilities = c
                 if (c == null) {
-                    statusLabel.text = (DarkmoonBundle["status.unavailable"]) + (error?.let { " ($it)" } ?: "")
+                    statusLabel.text = DarkmoonBundle["status.unavailable"]
                     launchButton.isEnabled = false
                     return
                 }
+                loadedConnection = service.connectionStamp()
                 campaignsModel.setCampaigns(camps)
                 launchButton.isEnabled = CapabilityGate.canLaunchCampaign(c)
                 statusLabel.text = buildString {
@@ -211,6 +232,9 @@ class DarkmoonToolWindowPanel(private val project: Project) : JPanel(BorderLayou
     }
 
     private fun loadFindings(campaign: Campaign) {
+        val version = ++findingsVersion
+        val connection = service.connectionStamp()
+        vulnModel.setFindings(emptyList())
         object : Task.Backgroundable(project, "Loading findings for ${campaign.id}", true) {
             private var findings: List<Finding> = emptyList()
             private var error: String? = null
@@ -219,8 +243,9 @@ class DarkmoonToolWindowPanel(private val project: Project) : JPanel(BorderLayou
                 catch (e: Exception) { error = e.message ?: e.javaClass.simpleName }
             }
             override fun onSuccess() {
+                if (project.isDisposed || findingsVersion != version || connection != service.connectionStamp()) return
                 vulnModel.setFindings(findings)
-                if (error != null) statusLabel.text = "Findings error: $error"
+                if (error != null) statusLabel.text = "Findings could not be loaded for the current connection"
                 // First real result: offer a one-time, non-intrusive GitHub star CTA.
                 // Guarded (non-empty + once-only + opt-out) inside; fail-safe there.
                 if (error == null && findings.isNotEmpty()) {
@@ -233,6 +258,7 @@ class DarkmoonToolWindowPanel(private val project: Project) : JPanel(BorderLayou
     private fun launch() {
         val dialog = LaunchCampaignDialog(project, capabilities)
         if (!dialog.showAndGet()) return
+        if (loadedConnection != service.connectionStamp()) { refresh(); return }
         val input = dialog.getInput()
         object : Task.Backgroundable(project, "Launching Darkmoon campaign", true) {
             private var ok = false

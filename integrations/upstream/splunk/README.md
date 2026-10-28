@@ -79,9 +79,8 @@ remediation rate), findings over time, severity/status distributions, top exploi
 1. **Settings → Data inputs → HTTP Event Collector → New Token.** Name it `darkmoon`, set the app
    context to **Darkmoon Pentest**, optionally route to an index named `darkmoon`.
 2. Point a producer at `https://<splunk>:8088/services/collector/event`:
-   - **Pro (recommended):** register a Darkmoon webhook (`format=splunk_hec`) targeting the HEC
-     URL. The Darkmoon dispatcher formats safe, HMAC-signed envelopes for you.
-   - **Anyone:** run the bundled [`forwarder/darkmoon-to-hec.py`](forwarder/README.md).
+   - **This fork:** run the bundled [`forwarder/darkmoon-to-hec.py`](forwarder/README.md), with the Darkmoon and HEC credentials supplied separately through environment variables.
+   - Direct `format=splunk_hec` delivery is not implemented by this fork's signed webhook dispatcher. Original commercial support and its authentication contract remain unverified.
 3. Events land as `darkmoon:campaign`, `darkmoon:finding`, `darkmoon:retest`, `darkmoon:pr`,
    parsed and CIM-aligned (Vulnerabilities data model) by this app.
 

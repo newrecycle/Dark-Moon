@@ -30,12 +30,13 @@
     "repository": "https://github.com/ASCIT31/darkmoon-grafana.git",
     "commit": "cde53644977bf06d681e955dcf1d84d62d9ae806",
     "license": "MIT",
-    "modified": false,
+    "modified": true,
     "excluded": [
       ".github",
       "docs/screenshots",
       "test/screenshots"
-    ]
+    ],
+    "adaptation": "Replace starter pages and unused app API-key settings with real encrypted-datasource-backed views and saved datasource UID; prefer retained-workspace posture with legacy 404 fallback; distinguish local proposals from PRs; authenticate health via protected reads; align sparse trends with null gaps; strict lists/scalar projections, safe metadata resource proxy, no redirect credential forwarding and correct nested asset packaging. Implementation pass; type/build/native verification is deferred."
   },
   {
     "path": "integrations/upstream/action",
@@ -55,7 +56,7 @@
       "tarball_sha256": "cf103ead62b2b37dcbb7ba4da3a15f9827b1dd71a4131a7c12fa87f09908cafb",
       "npm_published": false
     },
-    "adaptation": "Replace legacy 0.1 client archive with patched local snapshot via existing @darkmoon/client import alias. Fail closed on failed/stopped assessments and unreadable findings; compute counts from fetched findings and constrain report filenames."
+    "adaptation": "Replace legacy 0.1 client archive with patched local snapshot via existing @darkmoon/client import alias. Fail closed on failed/stopped assessments and unreadable findings; compute counts from fetched findings and constrain report filenames. Strip free-form description/remediation bodies from JSON artifacts and endpoint query/fragment data from artifacts/SARIF; verification of this follow-up is deferred."
   },
   {
     "path": "integrations/upstream/gitlab",
@@ -75,12 +76,19 @@
     "repository": "https://github.com/ASCIT31/darkmoon-jenkins.git",
     "commit": "f934086e01fac5220bd02ca225c334270e9b3789",
     "license": "MIT",
-    "modified": false,
+    "modified": true,
     "excluded": [
       ".github",
       "docs/screenshots",
       "test/screenshots"
-    ]
+    ],
+    "adaptation": "Ship patched CLI 0.2.1-darkmoon.1 in HPI resources for agent-side execution; require exact completed status plus typed findings; derive gate counts from fetched findings; fail on missing configured credentials/tool errors; bounded metadata-only process logging; constrain extra options and generated artifacts; withhold free-form bodies from SARIF. Implementation pass; build/native verification is deferred.",
+    "client_snapshot": {
+      "source": "integrations/upstream/client",
+      "version": "0.2.1-darkmoon.1",
+      "source_commit": "126f6daa930318dd2de0fb61a49ea0fdaf00e0dd",
+      "npm_published": false
+    }
   },
   {
     "path": "integrations/upstream/vscode",
@@ -112,19 +120,26 @@
       "docs/screenshots",
       "test/screenshots"
     ],
-    "adaptation": "Replace developer-specific absolute paths and silent native/bridge skips with required shared fork SDK fixtures. Add pinned, network-disabled native platform acceptance with JDK 21 runtime and declared JDK 17 compilation toolchain. Lifecycle and reveal corrections remain tracked in the integration gap ledger."
+    "adaptation": "Bundle the patched SDK 0.2.1-darkmoon.1 with the bridge and use it by default; explicit OSS directories; preserve correlation through all bridge reads, reject synthetic campaign pinning and malformed/foreign results; bounded child processes and safe errors; scoped expiring trusted-local reveal, metadata-only defaults, stale refresh/selection protection and credential-revision binding. Implementation pass; compilation/native verification is deferred by user instruction.",
+    "client_snapshot": {
+      "source": "integrations/upstream/client",
+      "version": "0.2.1-darkmoon.1",
+      "source_commit": "126f6daa930318dd2de0fb61a49ea0fdaf00e0dd",
+      "npm_published": false
+    }
   },
   {
     "path": "integrations/upstream/splunk",
     "repository": "https://github.com/ASCIT31/darkmoon-splunk.git",
     "commit": "8c5c8667eccaad9768232e2cf4065b7aabdcf642",
     "license": "MIT",
-    "modified": false,
+    "modified": true,
     "excluded": [
       ".github",
       "docs/screenshots",
       "test/screenshots",
       "docs/listing-images"
-    ]
+    ],
+    "adaptation": "Map REST record IDs, enforce scalar/finite numeric projections, distinguish local proposals and running retests; fail on REST shape/read or HEC admission errors, reject redirects and unsupported ACK claims; resolve allowlisted hosts to unique saved target IDs; serialize rate-limit state atomically. Correct unsupported direct-HEC documentation. Implementation pass; host/behavior verification is deferred."
   }
 ]

@@ -9,8 +9,8 @@ import kotlinx.serialization.json.Json
  */
 internal val DarkmoonJson: Json = Json {
     ignoreUnknownKeys = true
-    isLenient = true
+    isLenient = false
     explicitNulls = false
     encodeDefaults = false
-    coerceInputValues = true
+    coerceInputValues = false
 }

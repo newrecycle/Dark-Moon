@@ -4,7 +4,12 @@
   "name": "Darkmoon Security Posture",
   "id": "darkmoon-securityposture-app",
   "info": {
-    "keywords": ["security", "pentest", "darkmoon", "vulnerabilities"],
+    "keywords": [
+      "security",
+      "pentest",
+      "darkmoon",
+      "vulnerabilities"
+    ],
     "description": "Grafana app for the Darkmoon security platform. Bundles a backend datasource to visualize security posture: campaigns, findings, targets, time series and remediation pull requests. Sensitive evidence is never surfaced.",
     "author": {
       "name": "ASC-IT / Darkmoon"
@@ -14,8 +19,14 @@
       "large": "img/logo.svg"
     },
     "screenshots": [
-      { "name": "Overview", "path": "img/screenshots/overview.png" },
-      { "name": "Findings", "path": "img/screenshots/findings.png" }
+      {
+        "name": "Overview",
+        "path": "img/screenshots/overview.png"
+      },
+      {
+        "name": "Findings",
+        "path": "img/screenshots/findings.png"
+      }
     ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
@@ -29,9 +40,51 @@
     {
       "type": "page",
       "name": "Overview",
-      "path": "/a/%PLUGIN_ID%/one",
+      "path": "/a/%PLUGIN_ID%/overview",
       "addToNav": true,
       "defaultNav": true
+    },
+    {
+      "type": "page",
+      "name": "Campaigns",
+      "path": "/a/%PLUGIN_ID%/campaigns",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "Findings",
+      "path": "/a/%PLUGIN_ID%/findings",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "Targets",
+      "path": "/a/%PLUGIN_ID%/targets",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "Trends",
+      "path": "/a/%PLUGIN_ID%/timeseries",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "Published PRs",
+      "path": "/a/%PLUGIN_ID%/pullrequests",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "Local proposals",
+      "path": "/a/%PLUGIN_ID%/remediation",
+      "addToNav": true
+    },
+    {
+      "type": "page",
+      "name": "Retests",
+      "path": "/a/%PLUGIN_ID%/retest",
+      "addToNav": true
     },
     {
       "type": "page",

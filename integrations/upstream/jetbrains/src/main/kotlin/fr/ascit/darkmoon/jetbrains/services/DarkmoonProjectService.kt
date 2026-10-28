@@ -1,7 +1,6 @@
 package fr.ascit.darkmoon.jetbrains.services
 
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import fr.ascit.darkmoon.client.Campaign
 import fr.ascit.darkmoon.client.CampaignRef
@@ -19,6 +18,7 @@ import fr.ascit.darkmoon.client.ReportOptions
 import fr.ascit.darkmoon.jetbrains.settings.DarkmoonSecretService
 import fr.ascit.darkmoon.jetbrains.settings.DarkmoonSettings
 import java.io.File
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Per-project holder of the Darkmoon client and cached, redaction-safe data.
@@ -30,35 +30,64 @@ import java.io.File
 @Service(Service.Level.PROJECT)
 class DarkmoonProjectService(private val project: Project) {
 
+    private val generation = AtomicLong()
+    val revision: Long get() = generation.get()
+
     @Volatile var capabilities: Capabilities? = null
         private set
 
     @Volatile var campaigns: List<Campaign> = emptyList()
         private set
 
+    fun connectionStamp(): List<Any> {
+        val settings = DarkmoonSettings.getInstance()
+        return listOf(revision, DarkmoonSecretService.getInstance().revision, settings.mode.wire,
+            settings.baseUrl, settings.cliCommand, settings.workingDir, settings.ossDataDir, settings.ossReportsDir)
+    }
+
     /** Builds a fresh client from current settings + secret. Never caches secrets. */
     fun client(): DarkmoonClient {
+        val origin = connectionStamp()
         val settings = DarkmoonSettings.getInstance()
         val workingDir = settings.workingDir.takeIf { it.isNotBlank() }?.let { File(it) }
+        val bundled = settings.cliCommand.isBlank() || settings.cliCommand in listOf("bundled", "darkmoon-ci")
+        val environment = mutableMapOf<String, String>()
+        if (bundled) environment["DARKMOON_CLIENT_MODULE"] = BundledBridge.module()
+        if (settings.ossDataDir.isNotBlank()) environment["DARKMOON_OSS_DATA_DIR"] = settings.ossDataDir
+        if (settings.ossReportsDir.isNotBlank()) environment["DARKMOON_OSS_REPORTS_DIR"] = settings.ossReportsDir
         return CliDarkmoonClient(
             CliConfig(
-                command = settings.commandTokens(),
+                command = if (bundled) BundledBridge.command() else settings.commandTokens(),
+                extraEnv = environment,
                 mode = settings.mode,
                 baseUrl = settings.baseUrl.takeIf { it.isNotBlank() },
                 workingDir = workingDir,
-                tokenProvider = { DarkmoonSecretService.getInstance().getToken() },
+                tokenProvider = {
+                    check(connectionStamp() == origin) { "Connection changed before credential access" }
+                    val token = DarkmoonSecretService.getInstance().getToken()
+                    check(connectionStamp() == origin) { "Connection changed during credential access" }
+                    token
+                },
             )
         )
     }
 
     /** Detect + list campaigns. Blocking; call off-EDT. */
     fun refresh(): Capabilities {
+        val revision = synchronized(this) {
+            capabilities = null
+            campaigns = emptyList()
+            generation.incrementAndGet()
+        }
+        val origin = connectionStamp()
         val c = client()
         val caps = c.detect()
-        capabilities = caps
-        campaigns = runCatching { c.listCampaigns() }
-            .onFailure { thisLogger().warn("listCampaigns failed", it) }
-            .getOrDefault(emptyList())
+        val records = c.listCampaigns()
+        synchronized(this) {
+            if (generation.get() != revision || connectionStamp() != origin) throw IllegalStateException("A newer connection refresh replaced this request")
+            campaigns = records
+            capabilities = caps
+        }
         return caps
     }
 
@@ -67,12 +96,22 @@ class DarkmoonProjectService(private val project: Project) {
         client().listFindings(FindingFilter(campaignId = campaignId))
 
     /** A single finding with (redacted, or full when the two-key opt-in is passed) evidence. */
-    fun findingWithEvidence(id: String, full: Boolean): Finding =
-        client().getFinding(id, FindingReadOptions(includeEvidence = true, full = full, private = full))
+    fun findingWithEvidence(id: String, full: Boolean, expected: List<Any>? = null): Finding {
+        val origin = expected ?: connectionStamp()
+        check(connectionStamp() == origin) { "Connection changed before reading evidence" }
+        val reader = client()
+        check(connectionStamp() == origin) { "Connection changed before reading evidence" }
+        return reader.getFinding(id, FindingReadOptions(includeEvidence = true, full = full, private = full))
+    }
 
     /** A report. Full body only with the explicit two-key opt-in. Blocking. */
-    fun report(campaignId: String, full: Boolean): Report =
-        client().getReport(CampaignRef.of(campaignId), ReportOptions(full = full, private = full))
+    fun report(campaignId: String, full: Boolean, expected: List<Any>? = null): Report {
+        val origin = expected ?: connectionStamp()
+        check(connectionStamp() == origin) { "Connection changed before reading the report" }
+        val reader = client()
+        check(connectionStamp() == origin) { "Connection changed before reading the report" }
+        return reader.getReport(CampaignRef.of(campaignId), ReportOptions(full = full, private = full))
+    }
 
     fun launch(input: LaunchInput): LaunchResult = client().launchCampaign(input)
 

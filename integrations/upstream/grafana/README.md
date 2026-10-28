@@ -209,3 +209,24 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 - 📚 **Docs:** https://docs.dark-moon.org
 - 🌐 **Website:** https://dark-moon.org
 - 🔗 **Related integrations:** [Splunk](https://github.com/ASCIT31/darkmoon-splunk) 
+
+## Fork integration implementation
+
+The app now selects a configured Darkmoon datasource and reads live metadata
+through Grafana's backend query API. Overview, campaigns, findings, targets,
+30-day trends, published PRs, local proposals and retest status replace the
+starter demo pages. The app stores only a default datasource UID. API URL and
+credentials belong to the datasource configuration, where the token is encrypted.
+
+Overview prefers this fork's retained-workspace posture endpoint, falling back
+to the legacy overview only on HTTP 404. Missing counts remain unavailable;
+malformed responses do not become clean empty frames. Sparse trends align on
+timestamps with null gaps. Local proposals do not count as published PRs.
+Credential health uses a protected campaign read rather than public system info.
+Redirect forwarding is disabled, metadata responses are projected, and nested
+objects cannot be serialized through scalar fields.
+
+The SDK's Mage build places the nested datasource binary beside its manifest
+at `dist/datasource/gpx_darkmoon_<os>_<arch>`. Nested datasource logo assets are
+now copied into the package. Build/native verification is deferred to the later
+pass; original vendor runtime compatibility is not established by this source.

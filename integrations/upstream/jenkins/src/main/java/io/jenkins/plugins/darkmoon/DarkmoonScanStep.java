@@ -31,6 +31,7 @@ import io.jenkins.plugins.darkmoon.contract.SeveritySummary;
 import io.jenkins.plugins.darkmoon.contract.Verdict;
 import io.jenkins.plugins.darkmoon.sarif.SarifWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -65,7 +66,7 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
     private boolean recordIssues = true;
     private boolean archiveReport = true;
     private boolean includeFullReport = false;
-    private String cliPath = "darkmoon-ci";
+    private String cliPath = "bundled";
     private int timeout;
     private String outputDir = "darkmoon-reports";
     private String extraArgs = "";
@@ -246,8 +247,14 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
             @NonNull TaskListener listener)
             throws InterruptedException, IOException {
 
-        FilePath out = workspace.child(env.expand(outputDir));
+        String relativeOutput = env.expand(outputDir).replace('\\', '/');
+        if (relativeOutput.isBlank() || java.util.Arrays.asList(relativeOutput.split("/")).contains(".") || relativeOutput.startsWith("/") || relativeOutput.matches("^[A-Za-z]:.*") ||
+                java.util.Arrays.asList(relativeOutput.split("/")).contains("..") || relativeOutput.contains("*") || relativeOutput.contains("?")) {
+            throw new AbortException("Output directory must be a workspace-relative directory without traversal or glob characters.");
+        }
+        FilePath out = workspace.child(relativeOutput);
         out.mkdirs();
+        for (String name : List.of("darkmoon.sarif", "darkmoon-report.md", "darkmoon-report-full.md", DarkmoonCliRunner.LOG_FILE)) out.child(name).delete();
 
         String resolvedApiUrl = apiUrl == null ? null : env.expand(apiUrl);
         String token = resolveSecret(run, credentialsId, resolvedApiUrl, listener, "token");
@@ -255,15 +262,27 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
 
         List<String> extra = new ArrayList<>();
         if (extraArgs != null && !extraArgs.isBlank()) {
-            for (String tok : env.expand(extraArgs).split("\\s+")) {
-                if (!tok.isBlank()) {
-                    extra.add(tok);
-                }
+            String[] tokens = hudson.Util.tokenize(env.expand(extraArgs));
+            java.util.Set<String> allowed = java.util.Set.of("--program", "--focus", "--severity", "--exclude", "--out-of-scope", "--poll");
+            for (int i = 0; i < tokens.length; i += 2) {
+                if (!allowed.contains(tokens[i]) || i + 1 >= tokens.length || tokens[i + 1].startsWith("--")) throw new AbortException("Extra arguments must be supported scan options with values; credentials and backend options use dedicated settings.");
+                extra.add(tokens[i]); extra.add(tokens[i + 1]);
             }
+        }
+        List<String> command = null;
+        if ("bundled".equals(cliPath) || "darkmoon-ci".equals(cliPath)) {
+            FilePath directory = workspace.child(".darkmoon/client"); directory.mkdirs();
+            FilePath executable = directory.child("darkmoon-ci.cjs");
+            try (InputStream resource = getClass().getResourceAsStream("/darkmoon-client/darkmoon-ci.cjs")) {
+                if (resource == null) throw new AbortException("The packaged Darkmoon CLI is missing.");
+                executable.copyFrom(resource);
+            }
+            command = List.of("node", executable.getRemote());
         }
 
         DarkmoonCliRunner.Options opts = DarkmoonCliRunner.Options.builder()
                 .cliPath(env.expand(cliPath))
+                .commandTokens(command)
                 .target(env.expand(target))
                 .mode(mode)
                 .apiUrl(resolvedApiUrl)
@@ -285,41 +304,40 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
         try {
             runExec = runner.run(failOnCsv);
         } catch (IOException e) {
-            throw new AbortException("darkmoon-ci could not be launched: " + safe(e.getMessage())
-                    + " (is '" + cliPath + "' available on the agent PATH?)");
+            throw new AbortException("The Darkmoon CLI could not be launched; Node and the configured command must be available on the agent.");
         }
-        if (runExec.exitCode == DarkmoonCliRunner.EXIT_ERROR) {
+        if (runExec.exitCode != 0 && runExec.exitCode != 2) {
             archiveQuietly(run, workspace, env, launcher, listener);
             throw new AbortException("darkmoon-ci 'run' failed (exit 1). See the archived "
-                    + outputDir + "/" + DarkmoonCliRunner.LOG_FILE + " for the (secret-scrubbed) reason.");
+                    + outputDir + "/" + DarkmoonCliRunner.LOG_FILE + " for execution status.");
         }
 
         Verdict verdict;
         try {
             verdict = CliJson.parseVerdict(runExec.stdout);
         } catch (IOException e) {
-            throw new AbortException("Could not parse darkmoon-ci 'run' output: " + safe(e.getMessage()));
+            throw new AbortException("Could not parse the CLI run verdict; no trustworthy assessment result is available.");
         }
         String campaignId = verdict.getCampaignId();
         if (campaignId == null || campaignId.isBlank()) {
             throw new AbortException("darkmoon-ci did not return a campaign id.");
         }
         listener.getLogger().println("[darkmoon] campaign " + campaignId
-                + " — CLI verdict: " + (verdict.failed() ? "FAIL" : "PASS")
-                + (verdict.getReason() == null ? "" : " (" + verdict.getReason() + ")"));
+                + " — CLI verdict: " + (verdict.failed() ? "FAIL" : "PASS"));
+        DarkmoonCliRunner.Exec statusExec = runner.status(campaignId);
+        if (statusExec.exitCode != 0) throw new AbortException("Campaign status could not be read.");
+        io.jenkins.plugins.darkmoon.contract.Campaign completed;
+        try { completed = CliJson.parseCampaign(statusExec.stdout); }
+        catch (IOException error) { throw new AbortException("Campaign status document is invalid."); }
+        if (!campaignId.equals(completed.getId()) || !"completed".equals(completed.getStatus())) throw new AbortException("The requested assessment has not completed successfully; no findings verdict is available.");
 
-        // ---- 2) findings -> SARIF ----
-        List<Finding> findings = new ArrayList<>();
+        // Findings must be readable and valid before publishing any scan result.
         DarkmoonCliRunner.Exec findExec = runner.findings(campaignId);
-        if (findExec.exitCode == DarkmoonCliRunner.EXIT_ERROR) {
-            listener.getLogger().println("[darkmoon] WARNING: 'findings' returned exit 1; no issues published.");
-        } else {
-            try {
-                findings = CliJson.parseFindings(findExec.stdout);
-            } catch (IOException e) {
-                listener.getLogger().println("[darkmoon] WARNING: could not parse findings: " + safe(e.getMessage()));
-            }
-        }
+        if (findExec.exitCode != 0) throw new AbortException("Findings could not be read; no empty scan result will be published.");
+        List<Finding> findings;
+        try { findings = CliJson.parseFindings(findExec.stdout); }
+        catch (IOException error) { throw new AbortException("Findings document is invalid; no scan result will be published."); }
+        for (Finding finding : findings) if (finding.getCampaignId() != null && !campaignId.equals(finding.getCampaignId())) throw new AbortException("A finding belongs to a different campaign.");
 
         if (recordIssues) {
             try {
@@ -330,38 +348,28 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
                         + "recordIssues(enabledForFailure: true, tools: [sarif(pattern: '"
                         + sarifPattern() + "')]).");
             } catch (RuntimeException e) {
-                listener.getLogger().println("[darkmoon] WARNING: could not write SARIF: " + safe(e.getMessage()));
+                throw new AbortException("Could not generate the requested SARIF artifact.");
             }
         }
 
-        // ---- 3) summary (authoritative counts; fall back to findings) ----
-        SeveritySummary summary = null;
-        DarkmoonCliRunner.Exec sumExec = runner.summary(campaignId);
-        if (sumExec.exitCode != DarkmoonCliRunner.EXIT_ERROR) {
-            try {
-                summary = CliJson.parseSummary(sumExec.stdout);
-            } catch (IOException e) {
-                listener.getLogger().println("[darkmoon] WARNING: could not parse summary: " + safe(e.getMessage()));
-            }
-        }
-        if (summary == null || summary.getTotal() == 0 && !findings.isEmpty()) {
-            summary = fromFindings(findings);
-        }
+        // Gate and displayed counts use the fetched findings, never stale totals.
+        SeveritySummary summary = fromFindings(findings);
 
         // ---- 4) reports ----
         if (archiveReport) {
             try {
-                runner.report(campaignId, out.child("darkmoon-report.md"), false);
-            } catch (IOException | InterruptedException e) {
-                listener.getLogger().println("[darkmoon] WARNING: could not fetch redacted report: " + safe(e.getMessage()));
+                DarkmoonCliRunner.Exec report = runner.report(campaignId, out.child("darkmoon-report.md"), false);
+                if (report.exitCode != 0) { out.child("darkmoon-report.md").delete(); listener.getLogger().println("[darkmoon] Redacted report is unavailable."); }
+            } catch (IOException error) {
+                listener.getLogger().println("[darkmoon] Redacted report is unavailable.");
             }
             if (includeFullReport) {
                 try {
-                    runner.report(campaignId, out.child("darkmoon-report-full.md"), true);
-                    listener.getLogger().println("[darkmoon] Full (UN-redacted) report archived: it may contain "
-                            + "rehydrated sensitive values — restrict artifact access.");
-                } catch (IOException | InterruptedException e) {
-                    listener.getLogger().println("[darkmoon] WARNING: could not fetch full report: " + safe(e.getMessage()));
+                    DarkmoonCliRunner.Exec report = runner.report(campaignId, out.child("darkmoon-report-full.md"), true);
+                    if (report.exitCode != 0) { out.child("darkmoon-report-full.md").delete(); listener.getLogger().println("[darkmoon] Full report is unavailable."); }
+                    else listener.getLogger().println("[darkmoon] Full report fetched under the explicit artifact opt-in.");
+                } catch (IOException error) {
+                    listener.getLogger().println("[darkmoon] Full report is unavailable.");
                 }
             }
         }
@@ -382,7 +390,7 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
     private String failOnCsv() {
         Severity t = parseThreshold(failOn);
         if (t == null) {
-            return "critical,high"; // CLI default; plugin gating stays authoritative.
+            return "none";
         }
         StringJoiner sj = new StringJoiner(",");
         for (Severity s : Severity.values()) {
@@ -429,8 +437,7 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
                 .append(", medium=").append(s.getMedium())
                 .append(", low=").append(s.getLow())
                 .append(", info=").append(s.getInfo()).append(")\n");
-        sb.append("[darkmoon] Full report archived as a build artifact (access is restricted to\n");
-        sb.append("[darkmoon] authorized Jenkins users).\n");
+        sb.append("[darkmoon] Artifact visibility follows this Jenkins job's permissions.\n");
         sb.append("[darkmoon] =========================");
         l.getLogger().println(sb.toString());
     }
@@ -482,16 +489,18 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
 
     private void archive(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener)
             throws InterruptedException, IOException {
-        String includes = env.expand(outputDir) + "/**";
+        String directory = env.expand(outputDir).replace('\\', '/');
+        String includes = String.join(",", List.of(directory + "/darkmoon.sarif", directory + "/darkmoon-report.md", directory + "/darkmoon-report-full.md", directory + "/" + DarkmoonCliRunner.LOG_FILE));
         ArtifactArchiver archiver = new ArtifactArchiver(includes);
         archiver.setAllowEmptyArchive(true);
+        archiver.setFollowSymlinks(false);
         archiver.setOnlyIfSuccessful(false);
         archiver.perform(run, workspace, env, launcher, listener);
     }
 
     @CheckForNull
     private String resolveSecret(
-            Run<?, ?> run, String id, String apiUrlForDomain, TaskListener listener, String label) {
+            Run<?, ?> run, String id, String apiUrlForDomain, TaskListener listener, String label) throws AbortException {
         if (id == null || id.isBlank()) {
             return null;
         }
@@ -501,16 +510,10 @@ public class DarkmoonScanStep extends Builder implements SimpleBuildStep {
                 run,
                 URIRequirementBuilder.fromUri(apiUrlForDomain == null ? "" : apiUrlForDomain).build());
         if (creds == null) {
-            listener.getLogger().println("[darkmoon] WARNING: " + label
-                    + " credential id '" + id + "' not found or not a Secret Text credential.");
-            return null;
+            throw new AbortException("Configured " + label + " credential is unavailable or is not Secret Text.");
         }
         CredentialsProvider.track(run, creds);
         return creds.getSecret().getPlainText();
-    }
-
-    private static String safe(String v) {
-        return v == null ? "" : v;
     }
 
     @Symbol("darkmoonScan")

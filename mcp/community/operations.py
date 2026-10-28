@@ -173,6 +173,8 @@ class Operations:
         return item
 
     def register(self, raw):
+        if raw.get("format", "darkmoon") != "darkmoon":
+            raise ValueError("This producer supports signed darkmoon webhooks only; use the authenticated Splunk HEC forwarder for HEC delivery")
         parsed = urlsplit(str(raw.get("url", "")))
         if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError("Webhook requires an HTTPS URL without credentials")

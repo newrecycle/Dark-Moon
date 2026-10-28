@@ -97,9 +97,10 @@ A GUI needs the full read surface, so the plugin ships a tiny **bridge**
 (`src/main/resources/bridge/darkmoon-bridge.mjs`) that exposes that full library
 through the JSON subcommand grammar `CliDarkmoonClient` speaks. The bridge only
 *calls* the library — no detection, normalization or redaction of its own — and
-strips the internal `raw` object before printing. Point the plugin's
-`darkmoon-ci command` setting at either the CI binary (subset of features) or
-`node …/darkmoon-bridge.mjs` (full features). The subcommand grammar is
+strips the internal `raw` object before printing. The fork's default `bundled`
+bridge command extracts the packaged bridge and patched SDK together. Node.js
+18 or newer must be available on the IDE host. Custom commands must implement
+the full bridge grammar; the standalone CI binary lacks the GUI read operations. The subcommand grammar is
 documented in the KDoc of `CliDarkmoonClient`; the JSON **shapes** are frozen.
 
 ## Build, test, verify
@@ -140,7 +141,7 @@ The plugin is live on the JetBrains Marketplace; use this only for a local build
 2. In the IDE: **Settings → Plugins → ⚙ → Install Plugin from Disk…** and pick
    `build/distributions/darkmoon-jetbrains-<version>.zip`.
 3. Configure under **Settings → Tools → Darkmoon** (mode, base URL,
-   `darkmoon-ci` command, and — for Pro — the token).
+   bridge command, OSS data/report directories, and — for Pro — the token).
 
 ## Publishing (maintainers)
 
@@ -189,3 +190,25 @@ Darkmoon is an open-source, AI-powered penetration testing platform. It runs a f
 - 📚 **Docs:** https://docs.dark-moon.org
 - 🌐 **Website:** https://dark-moon.org
 - 🔗 **Related integrations:** [VS Code](https://github.com/ASCIT31/darkmoon-vscode) · [SDK / CLI](https://github.com/ASCIT31/darkmoon-client) 
+
+## Fork integration implementation
+
+The default bridge includes SDK snapshot `0.2.1-darkmoon.1`, its provenance and
+licenses. Existing default `darkmoon-ci` settings migrate to the bundled bridge;
+explicit custom commands remain supported. API credentials stay in PasswordSafe
+and are passed through the subprocess environment. Explicit OSS data and report
+directories now reach the SDK, independently of the working directory.
+
+Correlation handles reach detail/status/summary/report/stream operations; a
+synthetic `run:<id>` status is never pinned as a campaign ID. Typed parse,
+identity and transport failures remain failures, with raw output withheld from
+errors. Subprocess output and lifetimes are bounded and stderr is drained.
+
+Full report/evidence rendering requires a confirmed, trusted, focused local IDE
+window, and expires within 60 seconds. Selection, connection and credential
+changes invalidate pending reads and displayed full content. Default panels
+retain metadata rather than cached evidence. This UI policy supplements server
+access controls; it cannot retract content already seen or copied.
+
+These implementation changes await the later compilation/native test pass.
+The platform trust/remote-mode APIs need verification on the supported IDE range.

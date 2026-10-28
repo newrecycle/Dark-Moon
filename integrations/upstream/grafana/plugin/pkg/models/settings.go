@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"net/url"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 )
@@ -41,6 +42,11 @@ func LoadPluginSettings(source backend.DataSourceInstanceSettings) (*PluginSetti
 	}
 
 	settings.BaseURL = strings.TrimRight(strings.TrimSpace(settings.BaseURL), "/")
+	if settings.BaseURL != "" {
+		parsed, err := url.Parse(settings.BaseURL)
+		if err != nil || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.Scheme != "https" && parsed.Scheme != "http" { return nil, fmt.Errorf("baseUrl must be an HTTP(S) URL without credentials, query or fragment") }
+		settings.BaseURL = strings.TrimSuffix(settings.BaseURL, "/api/v1")
+	}
 	settings.Mode = strings.ToLower(strings.TrimSpace(settings.Mode))
 	if settings.Mode == "" {
 		settings.Mode = ModeAuto
