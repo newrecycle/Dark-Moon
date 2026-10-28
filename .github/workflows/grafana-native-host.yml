@@ -95,7 +95,7 @@ jobs:
           done
           if [ "$ready" -ne 1 ]; then echo "Grafana did not become healthy on its private network" >&2; exit 1; fi
           fixture_http /api/datasources/uid/darkmoon-fixture > "$RUNNER_TEMP/datasource.json"
-          fixture_http /api/plugins/darkmoon-securityposture-app > "$RUNNER_TEMP/app.json"
+          fixture_http /api/plugins > "$RUNNER_TEMP/app.json"
           cat > "$RUNNER_TEMP/query.json" <<'EOF'
           {"from":"1735689600000","to":"1767225600000","queries":[{"refId":"A","datasource":{"uid":"darkmoon-fixture","type":"darkmoon-securityposture-datasource"},"queryType":"retest","retest_id":"retest_demo_1","intervalMs":60000,"maxDataPoints":100}]}
           EOF
@@ -104,7 +104,8 @@ jobs:
           import json,sys
           ds,app,res=(json.load(open(p)) for p in sys.argv[1:])
           assert ds.get("uid")=="darkmoon-fixture",ds
-          assert app.get("id")=="darkmoon-securityposture-app",app
+          plugins = app if isinstance(app, list) else app.get("plugins", [])
+          assert any(item.get("id")=="darkmoon-securityposture-app" for item in plugins), plugins
           result=res["results"]["A"]
           assert not result.get("error"),result.get("error")
           frames=result.get("frames",[])
