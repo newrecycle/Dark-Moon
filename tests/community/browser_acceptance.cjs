@@ -214,7 +214,7 @@ const assert = require("node:assert/strict");
       runActiveOffset=0;loadRunQueue(viewControl.signal);
     });
     await page.getByText('Active 1–7 of 7',{exact:true}).waitFor();
-    assert.equal(await page.locator('[data-active-run-page="50"]').count(),0);
+    assert.equal(await page.locator('[data-active-run-page="50"]').isDisabled(),true);
     await page.unroute(routeActive,manyActive);
     await page.unroute(routeLogs,manyHistory);
     const failActive = route => route.fulfill({status:503,contentType:'application/json',
