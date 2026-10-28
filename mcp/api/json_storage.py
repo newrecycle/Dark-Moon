@@ -417,15 +417,22 @@ def record_finding_event(campaign, finding, event, previous_status=None, source=
     return row
 
 
+class FindingHistoryUnavailable(RuntimeError):
+    """The persisted finding journal is unreadable or structurally invalid."""
+
+
 def load_finding_history():
-    """Read committed journal entries, failing explicitly on corrupt/unavailable data."""
-    if not FINDING_HISTORY_FILE.exists():
-        return {"recording_started_at": None, "events": []}
-    with _file_lock(FINDING_HISTORY_FILE):
-        with FINDING_HISTORY_FILE.open(encoding="utf-8") as stream:
-            rows = [json.loads(line) for line in stream if line.strip()]
-    if not rows or rows[0].get("kind") != "journal_started":
-        raise ValueError("Finding history journal header unavailable")
-    if any(row.get("kind") != "finding_event" for row in rows[1:]):
-        raise ValueError("Finding history journal contains an unexpected record")
-    return {"recording_started_at": rows[0]["recorded_at"], "events": rows[1:]}
+    """Read recorded events; never disguise damaged storage as an empty result."""
+    try:
+        with _file_lock(FINDING_HISTORY_FILE):
+            if not FINDING_HISTORY_FILE.exists():
+                return {"recording_started_at": None, "events": []}
+            with FINDING_HISTORY_FILE.open(encoding="utf-8") as stream:
+                rows = [json.loads(line) for line in stream if line.strip()]
+        if not rows or rows[0].get("kind") != "journal_started":
+            raise FindingHistoryUnavailable("Finding history journal header unavailable")
+        if any(row.get("kind") != "finding_event" for row in rows[1:]):
+            raise FindingHistoryUnavailable("Finding history journal contains unexpected data")
+        return {"recording_started_at": rows[0]["recorded_at"], "events": rows[1:]}
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise FindingHistoryUnavailable("Finding history journal is unavailable") from exc

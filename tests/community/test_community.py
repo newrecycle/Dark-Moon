@@ -34,7 +34,8 @@ class Fixture(unittest.TestCase):
         paths = {"DATA_DIR": self.root / "data", "PROJECTS_FILE": self.root / "data/projects.json",
                  "TARGETS_FILE": self.root / "data/targets.json", "CAMPAIGNS_DIR": self.root / "data/campaigns",
                  "INFRASTRUCTURE_DIR": self.root / "data/infrastructure", "VULNERABILITIES_DIR": self.root / "data/vulnerabilities",
-                 "REPORTS_DIR": self.root / "data/reports"}
+                 "REPORTS_DIR": self.root / "data/reports",
+                 "FINDING_HISTORY_FILE": self.root / "data/finding-history.jsonl"}
         self.patches = []
         for module in (data, live_push):
             for key, value in paths.items():
