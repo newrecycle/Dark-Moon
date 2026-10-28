@@ -41,14 +41,18 @@ run_case(){
   echo; echo "== CASE: $label (fail-on='$failon', allow_failure_exit_codes=$afec) =="
   # fresh OSS data dir seeded with the OTHER fixture campaigns so the target is 'new'
   local DATA="$WORK/$label/data" REPORTS="$WORK/$label/reports"
-  rm -rf "$WORK/$label"; mkdir -p "$DATA/campaigns" "$DATA/vulnerabilities" "$REPORTS"
+  # Isolate this case's native build output from the preceding run.
+  rm -rf "$WORK/builds" "$WORK/$label"
+  mkdir -p "$DATA/campaigns" "$DATA/vulnerabilities" "$REPORTS"
+  local engine="$VENDOR/darkmoon-engine.sh"
+  [ "$label" = empty ] && engine="$VENDOR/darkmoon-engine-empty.sh"
   for cid in camp_20260728_9018be77 camp_noreport camp_stuck camp_sub; do
     cp "$CLIENT/fixtures/dataroot/campaigns/$cid.json" "$DATA/campaigns/" 2>/dev/null || true
   done
 
   python3 "$REPO/test/render_flat.py" .gitlab-ci.yml \
     "target=http://juice-shop.local:3000" "mode=oss" "fail-on=$failon" \
-    "oss-data-dir=$DATA" "oss-reports-dir=$REPORTS" "oss-script=$VENDOR/darkmoon-engine.sh" \
+    "oss-data-dir=$DATA" "oss-reports-dir=$REPORTS" "oss-script=$engine" \
     "timeout=60" "allow_failure_exit_codes=$afec" >/dev/null
   git add -A; git commit -q -m "$label" >/dev/null
 
@@ -79,6 +83,9 @@ run_case(){
   # count of code-quality entries (proves genuine findings flowed through)
   local n; n=$(python3 -c "import json;print(len(json.load(open('$bdir/gl-code-quality-report.json'))))")
   echo "  ($n findings mapped)"
+  if [ "$label" = empty ]; then
+    [ "$n" -eq 0 ] && ok "$label: native CLI produced an explicit empty findings array" || ko "$label: expected zero findings, got $n"
+  fi
   if [ "$expect_gate" = 2 ]; then
     [ "$n" -ge 1 ] && ok "$label: genuine findings mapped into reports ($n)" || ko "$label: expected findings to be mapped, got $n"
   fi
@@ -105,6 +112,8 @@ run_case blocking "critical,high" "[250]" 2 yes
 run_case nonblocking "critical,high" "[2]" 2 yes
 # 3) PASS case: fail-on 'low' -> 0 low findings -> CLI exit 0 -> runner passes
 run_case passing "low" "[250]" 0 no
+# Native patched-client valid-empty case, not a synthetic clean failure report.
+run_case empty "critical,high" "[250]" 0 no
 
 echo; echo "== allow_failure YAML check =="
 python3 "$REPO/test/render_flat.py" /tmp/_nb.yml "target=x" "allow_failure_exit_codes=[2]" >/dev/null
