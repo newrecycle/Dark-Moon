@@ -105,11 +105,6 @@ INTEGRATIONS = [
             "Editor campaigns and findings",
         ),
         (
-            "JetBrains",
-            "https://plugins.jetbrains.com/plugin/34497-darkmoon",
-            "IDE campaign views",
-        ),
-        (
             "n8n",
             SOURCES["n8n"],
             "Campaigns, findings, reports, retests, metrics and signed events",
