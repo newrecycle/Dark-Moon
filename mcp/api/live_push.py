@@ -72,6 +72,7 @@ from api.json_storage import (
     _read_json,
     _write_json,
     record_finding_event,
+    mutate_finding_snapshot,
 )
 
 
@@ -546,29 +547,27 @@ def push_finding(
     Push a single vulnerability finding to the dashboard.
     Appends to the campaign's vulnerabilities file and updates stats.
     """
-    vuln_path = VULNERABILITIES_DIR / f"{campaign_id}.json"
-    vulns = _read_json(vuln_path)
-    if not isinstance(vulns, list):
-        vulns = []
-
     campaign = load_campaign(campaign_id)
     if not campaign:
         return {"error": f"Campaign {campaign_id} not found"}
-
     if not finding.get("id"):
         finding["id"] = f"vuln_{uuid.uuid4().hex[:6]}"
-
     finding["campaign_id"] = campaign_id
     finding["project_id"] = campaign.get("project_id")
     finding["target_id"] = campaign.get("target_id")
     finding["severity"] = str(finding.get("severity", "info")).strip().lower()
     finding["status"] = str(finding.get("status", "unconfirmed")).strip().lower()
 
-    new_identity = not any(v.get("id") == finding["id"] for v in vulns)
-    vulns.append(finding)
-    _write_json(vuln_path, vulns)
-    if new_identity:
-        record_finding_event(campaign, finding, "finding.created", source="live_finding_push")
+    def update(vulns):
+        # Check existence *inside* the cross-process mutation lock. A retry
+        # after an interrupted commit must not duplicate an event or snapshot.
+        existing = next((v for v in vulns if v.get("id") == finding["id"]), None)
+        if existing is not None:
+            return vulns, existing, None, None, "live_finding_push"
+        vulns.append(finding)
+        return vulns, finding, "finding.created", None, "live_finding_push"
+
+    vulns, _ = mutate_finding_snapshot(campaign, update)
 
     stats = campaign.get("stats", {})
     stats["total_findings"] = len(vulns)

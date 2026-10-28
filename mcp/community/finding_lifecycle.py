@@ -33,9 +33,9 @@ def target_evolution(target_id):
 
 
 def history_page(params):
-    allowed = {"target_id", "limit", "offset"}
+    allowed = {"target_id", "limit", "offset", "snapshot_seq"}
     if set(params) - allowed or any(len(values) != 1 for values in params.values()):
-        raise ValueError("History permits only one target_id, limit and offset each")
+        raise ValueError("History permits only one target_id, limit, offset and snapshot_seq each")
     target = params.get("target_id", [None])[0]
     if target is not None:
         identifier(target)
@@ -43,14 +43,15 @@ def history_page(params):
             raise KeyError(target)
     def number(key, default, maximum):
         raw = params.get(key, [str(default)])[0]
-        if not re.fullmatch(r"[0-9]{1,10}", raw):
+        if not re.fullmatch(r"[0-9]{1,19}" if key == "snapshot_seq" else r"[0-9]{1,10}", raw):
             raise ValueError(key + " must be a nonnegative decimal integer")
         value = int(raw)
         if value > maximum or (key == "limit" and value == 0):
             raise ValueError(key + " is outside the supported range")
         return value
     limit, offset = number("limit", 100, 500), number("offset", 0, data.FINDING_HISTORY_MAX_OFFSET)
-    journal = data.load_finding_history(target_id=target, limit=limit, offset=offset)
+    snapshot_seq = number("snapshot_seq", 0, 9223372036854775807) if "snapshot_seq" in params else None
+    journal = data.load_finding_history(target_id=target, limit=limit, offset=offset, snapshot_seq=snapshot_seq)
     page, total = journal["events"], journal["total"]
     end = offset + len(page)
     has_more = end < total and end <= data.FINDING_HISTORY_MAX_OFFSET
@@ -59,7 +60,9 @@ def history_page(params):
             "paging_limit_reached": end < total and not has_more,
             "target_id": target, "order": "recorded_at_asc,id_asc",
             "recording_started_at": journal["recording_started_at"],
-            "max_offset": data.FINDING_HISTORY_MAX_OFFSET, "page_consistency": "live_offset",
+            "max_offset": data.FINDING_HISTORY_MAX_OFFSET,
+            "snapshot_seq": journal.get("snapshot_seq"),
+            "page_consistency": "snapshot_seq" if snapshot_seq is not None else "live_offset",
             "history_complete": False, "projection": "recorded_finding_mutations_v1"}
 
 

@@ -291,6 +291,16 @@ def minimize_response(path, content, kind):
         return content  # run_views uses explicit safe serializers; raw access requires a grant
     if parts[2] == "dashboard" and parts[3:] == ["posture"]:
         return _posture(content)
+    # These endpoints are projected by the dedicated lifecycle API functions:
+    # target_evolution() contains only current campaign counts/IDs;
+    # history_page() contains only the validated ten-field event metadata;
+    # remediation_records()/for_finding() contain allowlisted proposal metadata.
+    # Preserve these explicit public contracts without enabling evidence reveal
+    # for unrelated workspace routes or exposing raw finding/patch bodies.
+    if ((parts[2] == "targets" and len(parts) == 5 and parts[4] == "evolution")
+            or (parts[2] == "vulnerabilities" and parts[3:] == ["history"])
+            or parts[2] == "pull-requests"):
+        return content
     if parts[2] == "source-files":
         return {"files": [], "truncated": True, "evidence_reveal_required": True}
     if parts[2] == "options" and isinstance(content, dict):

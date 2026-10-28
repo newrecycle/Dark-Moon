@@ -385,7 +385,7 @@ def _finding_journal_start():
 
 
 def init_finding_history():
-    """Create a journal activation marker; do not backfill retained findings."""
+    """Ensure legacy activation marker and migrate to indexed durable storage."""
     with _file_lock(FINDING_HISTORY_FILE):
         FINDING_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
         with FINDING_HISTORY_FILE.open("a+", encoding="utf-8") as stream:
@@ -394,37 +394,21 @@ def init_finding_history():
                 stream.write(json.dumps(_finding_journal_start(), separators=(",", ":")) + "\n")
                 stream.flush()
                 os.fsync(stream.fileno())
+    from . import finding_history_sqlite
+    finding_history_sqlite.initialize()
 
 
 def record_finding_event(campaign, finding, event, previous_status=None, source="assessment"):
-    """Append only an actual finding creation or status mutation."""
-    import uuid
-    from datetime import datetime, timezone
-    if event not in {"finding.created", "finding.status_changed"}:
-        raise ValueError("Unsupported finding lifecycle event")
-    if not all(isinstance(v, str) and v for v in (campaign.get("id"), finding.get("id"), campaign.get("target_id"))):
-        raise ValueError("Finding history requires exact campaign, target and finding IDs")
-    row = {"kind": "finding_event", "id": "fh_" + uuid.uuid4().hex,
-           "recorded_at": datetime.now(timezone.utc).isoformat(timespec="microseconds"),
-           "event": event, "campaign_id": campaign["id"], "target_id": campaign["target_id"],
-           "project_id": campaign.get("project_id"), "finding_id": finding["id"],
-           "previous_status": previous_status if event == "finding.status_changed" else None,
-           "status": finding.get("status"), "source": source}
-    try:
-        _validate_finding_history_event(row)
-        encoded = json.dumps(row, separators=(",", ":"), ensure_ascii=False, allow_nan=False) + "\n"
-        encoded_size = len(encoded.encode("utf-8"))
-    except (FindingHistoryUnavailable, UnicodeError, ValueError, TypeError) as exc:
-        raise ValueError("Finding lifecycle metadata is invalid") from exc
-    if encoded_size > FINDING_HISTORY_MAX_LINE_BYTES:
-        raise ValueError("Finding lifecycle metadata exceeds the journal row limit")
-    init_finding_history()
-    with _file_lock(FINDING_HISTORY_FILE):
-        with FINDING_HISTORY_FILE.open("a", encoding="utf-8") as stream:
-            stream.write(encoded)
-            stream.flush()
-            os.fsync(stream.fileno())
-    return row
+    """Record metadata using the durable indexed ledger (no JSONL dual-write)."""
+    from . import finding_history_sqlite
+    return finding_history_sqlite.append(campaign, finding, event, previous_status, source)
+
+
+def mutate_finding_snapshot(campaign, updater):
+    """Crash-recoverable event and snapshot mutation; updater runs under lock."""
+    from . import finding_history_sqlite
+    return finding_history_sqlite.mutate(campaign, updater)
+
 
 
 class FindingHistoryUnavailable(RuntimeError):
@@ -495,44 +479,8 @@ def _finding_history_utf8(value):
         raise FindingHistoryUnavailable("Finding history journal contains invalid Unicode") from exc
 
 
-def load_finding_history(*, target_id=None, limit=None, offset=0):
-    """Read validated events, optionally retaining only one bounded sorted page.
-
-    Unpaged callers retain the legacy append-order list. HTTP callers supply a
-    limit: the reader scans all lines under the journal lock for an exact total
-    and corruption checking, but retains at most offset+limit projected events.
-    """
-    import heapq
-    if type(offset) is not int or not 0 <= offset <= FINDING_HISTORY_MAX_OFFSET:
-        raise ValueError("Finding history offset is outside the supported range")
-    if limit is not None and (type(limit) is not int or not 1 <= limit <= 500):
-        raise ValueError("Finding history limit must be 1 to 500")
-    try:
-        with _file_lock(FINDING_HISTORY_FILE):
-            if not FINDING_HISTORY_FILE.exists():
-                return {"recording_started_at": None, "events": [], "total": 0}
-            with FINDING_HISTORY_FILE.open("rb") as stream:
-                header = _finding_history_row(stream)
-                if header is None or header.get("kind") != "journal_started" or type(header.get("version")) is not int or header["version"] != 1:
-                    raise FindingHistoryUnavailable("Finding history journal header unavailable")
-                _finding_history_timestamp(header.get("recorded_at"))
-                total = 0
-                safe = ("id", "event", "recorded_at", "campaign_id", "target_id", "project_id",
-                        "finding_id", "previous_status", "status", "source")
-                def selected():
-                    nonlocal total
-                    while True:
-                        row = _finding_history_row(stream)
-                        if row is None:
-                            return
-                        _validate_finding_history_event(row)
-                        if target_id is None or row["target_id"] == target_id:
-                            total += 1
-                            yield {key: row.get(key) for key in safe} if limit is not None else row
-                if limit is None:
-                    events = list(selected())
-                else:
-                    events = heapq.nsmallest(offset + limit, selected(), key=lambda row: (row["recorded_at"], row["id"]))[offset:]
-                return {"recording_started_at": header["recorded_at"], "events": events, "total": total}
-    except (OSError, UnicodeError, ValueError, TypeError, RecursionError) as exc:
-        raise FindingHistoryUnavailable("Finding history journal is unavailable") from exc
+def load_finding_history(*, target_id=None, limit=None, offset=0, snapshot_seq=None):
+    """Read committed indexed history; unpaged internal results are append order."""
+    from . import finding_history_sqlite
+    return finding_history_sqlite.read(target_id=target_id, limit=limit,
+                                       offset=offset, snapshot_seq=snapshot_seq)
