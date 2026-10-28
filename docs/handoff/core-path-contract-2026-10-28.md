@@ -145,3 +145,20 @@ must be recorded after observing their corrected runs.
 
 The follow-up adds the retained-review byte budget and atomic rejection test;
 its focused path/contract suite passes 28 tests and 35 subtests locally.
+
+### Latest observed local result and published follow-up
+
+The post-fixture-fix local integrated run passed **473 tests and 254 subtests**
+in 99.68 seconds. The retained-review budget test is included; the focused
+path/contract run passed **28 tests and 35 subtests**. The published budget
+follow-up is [98063e5](https://github.com/newrecycle/Dark-Moon/commit/98063e50059d6e6bb7901ab6261ea7c115d0f3ae).
+The earlier real Chromium component success remains scoped to 31ca698.
+
+At this entry, the follow-up's [core run 40780397752](https://github.com/newrecycle/Dark-Moon/actions/runs/40780397752),
+[full backend run 40780397846](https://github.com/newrecycle/Dark-Moon/actions/runs/40780397846)
+and [workspace browser run 40780397924](https://github.com/newrecycle/Dark-Moon/actions/runs/40780397924)
+are queued. They are not reported as passing. Operator-reviewed path editing,
+immutable revisions and conservative local contract gates are implemented;
+automated observation producers, full visual parity, durable SSE observation/
+evicted-cursor gap handling and licensed Pro/remediation runtime equivalence
+remain open. Prompt 9 is an ongoing contract workstream, not a closed parity claim.
