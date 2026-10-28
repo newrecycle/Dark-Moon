@@ -88,6 +88,28 @@ func (d *Datasource) queryRetest(ctx context.Context, qm queryModel) backend.Dat
 			return errResp(fmt.Errorf("retest comparisons need unique finding identities and verdicts"))
 		}
 		seen[id] = true
+		// A comparison cannot attach findings to an unrelated campaign,
+		// target or launcher run. Optional row references are exact claims.
+		for _, key := range []string{"base_campaign_id", "campaign_id", "new_campaign_id", "target_id", "run_id"} {
+			value, exists := row[key]
+			if !exists { continue }
+			claim, ok := value.(string)
+			if !ok || strings.TrimSpace(claim) == "" {
+				return errResp(fmt.Errorf("invalid retest comparison reference"))
+			}
+			expected := ""
+			switch key {
+			case "base_campaign_id": expected = references["base_campaign_id"]
+			case "campaign_id":
+				if claim == references["base_campaign_id"] || claim == newCampaign { continue }
+			case "new_campaign_id": expected = newCampaign
+			case "target_id": expected = references["target_id"]
+			case "run_id": expected = references["run_id"]
+			}
+			if expected == "" || claim != expected {
+				return errResp(fmt.Errorf("retest comparison references an unrelated record"))
+			}
+		}
 		for _, key := range []string{"current_finding_id", "severity", "base_status", "new_status"} {
 			if value, exists := row[key]; exists && value != nil {
 				if _, ok := value.(string); !ok { return errResp(fmt.Errorf("invalid retest comparison metadata")) }
