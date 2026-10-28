@@ -969,9 +969,9 @@ const assert = require("node:assert/strict");
         .locator("#launch-form select[name=known_target] option")
         .count()) >= 4,
     );
-    assert.ok(
-      await page.locator("#launch-form input[name=target]").inputValue(),
-    );
+    // An ungranted workspace options response does not reveal saved hostnames.
+    assert.equal(await page.locator("#launch-form input[name=target]").inputValue(), "");
+    await page.locator("#launch-form input[name=target]").fill("test.example");
     await page
       .locator("#launch-form select[name=preset]")
       .selectOption("bounty");
