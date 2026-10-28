@@ -225,6 +225,18 @@ def main():
             inference_performed=False,
             real_account_oauth="not_run_no_account_configured",
         )
+        # Test the production campaign plugin with actual native parent/child
+        # sessions. Credentials stay in the child environment; no inference.
+        binding = command(
+            ["node", "tests/community/native_campaign_binding.cjs"],
+            cwd=repo,
+            env=dict(os.environ, DARKMOON_OPENCODE_TEST_URL=base,
+                     DARKMOON_OPENCODE_TEST_AUTH=authorization),
+        )
+        if binding.returncode:
+            raise ValueError("Native campaign root/child binding failed: " + binding.stderr[-500:])
+        record(label + "_campaign_binding", "passed", inference_performed=False,
+               checks=["real root and nested child sessions", "overlapping run isolation", "privacy session preservation"])
 
     if args.opencode_binary:
         with tempfile.TemporaryDirectory(prefix="darkmoon-live-native-") as temp:
