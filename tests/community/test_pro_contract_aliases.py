@@ -150,7 +150,7 @@ class ProContractAliasTests(fixtures.Fixture):
         url='/api/v1/scheduler/'+item['id'];headers=self.headers('viewer')
         self.assertEqual(self.request(url,'PUT',{"version":1,"enabled":True},auth=False)[0],401)
         self.assertEqual(self.request(url,'PUT',{"version":1,"enabled":True},headers=headers)[0],403)
-        for raw in ({"enabled":True},{"version":True,"enabled":True},{"version":1,"target":"other.invalid"},{"version":1,"enabled":"false"}):
+        for raw in ({"enabled":True},{"version":True,"enabled":True},{"version":1,"unsupported_flat":"other.invalid"},{"version":1,"enabled":"false"}):
             self.assertEqual(self.request(url,'PUT',raw)[0],400)
         self.assertEqual(self.service.store.get('schedules',item['id']),item)
         self.assertEqual(self.request('/api/v1/scheduler/missing','PUT',{"version":1,"enabled":True})[0],404)
