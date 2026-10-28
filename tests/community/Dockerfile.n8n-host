@@ -1,0 +1,17 @@
+# Dependencies are prepared with networking; native tests run with --network none.
+FROM node:24-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends python3-venv python3-dev make g++ git && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace
+COPY mcp/requirements.txt /tmp/mcp-requirements.txt
+COPY mcp/community/requirements.txt /tmp/community-requirements.txt
+RUN python3 -m venv /opt/darkmoon-python && /opt/darkmoon-python/bin/pip install --no-cache-dir -r /tmp/mcp-requirements.txt -r /tmp/community-requirements.txt
+COPY integrations/upstream/n8n/package*.json integrations/upstream/n8n/
+RUN npm ci --prefix integrations/upstream/n8n --no-audit --no-fund
+RUN npm install --prefix /opt/n8n-host --ignore-scripts --no-audit --no-fund n8n@2.45.4 && npm rebuild --prefix /opt/n8n-host sqlite3
+COPY integrations/upstream/n8n/ integrations/upstream/n8n/
+RUN npm --prefix integrations/upstream/n8n run build
+COPY mcp/ mcp/
+COPY tests/community/ tests/community/
+ENV DARKMOON_PYTHON=/opt/darkmoon-python/bin/python DARKMOON_N8N_CLI=/opt/n8n-host/node_modules/n8n/bin/n8n
+ENV N8N_DIAGNOSTICS_ENABLED=false N8N_VERSION_NOTIFICATIONS_ENABLED=false N8N_VERSION_NOTIFICATIONS_WHATS_NEW_ENABLED=false N8N_DYNAMIC_BANNERS_ENABLED=false N8N_TEMPLATES_ENABLED=false N8N_LICENSE_AUTO_RENEW_ENABLED=false
+CMD ["sh", "-c", "node tests/community/n8n_host_acceptance.cjs && node tests/community/n8n_trigger_host.cjs"]

@@ -4,6 +4,7 @@ const {spawn}=require('node:child_process');
 const net=require('node:net');
 const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
+  assert.ok(Object.values(os.networkInterfaces()).flat().every(address=>address.internal), 'Native n8n tests require an isolated --network none container.');
   const cli=process.env.DARKMOON_N8N_CLI;
   if(!cli)throw Error('Set DARKMOON_N8N_CLI to an installed n8n/bin/n8n');
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'darkmoon-n8n-host-'));
@@ -15,7 +16,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
       child.stdout.on('data',c=>{output+=c;if(output.includes('\n')){clearTimeout(timer);resolve(JSON.parse(output.split('\n')[0]));}});
       child.stderr.on('data',()=>{});child.on('exit',code=>{clearTimeout(timer);reject(Error('Fixture exited '+code));});
     });
-    const env={...process.env,N8N_USER_FOLDER:path.join(root,'n8n'),N8N_DIAGNOSTICS_ENABLED:'false',N8N_VERSION_NOTIFICATIONS_ENABLED:'false',N8N_TEMPLATES_ENABLED:'false',N8N_RUNNERS_ENABLED:'false',N8N_ENCRYPTION_KEY:'isolated-native-host-test-key-123456789',N8N_SECURE_COOKIE:'false',N8N_LOG_LEVEL:'info'};
+    const env={...process.env,N8N_USER_FOLDER:path.join(root,'n8n'),N8N_DIAGNOSTICS_ENABLED:'false',N8N_DYNAMIC_BANNERS_ENABLED:'false',N8N_VERSION_NOTIFICATIONS_WHATS_NEW_ENABLED:'false',N8N_LICENSE_AUTO_RENEW_ENABLED:'false',N8N_VERSION_NOTIFICATIONS_ENABLED:'false',N8N_TEMPLATES_ENABLED:'false',N8N_RUNNERS_ENABLED:'false',N8N_ENCRYPTION_KEY:'isolated-native-host-test-key-123456789',N8N_SECURE_COOKIE:'false',N8N_LOG_LEVEL:'info'};
     const run=async args=>new Promise((resolve,reject)=>{
       const p=spawn(process.execPath,[cli,...args],{env,cwd:root});let output='',errors='';
       const timer=setTimeout(()=>{p.kill('SIGTERM');reject(Error('n8n CLI timed out'))},120000);

@@ -39,10 +39,7 @@ import type {
 
 /** Any n8n context that can make HTTP requests. */
 export type RequestContext =
-	| IExecuteFunctions
-	| IPollFunctions
-	| IHookFunctions
-	| IWebhookFunctions;
+	IExecuteFunctions | IPollFunctions | IHookFunctions | IWebhookFunctions;
 
 export interface DarkmoonCreds {
 	baseUrl: string;
@@ -66,7 +63,9 @@ const TERMINAL_STATUSES = new Set(['completed', 'stopped', 'failed']);
 
 /** Build the `/api/v1` base from a credential base URL (with or without the suffix). */
 function apiBaseOf(baseUrl: string): string {
-	const base = String(baseUrl || '').trim().replace(/\/+$/, '');
+	const base = String(baseUrl || '')
+		.trim()
+		.replace(/\/+$/, '');
 	if (!base) throw new Error('Darkmoon credential is missing the Base URL.');
 	return /\/api\/v1$/.test(base) ? base : `${base}/api/v1`;
 }
@@ -92,7 +91,10 @@ async function rawRequest(
 		returnFullResponse: true,
 		ignoreHttpStatusErrors: true,
 	})) as { statusCode: number; body: IDataObject };
-	return { status: response.statusCode, body: (response.body || {}) as IDataObject };
+	return {
+		status: response.statusCode,
+		body: (response.body || {}) as IDataObject,
+	};
 }
 
 /** Resolve a bearer token (token auth) or log in (password auth). Never logs secrets. */
@@ -101,11 +103,15 @@ export async function authorize(ctx: RequestContext, creds: DarkmoonCreds): Prom
 	const method = creds.authMethod || (creds.token ? 'token' : 'password');
 	if (method === 'token') {
 		const token = String(creds.token || '').trim();
-		if (!token) throw new Error('Darkmoon credential is set to token auth but no API token was provided.');
+		if (!token)
+			throw new Error('Darkmoon credential is set to token auth but no API token was provided.');
 		return { apiBase, token };
 	}
 	const res = await rawRequest(ctx, apiBase, '', 'POST', '/auth/login', {
-		body: { username: String(creds.username || ''), password: String(creds.password || '') },
+		body: {
+			username: String(creds.username || ''),
+			password: String(creds.password || ''),
+		},
 	});
 	const token = res.status === 200 ? String((res.body as { token?: string }).token || '') : '';
 	if (!token) throw new Error('Darkmoon login failed. Check the base URL and credentials.');
@@ -132,7 +138,9 @@ export async function dm(
 	if (!ok.includes(res.status)) {
 		throw new NodeApiError(
 			node,
-			{ message: detailOf(res.body, `Darkmoon API returned HTTP ${res.status}`) } as never,
+			{
+				message: detailOf(res.body, `Darkmoon API returned HTTP ${res.status}`),
+			} as never,
 			{ httpCode: String(res.status) },
 		);
 	}
@@ -147,8 +155,10 @@ export async function dmDelete(
 	path: string,
 ): Promise<boolean> {
 	const res = await rawRequest(ctx, session.apiBase, session.token, 'DELETE', path, {});
-	if (res.status >= 500) {
-		throw new NodeApiError(node, { message: `Darkmoon API returned HTTP ${res.status}` } as never);
+	if (![200, 202, 204, 404].includes(res.status)) {
+		throw new NodeApiError(node, {
+			message: `Darkmoon API returned HTTP ${res.status}`,
+		} as never);
 	}
 	return res.status !== 404;
 }
@@ -157,7 +167,9 @@ export async function dmDelete(
 
 /** Sanitize a raw finding: normalize via the shared client, drop `raw`, null evidence, scrub. */
 export function sanitizeFinding(rawFinding: unknown): Record<string, unknown> {
-	const norm = normalizeFinding(rawFinding as never, 'pro', { includeEvidence: false }) as unknown as Record<string, unknown>;
+	const norm = normalizeFinding(rawFinding as never, 'pro', {
+		includeEvidence: false,
+	}) as unknown as Record<string, unknown>;
 	const rec = { ...norm };
 	delete rec.raw;
 	rec.evidence = null;
@@ -166,7 +178,9 @@ export function sanitizeFinding(rawFinding: unknown): Record<string, unknown> {
 
 /** Normalize a raw campaign via the shared client and drop the internal `raw` mirror. */
 export function normalizeCampaignSafe(rawCampaign: unknown): Record<string, unknown> {
-	const rec = { ...(normalizeCampaign(rawCampaign as never, 'pro') as unknown as Record<string, unknown>) };
+	const rec = {
+		...(normalizeCampaign(rawCampaign as never, 'pro') as unknown as Record<string, unknown>),
+	};
 	delete rec.raw;
 	return rec;
 }
@@ -175,7 +189,9 @@ export function severitySummaryOf(stats: unknown, findings?: unknown[]): Severit
 	if (stats && typeof stats === 'object' && Object.keys(stats as object).length) {
 		return severitySummaryFromStats(stats as never);
 	}
-	return severitySummaryFromFindings((findings || []).map((f) => normalizeFinding(f as never, 'pro')) as Finding[]);
+	return severitySummaryFromFindings(
+		(findings || []).map((f) => normalizeFinding(f as never, 'pro')) as Finding[],
+	);
 }
 
 export { normalizeCampaignStatus };
@@ -183,47 +199,71 @@ export { normalizeCampaignStatus };
 // ── Campaign correlation + completion polling (n8n `sleep` only, no timers) ──
 
 /** List raw campaigns (unnormalized) for correlation/diffing. */
-export async function listRawCampaigns(ctx: RequestContext, node: INode, s: DmSession): Promise<IDataObject[]> {
+export async function listRawCampaigns(
+	ctx: RequestContext,
+	node: INode,
+	s: DmSession,
+): Promise<IDataObject[]> {
 	const body = await dm(ctx, node, s, 'GET', '/campaigns');
 	return Array.isArray(body.data) ? (body.data as IDataObject[]) : [];
 }
 
-/**
- * Launch a campaign and correlate the resulting campaign id by diffing the
- * campaign set captured before the run against the set after it appears.
- */
+/** Launch and wait only for an explicitly server-correlated campaign. */
 export async function launchAndCorrelate(
 	ctx: RequestContext,
 	node: INode,
 	s: DmSession,
 	body: IDataObject,
 	opts: { pollMs: number; timeoutMs: number; wait: boolean },
-): Promise<{ runId: string | null; campaign: Campaign | null; status: string }> {
-	const before = new Set((await listRawCampaigns(ctx, node, s)).map((c) => String(c.id)));
-	const launch = await dm(ctx, node, s, 'POST', '/run/campaign', { body });
-	const runId = (launch.run_id as string) ?? null;
-	if (!opts.wait) return { runId, campaign: null, status: 'started' };
-
-	const start = Date.now();
-	let rawCampaign: IDataObject | null = null;
-	while (Date.now() - start < opts.timeoutMs) {
-		const now = await listRawCampaigns(ctx, node, s);
-		const fresh = now.filter((c) => !before.has(String(c.id)));
-		const candidate = fresh[0] ?? now[0] ?? null;
-		if (candidate) {
-			rawCampaign = candidate;
-			const status = normalizeCampaignStatus(String(candidate.status ?? ''));
-			if (TERMINAL_STATUSES.has(status)) {
-				return { runId, campaign: normalizeCampaign(candidate as never, 'pro'), status };
-			}
-		}
-		await sleep(opts.pollMs);
+): Promise<{
+	runId: string | null;
+	campaignId: string | null;
+	campaign: Campaign | null;
+	status: string;
+}> {
+	if (
+		!Number.isFinite(opts.pollMs) ||
+		opts.pollMs <= 0 ||
+		!Number.isFinite(opts.timeoutMs) ||
+		opts.timeoutMs <= 0
+	) {
+		throw new Error('Polling interval and timeout must be positive finite numbers.');
 	}
-	return {
-		runId,
-		campaign: rawCampaign ? normalizeCampaign(rawCampaign as never, 'pro') : null,
-		status: rawCampaign ? normalizeCampaignStatus(String(rawCampaign.status ?? '')) : 'timeout',
-	};
+	const launch = await dm(ctx, node, s, 'POST', '/run/campaign', { body });
+	const runId = typeof launch.run_id === 'string' && launch.run_id ? launch.run_id : null;
+	let campaignId =
+		typeof launch.campaign_id === 'string' && launch.campaign_id ? launch.campaign_id : null;
+	if (!runId && !campaignId) throw new Error('Launch returned no run or campaign identity.');
+	if (!opts.wait) return { runId, campaignId, campaign: null, status: 'started' };
+	if (!campaignId && runId) {
+		const job = await dm(ctx, node, s, 'GET', `/run/${encodeURIComponent(runId)}`);
+		const record = (job.data ?? job) as IDataObject;
+		campaignId =
+			typeof record.campaign_id === 'string' && record.campaign_id ? record.campaign_id : null;
+	}
+	if (!campaignId)
+		throw new Error('Cannot correlate this launch: the server must return its campaign identity.');
+	const start = Date.now();
+	let campaign: Campaign | null = null;
+	while (Date.now() - start < opts.timeoutMs) {
+		const response = await dm(ctx, node, s, 'GET', `/campaigns/${encodeURIComponent(campaignId)}`);
+		const record = (response.data ?? response) as IDataObject;
+		if (record.id !== campaignId)
+			throw new Error('Campaign response does not match the launched campaign.');
+		campaign = normalizeCampaign(record as never, 'pro');
+		const rawStatus = String(record.status ?? '')
+			.trim()
+			.toLowerCase();
+		const status = ['timed_out', 'interrupted'].includes(rawStatus)
+			? 'failed'
+			: rawStatus === 'aborted'
+				? 'stopped'
+				: normalizeCampaignStatus(rawStatus);
+		if (TERMINAL_STATUSES.has(status)) return { runId, campaignId, campaign, status };
+		await sleep(Math.min(opts.pollMs, Math.max(1, opts.timeoutMs - (Date.now() - start))));
+	}
+	// Launcher exit/awaiting_review is not assessment completion.
+	return { runId, campaignId, campaign, status: 'timeout' };
 }
 
 // ── Misc ────────────────────────────────────────────────────────────────────
@@ -232,7 +272,10 @@ export async function launchAndCorrelate(
 export function csv(value: unknown): string[] | undefined {
 	const s = String(value ?? '').trim();
 	if (!s) return undefined;
-	const parts = s.split(',').map((x) => x.trim()).filter(Boolean);
+	const parts = s
+		.split(',')
+		.map((x) => x.trim())
+		.filter(Boolean);
 	return parts.length ? parts : undefined;
 }
 

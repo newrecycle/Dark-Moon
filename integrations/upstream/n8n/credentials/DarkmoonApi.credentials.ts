@@ -29,6 +29,11 @@ export class DarkmoonApi implements ICredentialType {
 
 	properties: INodeProperties[] = [
 		{
+			displayName: 'Webhook Signing Secret', name: 'webhookSecret', type: 'string',
+			typeOptions: { password: true }, default: '',
+			description: 'Required for webhook triggers: at least 24 characters. Stored encrypted in credentials, never in workflow static data or exports.',
+		},
+		{
 			displayName: 'Base URL',
 			name: 'baseUrl',
 			type: 'string',

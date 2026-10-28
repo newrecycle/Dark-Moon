@@ -22,7 +22,7 @@
       "docs/screenshots",
       "test/screenshots"
     ],
-    "adaptation": "Require HMAC v2 plus timestamp window and persisted event-id deduplication in the webhook receiver; validate token/password credentials against protected campaign access via node credential tests, and load the development package through the normal community package registry"
+    "adaptation": "Require HMAC v2, fresh timestamps and durable event-id suppression; encrypted credential signing secrets instead of workflow static secrets; safe allowlisted event output, campaign-qualified atomic poll cursors, local proposal/PR distinction, retained failed cleanup, explicit launch correlation and honest timeouts; protected token/password credential tests. Native host validation runs in a network-disabled container."
   },
   {
     "path": "integrations/upstream/grafana",

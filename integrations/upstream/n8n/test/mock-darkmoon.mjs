@@ -142,7 +142,7 @@ const server = http.createServer(async (req, res) => {
 	// ── Run / campaigns ──────────────────────────────────────────────
 	if (p === '/api/v1/run/campaign' && method === 'POST') {
 		await readBody(req);
-		return json(res, 200, { run_id: 'run_demo01', pid: 4242, command: 'opencode run --agent pentest' });
+		return json(res, 200, { run_id: 'run_demo01', campaign_id: CAMPAIGN.id, pid: 4242, command: 'opencode run --agent pentest' });
 	}
 	if (p.startsWith('/api/v1/run/logs/') && method === 'GET') {
 		return json(res, 200, { data: [{ type: 'run_started', session_id: CAMPAIGN.session_id }], total: 1 });

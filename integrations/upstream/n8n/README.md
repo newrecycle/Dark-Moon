@@ -197,3 +197,43 @@ DARKMOON_N8N_CLI=/path/to/n8n/bin/n8n DARKMOON_PYTHON=/path/to/python node ../..
 Run from this package directory. The test creates an isolated n8n data directory and local DarkMoon fixture, imports encrypted disposable credentials, executes a finding-list workflow into a downstream node, and checks valid/invalid token/password credentials through the real editor API. It sends no third-party messages and performs no real assessment. Other host versions and webhook/poll lifecycle remain separate checks.
 
 Load this package through the normal community package directory. In n8n 2.45.4, loading only `dist/` through `N8N_CUSTOM_EXTENSIONS` omits the credential-to-node registry needed for custom credential tests. The Compose lab now mounts `dist/` and `package.json` under `nodes/node_modules/n8n-nodes-darkmoon`.
+
+### Fork lifecycle and signing-secret migration
+
+This fork waits only on a campaign identity returned by the launch API or its
+run record. It never picks an unrelated campaign from a list. A deadline returns
+`timeout`, including when the launcher exited but the assessment awaits review.
+Non-waited launches retain a returned campaign ID.
+
+Polling commits its campaign-qualified cursor only after all required API reads
+succeed. Changing the API source or upgrading the old cursor format re-primes
+without replaying historical findings. Local proposals emit
+`remediation.updated`; `pr.opened` requires a published/recorded PR. Event outputs
+allowlist metadata and numeric counts, dropping evidence, endpoints, arbitrary
+stats and unknown envelope bodies.
+
+Webhook triggers require a **Webhook Signing Secret** of at least 24 characters
+in the encrypted Darkmoon API credential. This caller-supplied secret is sent to
+the fork's registration API and is never written to new workflow static data or
+workflow exports. For older workflows, put a fresh secret in that credential and
+reactivate: the old registration is deleted before replacement and the old
+static secret is removed. Historical exports/versions made before migration can
+still contain the old secret; rotate it rather than reusing it. Failed deletion
+keeps the registration reference so cleanup can be retried. Invalid signatures
+receive an actual HTTP 401, rather than a JSON object describing a 401 inside an
+HTTP 200 response. Both HMAC versions, freshness and persistent event IDs are
+checked.
+
+Native host tests must run in a container with **`--network none`**. Merely
+setting telemetry-disable variables does not isolate n8n: optional banner and
+what's-new endpoints can still initiate vendor requests. The tests assert that
+only internal network interfaces exist before starting n8n. Build dependencies
+while networking is available, then run from the repository root:
+
+```sh
+docker build -f tests/community/Dockerfile.n8n-host -t darkmoon-n8n-host .
+docker run --rm --network none darkmoon-n8n-host
+```
+
+The test creates only disposable accounts, credentials and loopback workflows.
+It does not send Slack/Jira/other third-party messages.

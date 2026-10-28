@@ -677,7 +677,7 @@ export class Darkmoon implements INodeType {
 						status: result.status,
 						waited: wait,
 						run_id: result.runId,
-						campaign_id: c ? c.id : null,
+						campaign_id: result.campaignId,
 						overall_risk: c ? c.overallRisk ?? null : null,
 						stats: c ? c.stats ?? {} : {},
 						remediation_enabled: enableRemediation,
