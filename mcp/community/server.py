@@ -49,7 +49,13 @@ def handler_for(service, allowed_hosts):
             # Every authenticated workspace route, including legacy aliases,
             # crosses this default projection boundary.
             if not getattr(self, "_evidence_authorized", False):
-                if status >= 400 and urlsplit(self.path).path.startswith("/api/v1/"):
+                api_parts = urlsplit(self.path).path.strip("/").split("/")
+                workspace_error = len(api_parts) >= 3 and api_parts[:2] == ["api", "v1"] and (
+                    api_parts[2] in {"projects", "targets", "campaigns", "findings", "vulnerabilities",
+                                     "dashboard", "overview", "run", "jobs", "remediations",
+                                     "pull-requests", "retest", "events", "scheduler", "schedules",
+                                     "options", "source-files", "integrations", "evidence"})
+                if status >= 400 and workspace_error:
                     content = {"error": "Not found" if status == 404 else "Request rejected"}
                 else:
                     content = minimize_response(urlsplit(self.path).path, content, kind)
