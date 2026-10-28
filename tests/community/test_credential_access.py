@@ -278,6 +278,25 @@ class CredentialAccessTests(fixtures.Fixture):
                                    key="stable_attempt", actor=alternate)
         self.assertEqual(same["id"], job["id"])
 
+    def test_recreated_account_does_not_regain_old_private_grants_or_sessions(self):
+        self.typed(cid="cred_account_owned")
+        self.typed(scope="shared", owner="bob", grants=["alice"], cid="cred_account_grant")
+        job = self.service.launch({"target": "owned.invalid",
+                                   "assessment_token_id": "cred_account_owned"},
+                                  actor=self.actors["alice"])
+        token = self.authorization("alice")["Authorization"]
+        self.service.store.update(lambda state: state["users"].pop("alice"))
+        self.service.accounts.create("alice", "a-new-long-password-for-test", "analyst")
+        self.assertIsNone(self.service.identity(token))
+        self.assertTrue(self.service.store.get("credentials", "cred_account_owned")["revoked"])
+        self.assertNotIn("alice", self.service.store.get("credentials", "cred_account_grant")["grants"])
+        self.assertEqual(self.service.store.get("jobs", job["id"])["status"], "cancelled")
+        fresh = self.service.identity("Bearer " + self.service.accounts.login(
+            "alice", "a-new-long-password-for-test", "127.0.0.1")["token"])
+        for reference in ("cred_account_owned", "cred_account_grant"):
+            with self.assertRaises(KeyError):
+                self.service.vault.require(reference, "assessment_token", actor=fresh)
+
     def test_secrets_are_never_present_in_control_state_exports(self):
         self.typed(adapter="scm_token", cid="cred_scm")
         for item in self.service.vault.list():
