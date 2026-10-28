@@ -1,0 +1,32 @@
+name: Sync pro into deps
+on:
+  push:
+    branches: [pro]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: dependency-branch-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: pro
+          fetch-depth: 0
+      - name: Advance deps without discarding commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin pro
+          if git ls-remote --exit-code --heads origin deps >/dev/null; then
+            git fetch origin deps
+            if ! git merge-base --is-ancestor origin/deps origin/pro; then
+              echo "deps contains unpromoted commits; preserving both branches."
+              exit 0
+            fi
+          fi
+          git push origin origin/pro:refs/heads/deps

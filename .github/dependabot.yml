@@ -1,44 +1,80 @@
+# Routine updates stage on deps; security updates retain default-branch coverage.
 version: 2
-
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    target-branch: "deps"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 1
-    rebase-strategy: "auto"
-    groups:
-      github-actions:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "pip"
-    directory: "/"
-    target-branch: "deps"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 1
-    rebase-strategy: "auto"
-    groups:
-      python:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "npm"
-    directory: "/"
-    target-branch: "deps"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 1
-    rebase-strategy: "auto"
-    groups:
-      javascript:
-        patterns:
-          - "*"
+- package-ecosystem: github-actions
+  directories: &id001
+  - /
+  schedule: &id002
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: America/Edmonton
+  target-branch: deps
+  open-pull-requests-limit: 1
+  groups:
+    routine:
+      patterns:
+      - '*'
+  rebase-strategy: auto
+- package-ecosystem: github-actions
+  directories: *id001
+  schedule: *id002
+  open-pull-requests-limit: 0
+  groups:
+    security:
+      applies-to: security-updates
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directories: &id003
+  - /mcp
+  - /mcp/community
+  schedule: &id004
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: America/Edmonton
+  target-branch: deps
+  open-pull-requests-limit: 1
+  groups:
+    routine:
+      patterns:
+      - '*'
+  rebase-strategy: auto
+- package-ecosystem: pip
+  directories: *id003
+  schedule: *id004
+  open-pull-requests-limit: 0
+  groups:
+    security:
+      applies-to: security-updates
+      patterns:
+      - '*'
+- package-ecosystem: npm
+  directories: &id005
+  - /integrations/upstream/action
+  - /integrations/upstream/client
+  - /integrations/upstream/n8n
+  - /integrations/upstream/vscode
+  - /integrations/upstream/grafana/plugin
+  schedule: &id006
+    interval: weekly
+    day: monday
+    time: 09:00
+    timezone: America/Edmonton
+  target-branch: deps
+  open-pull-requests-limit: 1
+  groups:
+    routine:
+      patterns:
+      - '*'
+  rebase-strategy: auto
+- package-ecosystem: npm
+  directories: *id005
+  schedule: *id006
+  open-pull-requests-limit: 0
+  groups:
+    security:
+      applies-to: security-updates
+      patterns:
+      - '*'
