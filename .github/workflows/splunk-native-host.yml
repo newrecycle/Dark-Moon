@@ -1,0 +1,90 @@
+name: Splunk native host acceptance (operator-supplied, manual only)
+# NO docker pull, license acquisition, license/terms acceptance or external HEC.
+# A successful job requires a real operator-authorized, disposable Splunk host.
+# With no matching self-hosted runner this workflow is unavailable/queued, NOT green.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-splunk:
+    runs-on: [self-hosted, linux, splunk-native-disposable]
+    timeout-minutes: 25
+    environment: splunk-native-disposable
+    env:
+      SPLUNK_NATIVE_ATTESTED: ${{ vars.SPLUNK_NATIVE_ATTESTED }}
+      SPLUNK_NATIVE_MGMT: ${{ vars.SPLUNK_NATIVE_MGMT }}
+      SPLUNK_NATIVE_WEB: ${{ vars.SPLUNK_NATIVE_WEB }}
+      SPLUNK_NATIVE_HEC: ${{ vars.SPLUNK_NATIVE_HEC }}
+      SPLUNK_NATIVE_INDEX: ${{ vars.SPLUNK_NATIVE_INDEX }}
+      SPLUNK_NATIVE_SPLUNK_HOME: ${{ vars.SPLUNK_NATIVE_SPLUNK_HOME }}
+      SPLUNK_NATIVE_PACKAGE_FILE: ${{ vars.SPLUNK_NATIVE_PACKAGE_FILE }}
+      SPLUNK_NATIVE_CA_FILE: ${{ vars.SPLUNK_NATIVE_CA_FILE }}
+      SPLUNK_NATIVE_INSECURE_LOOPBACK: ${{ vars.SPLUNK_NATIVE_INSECURE_LOOPBACK }}
+      SPLUNK_NATIVE_USER: ${{ secrets.SPLUNK_NATIVE_USER }}
+      SPLUNK_NATIVE_PASSWORD: ${{ secrets.SPLUNK_NATIVE_PASSWORD }}
+      SPLUNK_NATIVE_HEC_TOKEN: ${{ secrets.SPLUNK_NATIVE_HEC_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify manual authorization and disposable local host configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$SPLUNK_NATIVE_ATTESTED" = "1" || { echo 'NATIVE UNAVAILABLE: explicit operator authorization missing'; exit 3; }
+          test -n "$SPLUNK_NATIVE_PACKAGE_FILE" || { echo 'NATIVE UNAVAILABLE: no package staging path'; exit 3; }
+          test -n "$SPLUNK_NATIVE_PASSWORD" || { echo 'NATIVE UNAVAILABLE: Splunk credentials absent'; exit 3; }
+          node -e "require('playwright')" || { echo 'NATIVE UNAVAILABLE: Playwright/Chromium not preinstalled on operator runner'; exit 3; }
+      - name: Build the exact packaged app already covered by offline tests
+        shell: bash
+        run: bash integrations/upstream/splunk/scripts/package.sh
+      - name: Stage the built app on the disposable host (no license actions)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          src = next(Path('integrations/upstream/splunk/dist').glob('darkmoon-*.tar.gz'))
+          target = Path(os.environ['SPLUNK_NATIVE_PACKAGE_FILE'])
+          if not target.is_absolute() or target.is_symlink() or not target.parent.is_dir():
+              raise SystemExit('NATIVE UNAVAILABLE: unsafe package staging path')
+          shutil.copy2(src, target)
+          target.chmod(0o644)
+          PY
+      - name: Validate installed app, native field extraction and actual SPL/HEC
+        shell: bash
+        run: python3 integrations/upstream/splunk/test/native_acceptance.py --native
+      - name: Launch bounded local Dark Moon metadata fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u integrations/upstream/splunk/test/native_fixture.py > "${RUNNER_TEMP}/dm-native-fixture.json" 2> "${RUNNER_TEMP}/dm-native-fixture.err" &
+          echo "$!" > "${RUNNER_TEMP}/dm-native-fixture.pid"
+          python3 - <<'PY'
+          import json, os, pathlib, time
+          p = pathlib.Path(os.environ['RUNNER_TEMP']) / 'dm-native-fixture.json'
+          for i in range(100):
+              if p.exists() and p.stat().st_size:
+                  data = json.loads(p.read_text().splitlines()[0])
+                  with open(os.environ['GITHUB_ENV'], 'a') as f:
+                      f.write('SPLUNK_NATIVE_DARKMOON=' + data['base_url'] + '\n')
+                  break
+              time.sleep(.1)
+          else:
+              raise SystemExit('NATIVE UNAVAILABLE: local Dark Moon fixture failed to start')
+          PY
+      - name: Exercise actual Splunk Web and native SplunkJS storage/passwords
+        shell: bash
+        run: node integrations/upstream/splunk/test/native_browser.cjs
+      - name: Execute installed alert in Splunk Python against local Dark Moon fixture
+        shell: bash
+        run: python3 integrations/upstream/splunk/test/native_action.py
+      - name: Stop disposable fixture
+        if: always()
+        shell: bash
+        run: |
+          if test -s "${RUNNER_TEMP}/dm-native-fixture.pid"; then
+            kill "$(cat "${RUNNER_TEMP}/dm-native-fixture.pid")" || true
+          fi

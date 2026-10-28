@@ -246,3 +246,29 @@ This selects comparison findings and category focus. It does not narrow an
 assessment to one endpoint: original engagement scope and safe-harbor terms
 remain, and absence is not proof of a fix. See
 [finding-retest contract](../../../docs/handoff/splunk-finding-retests-2026-10-28.md).
+
+## Native Splunk host acceptance (operator-supplied)
+
+A separate native test path now checks installation of the **actual packaged
+app**, Splunk HEC indexing and native SPL, search-time EVAL/field aliases,
+dashboard tokens/drilldowns, SplunkJS credential realm selection/rotation,
+and the installed alert action against a strictly local Dark Moon fixture.
+It is **not** executed by the ordinary offline Linux/Windows tests.
+
+The operator must provide an already licensed, legally usable **disposable**
+Splunk Enterprise host on the same machine as the test runner and explicitly
+authorize its use. The manual-only
+[`splunk-native-host.yml`](../../../.github/workflows/splunk-native-host.yml)
+requires a preconfigured self-hosted runner, local host/HEC credentials and
+package staging path. It does not obtain licenses, accept terms, install the
+Splunk server, contact assessments, send external HEC or trigger notifications.
+Without these prerequisites the **native status is UNAVAILABLE, not PASS**.
+
+[Native acceptance runbook](test/NATIVE-ACCEPTANCE.md) ·
+[Native handoff](../../../docs/handoff/splunk-native-verification-2026-10-28.md) ·
+[Observed native/offline evidence](../../../docs/validation/splunk-native-2026-10-28.md).
+
+The old `test/run_e2e.sh` and its legacy Docker Compose file are **not**
+substitutes for this operator-controlled gate; the Compose configuration
+contains license/terms acceptance flags and must not be invoked by these
+native verification workflows.

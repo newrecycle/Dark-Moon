@@ -17,7 +17,7 @@
       <choice value="high">high</choice>
       <choice value="medium">medium</choice>
       <choice value="low">low</choice>
-      <choice value="info">info</choice>
+      <choice value="informational">informational</choice>
       <default>*</default>
     </input>
     <input type="dropdown" token="statusf">
@@ -81,7 +81,7 @@
         <option name="drilldown">row</option>
         <option name="count">50</option>
         <format type="color" field="severity">
-          <colorPalette type="map">{"critical":#dc4e41,"high":#f1813f,"medium":#f8be34,"low":#53a051,"info":#3b82f6}</colorPalette>
+          <colorPalette type="map">{"critical":#dc4e41,"high":#f1813f,"medium":#f8be34,"low":#53a051,"info":#3b82f6,"informational":#3b82f6}</colorPalette>
         </format>
         <format type="color" field="status">
           <colorPalette type="map">{"exploited":#f1813f,"confirmed":#dc4e41,"unconfirmed":#5cc5c5,"remediated":#53a051}</colorPalette>
