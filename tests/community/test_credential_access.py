@@ -231,6 +231,53 @@ class CredentialAccessTests(fixtures.Fixture):
         item = profile(self.service, raw, actor=self.actors["alice"])
         self.assertEqual(item["credential_id"], "cred_provider")
 
+    def test_retest_inherits_references_only_with_requestor_authorization(self):
+        self.typed(cid="cred_retest")
+        job = self.service.launch({"target": "owned.invalid", "assessment_token_id": "cred_retest"},
+                                  actor=self.actors["alice"])
+        before = len(self.service.store.items("jobs"))
+        with self.assertRaises(ValueError):
+            self.service.operations.launch_retest(
+                {"campaign_id": job["campaign_id"]}, actor=self.actors["bob"])
+        self.assertEqual(len(self.service.store.items("jobs")), before)
+
+    def test_schedule_creation_does_not_turn_analyst_into_service_identity(self):
+        self.typed(adapter="target_token", scope="service", owner="workspace-owner",
+                   cid="cred_scheduler_service")
+        spec = {"target": "owned.invalid", "assessment_token_id": "cred_scheduler_service",
+                "enabled": False}
+        status, body, _ = self.request("/api/v1/scheduler", "POST", spec,
+                                       headers=self.authorization("alice"))
+        self.assertEqual(status, 400, body)
+        self.assertFalse(self.service.store.items("schedules"))
+        status, body, _ = self.request("/api/v1/scheduler", "POST", spec)
+        self.assertEqual(status, 201, body)
+        self.assertEqual(len(self.service.store.items("schedules")), 1)
+
+    def test_reserved_workspace_owner_username_cannot_impersonate_service(self):
+        with self.assertRaises(ValueError):
+            self.service.accounts.create("workspace-owner",
+                                         "fake-long-password-for-tests", "admin")
+        self.typed(adapter="target_token", scope="service", owner="workspace-owner",
+                   cid="cred_service_only")
+        forged = {"id": "workspace-owner", "role": "admin", "authentication": "password"}
+        with self.assertRaises(KeyError):
+            self.service.vault.require("cred_service_only", "assessment_token", actor=forged)
+        self.service.vault.require("cred_service_only", "assessment_token")
+
+    def test_job_actor_is_minimal_and_idempotency_does_not_bind_session_id(self):
+        self.typed(cid="cred_session")
+        job = self.service.launch({"target": "owned.invalid",
+                                   "assessment_token_id": "cred_session"},
+                                  key="stable_attempt", actor=self.actors["alice"])
+        self.assertEqual(job["request_actor"], {"id": "alice", "authentication": "password"})
+        self.assertNotIn("session_id", json.dumps(job))
+        alternate = dict(self.actors["alice"], session_id="different-session")
+        same = self.service.launch({"target": "owned.invalid",
+                                    "assessment_token_id": "cred_session"},
+                                   key="stable_attempt", actor=alternate)
+        self.assertEqual(same["id"], job["id"])
+
     def test_secrets_are_never_present_in_control_state_exports(self):
         self.typed(adapter="scm_token", cid="cred_scm")
         for item in self.service.vault.list():
