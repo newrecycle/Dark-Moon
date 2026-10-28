@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Require local TLS fixture generator
@@ -33,7 +33,7 @@ jobs:
         run: python integrations/upstream/splunk/test/test_alert_action.py
       - name: Stage the tested portable source for Windows
         run: tar --exclude=__pycache__ --exclude=dist --exclude=local -czf "$RUNNER_TEMP/splunk-test-source.tar.gz" -C integrations/upstream/splunk .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: splunk-test-source
           path: ${{ runner.temp }}/splunk-test-source.tar.gz
@@ -43,13 +43,13 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: splunk-test-source
       - name: Extract only the tested Splunk subtree

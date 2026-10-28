@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Install isolated test dependencies
@@ -36,7 +36,7 @@ jobs:
           node tests/community/browser_acceptance.cjs
       - name: Preserve fixture UI screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: community-browser-screenshots
           path: browser-screenshots/

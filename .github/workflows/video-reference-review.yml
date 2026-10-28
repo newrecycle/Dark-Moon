@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Install public-media tooling
@@ -23,7 +23,7 @@ jobs:
           if ! command -v ffmpeg; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
       - name: Try native public storyboards and video formats
         run: /tmp/dm-video-venv/bin/python tools/video-review/acquire_public_frames.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: public-reference-review

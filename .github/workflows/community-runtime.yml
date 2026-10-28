@@ -22,10 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - name: Build the actual branch image
@@ -34,7 +34,7 @@ jobs:
         run: python3 tools/validate-community-runtime.py --docker-image darkmoon-community-validation --output runtime-validation.json
       - name: Preserve validation evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: community-runtime-evidence
           path: |
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Install analysis dependencies
@@ -59,7 +59,7 @@ jobs:
         run: PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tools/analyze-community-lab.py --output-dir lab-analysis
       - name: Preserve real analysis data and reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: owned-lab-analysis
           path: |
