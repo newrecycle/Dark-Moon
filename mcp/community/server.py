@@ -22,6 +22,7 @@ from . import reports
 from .service import Service, graph_for
 from .store import Store, identifier
 from .run_views import log_detail, log_metadata, public_run, stream_chunk
+from .evidence_access import minimize_response, public_projection, consume
 
 STATIC = Path(__file__).with_name("static")
 
@@ -45,6 +46,19 @@ def handler_for(service, allowed_hosts):
 
         def send(self, content, kind="application/json", status=200, filename=None, extra_headers=None):
             self.close_connection = True
+            # Every authenticated workspace route, including legacy aliases,
+            # crosses this default projection boundary.
+            if not getattr(self, "_evidence_authorized", False):
+                api_parts = urlsplit(self.path).path.strip("/").split("/")
+                workspace_error = len(api_parts) >= 3 and api_parts[:2] == ["api", "v1"] and (
+                    api_parts[2] in {"projects", "targets", "campaigns", "findings", "vulnerabilities",
+                                     "dashboard", "overview", "run", "jobs", "remediations",
+                                     "pull-requests", "retest", "events", "scheduler", "schedules",
+                                     "options", "source-files", "integrations", "evidence"})
+                if status >= 400 and workspace_error:
+                    content = {"error": "Not found" if status == 404 else "Request rejected"}
+                else:
+                    content = minimize_response(urlsplit(self.path).path, content, kind)
             if isinstance(content, (dict, list)):
                 content = json.dumps(content, ensure_ascii=False).encode()
             elif isinstance(content, str):
@@ -63,6 +77,11 @@ def handler_for(service, allowed_hosts):
                 self.send_header(key, value)
             self.end_headers()
             self.wfile.write(content)
+
+        def require_evidence(self, identity, kind, resource_id):
+            self._evidence_until = consume(service, identity, kind, resource_id,
+                                            self.headers.get("X-Darkmoon-Evidence-Grant"))
+            self._evidence_authorized = True
 
         def body(self):
             if self.headers.get("Transfer-Encoding"):
@@ -162,6 +181,7 @@ def handler_for(service, allowed_hosts):
                 return self.send(public_run(service.prepare_remediation(self.body())), status=202)
             if method == "GET" and len(parts) == 3 and parts[0] == "remediations" and parts[2] == "patch":
                 proposal_id = identifier(parts[1])
+                self.require_evidence(identity, "patch", proposal_id)
                 path = service.store.root / "remediation" / proposal_id / "fix.patch"
                 if not path.is_file():
                     raise KeyError(proposal_id)
@@ -178,6 +198,7 @@ def handler_for(service, allowed_hosts):
                     if parts[2] == "report.md":
                         return self.send(reports.markdown(campaign), "text/markdown", filename=parts[1] + ".md")
                     if parts[2] == "report.pdf":
+                        self.require_evidence(identity, "report_pdf", parts[1])
                         try:
                             content = reports.pdf(campaign)
                         except ImportError:
@@ -194,6 +215,8 @@ def handler_for(service, allowed_hosts):
                 if method == "GET" and len(parts) == 2:
                     return self.send(public_run(job) | log_metadata(service.store, job))
                 if method == "GET" and parts[2:] == ["log"]:
+                    if "raw=true" in urlsplit(self.path).query:
+                        self.require_evidence(identity, "run", job["id"])
                     log = log_detail(service.store, self, job, admin=identity.get("role") == "admin")
                     # Keep the legacy plain-text response type, not unrestricted output.
                     return self.send("\n".join(row["message"] for row in log["data"]), "text/plain")
@@ -253,7 +276,7 @@ def handler_for(service, allowed_hosts):
                     if event["id"] not in seen:
                         seen.add(event["id"])
                         if not requested or event["event"] in requested:
-                            self.wfile.write(("id: "+str(event.get("seq", event["id"]))+"\ndata: "+json.dumps(event)+"\n\n").encode())
+                            self.wfile.write(("id: "+str(event.get("seq", event["id"]))+"\ndata: "+json.dumps(public_projection(event))+"\n\n").encode())
                 self.wfile.flush()
                 previous = digest
                 time.sleep(1)
@@ -275,6 +298,9 @@ def handler_for(service, allowed_hosts):
                     self.wfile.flush()
                     return
                 if reveal_output:
+                    if (time.time() >= getattr(self, "_evidence_until", 0) or
+                            not service.identity(self.headers.get("Authorization"))):
+                        return
                     chunk, offset, _, _ = stream_chunk(service.store, run_id, offset)
                     if chunk:
                         self.wfile.write(("data: "+json.dumps({"type": "output", "text": chunk.decode("utf-8", errors="replace"),

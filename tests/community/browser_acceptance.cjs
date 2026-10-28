@@ -137,8 +137,10 @@ const assert = require("node:assert/strict");
         data:[{type:raw?'untrusted_raw':'lifecycle',
           message:raw?'PRIVATE-MOCK-OUTPUT':'Run started'}]});
     };
+    const grantHandler = route => fulfill(route, {grant:"mock-admin-grant-only",grant_id:"eg_mock",expires_in:45});
+    const routeGrant = url => url.pathname === "/api/v1/evidence/grants";
     const mockRoutes = [[routeActive,activeHandler],[routeLogs,historyHandler],
-      [routeDetail,detailHandler],[routeLogDetail,logDetailHandler]];
+      [routeDetail,detailHandler],[routeLogDetail,logDetailHandler],[routeGrant,grantHandler]];
     for (const [matcher,handler] of mockRoutes) await page.route(matcher,handler);
     await page.locator('nav a[href="#overview"]').click();
     await page.locator('nav a[href="#campaigns"]').click();
@@ -824,14 +826,14 @@ const assert = require("node:assert/strict");
     assert.match(await page.locator('#finding-count').innerText(),/0–0 of 0 matching/);
     await page.locator('#findings-clear').click();
     await page.locator('#severity-filter').selectOption('high');
-    await page.locator("#finding-search").fill("SQL injection");
+    await page.locator("#finding-search").fill(fixture.finding_id);
     const reloadedFindingURL = page.url();
     await page.reload();
     await page.locator('#token').fill(fixture.token);
     await page.locator('#login-form button[type="submit"]').click();
     await page.locator('#finding-search').waitFor();
     assert.equal(page.url(),reloadedFindingURL);
-    assert.equal(await page.locator('#finding-search').inputValue(),'SQL injection');
+    assert.equal(await page.locator('#finding-search').inputValue(),fixture.finding_id);
     assert.equal(await page.locator('#severity-filter').inputValue(),'high');
     await page.locator(`button[data-finding="${fixture.finding_id}"]`).focus();
     await page.keyboard.press('Enter');
@@ -841,8 +843,11 @@ const assert = require("node:assert/strict");
       undefined,
       "Finding content must be escaped",
     );
+    assert.equal(await page.locator('[data-evidence-field="raw_response"]').count(),0,
+      'default finding detail must not contain evidence');
+    await page.locator('[data-reveal-finding]').click();
     const responseEvidence = await page
-      .locator('[data-evidence-field="raw_response"]')
+      .locator('[data-revealed-content] [data-evidence-field="raw_response"]')
       .textContent();
     assert.ok(
       responseEvidence.includes("HTTP/1.1 200 OK\nContent-Type: text/html"),
@@ -852,6 +857,12 @@ const assert = require("node:assert/strict");
     );
     assert.ok(!responseEvidence.includes("\x1b"));
     assert.equal(await page.locator("#detail-body script").count(), 0);
+    await page.locator("#detail .close-dialog").click();
+    assert.equal(await page.locator('[data-revealed-content]').count(), 0,
+      'revealed content must be cleared on close');
+    await page.locator(`button[data-finding="${fixture.finding_id}"]`).first().click();
+    await page.locator("#detail[open]").waitFor();
+    assert.equal(await page.locator('[data-evidence-field="raw_response"]').count(), 0);
     // Before remediation exists, the exact finding lookup must return a valid empty result.
     await page.getByText("Linked remediation records", {exact:true}).waitFor();
     assert.match(await page.locator("#detail-body").innerText(), /No linked remediation records/);
