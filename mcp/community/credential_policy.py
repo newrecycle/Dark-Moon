@@ -63,7 +63,7 @@ def validate(raw, state, identity, previous=None):
     version = raw.get("model_version", VERSION)
     if type(version) is not int or version != VERSION:
         raise ValueError("Unsupported credential model version")
-    prior = metadata(previous) if previous else {}
+    prior = metadata(previous) if previous and previous.get("model_version") == VERSION else {}
     adapter = raw.get("adapter", prior.get("adapter"))
     if adapter not in ADAPTERS:
         raise ValueError("Unsupported credential adapter")
@@ -97,6 +97,8 @@ def validate(raw, state, identity, previous=None):
     if scope != "shared" and grants:
         raise ValueError("Only shared credentials accept grants")
     revoked = raw.get("revoked", prior.get("revoked", False))
+    if previous and previous.get("revoked") is True and revoked is not True:
+        raise ValueError("Revoked credentials cannot be reactivated; create a new ID")
     if type(revoked) is not bool:
         raise ValueError("Credential revoked flag must be boolean")
     username = raw.get("username", (previous or {}).get("username", ""))
