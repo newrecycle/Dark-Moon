@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Pinned build-only bundling dependencies for HPI portable CLI",
   "dependencies": {
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "esbuild": "0.25.12"
