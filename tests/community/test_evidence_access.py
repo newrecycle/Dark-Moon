@@ -172,11 +172,11 @@ class EvidenceHTTPTests(fixtures.Fixture):
         self.assertIn(EVIDENCE_CANARY, body.decode())
         self.assertNotIn(EVIDENCE_CANARY, self.request(f"/api/v1/run/logs/{job['id']}")[1].decode())
     def test_public_events_proposal_and_error_never_reflect_evidence_canaries(self):
-        self.service.store.save("remediations", {
-            "id": "rem_canary", "campaign_id": self.cid, "finding_id": self.fid,
-            "status": "proposed", "title": SOURCE_CANARY,
-            "validation": {"before": [{"name": EVIDENCE_CANARY, "passed": False,
-                                      "output": SOURCE_CANARY}]}})
+        proposal = {"id": "rem_canary", "campaign_id": self.cid, "finding_id": self.fid,
+                    "status": "proposed", "title": SOURCE_CANARY,
+                    "validation": {"before": [{"name": EVIDENCE_CANARY, "passed": False,
+                                              "output": SOURCE_CANARY}]}}
+        data._write_json(self.service.store.root / "remediation" / "rem_canary" / "result.json", proposal)
         self.service.store.save("events", {
             "id": "evt_canary", "event": "finding.created", "timestamp": "2026-10-28T00:00:00Z",
             "data": {"title": SOURCE_CANARY, "evidence": EVIDENCE_CANARY}})
