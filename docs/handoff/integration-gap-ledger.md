@@ -13,6 +13,42 @@ these tests. All test launches use disposable offline/owned-loopback fixtures.
 The preceding dashboard checkpoint is `babdc39`. Its browser, both regression
 gates, Docker/provider, owned-loopback and real n8n host checks passed.
 
+## Claimed next workstream — Jenkins native-host validation (2026-10-28)
+
+**Claim:** ChatGPT, this conversation. **Status:** scoped/claimed; implementation
+and native validation have not yet been performed under this claim. This is a
+visible ownership marker, not a claim that unattended work is running.
+
+This workstream is independent of the API route implementations currently being
+developed or verified. Start from the latest `origin/pro` and preserve intervening
+commits. Work only in the Jenkins integration, its disposable acceptance fixtures,
+a dedicated CI gate and relevant documentation.
+
+**Objective:** validate the actual built Jenkins HPI and its bundled patched
+portable CLI (`0.2.1-darkmoon.1`) against an offline, disposable Jenkins
+controller/agent. The existing `integrations/upstream/jenkins/e2e/run-e2e.sh`
+assumes an external `$HOME/darkmoon-client` package and the old
+`darkmoon-client-0.1.0.tgz` filename; it does not establish that the current
+default bundled-CLI path works. No dedicated Jenkins native workflow is present
+at this checkpoint.
+
+**Acceptance criteria:**
+- Build/package the actual HPI with supported JDK/Maven, confirm bundled runtime
+  and manifest resources, and verify agent-side Node prerequisite and extraction.
+- Adapt the isolated Jenkins host fixture to use the packaged CLI and exercise
+  Pipeline step behavior, Warnings-NG/SARIF publication and named artifacts.
+- Cover successful empty/nonempty findings, fail-versus-unstable precedence,
+  exact run/campaign identities, failed/stopped campaigns, malformed/missing
+  findings, missing configured credentials, and sanitized console/artifact output.
+- Add a reproducible Jenkins native CI gate and report exact commands, run
+  outcome, host limitations and any corrections. Green tests alone are not
+  licensed-vendor runtime equivalence.
+- No real assessment/provider calls, external targets, notifications, deployment,
+  PR or force push. Do not modify unrelated API or editor integration work.
+
+GitHub Issues are disabled for this repository (issue creation returned HTTP
+410), so this ledger entry is the repository-visible claim.
+
 ## Current audit
 
 | Integration | Baseline evidence | Concrete gaps / next validation |
