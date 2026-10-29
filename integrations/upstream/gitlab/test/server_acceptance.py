@@ -62,8 +62,8 @@ def pipeline_config(case):
 ENGINE = '''#!/usr/bin/env node
 const fs=require('node:fs'), p=process.env.CI_PROJECT_DIR;
 const id='camp_owned_'+process.env.CI_JOB_ID;
-fs.writeFileSync(p+'/.data/campaigns/'+id+'.json',JSON.stringify({id,status:'completed',stats:{total_findings:0}}));
 if(process.env.DM_ACCEPTANCE_CASE!=='read_error') fs.writeFileSync(p+'/.data/vulnerabilities/'+id+'.json',JSON.stringify(process.env.DM_ACCEPTANCE_CASE==='empty'?[]:[{id:'finding_owned_one',campaign_id:id,title:'Synthetic issue',severity:'high',status:'confirmed',category:'configuration',endpoint:'/fixture',description:'PRIVATE_EVIDENCE_OWNED_GITLAB'}]));
+fs.writeFileSync(p+'/.data/campaigns/'+id+'.json',JSON.stringify({id,status:'completed',stats:{total_findings:0}}));
 '''
 
 
@@ -152,11 +152,18 @@ def run():
                      '.fixture/engine.cjs': ENGINE,
                      '.fixture/darkmoon-ci': '#!/bin/sh\nexec node "$CI_PROJECT_DIR/.fixture/client.cjs" "$@"\n',
                      '.fixture/client.cjs': (ROOT / 'test/vendor/standalone-client.cjs').read_text()}
-            actions = [{'action': 'create', 'file_path': path, 'content': value,
-                        **({'execute_filemode': True} if path in ('.fixture/engine.cjs', '.fixture/darkmoon-ci') else {})}
+            actions = [{'action': 'create', 'file_path': path, 'content': value}
                        for path, value in files.items()]
             request(f'projects/{pid}/repository/commits', {'branch': project['default_branch'],
                 'commit_message': 'Owned component fixture', 'actions': actions})
+            # execute_filemode is honored only by chmod actions, not creates.
+            executables = ('.fixture/engine.cjs', '.fixture/darkmoon-ci')
+            request(f'projects/{pid}/repository/commits', {'branch': project['default_branch'],
+                'commit_message': 'Owned executable fixtures', 'actions': [
+                    {'action': 'chmod', 'file_path': path, 'execute_filemode': True} for path in executables]})
+            modes = {row['path']: row['mode'] for row in request(f'projects/{pid}/repository/tree?path=.fixture')}
+            assert all(modes.get(path) == '100755' for path in executables), 'Fixture executables must be tracked as executable'
+            print('owned_fixture_executables=true', flush=True)
             observed = []
             for case in ('passing', 'empty', 'blocking', 'nonblocking', 'read_error'):
                 print('owned_pipeline_case=' + case, flush=True)
