@@ -99,3 +99,22 @@ the existing patched client dependency graph (3 moderate, 3 high,
 No public catalog publication, runner registration with an unrelated
 instance, external webhook, real assessment, deployment, or proprietary
 vendor binary was performed.
+
+## Modern-server continuation — 29 October
+
+A new `modern-registered-runner` gate now creates its own loopback-bound
+GitLab CE 19.5.1 container and registers Runner 19.5.0 using the supported
+runner-authentication-token workflow. The real server interpolates the shipped
+component; the shell Runner executes the standalone built patched CLI on
+synthetic local data. Five independent pipelines cover success, empty results,
+blocking gate, allowed exit 2 and a read error that must still fail the pipeline.
+Job, pipeline, runner and commit identities, actual report download, private
+artifact absence and trace secrecy are checked. The container, runner and
+project are disposable; no existing GitLab instance is contacted.
+
+This gate verifies artifact upload and pipeline semantics once observed passing;
+it does not activate a paid trial or prove Ultimate vulnerability ingestion.
+`verify_ingestion.py` now downloads `artifacts/gl-sast-report.json`, validates its
+Darkmoon SAST identity and requires nonempty successful output and matching
+scanner finding counts. The previous `artifacts?file_type=sast` archive request
+was not sufficient proof of SAST JSON storage.

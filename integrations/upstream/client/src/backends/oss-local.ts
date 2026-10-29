@@ -22,7 +22,7 @@ import { refToId } from "./backend.js";
 import { Logger } from "../util/logger.js";
 import { normalizeCampaign, normalizeFinding, matchesFindingFilter, severitySummaryFromFindings } from "../normalize.js";
 import { parseCampaign, parseFindings } from "../schema.js";
-import { CampaignNotFound, CorrelationFailed, DarkmoonNotAvailable, FindingNotFound, NotSupported } from "../errors.js";
+import { CampaignNotFound, CorrelationFailed, DarkmoonNotAvailable, FindingNotFound, NotSupported, SchemaInvalid } from "../errors.js";
 import type {
   DarkmoonEvent,
   EvidenceMeta,
@@ -230,12 +230,18 @@ export class OssLocalBackend implements Backend {
 
   private async readFindingsFile(campaignId: string): Promise<any[]> {
     const p = path.join(this.vulnsDir, `${campaignId}.json`);
-    if (!existsSync(p)) return [];
+    let raw: unknown;
     try {
-      return parseFindings(JSON.parse(await fs.readFile(p, "utf8")));
+      raw = JSON.parse(await fs.readFile(p, "utf8"));
     } catch {
-      return [];
+      throw new SchemaInvalid("Campaign findings are unavailable or malformed.");
     }
+    if (!Array.isArray(raw)) throw new SchemaInvalid("Campaign findings must be a JSON array.");
+    const rows = parseFindings(raw);
+    if (rows.some(row => row.campaign_id !== campaignId)) {
+      throw new SchemaInvalid("Campaign findings contain a foreign or missing campaign identity.");
+    }
+    return rows;
   }
 
   async getCampaign(id: string): Promise<Campaign> {
@@ -244,10 +250,8 @@ export class OssLocalBackend implements Backend {
     const campaign = normalizeCampaign(parseCampaign(raw), "oss");
     // Findings are authoritative: recompute severity from the vulns file if present.
     const raws = await this.readFindingsFile(id);
-    if (raws.length > 0) {
-      const findings = raws.map((v) => normalizeFinding(v, "oss"));
-      campaign.severity = severitySummaryFromFindings(findings);
-    }
+    const findings = raws.map((v) => normalizeFinding(v, "oss"));
+    campaign.severity = severitySummaryFromFindings(findings);
     return campaign;
   }
 

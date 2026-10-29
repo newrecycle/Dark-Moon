@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - pro
-      - agent/gitlab-native-acceptance-20261028
     paths:
       - 'integrations/upstream/gitlab/**'
       - 'tests/community/gitlab_contract.py'
@@ -69,3 +68,31 @@ jobs:
           integrations/upstream/gitlab/test/vendor/gitlab-runner --version
       - name: Run actual generated job under historic native Runner shell executor
         run: bash integrations/upstream/gitlab/test/run_runner_e2e.sh
+  modern-registered-runner:
+    needs: generated-and-schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build real standalone patched CLI and modern Runner
+        run: |
+          python -m pip install PyYAML
+          npm --prefix integrations/upstream/client ci --ignore-scripts
+          npm --prefix integrations/upstream/client run build
+          npm install --prefix /tmp/dm-gitlab-builder esbuild@0.25.12
+          /tmp/dm-gitlab-builder/node_modules/.bin/esbuild integrations/upstream/client/dist/cli/darkmoon-ci.cjs --bundle --platform=node --format=cjs --outfile=integrations/upstream/gitlab/test/vendor/standalone-client.cjs
+          curl -fsSL --retry 3 https://gitlab-runner-downloads.s3.amazonaws.com/v19.5.0/binaries/gitlab-runner-linux-amd64 -o integrations/upstream/gitlab/test/vendor/gitlab-runner-modern
+          chmod 700 integrations/upstream/gitlab/test/vendor/gitlab-runner-modern
+          integrations/upstream/gitlab/test/vendor/gitlab-runner-modern --version
+      - name: Verify acceptance contracts
+        run: python -m unittest discover -s integrations/upstream/gitlab/test -p test_server_acceptance.py -v
+      - name: Real disposable CE server, registered Runner and artifact acceptance
+        run: python integrations/upstream/gitlab/test/server_acceptance.py

@@ -19,6 +19,17 @@ class NoRedirect(HTTPRedirectHandler):
         raise ValueError("GitLab test host redirected; refusing to forward token")
 
 
+def artifact_report(raw):
+    """An archive or arbitrary nonempty response does not prove report upload."""
+    report = json.loads(raw)
+    if (not isinstance(report, dict) or not isinstance(report.get("vulnerabilities"), list)
+            or report.get("scan", {}).get("scanner", {}).get("id") != "darkmoon"
+            or report.get("scan", {}).get("type") != "sast"
+            or report.get("scan", {}).get("status") not in ("success", "failure")):
+        raise ValueError("GitLab did not return the Darkmoon SAST JSON artifact")
+    return report
+
+
 def main():
     env = os.environ
     if env.get("GITLAB_ACCEPTANCE_OWNED") != "yes":
@@ -60,9 +71,10 @@ def main():
         record = json.loads(get("jobs/%d" % job))
         if record.get("pipeline", {}).get("id") != pipeline or record.get("status") != "success":
             raise ValueError("Only a successful job in the selected pipeline can prove ingestion")
-        raw = get("jobs/%d/artifacts?file_type=sast" % job)
-        if not raw:
-            raise ValueError("GitLab did not store a SAST artifact")
+        raw = get("jobs/%d/artifacts/gl-sast-report.json" % job)
+        report = artifact_report(raw)
+        if report["scan"]["status"] != "success" or not report["vulnerabilities"]:
+            raise ValueError("Ingestion requires a successful nonempty SAST report")
         print("ARTIFACT_UPLOAD: PASS (GitLab returned nonempty SAST artifact)")
         # Ultimate is required to query project vulnerability findings.
         query = urlencode({"pipeline_id": pipeline, "per_page": 100})
@@ -71,9 +83,10 @@ def main():
             raise ValueError("GitLab vulnerability findings response is not a list")
         matching = [f for f in findings
                     if f.get("report_type") == "sast"
-                    and "darkmoon" in json.dumps(f.get("scanner", {})).lower()]
-        if not matching:
-            raise ValueError("No Darkmoon SAST findings were ingested in this pipeline")
+                    and (f.get("scanner", {}).get("external_id") == "darkmoon"
+                         or str(f.get("scanner", {}).get("name", "")).lower() == "darkmoon")]
+        if len(matching) != len(report["vulnerabilities"]):
+            raise ValueError("Ingested Darkmoon count does not match the uploaded report")
         print("SERVER_INGESTION: PASS (%d Darkmoon findings from pipeline %d)" %
               (len(matching), pipeline))
         return 0
