@@ -211,3 +211,24 @@ start requests are deduplicated and a view abort ends its XR session. The browse
 suite injects rejected XR capability promises while exercising the normal graph.
 This validates unsupported-state behavior only; physical headset rendering,
 controller input and independent exploitation proof remain unavailable.
+
+### Explicit OSS producer binding (supersedes singleton gap for new launches)
+
+New shared SDK launches request JSON output from their own process and validate
+its root-session events before resolving an exact new non-subagent campaign.
+Failed/identity-less/conflicting producers reject; a sole unrelated campaign is
+not selected. Existing pinned bindings are rechecked against current records.
+Custom launch templates must emit OpenCode JSON events. Legacy external handles
+without producer fields retain compatibility semantics; callers should migrate
+rather than treat legacy singleton discovery as strong attribution.
+
+SDK `npm run ci` passed lint, types, **105 tests** and builds. New tests launch real
+local Node producers, cover unrelated singleton/concurrent records, malformed
+producer identity, nonzero exit, missing root and changed contradictory bindings.
+Refreshed Action/VS Code archives and lock hashes pass client_snapshot.py. Built
+SDK-to-fork authenticated HTTP contracts also passed. This tests trusted local
+process attribution, not a vendor engine or cryptographic producer attestation.
+
+The final integrated Python source before this SDK-only increment passed **499
+tests and 278 subtests**. Browser run 40947738123 passed source grants, resource
+links/reload/Back, policy-denied XR and dedicated path revision acceptance.

@@ -1,6 +1,6 @@
 # Current Pro reintegration status — 29 October 2026
 
-This is the current status index. Dated audits and validation reports are historical evidence, not live task lists. Baseline: `9ee85be`. Reference: commercial image `sha256:48248382877ec1fd7362d2268656956268129d5ea565befab3a24436ea2fc907`.
+This is the current status index. Dated audits and validation reports are historical evidence, not live task lists. Starting revision: `9ee85be`. Reference: commercial image `sha256:48248382877ec1fd7362d2268656956268129d5ea565befab3a24436ea2fc907`.
 
 Read [commercial API acceptance instructions](commercial-api-parity.md) before making parity claims. [CI ownership](../ci.md) names retained workflows. The [latest completed integration run](long-run-2026-10-29.md) records source and native-host evidence.
 
@@ -15,7 +15,7 @@ Read [commercial API acceptance instructions](commercial-api-parity.md) before m
 | n8n / VS Code / Jenkins / Grafana | Native disposable-host acceptance recorded | Other versions; Grafana signed distribution/browser visuals; external deployment configuration |
 | GitLab | Real CE 19.5.1 / Runner 19.5.0 pipelines and exact uploaded SAST checks pass | Ultimate dashboard ingestion |
 | Splunk | Bounded forwarder, Linux/Windows offline and package checks | Actual operator-supplied native host and searches/alerts |
-| Shared OSS SDK | Snapshot/time singleton fallback retained; multiple candidates fail closed | Establish producer binding for singleton discovery; ambiguity rejection implemented |
+| Shared OSS SDK | New launches bind to their own producer JSON root session; pinned bindings rechecked | Legacy manually constructed handles retain singleton fallback; use new handles or explicit IDs |
 | Remediation | Local edits, probes, judge and proposal contracts implemented | Actual Docker gate passed (run 40946712274); model inference/forge workflow acceptance remains |
 | UI/analytics | Independent responsive SPA and current-state posture | Campaign/finding resource links added; remaining routes and reference interaction matrix open; campaign-start window API added, as-of reconstruction and window UI open |
 
@@ -47,3 +47,19 @@ Catalog release and other host versions are separate operator/distribution work.
 No license acquisition, signing account, external publication, service restart or
 hardware interaction was performed. These are acceptance blockers, not missing
 backend implementations to replace with synthetic success.
+
+## This run's closure boundaries
+
+| Queue item | Delivered / verified | Still open |
+|---|---|---|
+| 1 SDK | Own-producer root binding for new launches; 105 SDK tests/build; refreshed consumers | Legacy external handles and untrusted/out-of-band storage are not attestations |
+| 2 source picker | Configured roots, admin one-use grants, real-Git HTTP and hosted browser pass | Hostile concurrently modified Git metadata is outside approved-root trust |
+| 3 remediation | Actual Docker validated/failing/unavailable-image cases pass | Real model inference and operator-authorized forge publication |
+| 4 UI | Scoped campaign/finding links; hosted reload/auth/Back/missing-state acceptance passes | Remaining original page routes, full reference visual/interaction matrix |
+| 5 analytics | Current triage by assessment-start window API; strict HTTP tests | Window UI/drill-downs, historical as-of reconstruction and deduplication |
+| 6 scale | Optional live keyset run pages, insertion/deleted-anchor tests | Consumer adoption, frozen multi-request snapshots, retention and whole-system recovery |
+| 7 graph | XR denial/abort lifecycle; hosted normal graph/path acceptance passes | Physical headset and independent exploitation verification |
+| 8 hosts | Existing native/CE acceptance retained; exact blocked prerequisites recorded | Native Splunk, paid-tier ingestion, other versions and signed distribution |
+
+No row should be read as complete commercial parity. All authentic commercial
+wire comparisons remain unavailable; use the acceptance runbook's scenario matrix.

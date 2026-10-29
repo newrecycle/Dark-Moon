@@ -208,6 +208,9 @@ export interface CorrelationHandle {
   nonce: string | null;
   /** OSS: campaign ids present before launch (snapshot for diff correlation). */
   preCampaignIds?: string[];
+  /** Own launched producer JSON stream; absent only on legacy handles. */
+  producerStatus?: "running" | "completed" | "failed";
+  rootSessionId?: string | null;
   /** Epoch ms at launch, for excluding older candidates; ambiguity is an error. */
   startedAtMs: number;
 }

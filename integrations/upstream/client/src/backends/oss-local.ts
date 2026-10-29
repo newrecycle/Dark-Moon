@@ -144,16 +144,15 @@ export class OssLocalBackend implements Backend {
         throw new DarkmoonNotAvailable(`darkmoon.sh not found at ${this.scriptPath}.`);
       }
       cmd = this.scriptPath;
-      args = [prompt];
+      args = [prompt, "--format", "json"];
     }
 
-    // Detached background launch — the campaign runs for minutes; we return a
-    // handle immediately and correlate later against the campaigns/ snapshot.
+    // Bind completion to this producer's JSON root session, then its exact record.
     const child = spawn(cmd, args, {
       cwd: this.cfg.cwd ?? path.dirname(this.scriptPath),
       env: process.env,
       detached: true,
-      stdio: "ignore",
+      stdio: ["ignore", "pipe", "ignore"],
     });
     child.unref();
 
@@ -164,7 +163,44 @@ export class OssLocalBackend implements Backend {
       nonce,
       preCampaignIds,
       startedAtMs: Date.now(),
+      producerStatus: "running", rootSessionId: null,
     };
+    // Read only this producer's bounded JSON lines; never retain tool/text output.
+    let pending = "", oversized = false, root: string | null = null, failed = false;
+    const reject = () => { failed = true; correlation.producerStatus = "failed"; };
+    const event = (line: string) => {
+      let value: any;
+      try { value = JSON.parse(line); } catch { return; }
+      if (!["step_start", "step_finish", "text", "tool_use", "error"].includes(value?.type)) return;
+      if (typeof value.sessionID !== "string" || !/^ses_[A-Za-z0-9_-]{1,128}$/.test(value.sessionID) ||
+          root && root !== value.sessionID || value.part?.sessionID !== undefined && value.part.sessionID !== value.sessionID) return reject();
+      if (value.type === "step_start") {
+        if (value.part?.type !== "step-start" || value.part.sessionID !== value.sessionID) return reject();
+        root = value.sessionID;
+      }
+      if (value.type === "error") reject();
+    };
+    child.stdout!.on("data", (chunk: Buffer) => {
+      // Process bytes rather than repeatedly concatenating unbounded output.
+      for (const byte of chunk) {
+        if (byte === 10) { if (!oversized && !failed) event(pending); pending = ""; oversized = false; }
+        else if (!oversized && pending.length < 65536) pending += String.fromCharCode(byte);
+        else { pending = ""; oversized = true; }
+      }
+    });
+    const deadline = setTimeout(() => {
+      reject();
+      try { if (child.pid) process.kill(-child.pid, "SIGTERM"); } catch { child.kill("SIGTERM"); }
+    }, this.cfg.timeoutMs ?? 1800000);
+    deadline.unref();
+    child.once("error", () => { clearTimeout(deadline); reject(); });
+    child.once("close", code => {
+      clearTimeout(deadline);
+      if (!oversized && pending && !failed) event(pending);
+      if (failed || code !== 0 || !root) return reject();
+      correlation.rootSessionId = root;
+      correlation.producerStatus = "completed";
+    });
     this.log.info(`OSS campaign launched (nonce=${nonce}, pid=${child.pid ?? "?"}). Correlation deferred.`);
     return { correlation, campaignId: null, runId: null };
   }
@@ -179,6 +215,22 @@ export class OssLocalBackend implements Backend {
   }
 
   async resolveCampaignId(ref: CorrelationHandle | string): Promise<string | null> {
+    if (typeof ref !== "string" && ref.producerStatus !== undefined) {
+      if (ref.producerStatus === "failed") throw new CorrelationFailed("OSS producer failed or did not provide a valid root session.");
+      if (ref.producerStatus !== "completed") return null;
+      if (!ref.rootSessionId) throw new CorrelationFailed("OSS producer root session is absent.");
+      const prior = new Set(ref.preCampaignIds ?? []), matches: string[] = [];
+      for (const id of await this.listCampaignIds()) {
+        if (prior.has(id)) continue;
+        const item = await this.readCampaignFile(id);
+        if (item && item.id === id && item.is_subagent === false &&
+            (item.opencode_session_id == null ? item.session_id : item.opencode_session_id) === ref.rootSessionId) matches.push(id);
+      }
+      if (matches.length > 1 || ref.campaignId && !matches.includes(ref.campaignId)) throw new CorrelationFailed("OSS campaign producer binding is ambiguous or changed.");
+      if (!matches.length) return null;
+      ref.campaignId = matches[0]!;
+      return ref.campaignId;
+    }
     const direct = refToId(ref);
     if (direct) return direct;
     if (typeof ref === "string") return ref;

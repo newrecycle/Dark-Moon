@@ -10,7 +10,7 @@
       "docs/screenshots",
       "test/screenshots"
     ],
-    "adaptation": "Fork snapshot 0.2.1-darkmoon.1: explicit run/campaign/full-session correlation, authenticated reads, typed malformed/identity/transport failures, redirects refused, bounded SSE and response-body timeouts, failed/stopped CLI runs never pass and cached zero totals never suppress fetched findings. OSS ambiguous concurrent snapshot candidates now raise CorrelationFailed instead of selecting newest."
+    "adaptation": "Fork snapshot 0.2.1-darkmoon.1: explicit run/campaign/full-session correlation, authenticated reads, typed malformed/identity/transport failures, redirects refused, bounded SSE and response-body timeouts, failed/stopped CLI runs never pass and cached zero totals never suppress fetched findings. OSS ambiguous concurrent snapshot candidates now raise CorrelationFailed instead of selecting newest. New OSS launches bind to their own validated producer JSON root session; no singleton/mtime fallback; custom launchers must emit OpenCode JSON events."
   },
   {
     "path": "integrations/upstream/n8n",
@@ -53,7 +53,7 @@
     "client_snapshot": {
       "source": "../client",
       "version": "0.2.1-darkmoon.1",
-      "tarball_sha256": "675ebaca98e62389182ed7c821362424ff4301ac63c117a8b45f2f5d7c80681b",
+      "tarball_sha256": "5c77b62cce2806f47c53f28df8a1698fc416da4d9df420be6dfe3ed859a04db0",
       "npm_published": false
     },
     "adaptation": "Replace legacy 0.1 client archive with patched local snapshot via existing @darkmoon/client import alias. Fail closed on failed/stopped assessments and unreadable findings; compute counts from fetched findings and constrain report filenames. Strip free-form description/remediation bodies from JSON artifacts and endpoint query/fragment data from artifacts/SARIF; verification of this follow-up is deferred."
@@ -104,7 +104,7 @@
     "client_snapshot": {
       "source": "../client",
       "version": "0.2.1-darkmoon.1",
-      "tarball_sha256": "675ebaca98e62389182ed7c821362424ff4301ac63c117a8b45f2f5d7c80681b",
+      "tarball_sha256": "5c77b62cce2806f47c53f28df8a1698fc416da4d9df420be6dfe3ed859a04db0",
       "npm_published": false
     },
     "adaptation": "Patched local SDK snapshot under the existing import alias; required portable fixture tests. Resource/client/session-bound trusted-local reveal grants, fresh authorized finding/report reads with post-await checks, 60-second expiry and revocation on refresh/focus/panel hide. Metadata-only default body previews; refresh failure/concurrency clears stale evidence. Native editor acceptance runs in Docker --network none with pinned VS Code 1.106.3; completion is tracked separately."
