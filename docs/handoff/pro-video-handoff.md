@@ -1,3 +1,5 @@
+> **Historical baseline:** This document preserves evidence at its stated revision. For current completion/open status use [current Pro status](current-pro-status.md) and [runnable commercial API acceptance](commercial-api-parity.md). Earlier missing-route, JSON-only storage, host-pending and no-path-edit claims may be superseded.
+
 # DarkMoon Pro video-to-implementation handoff
 
 Baseline: `newrecycle/Dark-Moon`, branch `pro`, commit **630e0900a9b2f79a497b95bdb8a83dcda4ef9ab2**. Prepared 26 October 2026, America/Edmonton.

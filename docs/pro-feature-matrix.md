@@ -1,3 +1,5 @@
+> **Current status:** Read [current Pro reintegration status](handoff/current-pro-status.md). This original reconstruction matrix contains historical counts and validation boundaries; subsequent integration and storage changes supersede those entries.
+
 # Reconstructed Pro features on the independent `pro` branch
 
 > **Updated commercial Pro static analysis:** [Audit report, native coverage, Angular inventory, test overlap and known gaps](pro-audit/README.md). This is static evidence, not a completed runtime parity test.
@@ -18,10 +20,9 @@ The proprietary Pro application source is not among the public repositories
 inspected. The user explicitly selected **reconstruction from documentation**.
 Accordingly, this is independent GPLv3 code with compatibility derived from the
 public SDK, not a claim that the original Pro application has been recovered.
-All nine documented public integration repositories are actual MIT-licensed source
+The public integration repositories are MIT-licensed source
 imports, pinned in [SOURCES.json](../integrations/upstream/SOURCES.json), with
-their licenses preserved. Eight source imports are unmodified. The n8n receiver has one explicitly
-recorded adaptation for HMAC v2, timestamp validation and replay deduplication;
+their licenses preserved. Retained consumers contain documented fork adaptations for identity, privacy, transport and host compatibility; JetBrains has been removed. See each source provenance record;
 caches, dependency installs and locally generated build products are not committed.
 The Action distribution bundle is rebuilt from source; upstream SDK tarballs and
 the required license notices are preserved. See the [import guide](../integrations/upstream/README.md).

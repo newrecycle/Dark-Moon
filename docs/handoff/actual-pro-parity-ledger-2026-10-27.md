@@ -1,3 +1,5 @@
+> **Historical baseline:** This document preserves evidence at its stated revision. For current completion/open status use [current Pro status](current-pro-status.md) and [runnable commercial API acceptance](commercial-api-parity.md). Earlier missing-route, JSON-only storage, host-pending and no-path-edit claims may be superseded.
+
 # Actual Pro vs our fork: systematic implementation ledger (2026-10-27)
 
 **This ledger is a static comparison and prioritized work queue, not a claim of completed implementation or tests.** Original-reference evidence: [pinned Pro image baseline](actual-pro-image-baseline-2026-10-27.md), [all 52 original route declarations](actual-pro-endpoint-crosswalk-2026-10-27.md). Fork state inspected at `84c9d360df5eefc059ed26eae4d6a1fc97c4603e`: [REST implementation](../../mcp/community/api.py), [HTTP/SSE server](../../mcp/community/server.py), [UI](../../mcp/community/static/), [remediation](../../mcp/community/remediation.py), [queue/scheduler](../../mcp/community/jobs.py), [existing feature matrix](../pro-feature-matrix.md), [integration continuation](integration-gap-ledger.md).

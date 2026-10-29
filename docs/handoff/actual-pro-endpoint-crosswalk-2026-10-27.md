@@ -1,3 +1,5 @@
+> **Historical baseline:** This document preserves evidence at its stated revision. For current completion/open status use [current Pro status](current-pro-status.md) and [runnable commercial API acceptance](commercial-api-parity.md). Earlier missing-route, JSON-only storage, host-pending and no-path-edit claims may be superseded.
+
 # Actual Pro 52-route API crosswalk — 2026-10-27
 
 The actual original commercial image at `sha256:48248382877ec1fd7362d2268656956268129d5ea565befab3a24436ea2fc907` has **52 FastAPI decorated method/path declarations**, including trailing-slash aliases. Compared statically to `newrecycle/Dark-Moon:pro` at `84c9d360df5eefc059ed26eae4d6a1fc97c4603e` in `mcp/community/api.py` and `server.py`. See [image baseline](actual-pro-image-baseline-2026-10-27.md).

@@ -1,3 +1,5 @@
+> **Historical baseline:** This document preserves evidence at its stated revision. For current completion/open status use [current Pro status](current-pro-status.md) and [runnable commercial API acceptance](commercial-api-parity.md). Earlier missing-route, JSON-only storage, host-pending and no-path-edit claims may be superseded.
+
 # Bounded finding-history verification — 2026-10-28
 
 Source implementation checkpoint: [`b8f5bf5`](https://github.com/newrecycle/Dark-Moon/commit/b8f5bf589bc9c700e25747d7fb9f85333e2ec78b).

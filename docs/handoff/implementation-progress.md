@@ -1,3 +1,5 @@
+> **Historical baseline:** This document preserves evidence at its stated revision. For current completion/open status use [current Pro status](current-pro-status.md) and [runnable commercial API acceptance](commercial-api-parity.md). Earlier missing-route, JSON-only storage, host-pending and no-path-edit claims may be superseded.
+
 # Visual handoff implementation progress
 
 Updated 27 October 2026. Branch `pro`. This is the current state; ticket baseline statuses refer to the older 630e090 baseline.

@@ -1,3 +1,5 @@
+> **Current completion index:** [Pro reintegration status](../handoff/current-pro-status.md). This dated evidence is retained; consult the index before treating a historical open item as current.
+
 # Commercial Pro static parity audit
 
 This directory holds **originally authored analysis** of a pinned commercial Pro container and the independent `pro` fork. It does **not** contain copies of vendor commercial source, compiled bundles, native binaries or large decompiler pseudocode. Audit outputs and fork implementation are deliberately separated.

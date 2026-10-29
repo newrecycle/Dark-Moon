@@ -1,3 +1,5 @@
+> **Current completion index:** [Pro reintegration status](../../handoff/current-pro-status.md). This dated evidence is retained; consult the index before treating a historical open item as current.
+
 # Pinned audit implementation progress — 28 October 2026
 
 Reference: the user's `darkmoon-pro-complete-audit-upload.zip`, vendor image

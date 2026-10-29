@@ -1,3 +1,5 @@
+> **Historical baseline:** This document preserves evidence at its stated revision. For current completion/open status use [current Pro status](current-pro-status.md) and [runnable commercial API acceptance](commercial-api-parity.md). Earlier missing-route, JSON-only storage, host-pending and no-path-edit claims may be superseded.
+
 # Systematic integration continuation
 
 > **Current Jenkins update (28 October):** explicit producer/root-session attribution replaces lone-file/mtime discovery. The actual HPI passed 22 native Pipeline cases and its affected gates in [run 40815284758](https://github.com/newrecycle/Dark-Moon/actions/runs/40815284758). See [the current implementation/acceptance record](jenkins-launch-identity-2026-10-28.md); older Jenkins claims and table entries below are historical baselines.
