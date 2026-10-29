@@ -139,7 +139,7 @@ def run():
             runner_config = str(work / 'runner.toml')
             clean_env = {k: os.environ[k] for k in ('PATH', 'HOME', 'LANG', 'TMPDIR') if k in os.environ}
             command(runner_binary, 'register', '--non-interactive', '--config', runner_config,
-                    env=clean_env | {'CI_SERVER_URL': base, 'RUNNER_TOKEN': runner_token,
+                    env=clean_env | {'CI_SERVER_URL': base, 'CI_SERVER_TOKEN': runner_token,
                         'RUNNER_EXECUTOR': 'shell', 'RUNNER_NAME': name})
             Path(runner_config).chmod(0o600)
             runner = subprocess.Popen([runner_binary, 'run', '--config', runner_config,
