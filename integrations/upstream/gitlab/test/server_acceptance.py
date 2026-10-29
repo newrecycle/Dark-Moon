@@ -81,7 +81,7 @@ def run():
                 port = listener.getsockname()[1]
             base = 'http://127.0.0.1:' + str(port)
             config = (f"external_url '{base}'; nginx['listen_port']=80; "
-                      "puma['worker_processes']=2; sidekiq['max_concurrency']=5; "
+                      "puma['worker_processes']=0; sidekiq['max_concurrency']=5; "
                       "prometheus_monitoring['enable']=false; gitlab_rails['usage_ping_enabled']=false; "
                       "gitlab_rails['smtp_enable']=false")
             command('docker', 'run', '-d', '--name', name, '--shm-size=256m', '--memory=6g',
@@ -99,7 +99,22 @@ def run():
             def ready():
                 with opener.open(base + '/-/readiness', timeout=10) as response:
                     return response.status == 200
-            eventually(ready)
+            try:
+                eventually(ready, timeout=900)
+            except RuntimeError:
+                # Only this disposable, not-yet-bootstrapped server. Never dump
+                # container environment/configuration or authentication traces.
+                state = command('docker', 'inspect', '--format',
+                    '{{.State.Status}} oom={{.State.OOMKilled}} exit={{.State.ExitCode}}', name)
+                print('owned_boot_state=' + state, flush=True)
+                logs = command('docker', 'logs', '--tail', '60', name)
+                import re
+                for line in logs.splitlines():
+                    if re.search(r'password|token|secret|credential', line, re.I):
+                        line = '[sensitive boot line withheld]'
+                    line = re.sub(r'https?://\S+|[A-Za-z0-9_-]{16,}', '[redacted]', line)
+                    print('owned_boot: ' + line[:300], flush=True)
+                raise
             print("owned_gitlab_ready=true", flush=True)
             ruby = "u=User.find_by_username('root'); t=u.personal_access_tokens.create!(name:'owned-fixture',scopes:['api'],expires_at:Date.today+1); t.set_token(ENV.fetch('DM_BOOTSTRAP_TOKEN')); t.save!; puts 'bootstrap-ready'"
             command('docker', 'exec', '-e', 'DM_BOOTSTRAP_TOKEN', name, 'gitlab-rails', 'runner', ruby,
