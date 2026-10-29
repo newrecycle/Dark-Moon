@@ -281,7 +281,7 @@ def handler_for(service, allowed_hosts):
                         self.wfile.write(b"event: resync\ndata: required\n\n")
                         self.wfile.flush()
                         return
-                digest = hashlib.sha256(json.dumps(service.snapshot(), sort_keys=True).encode()).hexdigest()
+                digest = service.revision()
                 payload = f"event: revision\ndata: {digest}\n\n" if digest != previous else ": heartbeat\n\n"
                 self.wfile.write(payload.encode())
                 for event in event_rows:

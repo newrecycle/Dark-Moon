@@ -56,7 +56,7 @@ class AttackPathTests(PathFixture):
         self.assertEqual(history["data"][1]["title"], "Second review")
         history["data"][0]["steps"][0]["rationale"] = "tampered response"
         self.assertNotEqual(path_history(self.service, self.cid, first["id"])["data"][0]["steps"][0]["rationale"], "tampered response")
-        self.assertNotIn("PRIVATE-PATH-EVIDENCE", self.service.store.path.read_text())
+        self.assertNotIn("PRIVATE-PATH-EVIDENCE", json.dumps(self.service.store.read()))
 
     def test_simultaneous_same_version_edits_have_one_winner(self):
         first = self.create()
@@ -114,19 +114,19 @@ class AttackPathTests(PathFixture):
     def test_revision_limit_rejects_without_mutating_history(self):
         first = self.create()
         self.service.store.update(lambda state: state["attack_paths"][first["id"]].update(version=100))
-        before = self.service.store.path.read_bytes()
+        before = self.service.store.read()
         with self.assertRaisesRegex(ValueError, "100 immutable"):
             update_path(self.service, self.cid, first["id"], self.body | {"version": 100}, self.identity)
-        self.assertEqual(self.service.store.path.read_bytes(), before)
+        self.assertEqual(self.service.store.read(), before)
 
     def test_retained_review_byte_budget_rejects_atomically_without_eviction(self):
         first = self.create()
-        before = self.service.store.path.read_bytes()
+        before = self.service.store.read()
         with patch("community.attack_paths.MAX_REVIEW_BYTES", 1):
             with self.assertRaisesRegex(ValueError, "8 MiB review payload"):
                 update_path(self.service, self.cid, first["id"], self.body | {"version": 1}, self.identity)
             # Deleting a version already retained needs no additional budget.
-            self.assertEqual(self.service.store.path.read_bytes(), before)
+            self.assertEqual(self.service.store.read(), before)
             delete_path(self.service, self.cid, first["id"])
         self.assertTrue(path_history(self.service, self.cid, first["id"])["deleted"])
         self.assertEqual(path_history(self.service, self.cid, first["id"])["total"], 1)
@@ -136,7 +136,7 @@ class AttackPathTests(PathFixture):
         self.assertTrue(result["valid"])
         self.assertEqual(result["basis"], "operator_review_of_recorded_evidence")
         self.assertEqual(result["recorded_by"], "operator")
-        self.assertNotIn("PRIVATE-PATH-EVIDENCE", self.service.store.path.read_text())
+        self.assertNotIn("PRIVATE-PATH-EVIDENCE", json.dumps(self.service.store.read()))
         restarted = Store(self.service.store.root)
         paths = list_paths(restarted, self.cid, self.service.graph(self.cid))
         self.assertEqual(paths[0]["id"], result["id"])

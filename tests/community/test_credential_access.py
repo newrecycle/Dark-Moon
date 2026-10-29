@@ -324,6 +324,6 @@ class CredentialAccessTests(fixtures.Fixture):
         self.typed(adapter="scm_token", cid="cred_scm")
         for item in self.service.vault.list():
             self.assertNotIn(SECRET, json.dumps(item))
-        raw = self.service.store.path.read_text()
+        raw = json.dumps(self.service.store.read())
         self.assertNotIn(SECRET, raw)
         self.assertNotIn(SECRET, json.dumps(self.service.store.items("events")))

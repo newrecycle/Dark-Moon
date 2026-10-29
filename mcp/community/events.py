@@ -36,7 +36,7 @@ def append(state, event, payload):
 
 
 def replay(store, cursor=None):
-    state = store.read()
+    state = store.inspect(lambda state: {"events": dict(state.get("events", {})), "event_seq": state.get("event_seq", 0)})
     rows = sorted(state.get("events", {}).values(), key=lambda row: row["seq"])
     high = state.get("event_seq", 0)
     if cursor is None:

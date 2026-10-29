@@ -93,7 +93,7 @@ class CredentialVault:
         from .credential_catalog import allows, check_capability
         from .credential_policy import may_use
         check_capability(capability)
-        state = self.store.read()
+        state = self.store.inspect(lambda state: {"credentials": dict(state.get("credentials", {})), "users": dict(state.get("users", {}))})
         rows = sorted(state.get("credentials", {}).values(), key=lambda r: str(r.get("id", "")))
         return [self.public(item) for item in rows
                 if not item.get("internal")
@@ -111,7 +111,7 @@ class CredentialVault:
         from .credential_catalog import allows
         from .credential_policy import may_use
         identifier(credential_id)
-        state = self.store.read()
+        state = self.store.inspect(lambda state: {"credentials": dict(state.get("credentials", {})), "users": dict(state.get("users", {}))})
         item = state.get("credentials", {}).get(credential_id)
         if not item or not allows(item, capability) or not may_use(item, actor, state):
             raise KeyError("Credential unavailable")
@@ -174,7 +174,7 @@ class Accounts:
             for session_id, session in list(state.get("sessions", {}).items()):
                 if session.get("user_id") == username:
                     del state["sessions"][session_id]
-            for job in state.get("jobs", {}).values():
+            for job in state.jobs(statuses={"queued"}, limit=-1)[0]:
                 if (job.get("status") == "queued" and
                     isinstance(job.get("request_actor"), dict) and
                     job["request_actor"].get("id") == username):
@@ -340,7 +340,7 @@ class Accounts:
                 for sid, session in list(state.get("sessions", {}).items()):
                     if session.get("user_id") == user_id:
                         del state["sessions"][sid]
-                for job in state.get("jobs", {}).values():
+                for job in state.jobs(statuses={"queued"}, limit=-1)[0]:
                     if (job.get("status") == "queued" and
                         isinstance(job.get("request_actor"), dict) and
                         job["request_actor"].get("id") == user_id):

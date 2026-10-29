@@ -42,7 +42,7 @@ class CoreContractTests(fixtures.Fixture):
             "status": {"evidence": "PRIVATE-NESTED"}, "run_id": ["PRIVATE-RUN"],
             "provider": "x" * 201, "evidence": "PRIVATE-EVIDENCE"})
         self.assertEqual(event["data"], {"campaign_id": "camp_exact", "finding_id": "finding_exact", "severity": "high"})
-        self.assertNotIn("PRIVATE-", self.service.store.path.read_text())
+        self.assertNotIn("PRIVATE-", json.dumps(self.service.store.read()))
         for name in ("finding.created\ndata: injected", "", None):
             with self.assertRaises(ValueError): self.service.operations.emit(name, {})
 

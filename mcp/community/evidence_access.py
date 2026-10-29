@@ -31,7 +31,7 @@ FIELDS = frozenset({
     "mitre_attack_id", "iso27001_control", "cve",
     "enabled", "has_more", "paging_limit_reached", "raw", "truncated",
     "cancel_requested", "synthetic", "complete", "validated", "passed",
-    "total", "limit", "offset", "next_offset", "count", "total_findings",
+    "total", "limit", "offset", "next_offset", "count", "total_findings", "jobs_total", "jobs_has_more",
     "campaigns_count", "projects_count", "targets_count",
     "total_vulnerabilities", "critical", "high", "medium", "low", "info",
     "confirmed", "exploited", "unconfirmed", "cvss_score",

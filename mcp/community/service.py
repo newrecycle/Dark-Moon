@@ -73,7 +73,7 @@ class Service:
         self.vault = CredentialVault(self.store)
         self.operations = Operations(self)
         self.api = API(self)
-        for job in self.store.items("jobs"):
+        for job in self.store.jobs(statuses={"interrupted"}, limit=-1)[0]:
             if job["status"] == "interrupted":
                 self._finished(job)
 
@@ -165,7 +165,7 @@ class Service:
             identifier(key)
         with self.launch_lock:
             if key:
-                old = next((j for j in self.store.items("jobs") if j.get("idempotency_key") == key), None)
+                old = next(iter(self.store.jobs(idempotency_key=key, limit=1)[0]), None)
                 if old:
                     if old["spec"] != spec or old.get("request_actor") != actor:
                         raise ValueError("Idempotency key already used by a different launch identity or specification")
@@ -278,7 +278,7 @@ class Service:
             "finding_id": finding_id, "title": finding.get("title", finding_id), "created_at": now(), "status": "queued", "published": False})
         def enqueue(state):
             jobs = state.setdefault("jobs", {})
-            if sum(j["status"] in {"queued", "running"} for j in jobs.values()) >= 100:
+            if state.jobs(statuses={"queued", "running"}, limit=0)[1] >= 100:
                 raise ValueError("Job queue is full")
             jobs[job["id"]] = job
             return job
@@ -311,12 +311,31 @@ class Service:
             item = data._read_json(path)
             if isinstance(item, dict):
                 remediations.append(item)
+        jobs, jobs_total = self.store.jobs(limit=100)
         snapshot = {"projects": data.load_projects(), "targets": data.load_targets(), "campaigns": data.load_campaigns(),
                 "findings": findings, "stats": {s: sum(str(f.get("severity", "info")).lower() == s for f in findings) for s in SEVERITIES},
-                "jobs": [public_run(job) for job in self.store.items("jobs")], "schedules": self.store.items("schedules"), "remediations": remediations}
+                "jobs": [public_run(job) for job in jobs], "jobs_total": jobs_total, "jobs_has_more": jobs_total > len(jobs), "schedules": self.store.items("schedules"), "remediations": remediations}
         from .posture import posture
         snapshot["posture"] = posture(snapshot)
         return snapshot
+
+    def revision(self):
+        """Change hint using file metadata, without decoding the whole workspace.
+
+        This is not an evidence digest: explicit reveals always read fresh data.
+        """
+        rows = [("control", self.store.view_revision())]
+        files = [data.PROJECTS_FILE, data.TARGETS_FILE]
+        for directory in (data.CAMPAIGNS_DIR, data.VULNERABILITIES_DIR, data.INFRASTRUCTURE_DIR, data.REPORTS_DIR):
+            files.extend(directory.glob("*"))
+        files.extend((self.store.root / "remediation").glob("*/result.json"))
+        for path in sorted(files):
+            try:
+                stat = path.stat()
+                rows.append((str(path), stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns))
+            except FileNotFoundError:
+                continue
+        return hashlib.sha256(json.dumps(rows, separators=(",", ":")).encode()).hexdigest()
 
     def change_finding(self, campaign_id, finding_id, raw):
         identifier(campaign_id)

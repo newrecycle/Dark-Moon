@@ -163,7 +163,7 @@ def update_path(service, campaign_id, path_id, raw, identity):
 def path_history(service, campaign_id, path_id):
     campaign_id, path_id = identifier(campaign_id), identifier(path_id)
     # A single store snapshot keeps current-version and history metadata coherent.
-    state = service.store.read()
+    state = service.store.inspect(lambda state: {key: dict(state.get(key, {})) for key in ("attack_paths", "attack_path_revisions")})
     path = state.get("attack_paths", {}).get(path_id)
     if path and path.get("campaign_id") != campaign_id:
         raise KeyError(path_id)

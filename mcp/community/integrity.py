@@ -111,7 +111,7 @@ def main(argv=None):
                 directory.mkdir(exist_ok=True, mode=0o700)
                 os.chmod(directory, 0o700)
             for file in store.root.iterdir():
-                if file.is_file() and (file.suffix == ".key" or file.name in {"access-token", "state.json", "report-signing.p12"}):
+                if file.is_file() and (file.suffix == ".key" or file.name in {"access-token", "state.json", "control.sqlite3", "control.sqlite3-wal", "control.sqlite3-shm", "report-signing.p12"}):
                     os.chmod(file, 0o600)
         result = doctor(args.repo, store)
     elif args.action == "seal":

@@ -126,7 +126,7 @@ class Queue:
         # A process from the previous daemon must never be assumed completed or
         # re-executed (it may have left external side effects).
         def recover(state):
-            for job in state.get("jobs", {}).values():
+            for job in state.jobs(statuses={"running"}, limit=-1)[0]:
                 if job["status"] == "running":
                     job.update(status="interrupted", finished_at=now(), error="Dashboard restarted; inspect the agent session before rerunning")
         self.store.update(recover)
@@ -138,12 +138,12 @@ class Queue:
         def change(state):
             jobs = state.setdefault("jobs", {})
             if key:
-                old = next((j for j in jobs.values() if j.get("idempotency_key") == key), None)
+                old = next(iter(state.jobs(idempotency_key=key, limit=1)[0]), None)
                 if old:
                     if old["spec"] != spec:
                         raise ValueError("Idempotency key already used with a different launch")
                     return old
-            if sum(j["status"] in ACTIVE for j in jobs.values()) >= 100:
+            if state.jobs(statuses=ACTIVE, limit=0)[1] >= 100:
                 raise ValueError("Job queue is full")
             job = {"id": "job_" + uuid.uuid4().hex[:16], "campaign_id": identifier(campaign_id),
                    "spec": spec, "status": "queued", "created_at": now(),
@@ -182,7 +182,7 @@ class Queue:
 
     def _loop(self):
         while not self.stop_event.is_set():
-            jobs = sorted((j for j in self.store.items("jobs") if j["status"] == "queued"), key=lambda j: j["created_at"])
+            jobs = self.store.jobs(statuses={"queued"}, ascending=True, limit=1)[0]
             if jobs:
                 try:
                     self.run_one(jobs[0])
@@ -479,8 +479,7 @@ class Scheduler:
                 item = state.get("schedules", {}).get(candidate["id"])
                 if not item or not item["enabled"] or instant(item["next_run"]) > clock:
                     return None
-                active = any(j.get("schedule_id") == item["id"] and j["status"] in ACTIVE
-                             for j in state.get("jobs", {}).values())
+                active = state.jobs(statuses=ACTIVE, schedule_id=item["id"], limit=0)[1] > 0
                 due = item["next_run"]
                 from .calendar_rules import next_occurrence
                 next_due = next_occurrence(item["rule"], clock) if item.get("rule") else clock + timedelta(seconds=item["interval_seconds"])

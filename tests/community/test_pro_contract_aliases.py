@@ -47,7 +47,7 @@ class ProContractAliasTests(fixtures.Fixture):
         self.assertEqual(self.request('/api/v1/auth/me',headers={"Authorization":"Bearer "+result["token"]})[0],200)
         user = self.service.store.get("users","operator")
         self.assertEqual(user["auth_version"],2); self.assertEqual(len(user["salt"]),32)
-        self.assertNotIn(new,self.service.store.path.read_text())
+        self.assertNotIn(new,json.dumps(self.service.store.read()))
 
     def test_viewer_may_change_own_password_but_not_other_users(self):
         headers = self.headers('viewer')

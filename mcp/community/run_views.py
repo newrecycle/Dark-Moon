@@ -69,8 +69,8 @@ def _identity_filter(params, key):
 def _page(jobs, offset, limit):
     """Count matches while retaining at most offset+limit queue references.
 
-    The JSON store still reads its whole state. This bounds the additional
-    selection/projection, not storage I/O or a snapshot across requests.
+    Retained for in-memory compatibility fixtures. Production endpoints use
+    indexed Store.jobs queries with count/page reads in one transaction.
     """
     total = 0
     def counted():
@@ -97,7 +97,7 @@ def active_runs(store, handler=None):
     params = _parameters(handler, ("limit", "offset")) if handler is not None else {}
     limit = _positive(params, "limit", 50, MAX_PAGE, 1)
     offset = _positive(params, "offset", 0, MAX_OFFSET)
-    page, total = _page((job for job in store.items("jobs") if job.get("status") in ACTIVE), offset, limit)
+    page, total = store.jobs(statuses=ACTIVE, offset=offset, limit=limit)
     rows = [public_run(job) for job in page]
     return {"data": rows, **_pagination(total, offset, limit, len(rows)),
             "active_states": ["queued", "running", "cancelling"]}
@@ -126,10 +126,7 @@ def log_collection(store, handler):
         raise ValueError("Unsupported run status")
     campaign_id = _identity_filter(params, "campaign_id")
     run_id = _identity_filter(params, "run_id")
-    page, total = _page((job for job in store.items("jobs")
-                        if (status is None or public_run(job)["state"] == status)
-                        and (campaign_id is None or job.get("campaign_id") == campaign_id)
-                        and (run_id is None or job.get("id") == run_id)), offset, limit)
+    page, total = store.jobs(state=status, campaign_id=campaign_id, run_id=run_id, offset=offset, limit=limit)
     return {"data": [public_run(job) | log_metadata(store, job) for job in page],
             **_pagination(total, offset, limit, len(page)), "content_policy": "metadata_only"}
 

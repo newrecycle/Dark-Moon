@@ -78,7 +78,7 @@ class WebhookInspectionHTTPTests(fixtures.Fixture):
         stored = self.service.store.get("webhooks", hook_id)
         self.assertIn("credential_ref", stored)
         self.assertEqual(self.service.vault.resolve(stored["credential_ref"]), SECRET)
-        self.assertNotIn(SECRET, self.service.store.path.read_text())
+        self.assertNotIn(SECRET, json.dumps(self.service.store.read()))
 
     def test_generated_signing_secret_is_one_time_only_and_rejects_insecure_urls(self):
         status, body, _ = self.request("/api/v1/webhooks", "POST", {"url": "https://fresh.example.invalid/secret"})

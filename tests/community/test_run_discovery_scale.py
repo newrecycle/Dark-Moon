@@ -41,9 +41,13 @@ class MemoryStore:
     def __init__(self, rows):
         self.rows = rows
 
-    def items(self, kind):
-        assert kind == "jobs"
-        return self.rows
+    def jobs(self, *, statuses=None, state=None, campaign_id=None, run_id=None, offset=0, limit=100):
+        from community.run_views import public_run
+        rows = (row for row in self.rows if (statuses is None or row["status"] in statuses)
+                and (state is None or public_run(row)["state"] == state)
+                and (campaign_id is None or row.get("campaign_id") == campaign_id)
+                and (run_id is None or row["id"] == run_id))
+        return _page(rows, offset, limit)
 
 
 def handler(path):
@@ -141,8 +145,8 @@ class LargeRunDiscoveryTests(fixtures.Fixture):
         probe.assert_called_once()
 
     def test_selection_memory_scales_with_page_depth_not_total_queue(self):
-        # Prebuild the input before measuring: JSON Store.items() itself still
-        # loads the entire persisted state. Isolate only _page heap/projection.
+        # Prebuild the input before measuring: This compatibility fixture deliberately
+        # uses the older heap selector; SQLite I/O is covered separately. Isolate only _page heap/projection.
         records = [job(i, state="queued") for i in range(110500)]
         def peak(limit, offset, size):
             tracemalloc.start()

@@ -49,7 +49,7 @@ class APITests(fixtures.Fixture):
         self.assertEqual(self.service.accounts.identity(result['token'])['id'], 'first-admin')
         self.assertNotIn(raw['password'], body.decode())
         self.assertNotIn('password_hash', body.decode())
-        self.assertNotIn(raw['password'], self.service.store.path.read_text())
+        self.assertNotIn(raw['password'], json.dumps(self.service.store.read()))
         self.assertEqual(self.request('/api/v1/auth/setup', 'POST', raw | {"username": "second-admin"})[0], 400)
         self.assertEqual(len(self.service.store.items('users')), 1)
         self.assertTrue(json.loads(self.request('/api/v1/auth/config', auth=False)[1])['accounts_configured'])
@@ -87,7 +87,7 @@ class APITests(fixtures.Fixture):
         secret='private-test-token-that-must-never-appear'
         status,body,_=self.request('/api/v1/credentials','POST',{'name':'SCM','provider':'github','secret':secret})
         self.assertEqual(status,201);record=json.loads(body)['data'];self.assertNotIn(secret,body.decode())
-        self.assertNotIn(secret,self.service.store.path.read_text())
+        self.assertNotIn(secret,json.dumps(self.service.store.read()))
         self.assertEqual(self.service.vault.resolve(record['id']),secret)
         short=self.service.vault.save({'name':'Short','secret':'a1B'})
         self.assertNotIn('a1B',json.dumps(short))
@@ -355,7 +355,7 @@ class SecurityTests(fixtures.Fixture):
     def test_password_hashes_and_expired_jwts(self):
         import jwt
         self.service.accounts.create('operator','correct-long-password','analyst')
-        self.assertNotIn('correct-long-password',self.service.store.path.read_text())
+        self.assertNotIn('correct-long-password',json.dumps(self.service.store.read()))
         expired=jwt.encode({'sub':'operator','exp':1,'iat':0,'jti':'expired','ver':1,'aud':'darkmoon-api','iss':'darkmoon-community'},self.service.accounts.key,algorithm='HS256')
         self.assertIsNone(self.service.accounts.identity(expired))
 

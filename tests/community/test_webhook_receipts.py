@@ -28,7 +28,7 @@ class WebhookReceiptTests(fixtures.Fixture):
         hook=self.hook()['id'];self.service.operations.claim_webhook_event(hook,'evt_restart',clock=1000)
         restarted=Operations(SimpleNamespace(store=Store(self.service.store.root)))
         self.assertFalse(restarted.claim_webhook_event(hook,'evt_restart',clock=1100)['claimed'])
-        self.assertNotIn('RECEIPT-PRIVATE-SIGNING-SECRET',self.service.store.path.read_text())
+        self.assertNotIn('RECEIPT-PRIVATE-SIGNING-SECRET',json.dumps(self.service.store.read()))
         self.assertEqual(set(self.service.store.read()['webhook_receipts'][hook]),{'evt_restart'})
 
     def test_capacity_never_evicts_fresh_receipts_and_expired_entries_are_reclaimable(self):

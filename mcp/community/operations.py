@@ -311,7 +311,7 @@ class Operations:
         before = [v for v in findings if not selected or v.get("id") in selected]
         if selected and set(selected) - {v.get("id") for v in before}:
             raise ValueError("A selected finding is not in the base campaign")
-        original = next((j.get("spec", {}) for j in reversed(self.store.items("jobs")) if j.get("campaign_id") == campaign["id"]), {})
+        original = next((j.get("spec", {}) for j in self.store.jobs(campaign_id=campaign["id"], limit=1)[0]), {})
         scope = campaign.get("scope") or {}
         spec = {k: original[k] for k in ("assessment_credential_id", "assessment_token_id") if original.get(k)}
         spec.update({k: scope.get(k, original.get(k, [] if k in {"targets", "out_of_scope"} else ""))

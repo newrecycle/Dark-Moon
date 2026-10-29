@@ -60,8 +60,8 @@ class SharedStateTests(fixtures.Fixture):
         second = opencode.sync(self.service)
         self.assertEqual(first["imported"], second["imported"])
         self.assertEqual(first["imported"], ["opencode_another"])
-        self.assertNotIn("OTHER-SECRET", self.service.store.path.read_text())
-        self.assertNotIn("REFRESH-SECRET", self.service.store.path.read_text())
+        self.assertNotIn("OTHER-SECRET", json.dumps(self.service.store.read()))
+        self.assertNotIn("REFRESH-SECRET", json.dumps(self.service.store.read()))
         self.assertEqual(self.service.vault.resolve("opencode_another"), "OTHER-SECRET")
 
     def test_apply_uses_saved_oauth_and_preserves_other_state(self):
