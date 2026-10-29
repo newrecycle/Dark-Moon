@@ -69,7 +69,7 @@ jobs:
             # Routine version updates target deps in dependabot.yml. Security
             # PRs targeting pro carry this bot-generated security notice.
             # Fail closed if a differently configured version PR targets pro.
-            if ! jq -r '.body // ""' <<<"$detail" | grep -Fq 'You can disable automated security fix PRs for this repo'; then
+            if [[ "$(jq -r '.body // ""' <<<"$detail")" != *"You can disable automated security fix PRs for this repo"* ]]; then
               echo "::warning::PR #$pr targets pro but is not identifiable as a Dependabot security fix. Manual review required."
               exit 0
             fi
@@ -93,7 +93,7 @@ jobs:
           }
 
           if [[ "$base" == 'pro' ]]; then
-            if ! jq -r '.body // ""' <<<"$detail" | grep -Fq 'You can disable automated security fix PRs for this repo'; then
+            if [[ "$(jq -r '.body // ""' <<<"$detail")" != *"You can disable automated security fix PRs for this repo"* ]]; then
               echo '::error::Security identification changed while checks were running.'
               exit 1
             fi
