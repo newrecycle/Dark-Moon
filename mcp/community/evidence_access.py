@@ -17,7 +17,7 @@ from .store import identifier
 
 GRANT_TTL = 45
 GRANT_LIMIT = 24
-KINDS = frozenset({"finding", "campaign", "graph", "report", "report_pdf", "remediation", "patch", "run", "stream"})
+KINDS = frozenset({"finding", "campaign", "graph", "report", "report_pdf", "remediation", "patch", "run", "stream", "source"})
 
 # Deliberately explicit. Unrecognized fields, arbitrary nested free text, raw
 # evidence/probe/patch/source content and network identifiers are not public.
@@ -360,6 +360,9 @@ def _subject(identity):
 
 def _resource(service, kind, resource_id):
     resource_id = identifier(resource_id)
+    if kind == "source":
+        from .source_browser import scope
+        return scope(resource_id)
     if kind in ("campaign", "graph", "report", "report_pdf"):
         campaign = service.campaign(resource_id)
         return campaign["id"]

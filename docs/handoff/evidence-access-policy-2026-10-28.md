@@ -1,3 +1,5 @@
+> **29 October update:** Configured source roots now support explicit administrator-only POST listing with one-use `source` grants. Legacy GET remains denied. See [current source-browser contract](source-browser-2026-10-29.md). Earlier unconditional picker-blocked statements are historical.
+
 # Server-enforced evidence access — 28 October 2026
 
 ## Default response migration

@@ -136,3 +136,11 @@ result. SDK lint/typecheck/build and 100 tests passed locally. Consumer archives
 were rebuilt together; authenticated HTTP remains a separate exact-identity path.
 A single unrelated campaign can still satisfy the legacy singleton heuristic:
 explicit producer binding remains open and this is not marked full closure.
+
+### Scoped source-browser checkpoint
+
+Fork extension: administrator one-use source grants and configured-root listing
+implemented. Twelve evidence HTTP tests passed, including a real disposable Git
+repository, no unauthorized probe, replay/role/scope/config removal and tracked
+symlink exclusion. Browser assertions added; hosted execution pending. This does
+not change the 52 vendor declarations or close commercial wire comparison.

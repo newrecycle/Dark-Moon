@@ -235,13 +235,30 @@
     $("#content").innerHTML =
       `<section class="panel"><h2>Connect your workflow</h2><p>Create a dedicated account in Settings for external clients. Use this installation’s URL, <code>${esc(location.origin)}</code>, rather than the upstream Pro port 8000. For Docker-hosted clients, use a hostname reachable from that container; localhost there refers to the client container. n8n supports username/password login at <code>POST /api/v1/auth/login</code>; the workspace bearer token is an administrator recovery credential.</p><p>Campaigns, findings, reports, retests and metrics are available. Proposal APIs are read-only. Publishing remains a separate operator action.</p><p><a href="#webhooks">Signed webhook delivery and event subscriptions →</a></p><p>n8n: install <code>n8n-nodes-darkmoon</code>, configure a Darkmoon API credential, test the connection, then choose Run Pentest or a read-only operation. Wait for completion polls the run; local proposals do not imply a published PR. A launch severity cap differs from a CI/n8n minimum reporting threshold.</p>${choices.assessment.integrations.map((i) => `<div class="list-item"><div><a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a><small>${esc(i.usage)}</small></div></div>`).join("")}<p>Imported packages are available under <code>integrations/upstream</code>; installation compatibility still depends on the host product.</p><p><a href="${esc(choices.assessment.sources.benchmark)}" target="_blank" rel="noopener noreferrer">Benchmark methodology and recorded lab runs</a> · <a href="${esc(choices.assessment.sources.scope)}" target="_blank" rel="noopener noreferrer">Upstream scope reference</a></p></section>`;
   };
-  async function loadSourceFiles() {
+  let sourceRequest = 0, sourceExpiry;
+  function clearSourceFiles() {
+    sourceRequest++;
+    clearTimeout(sourceExpiry);
     const f = $("#remediation-form");
-    if (!f.elements.repo.value) return;
-    const result = await api(
-      "/api/v1/source-files?repo=" + encodeURIComponent(f.elements.repo.value),
-    );
+    if (f) { f.elements.source_files.innerHTML = ""; f.elements.files.value = ""; }
+  }
+  window.addEventListener("blur", clearSourceFiles);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) clearSourceFiles(); });
+  document.addEventListener("close", event => { if (event.target.contains?.($("#remediation-form"))) clearSourceFiles(); }, true);
+  async function loadSourceFiles() {
+    clearSourceFiles();
+    const request = sourceRequest, f = $("#remediation-form"), repo = f.elements.repo.value;
+    if (!repo) return;
+    const session = token, deadline = Date.now() + 45000;
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(repo));
+    const id = "repo_" + [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
+    const grant = await api("/api/v1/evidence/grants", {method:"POST", body:JSON.stringify({kind:"source",id})});
+    const result = await api("/api/v1/source-files", {method:"POST",
+      headers:{"X-Darkmoon-Evidence-Grant":grant.grant}, body:JSON.stringify({repository_id:id})});
+    if (request !== sourceRequest || token !== session || f.elements.repo.value !== repo || Date.now() >= deadline || !f.closest("dialog").open) return;
     f.elements.source_files.innerHTML = optionsHtml(result.files);
+    $("#remediation-error").textContent = result.truncated ? "Only part of the tracked source list is available." : "";
+    sourceExpiry = setTimeout(clearSourceFiles, deadline - Date.now());
   }
   window.populateRemediation = async () => {
     await loadChoices();
@@ -253,7 +270,7 @@
     );
     if (localRepos.length) {
       f.elements.repo.value = localRepos[0];
-      await loadSourceFiles();
+      clearSourceFiles();
     }
   };
   function fillTarget() {
@@ -274,9 +291,7 @@
         .map((o) => o.value)
         .join("\n");
     if (f?.id === "remediation-form" && event.target.name === "repo")
-      loadSourceFiles().catch(
-        (error) => ($("#remediation-error").textContent = error.message),
-      );
+      clearSourceFiles();
     if (f?.id === "launch-form" && event.target.name === "known_target")
       fillTarget();
     if (f?.id !== "workspace-form") return;

@@ -890,6 +890,13 @@ const assert = require("node:assert/strict");
       await page.locator("#remediation-form select[name=source_files] option").count(), 0,
       "Unscoped source-file enumeration must remain unavailable",
     );
+    await page.locator("[data-source-files]").click();
+    await page.locator('#remediation-form select[name=source_files] option[value="app.py"]').waitFor();
+    await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+    assert.equal(await page.locator("#remediation-form select[name=source_files] option").count(), 0,
+      "Source file names must clear when the window loses focus");
+    await page.locator("[data-source-files]").click();
+    await page.locator('#remediation-form select[name=source_files] option[value="app.py"]').waitFor();
     await page
       .locator("#remediation-form textarea[name=edits]")
       .fill(

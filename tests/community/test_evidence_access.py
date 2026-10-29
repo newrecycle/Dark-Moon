@@ -59,6 +59,37 @@ class EvidenceHTTPTests(fixtures.Fixture):
         return self.request(f"/api/v1/evidence/{kind}/{item}/reveal", headers={
             **(headers or {}), "X-Darkmoon-Evidence-Grant": secret})
 
+    def test_source_browser_requires_configured_scope_and_one_use_admin_grant(self):
+        import subprocess
+        from community.source_browser import repository_id
+        repo = Path(self.tmp.name) / "source-fixture"
+        repo.mkdir()
+        subprocess.run(["git", "init", str(repo)], check=True, capture_output=True)
+        (repo / "tracked.py").write_text("synthetic source")
+        (repo / "untracked-secret").write_text("not offered")
+        (repo / "link").symlink_to(repo / "tracked.py")
+        subprocess.run(["git", "-C", str(repo), "add", "tracked.py", "link"], check=True)
+        rid = repository_id(str(repo))
+        payload = {"repository_id": rid}
+        with patch.dict(os.environ, {"DARKMOON_SOURCE_REPOSITORIES": str(repo)}):
+            with patch("community.source_browser.command", side_effect=AssertionError("unauthorized probe")):
+                self.assertEqual(self.request("/api/v1/source-files", "POST", payload)[0], 403)
+                analyst = self.role("analyst", "source_analyst")
+                self.assertEqual(self.grant("source", rid, headers=analyst)[0], 403)
+                self.assertEqual(self.grant("source", "repo_unconfigured")[0], 403)
+            status, grant = self.grant("source", rid)
+            self.assertEqual(status, 201)
+            headers = {"X-Darkmoon-Evidence-Grant": grant["grant"]}
+            status, body, _ = self.request("/api/v1/source-files", "POST", payload, headers=headers)
+            self.assertEqual(status, 200, body)
+            self.assertEqual(json.loads(body)["files"], ["tracked.py"])
+            self.assertNotIn(str(repo), body.decode())
+            self.assertEqual(self.request("/api/v1/source-files", "POST", payload, headers=headers)[0], 403)
+            _, grant = self.grant("source", rid)
+            with patch.dict(os.environ, {"DARKMOON_SOURCE_REPOSITORIES": ""}):
+                self.assertEqual(self.request("/api/v1/source-files", "POST", payload,
+                    headers={"X-Darkmoon-Evidence-Grant": grant["grant"]})[0], 403)
+
     def test_default_workspace_routes_withhold_canaries_for_every_role(self):
         routes = [
             "/api/v1/overview", "/api/v1/campaigns", f"/api/v1/campaigns/{self.cid}",

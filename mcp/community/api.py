@@ -378,23 +378,15 @@ class API:
             else:
                 return False
             return True
-        if parts == ["source-files"] and method == "GET":
-            # Do not probe the local filesystem before a role/scope-checked
-            # source-browser grant exists. Returning an empty projection after
-            # running git ls-files would still permit filesystem enumeration by
-            # response code and timing.
-            raise PermissionError("Source-file enumeration requires a scoped reveal policy")
-            import subprocess
-            from pathlib import Path
-            repo = Path(query.get("repo", "")).expanduser().resolve()
-            if not query.get("repo") or not repo.is_dir():raise ValueError("Choose an existing local source repository")
-            try:
-                result = subprocess.run(["git", "-c", "core.hooksPath=/dev/null", "-C", str(repo), "ls-files", "-z"],capture_output=True,timeout=10)
-            except (OSError,subprocess.TimeoutExpired):raise ValueError("Could not list tracked source files") from None
-            if result.returncode:raise ValueError("Source directory is not a Git repository")
-            files = result.stdout.decode("utf-8",errors="replace").split("\0")
-            files = [f for f in files if f and not any(ord(c)<32 for c in f)]
-            handler.send({"files":files[:5000],"truncated":len(files)>5000})
+        if parts == ["source-files"]:
+            if method != "POST":
+                raise PermissionError("Source-file enumeration requires an explicit scoped request")
+            raw = handler.body()
+            if set(raw) != {"repository_id"}:
+                raise ValueError("Provide exactly repository_id")
+            from .source_browser import files
+            handler.require_evidence(identity, "source", raw["repository_id"])
+            handler.send(files(raw["repository_id"]))
             return True
         if parts == ["options"] and method == "GET":
             from .opencode import catalog
