@@ -869,6 +869,14 @@ const assert = require("node:assert/strict");
     await page.locator(`button[data-finding="${fixture.finding_id}"]`).first().click();
     await page.locator("#detail[open]").waitFor();
     assert.equal(await page.locator('[data-evidence-field="raw_response"]').count(), 0);
+    await page.locator('[data-reveal-finding]').click();
+    await page.locator('[data-revealed-content]').waitFor();
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('[data-revealed-content]').count(), 0,
+      'Escape must clear revealed content before the deferred close event');
+    await page.locator(`button[data-finding="${fixture.finding_id}"]`).first().click();
+    await page.locator("#detail[open]").waitFor();
+    assert.equal(await page.locator('[data-evidence-field="raw_response"]').count(), 0);
     // Before remediation exists, the exact finding lookup must return a valid empty result.
     await page.getByText("Linked remediation records", {exact:true}).waitFor();
     assert.match(await page.locator("#detail-body").innerText(), /No linked remediation records/);

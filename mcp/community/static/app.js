@@ -555,13 +555,15 @@ $("#setup-account").addEventListener("cancel", event => {
 $("#setup-account-skip").addEventListener("click", () => $("#setup-account").close());
 $("#setup-account").addEventListener("close", () => $("#setup-account-form").reset());
 $("#login").addEventListener("cancel", (e) => e.preventDefault());
-$("#detail").addEventListener("close", () => {
+function clearDetail() {
   currentDetailJob = "";
   currentFindingRef = "";
   clearRevealedContent();
   $("#detail-body").replaceChildren();
   jobDetailRequest++;
-});
+}
+$("#detail").addEventListener("close", clearDetail);
+$("#detail").addEventListener("cancel", clearDetail);
 $("#logout").addEventListener("click", async () => {
   try {
     await api("/api/v1/auth/logout", { method: "POST", body: "{}" });
@@ -623,7 +625,9 @@ document.addEventListener("click", async (e) => {
     } else if (b.id === "findings-clear") {
       updateFindingView({...Object.fromEntries(FindingQuery.filters.map(k=>[k,""])),q:"",triage:"",sort:"severity_desc",size:50,page:1}, true);
     } else if (b.classList.contains("close-dialog")) {
-      b.closest("dialog").close();
+      const dialog = b.closest("dialog");
+      if (dialog.id === "detail") clearDetail();
+      dialog.close();
       currentDetailJob = "";
     } else if (b.dataset.campaign) await showCampaign(b.dataset.campaign);
     else if (b.dataset.finding)

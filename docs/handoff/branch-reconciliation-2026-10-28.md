@@ -35,7 +35,7 @@ Routine and security Dependabot PRs now target pro directly. Duplicate ecosystem
 
 ## Cleanup safeguards
 
-The one-time cleanup job checks the exact branch tips in the adjacent JSON snapshot, verifies every tip is an ancestor of pro, rejects branches referenced by open PRs, and deletes only those named refs using an atomic push with expected-tip leases. A changed tip, active PR or rejected deletion stops cleanup. It never rewrites pro or deletes a newly created Dependabot branch. The temporary cleanup workflow is removed after its result is observed.
+The completed one-time cleanup job checked the exact branch tips in the adjacent JSON snapshot, verified every tip was an ancestor of pro, rejected branches referenced by open PRs, and deleted only those named refs using an atomic push with expected-tip leases. A changed tip, active PR or rejected deletion would have stopped cleanup. It did not rewrite pro or delete newly created branches. The temporary cleanup workflow has been removed after its successful run.
 
 ## Validation
 
@@ -45,6 +45,29 @@ The one-time cleanup job checks the exact branch tips in the adjacent JSON snaps
 - Dependency policy tests: **4 passed**, including read-only pro validation and removal of privileged staging mergers.
 - All workflow YAML parsed; temporary cleanup shell/Python syntax passed.
 - Disposable Git cleanup checks passed for success, stale tips, active head/base PRs, advanced pro and concurrent-update atomic lease rejection.
-- `git diff --check` passed. Runtime source trees under `mcp`, `conf` and `integrations` are byte-for-byte unchanged from the inspected pro commit.
+- `git diff --check` passed. At reconciliation commit `221d4b7162`, runtime source trees under `mcp`, `conf` and `integrations` were byte-for-byte unchanged from the inspected pro commit.
 
-Hosted cleanup and policy CI results will be recorded after publication. No native host revalidation is claimed for this history/configuration-only reconciliation.
+## Observed hosted results
+
+Reconciliation commit: [`221d4b7162`](https://github.com/newrecycle/Dark-Moon/commit/221d4b7162b42064d669cc42539e4dc8bc7c08a0).
+
+- [Branch cleanup](https://github.com/newrecycle/Dark-Moon/actions/runs/40801559884): **passed**, deleted all 14 snapshotted branch refs atomically. Only pro remained immediately afterward.
+- [Dependency automation policy](https://github.com/newrecycle/Dark-Moon/actions/runs/40801559817): **passed**.
+- [Supported integration distribution audit](https://github.com/newrecycle/Dark-Moon/actions/runs/40801559642): **passed**.
+- [General tests](https://github.com/newrecycle/Dark-Moon/actions/runs/40801559768): **passed**.
+
+- [Campaign isolation regressions](https://github.com/newrecycle/Dark-Moon/actions/runs/40801559948): **passed**.
+- [Initial browser acceptance](https://github.com/newrecycle/Dark-Moon/actions/runs/40801559855): **failed** because revealed evidence could remain in the DOM between a close-button click and the queued dialog close event. This was existing behavior in the unchanged pro runtime, rather than a source change introduced by the history merge.
+
+## Browser close correction
+
+The follow-up clears finding identity, pending requests and revealed DOM content
+synchronously before a close-button action, and on Escape's cancel event. The
+existing close handler remains as a fallback for programmatic closes. Browser
+acceptance now also reveals evidence, closes with Escape, and checks a reopened
+dialog contains no previously revealed evidence. JavaScript syntax and dependency
+policy checks passed locally; real Chromium verification is recorded after the
+hosted follow-up completes. Local browser installation returned truncated archives,
+so it is not counted as browser acceptance.
+
+No native integration-host revalidation is claimed for this reconciliation.
