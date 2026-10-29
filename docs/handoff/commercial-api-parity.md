@@ -202,3 +202,12 @@ This does not claim frozen cross-request state or whole-system crash consistency
 The resource-link browser fixture initially attempted navigation while logged
 out; it now explicitly authenticates before opening and after reload, preserving
 the server's no-persisted-token policy. Its rerun remains pending.
+
+### Graph/XR boundary increment
+
+VR capability queries now tolerate policy/permission rejection without failing
+the ordinary graph. Delayed capability replies cannot update detached controls;
+start requests are deduplicated and a view abort ends its XR session. The browser
+suite injects rejected XR capability promises while exercising the normal graph.
+This validates unsupported-state behavior only; physical headset rendering,
+controller input and independent exploitation proof remain unavailable.

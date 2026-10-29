@@ -26,3 +26,24 @@ JetBrains is intentionally removed. Vendor activation controls are not reconstru
 Proceed sequentially: (1) shared SDK identity, (2) scoped source picker (implemented; native browser verification pending), (3) remediation acceptance, (4) UI navigation, (5) historical analytics, (6) scale/consistency, (7) graph/headset boundaries, (8) native-host boundaries. Update this file and commercial-api-parity.md at every completed checkpoint. Separate implemented, fork-tested, vendor-compared and unavailable outcomes. Do not acquire licenses or claim unavailable hardware/hosts passed.
 
 All seven workflows triggered on `9ee85be` completed successfully, including Jenkins and GitLab. This does not re-execute workflows whose path filters did not trigger.
+
+## Items 7–8: concrete unavailable acceptance
+
+XR policy-denial and view/session cleanup implemented; browser rerun pending.
+There is no physical headset in this environment. Do not mark immersive playback
+accepted from a mocked navigator.xr result.
+
+Native Splunk remains unavailable: no operator-supplied preinstalled disposable
+host, matching self-hosted runner or host credentials have been provided. The
+manual workflow is deliberately not dispatched onto an absent runner. Exact
+preparation and executable commands are in
+[integrations/upstream/splunk/test/NATIVE-ACCEPTANCE.md](../../integrations/upstream/splunk/test/NATIVE-ACCEPTANCE.md).
+Its offline/native-preflight gates remain valid separate evidence.
+
+GitLab Ultimate ingestion requires an available appropriately licensed instance;
+the user does not intend to acquire a license. CE/Runner artifact acceptance is
+already verified. Grafana 13.1 native API acceptance passed previously; a signed
+Catalog release and other host versions are separate operator/distribution work.
+No license acquisition, signing account, external publication, service restart or
+hardware interaction was performed. These are acceptance blockers, not missing
+backend implementations to replace with synthetic success.

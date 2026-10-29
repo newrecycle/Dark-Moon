@@ -74,6 +74,8 @@ const assert = require("node:assert/strict");
     const screenshots =
       process.env.DARKMOON_SCREENSHOTS || path.join(root, "screenshots");
     await fs.mkdir(screenshots, { recursive: true });
+    await page.addInitScript(() => Object.defineProperty(navigator, "xr", {configurable:true,
+      value:{isSessionSupported:async()=>{throw new DOMException("Fixture policy denial", "SecurityError");}}}));
     await page.goto(`http://127.0.0.1:${fixture.port}`);
     await page.locator("#token").fill(fixture.token);
     await page.locator("#login-form button[type=submit]").click();

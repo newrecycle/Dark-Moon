@@ -1165,24 +1165,30 @@ async function drawSurface(cid, signal) {
   signal.addEventListener("abort", () => cancelAnimationFrame(frame), { once: true });
   draw();
   const vr = $("#vr-button");
-  if (navigator.xr && (await navigator.xr.isSessionSupported("immersive-vr"))) {
-    if (signal.aborted) return;
-    vr.disabled = false;
-    vr.textContent = "Enter VR";
-    vr.addEventListener(
-      "click",
-      () => startVR(nodes, graph.edges).catch(fail),
-      { signal },
-    );
-  } else {
-    vr.textContent = "VR unavailable";
-  }
+  let supported = false;
+  try { supported = Boolean(navigator.xr && await navigator.xr.isSessionSupported("immersive-vr")); }
+  catch { /* Permission/policy denial leaves the normal graph usable. */ }
+  if (signal.aborted || !vr?.isConnected) return;
+  vr.disabled = !supported;
+  vr.textContent = supported ? "Enter VR" : "VR unavailable";
+  if (supported) vr.addEventListener("click", async () => {
+    vr.disabled = true;
+    try { await startVR(nodes, graph.edges, signal); }
+    catch { if (!signal.aborted) fail(new Error("VR session could not start")); }
+    finally { if (!signal.aborted && vr.isConnected) vr.disabled = false; }
+  }, {signal});
 }
-async function startVR(nodes, edges) {
+async function startVR(nodes, edges, signal) {
+  if (signal.aborted) return;
   const canvas = document.createElement("canvas"),
     gl = canvas.getContext("webgl", { xrCompatible: true });
   if (!gl) throw new Error("WebGL is unavailable");
   const session = await navigator.xr.requestSession("immersive-vr");
+  let ended = false;
+  const stop = () => { ended = true; session.end().catch(() => {}); };
+  if (signal.aborted) { stop(); return; }
+  signal.addEventListener("abort", stop, {once:true});
+  session.addEventListener("end", () => { ended = true; signal.removeEventListener("abort", stop); }, {once:true});
   try {
     await gl.makeXRCompatible();
     session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
@@ -1230,6 +1236,7 @@ async function startVR(nodes, edges) {
     gl.enableVertexAttribArray(p);
     gl.vertexAttribPointer(p, 3, gl.FLOAT, false, 0, 0);
     function frame(t, f) {
+      if (ended || signal.aborted) return;
       const pose = f.getViewerPose(space);
       if (pose) {
         gl.bindFramebuffer(
