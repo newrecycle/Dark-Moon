@@ -80,6 +80,8 @@ class ControlStorage(unittest.TestCase):
         before = store.view_revision()
         store.save("evidence_grants", {"id": "grant", "used": False})
         self.assertEqual(store.view_revision(), before)
+        store.save("attack_paths", {"id": "path", "version": 1})
+        self.assertEqual(store.view_revision(), before)
         store.save("jobs", {"id": "job", "status": "queued"})
         self.assertGreater(store.view_revision(), before)
 

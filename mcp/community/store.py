@@ -131,9 +131,10 @@ class Store:
             state.flush()
             if state.changed:
                 db.execute("UPDATE settings SET value=CAST(value AS INTEGER)+1 WHERE key='revision'")
-                internal = {"evidence_grants", "sessions", "events", "event_seq", "observation_checkpoint",
-                            "deliveries", "webhook_receipts", "webhook_test_last"}
-                if state.changed_roots - internal:
+                # Only controls represented in overview/auth refreshes belong
+                # here. Dedicated path/credential/webhook editors refresh their
+                # own resources; a global redraw discards their local status.
+                if state.changed_roots & {"jobs", "schedules", "users"}:
                     db.execute("UPDATE settings SET value=CAST(value AS INTEGER)+1 WHERE key='view_revision'")
             db.commit()
             return result
