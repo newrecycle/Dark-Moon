@@ -1,36 +1,40 @@
-# Dependency maintenance: deps staging and manual pro promotion
+# Dependency maintenance: staged routine updates and tested security updates
 
-## Branch roles
+## Branch policy
 
-- **pro** is the repository default branch and the protected/manual promotion destination.
-- **deps** is the dependency staging branch. Routine Dependabot version-update PRs target **deps**, not pro.
-- Dependabot does **not** merge PRs by itself. A separate unprivileged validation workflow tests each candidate; a privileged workflow merges only successful, same-repository Dependabot PRs with the exact tested head SHA into **deps**.
-- Only a human merges **deps -> pro**. The automation never merges dependency staging into pro.
+- **pro** is the default branch, and the destination for urgent Dependabot security fixes. These security PRs **are automatically merged into pro after all PR checks pass**.
+- **deps** stages routine Dependabot version updates. They are merged into deps automatically only after validation and successful PR checks.
+- **deps -> pro** is manual. Routine updates are *never* automatically promoted into pro; the promotion PR remains for human review.
+- **pro -> deps** synchronization preserves all commits and never force-pushes. Pushes to pro and a daily reconciliation run the sync workflow. The security-update merge workflow also attempts to merge pro into deps directly as soon as it merges a security fix.
 
-Routine updates use the real Python/npm/GitHub Actions directories and weekly grouping. Grouping is per ecosystem/directory rather than one globally shared PR queue. The default-branch security-only entries retain GitHub's security-advisory update coverage; GitHub's security update PRs always target **pro**, not a non-default target branch. Review urgent security PRs separately and promptly.
+The default branch in this repository is pro. GitHub creates security updates against the default branch even when version updates use `target-branch: deps`.
 
 ## Automated flow
 
-1. On Monday, Dependabot checks the configured package managers and opens candidate PRs with **base = deps**. To run sooner, use **Insights -> Dependency graph -> Dependabot -> Check for updates** in GitHub, for each configured ecosystem.
-2. `.github/workflows/dependency-staging-validation.yml` runs as a **read-only PR workflow**, obtains the exact changed-file list from GitHub, rejects unsupported changes, and runs the corresponding dependency install/build/test checks. These tests execute dependency code without any write token or secrets.
-3. After the *successful* staging validation completes, `.github/workflows/dependency-staging-automerge.yml` runs from **pro**. It executes no PR code, confirms the PR is opened by `dependabot[bot]`, still targets **deps**, comes from this repository, and has exactly the validated head SHA. Only then does it squash-merge into deps. Failed, skipped, stale, draft, or unexpected PRs never get automatically merged.
-4. Every push to **pro**, plus a daily reconciliation, runs `.github/workflows/sync-pro-to-deps.yml`. It merges pro **into deps** while keeping unpromoted dependency commits. It does not reset, force-push, or delete either branch. A conflict stops the job for manual resolution rather than dropping changes.
-5. After staging, the merge workflow tries to create or maintain a standing **deps -> pro** promotion PR; this is intentionally never auto-merged. Review that PR and click **Merge** when you want the batch. If creation is disabled, use [Compare deps into pro](https://github.com/newrecycle/Dark-Moon/compare/pro...deps?expand=1) and create a PR manually.
+1. Dependabot opens routine PRs to **deps** and security PRs to **pro**. The ecosystems, schedules and PR limits come from `.github/dependabot.yml`. GitHub treats security PR limits independently of version-update limits.
+2. `.github/workflows/dependency-staging-validation.yml` is triggered by Dependabot PRs to **either** branch. It has read-only permissions, checks the complete list of changed files against the supported dependency manifests/lockfiles and GitHub Actions workflow YAML, runs baseline regressions and the applicable ecosystem install, typecheck, test and build checks. Jenkins build dependencies are also checked.
+3. When validation succeeds, `.github/workflows/dependency-staging-automerge.yml` runs on the default branch with only the permissions needed to inspect CI and merge. It **does not check out or run any PR code**. It requires an open same-repository PR authored by `dependabot[bot]`, the identical validated commit SHA, and a non-draft state. For **pro**, it also requires the characteristic security-fix notice in Dependabot's PR description, because ordinary Dependabot PRs must not merge to pro.
+4. The privileged merge workflow additionally waits for **all** GitHub PR checks to finish and pass (`gh pr checks --watch --fail-fast`), not just its own validation suite. A failed, cancelled, pending-at-timeout or missing check blocks merging. Immediately before merging, it re-checks the exact base and head SHA and uses the merge API's expected-head SHA guard.
+5. The workflow **squash-merges** the verified PR: to **deps** for routine updates or to **pro** for security fixes. A security merge into pro immediately attempts a safe server-side merge of pro into deps. If there is a conflict or insufficient permission, neither history is rewritten; inspect the sync workflow and resolve the conflict manually.
+6. After routine updates land on deps, the workflow creates or maintains a **manual deps -> pro** PR if permissions permit. Compare at [pro...deps](https://github.com/newrecycle/Dark-Moon/compare/pro...deps?expand=1).
 
-## GitHub settings to check
+**Important:** Security fixes entering pro automatically is intentional. This is an exception to the manual-promotion rule that applies to routine updates. A grouped Dependabot security PR can update several packages and can include breaking changes. All configured checks must pass, but automated tests cannot prove every behavior is safe.
 
-- **Settings -> Security -> Advanced Security** (or **Code security and analysis**, depending on UI): enable Dependabot version updates, Dependabot security updates, and the dependency graph. The installed connector cannot inspect or change every setting.
-- **Settings -> Actions -> General -> Workflow permissions**: allow GitHub Actions to write where needed; enable **Allow GitHub Actions to create and approve pull requests** if you want the standing promotion PR created automatically. Keep other workflows least-privileged.
-- If branch protection / rulesets apply to **deps**, permit the staging bot's validated merge path, or specify the required checks compatible with it. Requiring human reviews on deps will deliberately stop automation. Do **not** configure deps-to-pro auto-merge.
-- Do not set **pro** as Dependabot's `target-branch` for routine updates. Dependabot reads this config from the default branch (`pro`).
+## Configuration and repository settings
+
+- **Settings -> Security -> Advanced Security / Code security and analysis:** enable dependency graph, Dependabot alerts and Dependabot security updates. Version updates use the checked-in configuration.
+- **Settings -> Actions -> General -> Workflow permissions:** permit `contents: write` / `pull-requests: write` for the privileged merge workflow. Enable Actions PR creation only if you want the optional deps -> pro promotion PR.
+- Branch protection and rulesets on **pro** or **deps** may require additional status checks and/or reviews. The workflow never bypasses rules or force-pushes; review requirements can still prevent automatic merges.
+- Routine version update limits currently set to `0` for pip and GitHub Actions **disable their routine PR queues**. npm routine version updates still target deps. Those limits do **not** disable Dependabot security updates.
+- Security PR detection is deliberately fail-closed: if GitHub changes the characteristic security notice on its PRs, the pro PR will remain unmerged until the workflow is adapted. It must never treat a routine pro-targeted PR as a security update.
 
 ## Troubleshooting
 
-- **No updates/PRs:** Dependabot is weekly and only raises PRs when eligible updates exist. Check the Dependabot logs under Insights and the current branch's manifests.
-- **Closed earlier PRs:** Reconfigured targets/groups can close old Dependabot PRs; closed/unmerged PRs do not change dependencies and GitHub retains their history.
-- **PR open but not staged:** Inspect the **Dependency staging validation** and **Merge validated Dependabot PRs into deps** Actions runs. Failed dependencies, unsupported files, merge conflicts, or permissions block automated merges. Fix the update or stage it manually after review.
-- **deps not synchronized:** Inspect **Sync pro into deps** for conflicts or branch permissions. The daily reconciliation retries missed push triggers.
-- **No deps -> pro PR:** Check the action warning and repository Actions PR-creation setting. Use the compare link above when necessary.
-- **Security alerts:** GitHub security PRs target the default pro branch and are never automatically staged/merged by this routine-dependency workflow.
+- **No PR created:** Check Dependabot settings and update logs. Routine updates follow their individual schedule and configured limits.
+- **PR open but not merged:** Check Actions runs for **Dependency staging validation** and **Merge validated Dependabot dependency PRs**. All available PR checks must pass, and the bot author, base, security notice (for pro), and tested head SHA must match.
+- **PR predates these workflows:** Opening the workflow file on pro doesn't retroactively run it on existing PRs. A Dependabot rebase/update of the PR triggers new validation; do not merge without a fresh successful run.
+- **CI pending/failing:** Automatic merging stops. Fix or investigate the failed check; it will not silently merge a failing dependency upgrade.
+- **No deps -> pro promotion PR:** Enable Actions pull-request creation or manually open the compare link above.
+- **deps behind pro after a security fix:** Inspect the automatic server-side merge warning and **Sync pro into deps**. Manual conflict resolution may be needed.
 
-Important: `GITHUB_TOKEN`-authored merges may not trigger additional push workflows. Validation therefore runs on the original Dependabot PR before the staging merge; daily pro-to-deps sync covers missed sync events. CI remains necessary again when you manually promote deps into pro.
+**Workflow permissions:** Dependabot-triggered PR workflows run with a read-only token and no repository secrets. The separate `workflow_run` merger has a write token but never executes PR code. GitHub-token-authored merges don't reliably start ordinary push workflows, which is why the security merger also syncs deps directly and the scheduled sync still runs daily.
