@@ -25,7 +25,7 @@ The default branch in this repository is pro. GitHub creates security updates ag
 - **Settings -> Security -> Advanced Security / Code security and analysis:** enable dependency graph, Dependabot alerts and Dependabot security updates. Version updates use the checked-in configuration.
 - **Settings -> Actions -> General -> Workflow permissions:** permit `contents: write` / `pull-requests: write` for the privileged merge workflow. Enable Actions PR creation only if you want the optional deps -> pro promotion PR.
 - Branch protection and rulesets on **pro** or **deps** may require additional status checks and/or reviews. The workflow never bypasses rules or force-pushes; review requirements can still prevent automatic merges.
-- Routine version update limits currently set to `0` for pip and GitHub Actions **disable their routine PR queues**. npm routine version updates still target deps. Those limits do **not** disable Dependabot security updates.
+- Routine version updates for GitHub Actions, pip, and npm target **deps**, with `open-pull-requests-limit: 2` for each configured update entry. Security update entries remain default-branch scoped, and their PR limits are independent.
 - **Security classification relies on branch routing:** all routine version-update entries must continue to use `target-branch: deps`. If you add a routine Dependabot entry targeting pro, that PR could also become eligible for automatic merging into pro. Keep the routing invariant and the workflow policy regression CI enabled.
 
 ## Troubleshooting
