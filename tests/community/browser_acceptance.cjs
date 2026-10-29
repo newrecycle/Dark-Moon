@@ -946,6 +946,45 @@ const assert = require("node:assert/strict");
     assert.equal(await page.evaluate(()=>window.injected),undefined);
     await page.screenshot({path:path.join(screenshots,'report-navigation.png'),fullPage:true});
     await page.locator("#detail .close-dialog").click();
+    // Two report dialogs have the same title. A late reveal from the closed
+    // view must not replace the newer view, even for the same campaign.
+    let releaseOld, oldStarted;
+    const oldGate = new Promise(resolve => { releaseOld = resolve; });
+    const started = new Promise(resolve => { oldStarted = resolve; });
+    let reportReads = 0;
+    const reportRoute = '**/api/v1/evidence/report/*/reveal';
+    await page.route(reportRoute, async request => {
+      reportReads++;
+      if (reportReads === 1) {
+        oldStarted();
+        await oldGate;
+        await request.fulfill({json:{data:{content:'# STALE_CLOSED_REPORT'}}});
+      } else await request.fulfill({json:{data:{content:'# CURRENT_REPORT\n\n## Roadmap\n\n````text\n```\n## CODE_ONLY_HEADING\n````\n'}}});
+    });
+    await page.locator(`[data-campaign="${fixture.campaign_id}"]`).click();
+    await page.locator('[data-report-preview]').click();
+    await started;
+    await page.locator('#detail .close-dialog').click();
+    await page.locator(`[data-campaign="${fixture.campaign_id}"]`).click();
+    await page.locator('[data-report-preview]').click();
+    await page.locator('.report-preview').waitFor();
+    assert.match(await page.locator('#detail-body').innerText(), /CURRENT_REPORT/);
+    const oldResponse = page.waitForResponse(response => response.url().includes('/evidence/report/') && response.url().endsWith('/reveal'));
+    releaseOld();
+    await oldResponse;
+    await page.evaluate(() => new Promise(requestAnimationFrame));
+    assert.doesNotMatch(await page.locator('#detail-body').innerText(), /STALE_CLOSED_REPORT/);
+    assert.equal(await page.locator('.report-sections button', {hasText:'CODE_ONLY_HEADING'}).count(),0);
+    assert.match(await page.locator('.report-preview pre').innerText(), /CODE_ONLY_HEADING/);
+    await page.unroute(reportRoute);
+    await page.locator('#detail .close-dialog').click();
+    await page.route(reportRoute, request => request.fulfill({status:503,json:{error:'PRIVATE_REPORT_BACKEND_ERROR'}}));
+    await page.locator(`[data-campaign="${fixture.campaign_id}"]`).click();
+    await page.locator('[data-report-preview]').click();
+    await page.getByText('Report unavailable. Close and preview again to retry.',{exact:true}).waitFor();
+    assert.doesNotMatch(await page.locator('#detail-body').innerText(), /PRIVATE_REPORT_BACKEND_ERROR/);
+    await page.unroute(reportRoute);
+    await page.locator('#detail .close-dialog').click();
     await page.locator(`[data-campaign="${fixture.campaign_id}"]`).click();
     await page.locator("[data-protected-pdf]").click();
     await page

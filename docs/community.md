@@ -344,3 +344,22 @@ Set `CHROMIUM_EXECUTABLE` if Chromium is not in Playwright's cache, and
 test calls a model, runs an actual assessment, provisions a cloud, pushes Git or
 opens a PR. Real Docker/headset/cloud/provider integration tests remain separate
 environment-dependent checks.
+
+### Current report review
+
+Markdown and PDF exports include recorded impact, disposition counts and a
+remediation roadmap ordered by severity and finding ID. Accepted risk, false
+positives, remediated and resolved records remain in the report but are excluded
+from its active roadmap. These labels and local remediation records do not prove
+a deployed fix or a successful retest. Counts describe retained campaign findings,
+not complete target coverage; owners, deadlines and business impact are not
+inferred from severity.
+
+The report preview is an explicit administrator evidence reveal. It expires with
+its grant and clears on view/session changes. Loading and failure states support
+retrying from the assessment; late results cannot replace a newer report view or
+trigger a download after that view has closed. Section navigation covers report
+and finding headings; fenced evidence remains literal content.
+
+Control-state storage and upgrade/backup guidance are in
+[the SQLite storage handoff](handoff/control-state-sqlite-2026-10-29.md).

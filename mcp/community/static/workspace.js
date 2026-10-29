@@ -300,10 +300,12 @@
     $("#workspace-error").textContent = "";
     $("#workspace-form button[type=submit]").textContent =
       kind === "provider_delete" ? "Delete profile" : "Save";
+    $("#workspace-form button[type=submit]").disabled = false;
     if ($("#detail").open) $("#detail").close();
     $("#workspace-dialog").showModal();
   }
   function details(title, html) {
+    clearDetail();
     $("#detail-title").textContent = title;
     $("#detail-body").innerHTML = html;
     if (!$("#detail").open) $("#detail").showModal();
@@ -501,13 +503,16 @@
   function markdownPreview(markdown) {
     const root = document.createElement("div");
     root.className = "report-preview";
-    let code = null,
+    let code = null, fence = 0,
       table = null;
     for (const line of markdown.split("\n")) {
-      if (line.startsWith("```")) {
+      const marker = line.match(/^(`{3,})([^`]*)$/);
+      if (marker && (!code || (marker[1].length >= fence && !marker[2].trim()))) {
         if (code) {
           code = null;
+          fence = 0;
         } else {
+          fence = marker[1].length;
           code = document.createElement("pre");
           root.append(code);
         }
@@ -548,7 +553,7 @@
         root.append(p);
       }
     }
-    const headings = [...root.querySelectorAll("h1,h2,h3,h4,h5,h6")];
+    const headings = [...root.querySelectorAll("h1,h2")];
     if (headings.length) {
       const navigation = document.createElement("nav");
       navigation.className = "report-sections";
@@ -789,23 +794,51 @@
         );
       if (button.dataset.reportPreview) {
         const cid = button.dataset.reportPreview, previousToken = token;
-        details("Assessment report", "<p>Evidence is withheld by the server.</p>");
+        details("Assessment report", '<p role="status">Loading report…</p>');
+        $("#detail-body").dataset.pendingReport = cid;
+        const version = evidenceViewVersion;
+        const current = () => $("#detail").open && token === previousToken && version === evidenceViewVersion;
         if (identity?.role === "admin") {
-          const grant = await api("/api/v1/evidence/grants", {
-            method:"POST",body:JSON.stringify({kind:"report",id:cid})
-          });
-          if (!$("#detail").open || token !== previousToken ||
-              $("#detail-title").textContent !== "Assessment report") return;
-          const response = await api(`/api/v1/evidence/report/${encodeURIComponent(cid)}/reveal`, {
-            headers: {"X-Darkmoon-Evidence-Grant": grant.grant}
-          });
-          if (!$("#detail").open || token !== previousToken ||
-              $("#detail-title").textContent !== "Assessment report") return;
-          $("#detail-body").replaceChildren();
-          const output = document.createElement("section");
-          output.dataset.revealedContent = "true";
-          output.append(markdownPreview(response.data.content));
-          $("#detail-body").append(output);
+          try {
+            const started = Date.now();
+            const grant = await api("/api/v1/evidence/grants", {
+              method:"POST",body:JSON.stringify({kind:"report",id:cid})
+            });
+            if (!current()) return;
+            const until = started + Math.min(45, Number(grant.expires_in) || 0) * 1000;
+            const response = await api(`/api/v1/evidence/report/${encodeURIComponent(cid)}/reveal`, {
+              headers: {"X-Darkmoon-Evidence-Grant": grant.grant}
+            });
+            if (!current()) return;
+            if (Date.now() >= until) {
+              delete $("#detail-body").dataset.pendingReport;
+              $("#detail-body").textContent = "Report preview expired. Close and preview again to refresh access.";
+              return;
+            }
+            if (typeof response.data?.content !== "string") throw new Error("Report unavailable");
+            delete $("#detail-body").dataset.pendingReport;
+            $("#detail-body").replaceChildren();
+            const output = document.createElement("section");
+            output.dataset.revealedContent = "true";
+            output.dataset.reportCampaign = cid;
+            if (response.data.content.trim()) output.append(markdownPreview(response.data.content));
+            else output.textContent = "No report content recorded.";
+            $("#detail-body").append(output);
+            setTimeout(() => {
+              if (current()) {
+                clearRevealedContent();
+                $("#detail-body").textContent = "Report preview expired. Close and preview again to refresh access.";
+              }
+            }, Math.max(0, until - Date.now()));
+          } catch (error) {
+            if (current()) {
+              delete $("#detail-body").dataset.pendingReport;
+              $("#detail-body").textContent = "Report unavailable. Close and preview again to retry.";
+            }
+          }
+        } else {
+          delete $("#detail-body").dataset.pendingReport;
+          $("#detail-body").textContent = "Administrator access is required to preview recorded evidence.";
         }
       }
       if (button.dataset.projectAnalytics) {
@@ -885,6 +918,8 @@
   $("#workspace-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = event.target.querySelector("button[type=submit]");
+    const context = formState, previousToken = token;
+    const current = () => formState === context && token === previousToken && $("#workspace-dialog").open;
     button.disabled = true;
     try {
       const raw = Object.fromEntries(new FormData(event.target)),
@@ -1005,29 +1040,34 @@
         });
       }
       if (kind === "protected_pdf") {
+        const cid = context.campaignId;
         const grant = await api("/api/v1/evidence/grants", {
-          method:"POST",body:JSON.stringify({kind:"report_pdf",id:formState.campaignId})
+          method:"POST",body:JSON.stringify({kind:"report_pdf",id:cid})
         });
+        if (!current()) return;
         const res = await fetch(
-          `/api/v1/campaigns/${encodeURIComponent(formState.campaignId)}/report/pdf`,
+          `/api/v1/campaigns/${encodeURIComponent(cid)}/report/pdf`,
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${previousToken}`,
               "Content-Type": "application/json",
               "X-Darkmoon-Evidence-Grant": grant.grant,
             },
             body: JSON.stringify({ password: raw.password, sign: true }),
           },
         );
-        if (!res.ok) throw new Error((await res.json()).error);
-        const url = URL.createObjectURL(await res.blob()),
+        if (!res.ok) throw new Error("Protected report export unavailable. Retry from the assessment.");
+        const body = await res.blob();
+        if (!current()) return;
+        const url = URL.createObjectURL(body),
           a = document.createElement("a");
         a.href = url;
-        a.download = `${formState.campaignId}-protected.pdf`;
+        a.download = `${cid}-protected.pdf`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
+      if (!current()) return;
       $("#workspace-dialog").close();
       await refresh();
       if (kind === "opencode_connect")
@@ -1036,12 +1076,13 @@
           `<p>${esc(result.restart_required ? "Shared login saved. Restart OpenCode to load it." : "Provider connected in OpenCode.")}</p>${result.warning ? `<p>${esc(result.warning)}</p>` : ""}`,
         );
     } catch (error) {
-      $("#workspace-error").textContent = error.message;
+      if (current()) $("#workspace-error").textContent = error.message;
     } finally {
-      button.disabled = false;
+      if (formState === context || formState === null) button.disabled = false;
     }
   });
   $("#workspace-dialog").addEventListener("close", () => {
+    formState = null;
     $("#workspace-fields").replaceChildren();
   });
   $("#sso-login").addEventListener("click", async () => {

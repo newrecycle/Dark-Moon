@@ -7,6 +7,20 @@ from html import escape
 from api import json_storage as data
 from api.live_push import _generate_report_from_db
 
+EXCLUDED = frozenset({"false_positive", "accepted_risk", "remediated", "resolved"})
+SEVERITY_ORDER = {s: i for i, s in enumerate(("critical", "high", "medium", "low", "info"))}
+
+
+def plan(findings):
+    """Recorded disposition and severity order, never an invented fix verdict."""
+    counts = {}
+    for finding in findings:
+        status = str(finding.get("status", "unconfirmed")).lower()
+        counts[status] = counts.get(status, 0) + 1
+    active = [f for f in findings if str(f.get("status", "unconfirmed")).lower() not in EXCLUDED]
+    active.sort(key=lambda f: (SEVERITY_ORDER.get(str(f.get("severity", "info")).lower(), 5), str(f.get("id", ""))))
+    return active, counts
+
 
 def markdown(campaign):
     # Keep report behavior in the feature package: current upstream's generator
@@ -33,6 +47,18 @@ def markdown(campaign):
     if campaign.get("analysis_origin", {}).get("kind") == "owned-loopback-lab":
         lines += ["", "Analysis origin: owned loopback lab, real DarkMoon workflow/toolbox probes; no LLM-driven assessment or script-execution claim.", ""]
     lines += ["", "Confirmation labels are agent observations; validated remediation probes are recorded separately.", ""]
+    active, dispositions = plan(findings)
+    lines += ["## Disposition and coverage", "", "Counts cover retained findings in this campaign only; they do not establish complete target coverage.", "",
+              "| Recorded status | Count |", "|---|---:|"]
+    lines += [f"| {literal(status)} | {count} |" for status, count in sorted(dispositions.items())]
+    lines += ["", "Accepted risk, false positives, remediated and resolved records are excluded from the active roadmap. Operator triage alone is not proof of deployment or a successful retest.",
+              "", "## Remediation roadmap", "", "Review order follows recorded severity, then finding ID. No owner, deadline or business impact is inferred.", ""]
+    if active:
+        lines += ["| Review order | Finding | Severity | Recorded guidance |", "|---:|---|---|---|"]
+        lines += [f"| {i} | {literal(f.get('id'))} | {literal(f.get('severity', 'info'))} | {literal(f.get('remediation') or 'No remediation guidance recorded.')} |"
+                  for i, f in enumerate(active, 1)]
+    else:
+        lines += ["No active findings are recorded. This is not a clean bill of health or a validated remediation result."]
     for index, finding in enumerate(findings, 1):
         lines += [f"## {index}. {literal(finding.get('title') or finding.get('id'))}", "", "| Field | Value |", "|---|---|"]
         for key, label in (("id", "Finding"), ("severity", "Severity"), ("cvss_score", "CVSS score"), ("cvss_vector", "CVSS vector"),
@@ -41,7 +67,8 @@ def markdown(campaign):
                            ("discovered_by_agent", "Agent")):
             if finding.get(key) is not None:
                 lines.append(f"| {label} | {literal(finding[key])} |")
-        lines += ["", "### Description", "", literal(finding.get("description")), "", "### Evidence", ""]
+        lines += ["", "### Description", "", literal(finding.get("description")), "", "### Recorded impact", "",
+                  literal(finding.get("impact") or "No separate impact statement recorded; review the evidence and scope."), "", "### Evidence", ""]
         evidence = finding.get("evidence") or {}
         if isinstance(evidence, dict):
             for key, value in evidence.items():
@@ -138,6 +165,18 @@ def pdf(campaign):
     text("Findings", "Heading1")
     text(" | ".join(f"{s.upper()}: {n}" for s, n in counts.items()))
     text("Confirmation labels reflect agent observations. Remediation validation is recorded separately.")
+    active, dispositions = plan(findings)
+    text("Disposition and coverage", "Heading1")
+    text("Counts cover retained findings in this campaign only; they do not establish complete target coverage.")
+    text(" | ".join(f"{status}: {count}" for status, count in sorted(dispositions.items())) or "No findings recorded.")
+    text("Accepted risk, false positives, remediated and resolved records are excluded from the active roadmap. Operator triage alone is not proof of deployment or a successful retest.")
+    text("Remediation roadmap", "Heading1")
+    text("Review order follows recorded severity, then finding ID. No owner, deadline or business impact is inferred.")
+    for index, finding in enumerate(active, 1):
+        text(f"{index}. {finding.get('id')} | {finding.get('severity', 'info')}", "Heading3")
+        text(finding.get("remediation") or "No remediation guidance recorded.")
+    if not active:
+        text("No active findings are recorded. This is not a clean bill of health or a validated remediation result.")
     for index, finding in enumerate(findings, 1):
         text(f"{index}. {finding.get('title', 'Untitled finding')}", "Heading2")
         text(f"{str(finding.get('severity', 'info')).upper()} | {finding.get('status', 'unconfirmed')} | CVSS {finding.get('cvss_score', 'N/A')}")
@@ -147,6 +186,8 @@ def pdf(campaign):
             if finding.get(key):
                 text(f"{label}: {finding[key]}")
         text(finding.get("description", ""))
+        text("Recorded impact", "Heading3")
+        text(finding.get("impact") or "No separate impact statement recorded; review the evidence and scope.")
         evidence = finding.get("evidence", {})
         if isinstance(evidence, dict):
             for key, value in evidence.items():

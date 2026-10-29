@@ -23,7 +23,7 @@ let token = "",
   scheduleMode = false;
 let currentDetailJob = "", lastFindingsHash = "", jobDetailRequest = 0;
 let jobRevealPending = false, jobRevealUntil = 0;
-let findingDetailRequest = 0, currentFindingRef = "";
+let findingDetailRequest = 0, currentFindingRef = "", evidenceViewVersion = 0, campaignDetailRequest = 0;
 async function grantedRequest(kind, id, path) {
   const currentToken = token;
   const issued = await api("/api/v1/evidence/grants", {
@@ -36,6 +36,12 @@ async function grantedRequest(kind, id, path) {
   });
 }
 function clearRevealedContent() {
+  evidenceViewVersion++;
+  const pending = $("#detail-body");
+  if (pending?.dataset.pendingReport) {
+    pending.textContent = "Report view changed. Close and preview again to refresh access.";
+    delete pending.dataset.pendingReport;
+  }
   findingDetailRequest++;
   jobDetailRequest++;
   jobRevealPending = false;
@@ -80,6 +86,7 @@ function fail(error) {
 }
 function lock() {
   clearRevealedContent();
+  eventCursor = "";
   currentFindingRef = "";
   $("#detail").open && $("#detail").close();
   token = "";
@@ -118,6 +125,7 @@ async function connect() {
         headers: { Authorization: `Bearer ${token}`, ...(eventCursor ? {"Last-Event-ID": eventCursor} : {}) },
         signal: streamControl.signal,
       });
+      if (res.status === 401) { lock(); return; }
       if (res.status === 409 && res.headers.get("X-Darkmoon-Resync") === "required") {
         eventCursor = "";
         await refresh();
@@ -288,12 +296,18 @@ function renderFindings() {
 }
 
 async function showCampaign(id) {
+  clearDetail();
+  const request = ++campaignDetailRequest, previousToken = token;
   campaignId = id;
+  $("#detail-title").textContent = "Assessment";
+  $("#detail-body").textContent = "Loading assessment…";
+  if (!$("#detail").open) $("#detail").showModal();
   const c = await api(`/api/v1/campaigns/${encodeURIComponent(id)}`);
+  if (request !== campaignDetailRequest || token !== previousToken || !$("#detail").open) return;
   $("#detail-title").textContent = c.name || c.id;
   $("#detail-body").innerHTML =
     `${badge(c.status)} ${c.analysis_origin?.kind === "owned-loopback-lab" ? `<span class="badge">Owned loopback lab · no LLM</span>` : ""} <span class="subtle">${esc(c.target?.host || "")} · ${esc(date(c.date))}</span><div class="report-actions">${["md", "pdf", "json"].map((format) => `<button class="secondary" data-export="${format}" data-cid="${esc(id)}">Download ${format.toUpperCase()}</button>`).join("")}<button class="secondary" data-report-preview="${esc(id)}">Preview report</button><button class="secondary" data-protected-pdf="${esc(id)}">Signed / encrypted PDF</button><button class="secondary" id="open-map">Explore surface →</button></div><p class="detail-text">${esc(c.executive_summary || "No executive summary recorded yet.")}</p>${findingsTable(c.findings)}`;
-  $("#detail").showModal();
+  $("#detail-body").insertAdjacentHTML("beforeend", '<p id="report-export-status" role="status" aria-live="polite"></p>');
 }
 function evidenceMarkup(evidence) {
   const pretty = (value) => {
@@ -378,11 +392,15 @@ async function revealFinding(id, cid) {
 }
 async function exportReport(cid, format) {
   if (identity?.role !== "admin") throw new Error("Administrator access required for full evidence exports");
+  if (!["md", "pdf", "json"].includes(format)) throw new Error("Unsupported report format");
+  const previousToken = token, version = evidenceViewVersion;
+  const current = () => token === previousToken && version === evidenceViewVersion && $("#detail").open;
   let body;
   if (format === "pdf") {
     const issued = await api("/api/v1/evidence/grants", {method:"POST",body:JSON.stringify({kind:"report_pdf",id:cid})});
+    if (!current()) return false;
     const res = await fetch(`/api/v1/campaigns/${encodeURIComponent(cid)}/report.pdf`, {
-      headers: { Authorization: `Bearer ${token}`, "X-Darkmoon-Evidence-Grant": issued.grant }
+      headers: { Authorization: `Bearer ${previousToken}`, "X-Darkmoon-Evidence-Grant": issued.grant }
     });
     if (!res.ok) throw new Error("Report export rejected");
     body = await res.blob();
@@ -391,12 +409,14 @@ async function exportReport(cid, format) {
     body = new Blob([format === "json" ? JSON.stringify(reveal.data, null, 2) : reveal.data.content],
       {type: format === "json" ? "application/json" : "text/markdown"});
   }
+  if (!current()) return false;
   const url = URL.createObjectURL(body),
     a = document.createElement("a");
   a.href = url;
   a.download = `${cid}.${format}`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
 }
 async function loadSchedules(signal) {
   const previousToken = token;
@@ -585,6 +605,7 @@ $("#setup-account-skip").addEventListener("click", () => $("#setup-account").clo
 $("#setup-account").addEventListener("close", () => $("#setup-account-form").reset());
 $("#login").addEventListener("cancel", (e) => e.preventDefault());
 function clearDetail() {
+  campaignDetailRequest++;
   currentDetailJob = "";
   currentFindingRef = "";
   clearRevealedContent();
@@ -663,8 +684,24 @@ document.addEventListener("click", async (e) => {
       await showFinding(b.dataset.finding, b.dataset.cid);
     else if (b.dataset.revealFinding)
       await revealFinding(b.dataset.revealFinding, b.dataset.cid);
-    else if (b.dataset.export)
-      await exportReport(b.dataset.cid, b.dataset.export);
+    else if (b.dataset.export) {
+      const label = b.textContent, status = $("#report-export-status");
+      b.disabled = true;
+      b.setAttribute("aria-busy", "true");
+      b.textContent = "Preparing…";
+      if (status) status.textContent = "Preparing report download…";
+      try {
+        const ready = await exportReport(b.dataset.cid, b.dataset.export);
+        if (status?.isConnected) status.textContent = ready ? "Report download prepared." : "Assessment changed. Reopen it to export the current report.";
+      } catch (error) {
+        if (status?.isConnected) status.textContent = "Report export unavailable. Retry from this assessment.";
+        throw error;
+      } finally {
+        b.disabled = false;
+        b.removeAttribute("aria-busy");
+        b.textContent = label;
+      }
+    }
     else if (b.dataset.patch) {
       const result = await grantedRequest("patch", b.dataset.patch);
       const url = URL.createObjectURL(new Blob([result.data.patch], {type:"text/x-diff"})),
