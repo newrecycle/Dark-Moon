@@ -18,6 +18,24 @@ from urllib.parse import parse_qs, urlsplit
 import urllib.request
 
 
+def read_dashboard_route(base_url, token, route, campaign_id):
+    """Exercise the public HTTP contract, including scoped PDF authorization."""
+    headers = {"Authorization": "Bearer " + token}
+    if route == f"/api/v1/campaigns/{campaign_id}/report.pdf":
+        grant_request = urllib.request.Request(
+            base_url + "/api/v1/evidence/grants",
+            data=json.dumps({"kind": "report_pdf", "id": campaign_id}).encode(),
+            headers={**headers, "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(grant_request, timeout=20) as response:
+            grant = json.load(response)
+        headers["X-Darkmoon-Evidence-Grant"] = grant["grant"]
+    request = urllib.request.Request(base_url + route, headers=headers)
+    with urllib.request.urlopen(request, timeout=20) as response:
+        return response.read()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", default="darkmoon-ui-lab")
@@ -184,12 +202,10 @@ def main():
             "/api/v1/campaigns/" + campaign_id + "/report.md",
             "/api/v1/campaigns/" + campaign_id + "/report.pdf",
         ]:
-            req = urllib.request.Request(
-                "http://127.0.0.1:" + str(dashboard.server_port) + route,
-                headers={"Authorization": "Bearer " + service.token},
+            content = read_dashboard_route(
+                "http://127.0.0.1:" + str(dashboard.server_port),
+                service.token, route, campaign_id,
             )
-            with urllib.request.urlopen(req, timeout=20) as response:
-                content = response.read()
             assert content
             checks.append(route)
         result = {

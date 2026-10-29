@@ -319,7 +319,9 @@ class FlatAdapterHTTPTests(fixtures.Fixture):
         self.assertEqual(changed["spec"]["targets"], original["spec"]["targets"])
         self.assertEqual(changed["rule"], original["rule"])
         self.assertEqual(changed["display_name"], "Updated")
-        self.assertEqual(self.request(path, "PUT", {"version": 1, "name": "stale"})[0], 400)
+        status, body, _ = self.request(path, "PUT", {"version": 1, "name": "stale"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(body)["error"], "Schedule changed; reload its current version before saving")
         self.assertEqual(self.service.store.get("schedules", original["id"]), changed)
 
     def test_patch_and_toggle_keep_intentional_legacy_behavior(self):
@@ -331,6 +333,19 @@ class FlatAdapterHTTPTests(fixtures.Fixture):
         saved = self.service.store.get("schedules", item["id"])
         self.assertEqual(saved["display_name"], "Compatibility")
         self.assertEqual(saved["spec"]["target"], "owned.invalid")
+
+    def test_schedule_configuration_is_separate_from_minimized_overview(self):
+        item = self.service.scheduler.create(flat())
+        status, body, _ = self.request("/api/v1/overview")
+        self.assertEqual(status, 200)
+        self.assertNotIn("spec", json.loads(body)["schedules"][0])
+        status, body, _ = self.request("/api/v1/schedules")
+        self.assertEqual(status, 200)
+        rows = json.loads(body)
+        self.assertIsInstance(rows, list)
+        self.assertEqual(rows[0]["id"], item["id"])
+        self.assertEqual(rows[0]["spec"], item["spec"])
+        self.assertEqual(rows[0]["rule"], item["rule"])
 
     def test_invalid_recurrence_returns_validation_error_not_server_error(self):
         for payload in (flat("interval"), flat("daily", recurrence_interval=0),

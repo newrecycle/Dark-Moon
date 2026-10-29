@@ -5,8 +5,11 @@ Only disposable local HTTP and storage fixtures; no live assessment or delivery.
 import concurrent.futures
 import json
 import os
+from pathlib import Path
+import runpy
 import threading
 import time
+import urllib.request
 from unittest.mock import patch
 
 import test_community as fixtures
@@ -110,6 +113,22 @@ class EvidenceHTTPTests(fixtures.Fixture):
         default = self.request(f"/api/v1/vulnerabilities/{self.fid}")[1]
         self.assertNotIn(EVIDENCE_CANARY, default.decode())
         self.assertNotIn(SOURCE_CANARY, default.decode())
+
+    def test_owned_lab_pdf_client_obtains_and_consumes_a_scoped_grant(self):
+        route = f"/api/v1/campaigns/{self.cid}/report.pdf"
+        self.assertEqual(self.request(route)[0], 403)
+        client = runpy.run_path(str(Path(__file__).resolve().parents[2] /
+                                   "tools/analyze-community-lab.py"))["read_dashboard_route"]
+        with patch("urllib.request.urlopen", wraps=urllib.request.urlopen) as opened:
+            body = client(f"http://127.0.0.1:{self.server.server_port}",
+                          self.service.token, route, self.cid)
+        self.assertTrue(body.startswith(b"%PDF"))
+        grant_request, pdf_request = [call.args[0] for call in opened.call_args_list]
+        self.assertEqual(json.loads(grant_request.data), {"kind": "report_pdf", "id": self.cid})
+        grant = pdf_request.get_header("X-darkmoon-evidence-grant")
+        self.assertTrue(grant)
+        self.assertNotIn(grant, pdf_request.full_url)
+        self.assertEqual(self.request(route, headers={"X-Darkmoon-Evidence-Grant": grant})[0], 403)
 
     def test_wrong_kind_id_campaign_and_cross_session_substitution(self):
         second = "separate_campaign"

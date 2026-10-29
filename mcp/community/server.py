@@ -58,7 +58,12 @@ def handler_for(service, allowed_hosts):
                 if status >= 400 and workspace_error:
                     # Permit only exact constant validation messages. Unknown
                     # exception text may contain source paths or user evidence.
-                    static_errors = {"Provide title, steps and explicit reviewed: true"}
+                    static_errors = {
+                        "Provide title, steps and explicit reviewed: true",
+                        "Schedule changed; reload its current version before saving",
+                        "Schedule changed; reload before duplicating",
+                        "Start time does not exist in this timezone; choose another time",
+                    }
                     existing = content.get("error") if isinstance(content, dict) else None
                     content = {"error": "Not found" if status == 404 else
                                existing if existing in static_errors else "Request rejected"}

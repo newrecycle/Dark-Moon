@@ -65,9 +65,31 @@ The follow-up clears finding identity, pending requests and revealed DOM content
 synchronously before a close-button action, and on Escape's cancel event. The
 existing close handler remains as a fallback for programmatic closes. Browser
 acceptance now also reveals evidence, closes with Escape, and checks a reopened
-dialog contains no previously revealed evidence. JavaScript syntax and dependency
-policy checks passed locally; real Chromium verification is recorded after the
-hosted follow-up completes. Local browser installation returned truncated archives,
-so it is not counted as browser acceptance.
+dialog contains no previously revealed evidence. The [first follow-up browser run](https://github.com/newrecycle/Dark-Moon/actions/runs/40801893979)
+passed the close-button/Escape checks, then exposed a separate schedule-view
+failure. Local browser installation returned truncated archives, so it is not
+counted as browser acceptance.
 
 No native integration-host revalidation is claimed for this reconciliation.
+
+
+## Remaining consumer corrections
+
+The schedules view now loads its editable configuration from the existing
+`/api/v1/schedules` list when that view opens, instead of treating minimized
+overview metadata as full schedule configuration. Requests are cancelled on
+navigation and ignored after session/view changes. The overview stays minimized.
+Exact constant messages for stale schedule versions and nonexistent DST times
+are retained; arbitrary exception text is still concealed.
+
+The owned-loopback lab verification client now obtains a scoped `report_pdf`
+grant before requesting a PDF. Its previous ungranted request correctly received
+403 in [the runtime check](https://github.com/newrecycle/Dark-Moon/actions/runs/40801892889).
+The Docker native provider contract in that same run passed. A new real HTTP
+regression confirms the lab client exports a PDF, keeps the grant out of the
+URL, and cannot reuse the consumed grant; ungranted PDF access remains denied.
+
+Focused evidence and scheduler HTTP suites: **35 tests and 41 subtests passed**.
+Calendar/evidence/scheduler checks before the additional overview/configuration
+regression also passed (54 tests and 41 subtests). Final hosted follow-up results
+are recorded once observed.

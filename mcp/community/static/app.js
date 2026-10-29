@@ -231,7 +231,8 @@ function render() {
       `<div class="toolbar">${campaignSelect()}<button class="secondary" id="vr-button" disabled>Checking VR…</button><button class="secondary" id="surface-tour">Tour finding locations</button></div><div class="panel"><div class="map-layout"><div class="surface-stage"><div id="surface-controls"></div><canvas id="surface-canvas" class="surface" aria-label="Interactive three dimensional infrastructure graph"></canvas><div id="surface-tour-card" hidden></div><p class="map-caption">Drag to orbit · Scroll to zoom · Select a node to inspect. Lines show recorded containment and connections.</p></div><div class="map-info" id="map-info">Choose an assessment to explore its infrastructure.</div></div></div><section id="recorded-paths" class="panel"></section>`;
     if (campaignId) drawSurface(campaignId, viewControl.signal).catch(fail);
   } else if (route === "schedules") {
-    $("#content").innerHTML = `<section class="panel"><div class="section-top"><div><h3>Scheduled assessments</h3><p>Calendar rules use their named timezone; elapsed intervals keep their existing timing. Missed occurrences coalesce and overlapping jobs are skipped.</p></div><button class="primary" id="new-schedule">+ Add schedule</button></div><p class="instructions">Duplicates start paused. Pause/delete prevents future claims; an occurrence already being enqueued or running may continue. Consumed one-time schedules can be explicitly re-armed.</p>${window.ScheduleUI.table(s.schedules)}</section>`;
+    $("#content").innerHTML = `<section class="panel"><div class="section-top"><div><h3>Scheduled assessments</h3><p>Calendar rules use their named timezone; elapsed intervals keep their existing timing. Missed occurrences coalesce and overlapping jobs are skipped.</p></div><button class="primary" id="new-schedule">+ Add schedule</button></div><p class="instructions">Duplicates start paused. Pause/delete prevents future claims; an occurrence already being enqueued or running may continue. Consumed one-time schedules can be explicitly re-armed.</p><div id="schedule-list" role="status">Loading schedules…</div></section>`;
+    loadSchedules(viewControl.signal);
   } else if (route === "remediation") {
     const query = new URLSearchParams(location.hash.split("?")[1] || "");
     const selectedStatus = query.get("status"), linkedOnly = query.get("linked") === "1";
@@ -383,6 +384,21 @@ async function exportReport(cid, format) {
   a.download = `${cid}.${format}`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function loadSchedules(signal) {
+  const previousToken = token;
+  try {
+    // Overview deliberately withholds configuration fields. Read editable
+    // schedules only when their dedicated view is opened.
+    const items = await api("/api/v1/schedules", {signal});
+    if (signal.aborted || token !== previousToken || route !== "schedules") return;
+    if (!Array.isArray(items)) throw new Error("Invalid schedule response");
+    snapshot.schedules = items;
+    $("#schedule-list").innerHTML = window.ScheduleUI.table(items);
+    applyRoles();
+  } catch (error) {
+    if (!signal.aborted && token === previousToken && route === "schedules") fail(error);
+  }
 }
 async function loadRunQueue(signal) {
   const target = $("#run-queue");
