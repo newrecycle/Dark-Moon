@@ -191,3 +191,14 @@ while retaining current triage semantics. Tests: posture + evidence suites,
 rules and cohort definition. Historical as-of reconstruction, cross-campaign
 identity deduplication and a cohort-aware UI remain open; no vendor comparison
 or complete item-5 closure is claimed.
+
+### Run-discovery keyset increment
+
+Optional live keyset pages now avoid offset shifts from newer inserts; existing
+offset clients retain their contract. Scale/storage focus: 14 passed and 110
+subtests. Existing run/storage focus: 24 passed and 106 subtests before the new
+case. See control-state-sqlite-2026-10-29.md for copyable requests and limits.
+This does not claim frozen cross-request state or whole-system crash consistency.
+The resource-link browser fixture initially attempted navigation while logged
+out; it now explicitly authenticates before opening and after reload, preserving
+the server's no-persisted-token policy. Its rerun remains pending.

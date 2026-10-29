@@ -57,3 +57,29 @@ Local regression fixture: 8,000 historical jobs, offset 4,000, limit 25 decoded
 exactly 25 records, with ~136 KiB traced peak and ~6 ms selection on the managed
 host. One nested job mutation decoded one record; active count decoded none.
 These are measured fixture results, not production throughput guarantees.
+
+## Optional run-discovery keyset pages
+
+Both /api/v1/run/active and /api/v1/run/logs accept `pagination=cursor` with
+zero offset for an initial keyset page. Preserve filters and pass the returned
+`next_cursor` on each subsequent request (URL-encode it); cursor presence selects
+cursor mode. `limit` remains 1–100. The token binds the filter family and last
+created_at/id tuple. Invalid tokens, changed filters, nonzero offsets and mixed
+modes reject. Cursor values are seek positions, not authorization credentials.
+Do not persist them as evidence snapshots.
+
+`page_consistency=live_keyset` means newer rows inserted above the last tuple do
+not shift later pages or duplicate already-seen IDs. A deleted anchor does not
+break continuation. Rows inserted below the cursor may still appear; status
+changes/deletions can change membership. Total describes current matching rows,
+not a frozen cohort; no immutable cross-request snapshot is promised. Legacy
+offset requests retain their exact response semantics. Keyset pages have no
+100000-offset traversal ceiling, but exact COUNT remains proportional to the
+matching population. Consumers must explicitly opt in; dashboard and Splunk
+have not yet adopted this optional mode.
+
+Run discovery/storage tests:
+`PYTHONPATH=mcp .venv/bin/python -m pytest tests/community/test_run_discovery.py
+tests/community/test_run_discovery_scale.py tests/community/test_control_storage.py -q`.
+The added case traverses tied timestamps during a newer insertion and anchor
+deletion; verifies exact unique IDs and rejects wrong-filter/malformed cursors.

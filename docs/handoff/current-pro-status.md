@@ -8,7 +8,7 @@ Read [commercial API acceptance instructions](commercial-api-parity.md) before m
 |---|---|---|
 | 13 static API discrepancies | Route/method/filter adapters implemented and fork-tested | Authentic vendor request/response/error/authorization comparison; unknown defaults |
 | Credentials/evidence | Structured ownership/adapters, masked defaults and expiring scoped grants implemented | Configured-root source browser implemented with one-use grants; scheduling/configuration projection policy remains |
-| History/storage | Indexed SQLite finding history, snapshot sequence, mutation recovery; SQLite control storage | Whole-system recovery, retention policy and assessment analytics scaling |
+| History/storage | Indexed SQLite finding history, snapshot sequence, mutation recovery; SQLite control storage | Optional live keyset run pages added; whole-system recovery, retention and assessment analytics scaling remain |
 | Events | Atomic event/webhook admission, durable observer checkpoint, replay-gap signaling | Transient offline observations cannot be recovered; adversarial log rotation coverage |
 | Graph | Evidence-bound producer, reviewed paths, editing and immutable revisions | Independent exploitation proof, headset acceptance and exact reference visuals |
 | Reports | Impact/disposition, roadmap, protected previews/exports and race fixes | Full commercial interaction/visual comparison |

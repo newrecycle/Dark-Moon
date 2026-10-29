@@ -1238,10 +1238,18 @@ const assert = require("node:assert/strict");
     await page.locator("#logout").click();
     await page.locator("#login[open]").waitFor();
     assert.deepEqual(errors, []);
-    // Resource links survive reload and Back without restoring evidence grants.
+    // A resource link while locked waits for an authenticated session.
     await page.evaluate(cid => { location.hash = `campaign/${cid}`; }, fixture.campaign_id);
+    assert.equal(await page.locator('#detail[open]').count(), 0);
+    await page.locator("#login-username").fill("fixture-reader");
+    await page.locator("#token").fill("rotated-fixture-reader-password");
+    await page.locator("#login-form button[type=submit]").click();
     await page.locator('#detail[open] a', {hasText:'Link to assessment'}).waitFor();
     await page.reload();
+    await page.locator('#login[open]').waitFor();
+    await page.locator("#login-username").fill("fixture-reader");
+    await page.locator("#token").fill("rotated-fixture-reader-password");
+    await page.locator("#login-form button[type=submit]").click();
     await page.locator('#detail[open] a', {hasText:'Link to assessment'}).waitFor();
     await page.evaluate(({cid,fid}) => { location.hash = `vulnerability/${fid}?campaign_id=${cid}`; },
       {cid:fixture.campaign_id,fid:fixture.finding_id});

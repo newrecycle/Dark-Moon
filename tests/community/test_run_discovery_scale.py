@@ -44,6 +44,31 @@ class LargeRunDiscoveryTests(fixtures.Fixture):
         self.service.store.update(lambda state: state["jobs"].update(
             {row["id"]: row for row in rows}))
 
+    def test_keyset_pages_survive_newer_inserts_and_deleted_anchor(self):
+        from urllib.parse import urlencode
+        records = [job(i, state="queued", date="2026-10-01T00:00:00Z") for i in range(12)]
+        self.bulk(records)
+        first = active_runs(self.service.store, handler('/api/v1/run/active?pagination=cursor&limit=3'))
+        self.assertEqual(first['page_consistency'], 'live_keyset')
+        found = [row['id'] for row in first['data']]
+        self.bulk([job(99, state="queued", date="2026-10-02T00:00:00Z")])
+        self.service.store.update(lambda state: state['jobs'].pop(found[-1]))
+        cursor = first['next_cursor']
+        while cursor:
+            response = active_runs(self.service.store, handler('/api/v1/run/active?' + urlencode({'cursor':cursor, 'limit':3})))
+            found.extend(row['id'] for row in response['data'])
+            cursor = response['next_cursor']
+        self.assertEqual(found, [r['id'] for r in reversed(records)])
+        self.assertEqual(len(found), len(set(found)))
+        for query in ({'cursor':first['next_cursor'],'offset':1},
+                      {'cursor':first['next_cursor'],'pagination':'offset'},
+                      {'cursor':'!not-base64!'}, {'pagination':'snapshot'}):
+            with self.subTest(query=query), self.assertRaises(ValueError):
+                active_runs(self.service.store, handler('/api/v1/run/active?'+urlencode(query)))
+        # A token from active discovery cannot be reused for a different filter family.
+        with self.assertRaises(ValueError):
+            log_collection(self.service.store, handler('/api/v1/run/logs?'+urlencode({'cursor':first['next_cursor']})))
+
     def test_more_than_one_hundred_mixed_active_and_every_terminal_state(self):
         records = [job(i) for i in range(560)]
         self.bulk(records)

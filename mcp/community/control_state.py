@@ -155,7 +155,7 @@ class State(MutableMapping):
 
 
 def job_keys(db, *, statuses=None, state=None, campaign_id=None, run_id=None, schedule_id=None,
-             idempotency_key=None, limit=100, offset=0, ascending=False):
+             idempotency_key=None, limit=100, offset=0, ascending=False, before=None):
     clauses, args = ["collection='jobs'"], []
     if statuses is not None:
         if not statuses:
@@ -169,6 +169,11 @@ def job_keys(db, *, statuses=None, state=None, campaign_id=None, run_id=None, sc
             args.append(value)
     where = " AND ".join(clauses)
     total = db.execute("SELECT count(*) FROM records WHERE " + where, args).fetchone()[0]
+    if before is not None:
+        if ascending or offset:
+            raise ValueError("Keyset reads require descending order and zero offset")
+        where += " AND (created_at,key) < (?,?)"
+        args.extend(before)
     direction = "ASC" if ascending else "DESC"
     keys = [row[0] for row in db.execute("SELECT key FROM records WHERE " + where +
             f" ORDER BY created_at {direction},key {direction} LIMIT ? OFFSET ?", (*args, limit, offset))]

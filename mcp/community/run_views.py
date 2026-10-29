@@ -3,6 +3,9 @@
 Raw process output is untrusted and may contain credentials. It is never included
 in collection endpoints, default detail responses or viewer responses.
 """
+import base64
+import hashlib
+import json
 import heapq
 import os
 import stat
@@ -93,13 +96,50 @@ def _pagination(total, offset, limit, count):
             "ordering": "created_at_desc,id_desc", "page_consistency": "live_offset"}
 
 
+def _discovery_page(store, params, query, limit, offset):
+    mode = params.get("pagination", "cursor" if "cursor" in params else "offset")
+    if mode not in {"offset", "cursor"} or (mode == "offset" and "cursor" in params):
+        raise ValueError("Choose offset or cursor pagination")
+    if mode == "offset":
+        page, total = store.jobs(**query, offset=offset, limit=limit)
+        return page, _pagination(total, offset, limit, len(page))
+    if offset:
+        raise ValueError("Cursor pages require zero offset")
+    fingerprint = hashlib.sha256(json.dumps(query, sort_keys=True, default=sorted).encode()).hexdigest()
+    before = None
+    if "cursor" in params:
+        cursor = params["cursor"]
+        try:
+            if not 1 <= len(cursor) <= 1024:
+                raise ValueError()
+            payload = json.loads(base64.b64decode(cursor.encode(), altchars=b"-_", validate=True))
+            if (not isinstance(payload, list) or len(payload) != 4 or payload[0] != 1 or
+                    payload[1] != fingerprint or not isinstance(payload[2], str) or len(payload[2]) > 200):
+                raise ValueError()
+            before = (payload[2], identifier(payload[3]))
+        except (ValueError, TypeError, UnicodeError):
+            raise ValueError("Invalid cursor or changed filters") from None
+    page, total = store.jobs(**query, before=before, limit=limit + 1)
+    more = len(page) > limit
+    page = page[:limit]
+    next_cursor = None
+    if more:
+        tail = page[-1]
+        next_cursor = base64.urlsafe_b64encode(json.dumps(
+            [1, fingerprint, str(tail.get("created_at") or ""), tail["id"]], separators=(",", ":")).encode()).decode()
+    return page, {"total": total, "limit": limit, "offset": 0, "has_more": more,
+                  "next_offset": None, "next_cursor": next_cursor,
+                  "paging_limit_reached": False, "ordering": "created_at_desc,id_desc",
+                  "page_consistency": "live_keyset"}
+
+
 def active_runs(store, handler=None):
-    params = _parameters(handler, ("limit", "offset")) if handler is not None else {}
+    params = _parameters(handler, ("limit", "offset", "pagination", "cursor")) if handler is not None else {}
     limit = _positive(params, "limit", 50, MAX_PAGE, 1)
     offset = _positive(params, "offset", 0, MAX_OFFSET)
-    page, total = store.jobs(statuses=ACTIVE, offset=offset, limit=limit)
+    page, pagination = _discovery_page(store, params, {"statuses": ACTIVE}, limit, offset)
     rows = [public_run(job) for job in page]
-    return {"data": rows, **_pagination(total, offset, limit, len(rows)),
+    return {"data": rows, **pagination,
             "active_states": ["queued", "running", "cancelling"]}
 
 
@@ -118,7 +158,7 @@ def log_metadata(store, job):
 
 
 def log_collection(store, handler):
-    params = _parameters(handler, ("limit", "offset", "status", "campaign_id", "run_id"))
+    params = _parameters(handler, ("limit", "offset", "status", "campaign_id", "run_id", "pagination", "cursor"))
     limit = _positive(params, "limit", 25, MAX_PAGE, 1)
     offset = _positive(params, "offset", 0, MAX_OFFSET)
     status = params.get("status")
@@ -126,9 +166,9 @@ def log_collection(store, handler):
         raise ValueError("Unsupported run status")
     campaign_id = _identity_filter(params, "campaign_id")
     run_id = _identity_filter(params, "run_id")
-    page, total = store.jobs(state=status, campaign_id=campaign_id, run_id=run_id, offset=offset, limit=limit)
+    page, pagination = _discovery_page(store, params, {"state": status, "campaign_id": campaign_id, "run_id": run_id}, limit, offset)
     return {"data": [public_run(job) | log_metadata(store, job) for job in page],
-            **_pagination(total, offset, limit, len(page)), "content_policy": "metadata_only"}
+            **pagination, "content_policy": "metadata_only"}
 
 
 def _read_chunk(store, job_id, offset=0, count=MAX_TAIL_BYTES, tail=False):
