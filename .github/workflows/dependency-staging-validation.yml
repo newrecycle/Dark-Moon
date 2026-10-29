@@ -155,7 +155,7 @@ jobs:
               assert modified, f'No changes found in {file}'
               for line in modified:
                   assert re.fullmatch(
-                      r'\\s*-?\\s*uses:\\s+[\\w./-]+@[\\w.-]+\\s*', line
+                      r'\s*-?\s*uses:\s+[\w./-]+@[\w.-]+\s*', line
                   ), f'Unexpected GitHub Actions change in {file}: {line}'
               print(f'Only action references changed in {file}')
           PY
