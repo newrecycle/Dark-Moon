@@ -1,0 +1,39 @@
+name: Dependency automation regression checks
+
+on:
+  push:
+    branches: [pro, deps]
+    paths:
+      - '.github/dependabot.yml'
+      - '.github/workflows/dependency-staging-validation.yml'
+      - '.github/workflows/dependency-staging-automerge.yml'
+      - '.github/workflows/sync-pro-to-deps.yml'
+      - '.github/workflows/dependency-automation-regressions.yml'
+      - 'tests/community/test_dependency_workflow_policy.py'
+  pull_request:
+    paths:
+      - '.github/dependabot.yml'
+      - '.github/workflows/dependency-staging-validation.yml'
+      - '.github/workflows/dependency-staging-automerge.yml'
+      - '.github/workflows/sync-pro-to-deps.yml'
+      - '.github/workflows/dependency-automation-regressions.yml'
+      - 'tests/community/test_dependency_workflow_policy.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install PyYAML
+      - name: Validate dependency workflow YAML, shell syntax and merge policy
+        run: python -m unittest discover -s tests/community -p test_dependency_workflow_policy.py -v
