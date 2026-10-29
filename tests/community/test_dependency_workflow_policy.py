@@ -98,9 +98,10 @@ class DependabotWorkflowPolicy(unittest.TestCase):
         ):
             self.assertIn(required, text)
         self.assertNotIn("actions/checkout", text)
-        # All non-security promotions are PRs only; only the security case
-        # uses the merge API with pro as the PR's base.
-        self.assertNotIn("-f base=pro -f head=deps", text)
+        # The only direct merge endpoint is scoped to the validated PR.
+        # The separate deps -> pro call is a PR creation, not a merge.
+        self.assertEqual(text.count('pulls/$pr/merge'), 1)
+        self.assertIn('-f base=pro -f head=deps', text)
 
 
 if __name__ == "__main__":
