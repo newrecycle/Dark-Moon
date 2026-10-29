@@ -65,15 +65,15 @@ jobs:
             exit 1
           }
 
-          if [[ "$base" == 'pro' ]]; then
-            # Routine version updates target deps in dependabot.yml. Security
-            # PRs targeting pro carry this bot-generated security notice.
-            # Fail closed if a differently configured version PR targets pro.
-            if [[ "$(jq -r '.body // ""' <<<"$detail")" != *"You can disable automated security fix PRs for this repo"* ]]; then
-              echo "::warning::PR #$pr targets pro but is not identifiable as a Dependabot security fix. Manual review required."
-              exit 0
-            fi
-          fi
+          # Our default-branch Dependabot configuration targets ALL routine
+          # version updates at deps; bot-authored PRs aimed at pro are the
+          # security-update lane. Do not infer security type from the PR body:
+          # GitHub truncates large grouped PR descriptions (e.g. PR #27).
+          head_ref="$(jq -r '.head.ref' <<<"$detail")"
+          [[ "$head_ref" == dependabot/* ]] || {
+            echo '::error::Unexpected Dependabot head ref.'
+            exit 1
+          }
 
           # Successful dedicated validation is necessary, but not sufficient:
           # wait for ALL of the PR's other CI checks, including independent
@@ -92,12 +92,10 @@ jobs:
             exit 1
           }
 
-          if [[ "$base" == 'pro' ]]; then
-            if [[ "$(jq -r '.body // ""' <<<"$detail")" != *"You can disable automated security fix PRs for this repo"* ]]; then
-              echo '::error::Security identification changed while checks were running.'
-              exit 1
-            fi
-          fi
+          [[ "$(jq -r '.head.ref' <<<"$detail")" == dependabot/* ]] || {
+            echo '::error::Dependabot branch changed during CI.'
+            exit 1
+          }
 
           gh api --method PUT "repos/${GITHUB_REPOSITORY}/pulls/$pr/merge" \
             -f sha="$sha" -f merge_method=squash \
