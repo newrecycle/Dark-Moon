@@ -2,20 +2,16 @@ name: Dependency automation regression checks
 
 on:
   push:
-    branches: [pro, deps]
+    branches: [pro]
     paths:
       - '.github/dependabot.yml'
-      - '.github/workflows/dependency-staging-validation.yml'
-      - '.github/workflows/dependency-staging-automerge.yml'
-      - '.github/workflows/sync-pro-to-deps.yml'
+      - '.github/workflows/dependency-validation.yml'
       - '.github/workflows/dependency-automation-regressions.yml'
       - 'tests/community/test_dependency_workflow_policy.py'
   pull_request:
     paths:
       - '.github/dependabot.yml'
-      - '.github/workflows/dependency-staging-validation.yml'
-      - '.github/workflows/dependency-staging-automerge.yml'
-      - '.github/workflows/sync-pro-to-deps.yml'
+      - '.github/workflows/dependency-validation.yml'
       - '.github/workflows/dependency-automation-regressions.yml'
       - 'tests/community/test_dependency_workflow_policy.py'
   workflow_dispatch:

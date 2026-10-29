@@ -1,8 +1,8 @@
-name: Dependency staging validation
+name: Dependency PR validation
 
 on:
   pull_request:
-    branches: [deps, pro]
+    branches: [pro]
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
@@ -12,11 +12,11 @@ permissions:
 
 jobs:
   validate:
-    # Read-only validation for both routine deps PRs and security PRs targeting pro.
+    # Read-only validation for routine and security Dependabot PRs to pro.
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.user.login == 'dependabot[bot]' &&
-      contains(fromJSON('["deps","pro"]'), github.event.pull_request.base.ref) &&
+      github.event.pull_request.base.ref == 'pro' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 45

@@ -1,0 +1,20 @@
+{
+  "repository": "newrecycle/Dark-Moon",
+  "base_pro": "438f3af4b86ab13b943f55067e4b4c8190a7be0c",
+  "branches": {
+    "agent/credential-adapters-access-20261028": "c4379931e66336db26f77142f3db536a9e32d976",
+    "agent/gitlab-native-acceptance-20261028": "50b0a8a05432b26b89f87791c0d1f44759c3a6fa",
+    "agent/jenkins-native-acceptance-20261028": "a2e46790424ef772e892bfdff467341087e2e0e4",
+    "agent/splunk-forwarder-transport-security": "7b26130d7eff6af0d8c31a6b68e9530c39741f9e",
+    "agent/splunk-hec-offline-verification-20261028": "e3140f3bf13de1962b6f140188525eb806ead09b",
+    "agent/splunk-native-verification-20261028": "bccb0cd8b18806a5dae64ba23d5ecb50884a9223",
+    "agent/vscode-native-acceptance-20261028": "4a9c13304ac1965f1bb703be3fb82ddd852c2c56",
+    "dependabot/npm_and_yarn/integrations/upstream/jenkins/npm_and_yarn-54d3728c9a": "d3500a66cf4d850b4f8cd425bb320acdef745f0d",
+    "deps": "5e9f989d2ab5bee94a21cd13fecc8b0fe6626f11",
+    "hermes-single-container-merge": "abf42cc584e4603a8c8567bac699e36dd609694b",
+    "master": "63250c8359d5ae57274d6aca87905106a08c5e11",
+    "old": "c6df39e4948c41836b199c6286a34167daae248a",
+    "work/evidence-policy-20261028": "d5168f80c5da2a65e25069f948f4370c45df9b8b",
+    "work/finding-history-durability-20261028": "451fd070974cf4521729defe20d6786ea3d83ee1"
+  }
+}
