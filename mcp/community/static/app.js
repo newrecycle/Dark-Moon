@@ -213,11 +213,13 @@ function applyRoles() {
   ))
     b.hidden = viewer;
 }
+let lastResourceRoute = "";
 function render() {
   if (!snapshot) return;
   viewControl?.abort();
   viewControl = new AbortController();
-  route = location.hash.slice(1).split("?")[0] || "overview";
+  const resourceRoute = ResourceRoutes.read(location.hash);
+  route = resourceRoute ? "campaigns" : location.hash.slice(1).split("?")[0] || "overview";
   const headings = {
     overview: "Overview",
     campaigns: "Campaigns",
@@ -273,6 +275,21 @@ function render() {
     window.renderWorkspace(route).then(applyRoles).catch(fail);
   }
   applyRoles();
+  if (resourceRoute && lastResourceRoute !== token + location.hash) {
+    const expected = token + location.hash;
+    lastResourceRoute = expected;
+    const opening = resourceRoute.kind === "campaign"
+      ? showCampaign(resourceRoute.id) : showFinding(resourceRoute.id, resourceRoute.campaignId);
+    const detailVersion = campaignDetailRequest;
+    opening.catch(() => {
+      if (token + location.hash !== expected || campaignDetailRequest !== detailVersion) return;
+      clearDetail();
+      $("#detail-title").textContent = "Resource unavailable";
+      $("#detail-body").textContent = "This resource could not be loaded. Check its identity and access permissions.";
+      if (!$("#detail").open) $("#detail").showModal();
+    });
+  }
+
 }
 
 function updateFindingView(changes, push = false) {
@@ -310,6 +327,7 @@ async function showCampaign(id) {
   $("#detail-title").textContent = c.name || c.id;
   $("#detail-body").innerHTML =
     `${badge(c.status)} ${c.analysis_origin?.kind === "owned-loopback-lab" ? `<span class="badge">Owned loopback lab · no LLM</span>` : ""} <span class="subtle">${esc(c.target?.host || "")} · ${esc(date(c.date))}</span><div class="report-actions">${["md", "pdf", "json"].map((format) => `<button class="secondary" data-export="${format}" data-cid="${esc(id)}">Download ${format.toUpperCase()}</button>`).join("")}<button class="secondary" data-report-preview="${esc(id)}">Preview report</button><button class="secondary" data-protected-pdf="${esc(id)}">Signed / encrypted PDF</button><button class="secondary" id="open-map">Explore surface →</button></div><p class="detail-text">${esc(c.executive_summary || "No executive summary recorded yet.")}</p>${findingsTable(c.findings)}`;
+  $("#detail-body").insertAdjacentHTML("afterbegin", `<p><a href="${ResourceRoutes.link("campaign", id)}">Link to assessment</a></p>`);
   $("#detail-body").insertAdjacentHTML("beforeend", '<p id="report-export-status" role="status" aria-live="polite"></p>');
 }
 function evidenceMarkup(evidence) {
@@ -373,6 +391,7 @@ async function showFinding(id, cid) {
       )}<div class="detail-label">Recorded evidence</div>${evidence}${f.evidence_commands ? `<pre>${esc(f.evidence_commands)}</pre>` : ""}<div class="detail-label">Remediation guidance</div><div class="detail-text">${esc(f.remediation || "No guidance recorded.")}</div>${["confirmed", "exploited"].includes(f.status) ? `<div class="report-actions"><button class="primary" data-prepare-fix="${esc(id)}" data-cid="${esc(cid)}">Prepare local fix →</button></div>` : ""}<div class="detail-label">Operator triage</div><div class="toolbar"><select id="triage-status">${["unconfirmed", "confirmed", "exploited", "false_positive", "accepted_risk", "remediated", "resolved"].map((x) => `<option value="${x}" ${f.status === x ? "selected" : ""}>${x.replaceAll("_", " ")}</option>`).join("")}</select><button class="secondary" data-triage="${esc(id)}" data-cid="${esc(cid)}">Save triage</button></div><small>Operator triage does not constitute a validated remediation retest.</small>`;
   $("#detail-body").insertAdjacentHTML("beforeend",
     `<div class="detail-label">Linked remediation records</div>${related ? (related.data.length ? related.data.map(r => `<div class="list-item"><div><strong>${esc(r.id)}</strong><small>${esc(r.record_type === "published_pr" ? "Published PR" : "Local proposal")} · ${esc(r.status || "unknown")}</small></div><button class="secondary" data-remediation="${esc(r.id)}" data-cid="${esc(cid)}" data-proposal-finding="${esc(id)}">Review</button></div>`).join("") : '<p class="instructions">No linked remediation records.</p>') : '<p class="instructions">Linked remediation records unavailable.</p>'}`);
+  $("#detail-body").insertAdjacentHTML("afterbegin", `<p><a href="${ResourceRoutes.link("vulnerability", id, cid)}">Link to finding</a></p>`);
   if (identity?.role === "admin") {
     $("#detail-body").insertAdjacentHTML("beforeend",
       `<button class="secondary" data-reveal-finding="${esc(id)}" data-cid="${esc(cid)}">Reveal recorded evidence (45-second grant)</button>`);
@@ -855,7 +874,12 @@ $("#remediation-form").addEventListener("submit", async (e) => {
     button.disabled = false;
   }
 });
-window.addEventListener("hashchange", render);
+window.addEventListener("hashchange", () => {
+  lastResourceRoute = "";
+  clearDetail();
+  if ($("#detail").open && !ResourceRoutes.read(location.hash)) $("#detail").close();
+  render();
+});
 setInterval(() => {
   if (jobRevealPending) return;
   if (jobRevealUntil && Date.now() < jobRevealUntil) return;

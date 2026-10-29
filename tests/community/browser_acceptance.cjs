@@ -1238,6 +1238,19 @@ const assert = require("node:assert/strict");
     await page.locator("#logout").click();
     await page.locator("#login[open]").waitFor();
     assert.deepEqual(errors, []);
+    // Resource links survive reload and Back without restoring evidence grants.
+    await page.evaluate(cid => { location.hash = `campaign/${cid}`; }, fixture.campaign_id);
+    await page.locator('#detail[open] a', {hasText:'Link to assessment'}).waitFor();
+    await page.reload();
+    await page.locator('#detail[open] a', {hasText:'Link to assessment'}).waitFor();
+    await page.evaluate(({cid,fid}) => { location.hash = `vulnerability/${fid}?campaign_id=${cid}`; },
+      {cid:fixture.campaign_id,fid:fixture.finding_id});
+    await page.locator('#detail[open] a', {hasText:'Link to finding'}).waitFor();
+    assert.equal(await page.locator('[data-revealed-content]').count(), 0);
+    await page.goBack();
+    await page.locator('#detail[open] a', {hasText:'Link to assessment'}).waitFor();
+    await page.evaluate(() => {location.hash='campaign/camp_missing_fixture';});
+    await page.getByText('Resource unavailable', {exact:true}).waitFor();
     console.log(
       JSON.stringify(
         {

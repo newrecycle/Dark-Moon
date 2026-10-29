@@ -164,3 +164,21 @@ locally. SDK/consumer provenance now also asserts the lockfile SHA-512 matches
 its archive. An initial hosted SDK run exposed stale lock integrity and the
 inventory rejected a retired-integration mention; both were corrected in the
 subsequent checkpoint. Do not label those failed runs successful.
+
+### Resource navigation checkpoint
+
+Added strict metadata-only hash links `#campaign/ID` and
+`#vulnerability/ID?campaign_id=CAMPAIGN_ID`. The campaign-qualified finding route
+never guesses a campaign. Links contain no grants or revealed bodies; loading,
+missing/access-error and reload/Back browser scenarios are included. Pure route
+checks run with `node tests/community/resource_routes.cjs` in the retained Tests
+gate. Browser execution remains pending for this checkpoint. This closes two
+navigation surfaces, not all 13 original Angular routes or visual parity.
+
+### Observed native remediation result
+
+The owned-lab-analysis job in runtime run 40946712274 passed, including the new
+production Docker remediation harness before owned-loopback analysis. Actual
+containers exercised validated, validation_failed and infrastructure-error
+unreproduced outcomes. No model inference or forge write was performed. The
+separate image/provider job was still running at this observation.

@@ -149,8 +149,8 @@ def handler_for(service, allowed_hosts):
                 self.close_connection = True
                 return self.send({"error": "Cross-origin requests are disabled"}, status=403)
             path = unquote(urlsplit(self.path).path)
-            if method == "GET" and path in {"/", "/callback", "/app.js", "/app.css", "/workspace.js", "/paths.js", "/finding-query.js", "/schedules.js", "/posture.js"}:
-                name, kind = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
+            if method == "GET" and path in {"/", "/callback", "/resource-routes.js", "/app.js", "/app.css", "/workspace.js", "/paths.js", "/finding-query.js", "/schedules.js", "/posture.js"}:
+                name, kind = {"/resource-routes.js": ("resource-routes.js", "text/javascript"), "/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
                               "/callback": ("index.html", "text/html"), "/workspace.js": ("workspace.js", "text/javascript"),
                               "/app.css": ("app.css", "text/css"), "/paths.js": ("paths.js", "text/javascript"),
                               "/finding-query.js": ("finding-query.js", "text/javascript"),
