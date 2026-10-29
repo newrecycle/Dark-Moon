@@ -150,7 +150,10 @@ async function connect() {
           } else {
             const cursor = event.split("\n").find(line => line.startsWith("id: "))?.slice(4);
             if (cursor && /^[0-9]{1,20}$/.test(cursor)) eventCursor = cursor;
-            if (event.startsWith("event: revision")) await refresh();
+            if (event.startsWith("event: revision")) {
+              const revision = event.split("\n").find(line => line.startsWith("data: "))?.slice(6);
+              if (!revision || revision !== snapshot?.workspace_revision) await refresh();
+            }
           }
         }
       }

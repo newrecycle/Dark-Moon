@@ -43,7 +43,7 @@ FIELDS = frozenset({
     "has_extracted_data", "redacted", "log_truncated",
     "active_states", "active_count", "pending_count", "completed_count",
     "is_complete", "is_active", "risk_score", "overall_risk", "date",
-    "message", "event", "disposition", "status_code", "finding_count",
+    "message", "event", "disposition", "status_code", "finding_count", "workspace_revision",
     "affected_findings", "duration_seconds", "score",
 })
 CONTAINERS = frozenset({
@@ -83,6 +83,8 @@ OPAQUE = frozenset({
 
 
 def _safe_value(key, value):
+    if key == "workspace_revision":
+        return value if isinstance(value, str) and re.fullmatch(r"[a-f0-9]{64}", value) else None
     if value is None or type(value) in (int, float, bool):
         return value
     if not isinstance(value, str):

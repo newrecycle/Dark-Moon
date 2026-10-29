@@ -154,3 +154,24 @@ s.update(abort)
         with store.connection() as db:
             plan = db.execute("EXPLAIN QUERY PLAN SELECT count(*) FROM records WHERE collection='jobs' AND status='queued'").fetchall()
             self.assertIn("records_status", str(plan))
+
+
+class RevisionHints(unittest.TestCase):
+    def test_public_snapshot_hints_match_and_grants_do_not_invalidate_them(self):
+        import test_community as fixtures
+        from community.evidence_access import public_projection
+        fixture = fixtures.Fixture()
+        fixture.setUp()
+        try:
+            fixture.campaign()
+            service = fixture.service
+            snapshot = service.snapshot()
+            self.assertEqual(public_projection(snapshot)["workspace_revision"], service.revision())
+            service.operations.tick()
+            self.assertEqual(service.revision(), snapshot["workspace_revision"])
+            service.store.save("evidence_grants", {"id": "grant", "used": False})
+            self.assertEqual(service.revision(), snapshot["workspace_revision"])
+            service.store.save("jobs", {"id": "job", "status": "queued"})
+            self.assertNotEqual(service.revision(), snapshot["workspace_revision"])
+        finally:
+            fixture.tearDown()

@@ -1,18 +1,21 @@
 """Exercise the fork's exact retest references without starting its launcher."""
 from pathlib import Path
 import sys
+import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "mcp"))
 from community.operations import Operations
+from community.store import Store
 
 
 class RetestBackendReferences(unittest.TestCase):
     def setUp(self):
-        self.service = SimpleNamespace(store=Mock(), launch=Mock(return_value={"id": "run", "campaign_id": "new"}))
-        self.service.store.items.return_value = []
+        root = tempfile.TemporaryDirectory()
+        self.addCleanup(root.cleanup)
+        self.service = SimpleNamespace(store=Store(root.name), launch=Mock(return_value={"id": "run", "campaign_id": "new"}))
         self.operations = Operations(self.service)
 
     def test_missing_explicit_base_does_not_fall_back_to_latest_target_campaign(self):
@@ -35,6 +38,7 @@ class RetestBackendReferences(unittest.TestCase):
             record = self.operations.launch_retest({"campaign_id": "base", "target_id": "target", "finding_ids": ["selected"], "safe_harbor": "non-destructive"})
         self.assertEqual(record["before_ids"], ["selected"])
         self.assertEqual(record["base_campaign_id"], "base")
+        self.assertEqual(self.service.store.get("retests", record["id"]), record)
         spec = self.service.launch.call_args.args[0]
         self.assertEqual(spec["focus"], "sqli")
         self.assertEqual(spec["out_of_scope"], ["excluded.invalid"])

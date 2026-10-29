@@ -304,6 +304,7 @@ class Service:
         return graph
 
     def snapshot(self):
+        revision = self.revision()
         findings = data.load_all_vulnerabilities()
         remediation_dir = self.store.root / "remediation"
         remediations = []
@@ -317,6 +318,7 @@ class Service:
                 "jobs": [public_run(job) for job in jobs], "jobs_total": jobs_total, "jobs_has_more": jobs_total > len(jobs), "schedules": self.store.items("schedules"), "remediations": remediations}
         from .posture import posture
         snapshot["posture"] = posture(snapshot)
+        snapshot["workspace_revision"] = revision
         return snapshot
 
     def revision(self):
