@@ -501,6 +501,18 @@
     return raw;
   }
   function markdownPreview(markdown) {
+    // Decode Markdown character references only into text nodes, never HTML.
+    const literal = value => value.replace(/&(amp|lt|gt);/g, (_, key) => ({amp:"&",lt:"<",gt:">"})[key]);
+    const cells = line => {
+      const result = []; let value = "";
+      for (let i = 1; i < line.length - 1; i++) {
+        if (line[i] === "\\" && line[i + 1] === "|") { value += "|"; i++; }
+        else if (line[i] === "|") { result.push(value); value = ""; }
+        else value += line[i];
+      }
+      result.push(value);
+      return result;
+    };
     const root = document.createElement("div");
     root.className = "report-preview";
     let code = null, fence = 0,
@@ -526,7 +538,7 @@
       const heading = line.match(/^(#{1,6})\s+(.+)/);
       if (heading) {
         const h = document.createElement("h" + heading[1].length);
-        h.textContent = heading[2];
+        h.textContent = literal(heading[2]);
         root.append(h);
         table = null;
         continue;
@@ -538,9 +550,9 @@
           root.append(table);
         }
         const tr = document.createElement("tr");
-        for (const cell of line.slice(1, -1).split("|")) {
+        for (const cell of cells(line)) {
           const td = document.createElement("td");
-          td.textContent = cell.trim().replaceAll("**", "").replaceAll("`", "");
+          td.textContent = literal(cell.trim().replaceAll("**", "").replaceAll("`", ""));
           tr.append(td);
         }
         table.append(tr);
@@ -549,7 +561,7 @@
       table = null;
       if (line.trim()) {
         const p = document.createElement("p");
-        p.textContent = line;
+        p.textContent = literal(line);
         root.append(p);
       }
     }
