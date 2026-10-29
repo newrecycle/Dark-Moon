@@ -1097,14 +1097,24 @@ const assert = require("node:assert/strict");
     await page
       .locator("#launch-form input[name=target]")
       .fill("fixture.example");
-    await page.locator("#launch-submit").click();
+    const [launchResponse] = await Promise.all([
+      page.waitForResponse(response =>
+        new URL(response.url()).pathname === '/api/v1/campaigns' &&
+        response.request().method() === 'POST'),
+      page.locator("#launch-submit").click(),
+    ]);
+    assert.equal(launchResponse.status(), 202);
+    const launchedRun = await launchResponse.json();
+    assert.match(launchedRun.run_id, /^job_[a-zA-Z0-9_-]+$/);
     await page.locator("#launch-dialog").waitFor({ state: "hidden" });
     await page
-      .locator(".list-item")
-      .filter({ hasText: "Fake launcher assessment" })
+      .locator("#run-queue .list-item")
+      .filter({ has: page.locator(`[data-job="${launchedRun.run_id}"]`) })
       .locator(".badge")
       .filter({ hasText: "succeeded" })
       .waitFor({ timeout: 10000 });
+    assert.ok(!(await page.locator('#run-queue').innerText()).includes('Fake launcher assessment'),
+      'run discovery must use the returned identity without restoring withheld campaign names');
     await page.setViewportSize({ width: 390, height: 844 });
     await page.locator('nav a[href="#overview"]').click();
     await page.getByText("Your security workspace").waitFor();
