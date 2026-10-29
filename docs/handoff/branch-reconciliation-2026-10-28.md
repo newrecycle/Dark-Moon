@@ -91,5 +91,16 @@ URL, and cannot reuse the consumed grant; ungranted PDF access remains denied.
 
 Focused evidence and scheduler HTTP suites: **35 tests and 41 subtests passed**.
 Calendar/evidence/scheduler checks before the additional overview/configuration
-regression also passed (54 tests and 41 subtests). Final hosted follow-up results
-are recorded once observed.
+regression also passed (54 tests and 41 subtests). Final hosted follow-up results are recorded below.
+
+
+## Final acceptance record
+
+- [Full merged backend/campaign suite](https://github.com/newrecycle/Dark-Moon/actions/runs/40802304601): **480 tests and 256 subtests passed**, plus campaign binding, graph navigation and finding-query Node contracts.
+- [Final real Chromium browser acceptance](https://github.com/newrecycle/Dark-Moon/actions/runs/40802640917): **passed**, including explicit evidence reveal/close/Escape, schedule create/edit/duplicate/history/DST handling, PDF export, run completion, responsive layout and viewer/password behavior.
+- The last stale browser assertion used a withheld campaign name to locate a run. The corrected test captures the actual accepted launch response, matches its exact run ID, waits for that run to succeed and checks the withheld name stays out of run discovery. Product evidence minimization was preserved.
+- [Community runtime validation](https://github.com/newrecycle/Dark-Moon/actions/runs/40802304617): **passed**, both the actual Docker/native-provider contract and real owned-loopback analysis/PDF client.
+- [SDK/CI contracts](https://github.com/newrecycle/Dark-Moon/actions/runs/40802304637), [scheduler](https://github.com/newrecycle/Dark-Moon/actions/runs/40802304660), [credentials](https://github.com/newrecycle/Dark-Moon/actions/runs/40802304564), [webhooks](https://github.com/newrecycle/Dark-Moon/actions/runs/40802304530), [run discovery](https://github.com/newrecycle/Dark-Moon/actions/runs/40802304492), [evidence policy](https://github.com/newrecycle/Dark-Moon/actions/runs/40802640989), [finding lifecycle](https://github.com/newrecycle/Dark-Moon/actions/runs/40802640959), [distribution audit](https://github.com/newrecycle/Dark-Moon/actions/runs/40802640938) and [general tests](https://github.com/newrecycle/Dark-Moon/actions/runs/40802641046): **passed**.
+- [Native n8n host validation](https://github.com/newrecycle/Dark-Moon/actions/runs/40802304566) was still building its isolated host image at this observation; no pass is claimed for it. The final test-only commit also triggered a repeat campaign suite; the identical backend source had already passed the full 480-test run above.
+
+Final GitHub branch inventory after cleanup: **pro only**. All fourteen retired tips remain ancestors of pro; the snapshot above preserves their exact names and SHAs. Future Dependabot PR branches are expected and are not stale worker branches. No history was force-pushed, no closed PR was reopened, and no original-vendor compatibility claim is made.
