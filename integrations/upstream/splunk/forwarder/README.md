@@ -121,3 +121,19 @@ Their tests/workflows remain on their original branches for the verification
 worker to reconcile; old tests expect three REST collections, while this
 implementation intentionally reads five. No combined test/native result is
 claimed. See `docs/handoff/splunk-forwarder-integration-2026-10-28.md`.
+
+### Bounded REST pagination
+
+The forwarder reads all five collections before sending any HEC event. It accepts
+legacy unpaged envelopes only when they do not advertise omitted rows. Paged
+responses must provide consistent offset/limit/total/has_more/next_offset metadata;
+next requests are constructed locally, never taken from a server-provided URL.
+Missing pages, overlapping identities, changing totals and truncated/capped feeds
+fail the poll. Limits are 1,000 pages, 100,000 rows and 32 MiB per collection.
+Finding identities include the campaign, so identical IDs in different campaigns
+remain distinct. These checks detect common live-offset changes; they do not
+provide transactional snapshot isolation against concurrent source edits.
+
+Reusable severity/open-finding macros now select each identity's latest indexed
+observation before filtering mutable fields. Historical open states cannot
+resurrect a later remediated finding through those macros.

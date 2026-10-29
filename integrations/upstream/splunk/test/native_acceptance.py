@@ -113,19 +113,32 @@ def preflight():
         context.verify_mode = ssl.CERT_NONE
     elif os.environ.get("SPLUNK_NATIVE_INSECURE_LOOPBACK") not in (None, "", "0"):
         raise Unavailable("invalid loopback TLS override")
-    # No installation before the package has passed structural/security checks.
-    with tarfile.open(package, "r:*") as archive:
-        names = set(archive.getnames())
-        missing = set(REQUIRED_ASSETS) - names
-        if missing:
-            raise Unavailable("staged package missing required assets: " + ", ".join(sorted(missing)))
-        for entry in archive:
-            parts = Path(entry.name).parts
-            if (not entry.name.startswith("darkmoon/") or entry.issym() or entry.islnk()
-                    or any(part in ("local", "__pycache__") for part in parts)
-                    or not (entry.isfile() or entry.isdir())):
-                raise Unavailable("package includes unexpected or unsafe file")
+    check_package(package)
     return mgmt, hec, index, package, context
+
+
+def check_package(package):
+    """Inspect archive metadata before offering any package to the native host."""
+    if package.stat().st_size > 64 * 1024 * 1024:
+        raise Unavailable("staged package exceeds size bound")
+    names, total = set(), 0
+    with tarfile.open(package, "r:*") as archive:
+        for number, entry in enumerate(archive, 1):
+            name = entry.name.rstrip("/")
+            parts = name.split("/")
+            if (number > 10000 or not parts or parts[0] != "darkmoon"
+                    or any(part in ("", ".", "..", "local", "__pycache__") for part in parts)
+                    or "\\" in name or name in names or entry.issym() or entry.islnk()
+                    or not (entry.isfile() or entry.isdir())
+                    or (name == "darkmoon" and not entry.isdir())
+                    or entry.size < 0 or entry.size > 16 * 1024 * 1024):
+                raise Unavailable("package includes unexpected or unsafe file")
+            names.add(name)
+            total += entry.size
+            if total > 64 * 1024 * 1024:
+                raise Unavailable("expanded package exceeds size bound")
+    if set(REQUIRED_ASSETS) - names:
+        raise Unavailable("staged package missing required assets")
 
 
 class Client:
@@ -294,9 +307,7 @@ def native(mgmt, hec, index, package, context):
         ev("pr", now-50, pr_id=run+"_published", campaign_id=c1, finding_ids=[f],
            provider="github", state="open", number=99, published=True),
     ]
-    collector.call("/services/collector/event", json_body=items[0],
-                   headers={"Authorization": "Splunk " + os.environ["SPLUNK_NATIVE_HEC_TOKEN"]})
-    for item in items[1:]:
+    for item in items:
         reply = collector.call("/services/collector/event", json_body=item,
                                headers={"Authorization": "Splunk " + os.environ["SPLUNK_NATIVE_HEC_TOKEN"]})
         check(reply.get("code") == 0, "native HEC rejected synthetic metadata")

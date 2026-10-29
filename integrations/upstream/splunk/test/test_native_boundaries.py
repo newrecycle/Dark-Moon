@@ -119,6 +119,24 @@ class NativeBoundaries(unittest.TestCase):
         self.assertIn("informational", values)
         self.assertNotIn("info", values)
 
+    def test_package_allows_root_directory_but_rejects_traversal_links_and_duplicates(self):
+        import tarfile, tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            package = Path(directory) / "app.tgz"
+            def make(extra):
+                with tarfile.open(package, "w:gz") as archive:
+                    root = tarfile.TarInfo("darkmoon");root.type=tarfile.DIRTYPE;archive.addfile(root)
+                    for name in native.REQUIRED_ASSETS:
+                        archive.addfile(tarfile.TarInfo(name))
+                    if extra is not None:archive.addfile(extra)
+            make(None);native.check_package(package)
+            for name in ("darkmoon/../outside", "darkmoon/./duplicate", "darkmoon//duplicate", "darkmoon/local/credentials", native.REQUIRED_ASSETS[0]):
+                make(tarfile.TarInfo(name))
+                with self.subTest(name=name),self.assertRaises(native.Unavailable):native.check_package(package)
+            link=tarfile.TarInfo("darkmoon/link");link.type=tarfile.SYMTYPE;link.linkname="/etc/passwd"
+            make(link)
+            with self.assertRaises(native.Unavailable):native.check_package(package)
+
     def test_native_program_syntax_and_no_license_bootstrap(self):
         src = "\n".join((ROOT / "test" / name).read_text() for name in
                         ("native_acceptance.py", "native_fixture.py", "native_action.py"))

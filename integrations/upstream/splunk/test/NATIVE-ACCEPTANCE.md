@@ -120,3 +120,9 @@ and binary alert dispatch can differ across supported versions.
   session keys, tokens, raw HTTP bodies and indexed evidence. Disable
   screenshot/video traces for credential screens. Use this repo's
   `docs/validation/` records for observed-run IDs only.
+
+The offline package preflight accepts an ordinary top-level `darkmoon/` directory,
+requires the shipped application assets and refuses traversal, duplicate names,
+local overrides, links and oversized expansions before contacting a host. Every
+HEC admission response, including the first lifecycle event, must return code 0.
+These checks and forwarder tests are offline evidence, not a native Splunk pass.

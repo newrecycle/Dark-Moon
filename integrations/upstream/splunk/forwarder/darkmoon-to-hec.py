@@ -39,6 +39,7 @@ import sys
 import time
 import uuid
 import urllib.request
+import urllib.parse
 import urllib.error
 
 # --- SAFE-FIELD ALLOWLISTS (the contract) ----------------------------------
@@ -410,6 +411,58 @@ def _get_json(url, headers, verify, timeout=20):
         return json.loads(body.decode("utf-8"))
 
 
+def read_collection(url, headers, verify, *, findings=False):
+    """Read complete bounded pages; never turn truncation into a clean snapshot."""
+    rows, seen, offset, total, limit, encoded = [], set(), 0, None, None, 0
+    for page_number in range(1000):
+        request_url = url if page_number == 0 else url + "?" + urllib.parse.urlencode({"offset": offset, "limit": limit})
+        resp = _get_json(request_url, headers, verify)
+        if not isinstance(resp, dict) or not isinstance(resp.get("data"), list):
+            raise ValueError("REST response needs a data array")
+        page = resp["data"]
+        if any(not isinstance(row, dict) for row in page):
+            raise ValueError("REST response contains invalid records")
+        encoded += len(json.dumps(resp, separators=(",", ":")).encode())
+        if encoded > 32 * 1024 * 1024 or len(rows) + len(page) > 100000:
+            raise ValueError("REST snapshot exceeds the bounded export limit")
+        paged = any(key in resp for key in ("offset", "limit", "has_more", "next_offset"))
+        if not paged:
+            if page_number or ("total" in resp and (type(resp["total"]) is not int or resp["total"] != len(page))):
+                raise ValueError("REST collection is truncated or changed paging contract")
+            return page
+        if not all(key in resp for key in ("offset", "limit", "total", "has_more", "next_offset")):
+            raise ValueError("REST pagination metadata is incomplete")
+        if (type(resp["offset"]) is not int or resp["offset"] != offset
+                or type(resp["limit"]) is not int or not 1 <= resp["limit"] <= 5000
+                or type(resp["total"]) is not int or not 0 <= resp["total"] <= 100000
+                or type(resp["has_more"]) is not bool
+                or len(page) > resp["limit"] or resp.get("paging_limit_reached") is True):
+            raise ValueError("REST pagination metadata is invalid or incomplete")
+        if total is not None and (total != resp["total"] or limit != resp["limit"]):
+            raise ValueError("REST collection changed while paging; retry a fresh snapshot")
+        total, limit = resp["total"], resp["limit"]
+        end = offset + len(page)
+        more = end < total
+        if end > total or resp["has_more"] != more or (more and not page):
+            raise ValueError("REST pagination has an invalid boundary")
+        if (more and (type(resp["next_offset"]) is not int or resp["next_offset"] != end)) or (not more and resp["next_offset"] is not None):
+            raise ValueError("REST pagination cursor is invalid")
+        for row in page:
+            rid = row.get("id", row.get("finding_id"))
+            cid = row.get("campaign_id") if findings else None
+            if not isinstance(rid, str) or not _ID_RE.fullmatch(rid) or findings and (not isinstance(cid, str) or not _ID_RE.fullmatch(cid)):
+                raise ValueError("Paged record has no exact identity")
+            key = (cid, rid)
+            if key in seen:
+                raise ValueError("REST pages overlap; retry a fresh snapshot")
+            seen.add(key)
+        rows.extend(page)
+        if not more:
+            return rows
+        offset = end
+    raise ValueError("REST snapshot exceeds the bounded page limit")
+
+
 def poll_rest(base_url, token, verify):
     base = checked_url(base_url, verify=verify)
     if base.endswith("/api/v1"): base = base[:-7]
@@ -422,10 +475,7 @@ def poll_rest(base_url, token, verify):
                       ("pull_requests", "/api/v1/pull-requests"),
                       ("retests", "/api/v1/retest"),
                       ("targets", "/api/v1/targets")):
-        resp = _get_json(base + path, headers, verify)
-        if not isinstance(resp, dict) or not isinstance(resp.get("data"), list): raise ValueError("REST response needs a data array")
-        if any(not isinstance(row, dict) for row in resp["data"]): raise ValueError("REST response contains invalid records")
-        data[key] = resp["data"]
+        data[key] = read_collection(base + path, headers, verify, findings=key == "vulnerabilities")
     return data
 
 
