@@ -93,7 +93,7 @@ Backends configure via flags or env (`DARKMOON_PRO_URL`, `DARKMOON_PRO_USER`,
 |---|---|---|
 | Transport | reads the on-disk JSON tree, launches `darkmoon.sh` | `/api/v1` REST + JWT + SSE |
 | Launch | `opencode run "TARGET: … PROGRAM=ci-<nonce>"` | `POST /run/campaign` |
-| Correlation | snapshot-diff + session-id + mtime | explicit campaign/run binding, or complete unambiguous root session ID |
+| Correlation | snapshot/time candidate filtering; ambiguous candidates fail closed | explicit campaign/run binding, or complete unambiguous root session ID |
 | Progress | synthetic poll stream | live SSE `/run/{id}/stream` |
 | Report not ready | missing/empty file | placeholder-200 → `ReportNotReady` |
 | Dashboard / remediation / scheduler | no | yes (Pro only) |

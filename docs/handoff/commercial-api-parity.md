@@ -128,3 +128,11 @@ when every fork check passes. Native integration acceptance is a separate claim.
 |---|---|---|
 | 9ee85be | 495 Python tests / 268 subtests locally; all seven triggered hosted workflows passed | All authentic vendor comparisons; scenarios above need explicit fixture reconciliation |
 | Documentation reconciliation | Current index and historical notices created; runnable matrix covers declarations 1–52 | No vendor execution or new runtime test claimed by this documentation change |
+
+### Shared SDK ambiguity correction
+
+OSS snapshot discovery now rejects multiple new campaigns without pinning a
+result. SDK lint/typecheck/build and 100 tests passed locally. Consumer archives
+were rebuilt together; authenticated HTTP remains a separate exact-identity path.
+A single unrelated campaign can still satisfy the legacy singleton heuristic:
+explicit producer binding remains open and this is not marked full closure.

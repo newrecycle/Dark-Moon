@@ -15,7 +15,7 @@ Read [commercial API acceptance instructions](commercial-api-parity.md) before m
 | n8n / VS Code / Jenkins / Grafana | Native disposable-host acceptance recorded | Other versions; Grafana signed distribution/browser visuals; external deployment configuration |
 | GitLab | Real CE 19.5.1 / Runner 19.5.0 pipelines and exact uploaded SAST checks pass | Ultimate dashboard ingestion |
 | Splunk | Bounded forwarder, Linux/Windows offline and package checks | Actual operator-supplied native host and searches/alerts |
-| Shared OSS SDK | Snapshot/time correlation currently selects newest ambiguous campaign | Reject ambiguity and establish producer binding |
+| Shared OSS SDK | Snapshot/time singleton fallback retained; multiple candidates fail closed | Establish producer binding for singleton discovery; ambiguity rejection implemented |
 | Remediation | Local edits, probes, judge and proposal contracts implemented | Real end-to-end model/container/forge workflow acceptance |
 | UI/analytics | Independent responsive SPA and current-state posture | Resource deep links, historical/as-of cohorts, broad interaction reference matrix |
 

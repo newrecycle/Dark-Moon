@@ -208,14 +208,8 @@ export class OssLocalBackend implements Backend {
       ref.campaignId = fresh[0]!.id;
       return fresh[0]!.id;
     }
-    // Multiple fresh campaigns → concurrent-run collision risk. Pick newest but flag.
-    fresh.sort((a, b) => b.mtimeMs - a.mtimeMs);
-    this.log.warn(
-      `Multiple new campaigns since launch (${fresh.map((x) => x.id).join(", ")}). ` +
-        `Concurrent OSS runs share one data dir — run one container/compose-project per job. Attributing to newest by mtime.`,
-    );
-    ref.campaignId = fresh[0]!.id;
-    return fresh[0]!.id;
+    // A timestamp is not producer identity. Never gate another concurrent run.
+    throw new CorrelationFailed("Multiple new OSS campaigns cannot be attributed safely. Use an explicit campaign ID or isolate one data directory per launch.");
   }
 
   private async readCampaignFile(id: string): Promise<Record<string, unknown> | null> {

@@ -208,7 +208,7 @@ export interface CorrelationHandle {
   nonce: string | null;
   /** OSS: campaign ids present before launch (snapshot for diff correlation). */
   preCampaignIds?: string[];
-  /** Epoch ms at launch, for mtime-based tie-breaking. */
+  /** Epoch ms at launch, for excluding older candidates; ambiguity is an error. */
   startedAtMs: number;
 }
 

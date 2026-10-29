@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { DarkmoonClient, OssLocalBackend, CampaignNotFound, FindingNotFound } from "../../src/index.js";
+import { DarkmoonClient, OssLocalBackend, CampaignNotFound, FindingNotFound, CorrelationFailed } from "../../src/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATAROOT = path.resolve(__dirname, "../../fixtures/dataroot");
@@ -84,4 +84,13 @@ describe("OssLocalBackend (real fixture JSON tree)", () => {
     const id = await be.resolveCampaignId(handle);
     expect(id).toBe("camp_20260924_70602bf9");
   });
+  it("rejects ambiguous concurrent campaigns without pinning either candidate", async () => {
+    const be = new OssLocalBackend({ dataDir: DATAROOT });
+    const handle = {edition: "oss" as const, runId: null, campaignId: null,
+      nonce: "collision", preCampaignIds: [], startedAtMs: 0};
+    await expect(be.resolveCampaignId(handle)).rejects.toBeInstanceOf(CorrelationFailed);
+    expect(handle.campaignId).toBeNull();
+    await expect(be.getCampaignStatus(handle)).rejects.toBeInstanceOf(CorrelationFailed);
+  });
+
 });
