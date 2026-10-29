@@ -10,7 +10,7 @@ updates:
     time: 09:00
     timezone: America/Edmonton
   target-branch: deps
-  open-pull-requests-limit: 1
+  open-pull-requests-limit: 0
   groups:
     routine:
       patterns:
@@ -35,7 +35,7 @@ updates:
     time: 09:00
     timezone: America/Edmonton
   target-branch: deps
-  open-pull-requests-limit: 1
+  open-pull-requests-limit: 0
   groups:
     routine:
       patterns:
