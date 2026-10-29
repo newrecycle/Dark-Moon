@@ -137,7 +137,10 @@ def run():
             print('owned_gitlab_runner_created=true', flush=True)
             runner_binary = str(ROOT / 'test/vendor/gitlab-runner-modern')
             runner_config = str(work / 'runner.toml')
-            clean_env = {k: os.environ[k] for k in ('PATH', 'HOME', 'LANG', 'TMPDIR') if k in os.environ}
+            home = work / 'runner-home'
+            home.mkdir(mode=0o700)
+            clean_env = {k: os.environ[k] for k in ('PATH', 'LANG', 'TMPDIR') if k in os.environ}
+            clean_env['HOME'] = str(home)
             command(runner_binary, 'register', '--non-interactive', '--config', runner_config,
                     env=clean_env | {'CI_SERVER_URL': base, 'CI_SERVER_TOKEN': runner_token,
                         'RUNNER_EXECUTOR': 'shell', 'RUNNER_NAME': name})
@@ -174,6 +177,28 @@ def run():
                 assert job['runner']['id'] == registration['id']
                 expected_job = 'success' if case in ('passing', 'empty') else 'failed'
                 expected_pipeline = 'failed' if case in ('blocking', 'read_error') else 'success'
+                print('owned_case_result=' + json.dumps({'case': case, 'job_status': job['status'],
+                    'pipeline_status': result['status'], 'allow_failure': job['allow_failure'],
+                    'failure_reason': job.get('failure_reason')}), flush=True)
+                if job['status'] != expected_job or result['status'] != expected_pipeline:
+                    # This is a synthetic repository on the server we own.
+                    # Keep only diagnostic lines; redact credentials/canaries,
+                    # URLs and long opaque values before printing any excerpt.
+                    import re
+                    trace = request(f"projects/{pid}/jobs/{job['id']}/trace", raw=True).decode(errors='replace')
+                    trace = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', trace)
+                    lines = []
+                    for line in trace.splitlines():
+                        if re.search(r'private|password|secret|token|authorization', line, re.I):
+                            continue
+                        if not re.search(r'error|failed|not found|permission|invalid|prepar|execut|upload|syntax', line, re.I):
+                            continue
+                        for sensitive in (token, runner_token):
+                            line = line.replace(sensitive, '[redacted]')
+                        line = re.sub(r'https?://\S+|[A-Za-z0-9_-]{24,}', '[redacted]', line)
+                        lines.append(line[:300])
+                    for line in lines[-20:]:
+                        print('owned_job_diagnostic: ' + line, flush=True)
                 assert job['status'] == expected_job and result['status'] == expected_pipeline, case
                 assert job['allow_failure'] == (case == 'nonblocking'), case
                 assert any(a['file_type'] == 'sast' for a in job['artifacts']), case
