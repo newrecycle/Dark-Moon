@@ -97,7 +97,15 @@ def run():
                         raise ValueError('GitLab response exceeds acceptance bound')
                     return body if raw else json.loads(body)
             def ready():
-                with opener.open(base + '/-/readiness', timeout=10) as response:
+                # Monitoring endpoints default to a local-IP allowlist. A
+                # loopback-published Docker port still presents the bridge peer
+                # inside the container; probe from its actual loopback instead.
+                probe = subprocess.run(['docker', 'exec', name, 'curl', '--silent', '--fail',
+                    '--max-time', '8', '--output', '/dev/null', 'http://127.0.0.1/-/readiness?all=1'],
+                    capture_output=True, timeout=15)
+                if probe.returncode:
+                    return False
+                with opener.open(base + '/users/sign_in', timeout=10) as response:
                     return response.status == 200
             try:
                 eventually(ready, timeout=900)
@@ -119,12 +127,14 @@ def run():
             ruby = "u=User.find_by_username('root'); t=u.personal_access_tokens.create!(name:'owned-fixture',scopes:['api'],expires_at:Date.today+1); t.set_token(ENV.fetch('DM_BOOTSTRAP_TOKEN')); t.save!; puts 'bootstrap-ready'"
             command('docker', 'exec', '-e', 'DM_BOOTSTRAP_TOKEN', name, 'gitlab-rails', 'runner', ruby,
                     env={**os.environ, 'DM_BOOTSTRAP_TOKEN': token})
+            print('owned_gitlab_bootstrap=true', flush=True)
             version = request('version')['version']
             project = request('projects', {'name': name, 'visibility': 'private', 'initialize_with_readme': True})
             pid = project['id']
             registration = request('user/runners', {'runner_type': 'project_type', 'project_id': pid,
                 'description': name, 'tag_list': ['owned-native'], 'run_untagged': False})
             runner_token = registration['token']
+            print('owned_gitlab_runner_created=true', flush=True)
             runner_binary = str(ROOT / 'test/vendor/gitlab-runner-modern')
             runner_config = str(work / 'runner.toml')
             clean_env = {k: os.environ[k] for k in ('PATH', 'HOME', 'LANG', 'TMPDIR') if k in os.environ}
@@ -199,4 +209,5 @@ if __name__ == '__main__':
     except Exception as exc:
         # Do not echo server bodies, tokens, root passwords or job traces.
         raise SystemExit('Owned GitLab acceptance FAILED: ' + type(exc).__name__ +
+                         (' HTTP ' + str(exc.code) if isinstance(exc, urllib.error.HTTPError) else '') +
                          (' ' + str(exc) if isinstance(exc, (AssertionError, RuntimeError)) else ''))
