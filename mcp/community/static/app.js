@@ -108,15 +108,21 @@ async function refresh() {
   $("#error").hidden = true;
   render();
 }
+let eventCursor = "";
 async function connect() {
   streamControl?.abort();
   streamControl = new AbortController();
   while (token && !streamControl.signal.aborted) {
     try {
       const res = await fetch("/api/v1/events", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, ...(eventCursor ? {"Last-Event-ID": eventCursor} : {}) },
         signal: streamControl.signal,
       });
+      if (res.status === 409 && res.headers.get("X-Darkmoon-Resync") === "required") {
+        eventCursor = "";
+        await refresh();
+        continue;
+      }
       if (!res.ok) throw new Error("Live connection failed");
       $("#connection").textContent = "● Live";
       const reader = res.body.getReader(),
@@ -130,7 +136,14 @@ async function connect() {
         while ((i = pending.indexOf("\n\n")) >= 0) {
           const event = pending.slice(0, i);
           pending = pending.slice(i + 2);
-          if (event.startsWith("event: revision")) await refresh();
+          if (event.startsWith("event: resync")) {
+            eventCursor = "";
+            await refresh();
+          } else {
+            const cursor = event.split("\n").find(line => line.startsWith("id: "))?.slice(4);
+            if (cursor && /^[0-9]{1,20}$/.test(cursor)) eventCursor = cursor;
+            if (event.startsWith("event: revision")) await refresh();
+          }
         }
       }
     } catch (e) {

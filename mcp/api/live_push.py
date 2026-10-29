@@ -648,6 +648,49 @@ def push_finding(
 # 3. Push an infrastructure node — incremental
 # -----------------------------------------------------------------------
 
+def push_observed_connection(campaign_id: str, source: str, target: str, finding_id: str) -> Dict[str, Any]:
+    """Record a producer assertion tied to current, confirmed finding evidence.
+
+    This records an observation, not independent proof of exploitation. No raw
+    evidence is copied. Graph readers revalidate the fingerprint on every read.
+    """
+    from api import json_storage as storage
+    from community.attack_paths import evidence_digest, SUPPORTED_STATUSES
+    from community.store import identifier
+    for value in (campaign_id, source, target, finding_id):
+        identifier(value)
+    if not load_campaign(campaign_id) or source == target:
+        raise ValueError("Select an existing campaign and distinct assets")
+    findings = storage.load_vulnerabilities(campaign_id)
+    finding = next((row for row in findings if row.get("id") == finding_id), None)
+    if (not finding or finding.get("campaign_id") != campaign_id or
+            finding.get("status") not in SUPPORTED_STATUSES or
+            not {finding.get("node_id"), finding.get("infra_node_id")} & {source, target}):
+        raise ValueError("Observation requires a confirmed finding linked to these assets")
+    digest = evidence_digest(finding)
+    path = storage.INFRASTRUCTURE_DIR / (campaign_id + ".json")
+    with storage._file_lock(path):
+        nodes = storage._read_json(path)
+        if not isinstance(nodes, list) or not {source, target} <= {row.get("id") for row in nodes}:
+            raise ValueError("Observation assets must exist in this campaign")
+        node = next(row for row in nodes if row.get("id") == source)
+        connections = node.setdefault("connections", [])
+        if not isinstance(connections, list):
+            raise ValueError("Invalid recorded connections")
+        for row in connections:
+            if isinstance(row, dict) and all(row.get(k) == v for k, v in {
+                    "target": target, "finding_id": finding_id, "evidence_sha256": digest,
+                    "producer": "mcp_observation_v1"}.items()):
+                return {"observation_id": row["observation_id"], "campaign_id": campaign_id, "status": "already_recorded"}
+        if len(connections) >= 1000:
+            raise ValueError("Recorded connection capacity reached")
+        record = {"target": target, "finding_id": finding_id, "evidence_sha256": digest,
+                  "observation_id": "obs_" + uuid.uuid4().hex, "producer": "mcp_observation_v1", "observed_at": _now_iso()}
+        connections.append(record)
+        storage._write_json(path, nodes)
+    return {"observation_id": record["observation_id"], "campaign_id": campaign_id, "status": "observation_recorded"}
+
+
 def push_infra_node(
     campaign_id: str,
     node: Dict[str, Any],
@@ -658,10 +701,6 @@ def push_infra_node(
     Also links the node to campaign + project + target.
     """
     infra_path = INFRASTRUCTURE_DIR / f"{campaign_id}.json"
-    nodes = _read_json(infra_path)
-    if not isinstance(nodes, list):
-        nodes = []
-
     campaign = load_campaign(campaign_id)
     if not campaign:
         return {"error": f"Campaign {campaign_id} not found"}
@@ -673,10 +712,17 @@ def push_infra_node(
     node["project_id"] = campaign.get("project_id")
     node["target_id"] = campaign.get("target_id")
 
-    existing_ids = {n["id"] for n in nodes if n.get("id")}
-    if node["id"] not in existing_ids:
-        nodes.append(node)
-        _write_json(infra_path, nodes)
+    from api.json_storage import _file_lock
+    with _file_lock(infra_path):
+        nodes = _read_json(infra_path)
+        if nodes is None and not infra_path.exists():
+            nodes = []
+        if not isinstance(nodes, list):
+            raise ValueError("Infrastructure snapshot must be an array")
+        existing_ids = {n["id"] for n in nodes if n.get("id")}
+        if node["id"] not in existing_ids:
+            nodes.append(node)
+            _write_json(infra_path, nodes)
 
     _sync_target_metadata_from_node(campaign, node)
 

@@ -778,6 +778,19 @@ def dashboard_push_finding(
 
 
 @mcp.tool()
+def dashboard_push_observed_connection(campaign_id: str, source: str, target: str, finding_id: str) -> Dict[str, Any]:
+    """Record a directed observed connection after pushing both infrastructure
+    nodes and a confirmed finding linked to an endpoint. Call only when actual
+    assessment evidence supports the connection; containment alone is not a
+    connection or an exploit chain. Evidence changes invalidate the observation.
+    Repeated calls with the same evidence are idempotent. Operator path review
+    remains a separate step.
+    """
+    from api.live_push import push_observed_connection
+    return push_observed_connection(campaign_id, source, target, finding_id)
+
+
+@mcp.tool()
 def dashboard_push_infra_node(
     campaign_id: str,
     node_type: str,

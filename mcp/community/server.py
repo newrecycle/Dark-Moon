@@ -253,6 +253,16 @@ def handler_for(service, allowed_hosts):
             raise KeyError(path)
 
         def events(self):
+            from urllib.parse import parse_qs
+            from .events import replay, ReplayGap
+            query = parse_qs(urlsplit(self.path).query)
+            requested = set(query.get("events", [""])[0].split(",")) - {""}
+            last_id = self.headers.get("Last-Event-ID") or query.get("since", [None])[0]
+            try:
+                event_rows, high = replay(service.store, last_id)
+            except ReplayGap:
+                return self.send({"error": "Event history requires a fresh snapshot"}, status=409,
+                                 extra_headers={"X-Darkmoon-Resync": "required"})
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-store")
@@ -260,31 +270,26 @@ def handler_for(service, allowed_hosts):
             self.send_header("Connection", "close")
             self.end_headers()
             self.close_connection = True
-            # Notify of revisions rather than streaming secrets or entire
-            # assessment dumps. fetch() streams permit an Authorization header.
             previous = None
-            from urllib.parse import parse_qs
-            query = parse_qs(urlsplit(self.path).query)
-            requested = set(query.get("events", [""])[0].split(",")) - {""}
-            event_rows = service.store.items("events")
-            last_id = self.headers.get("Last-Event-ID") or query.get("since", [None])[0]
-            seen = {e["id"] for e in event_rows} if not last_id else set()
-            if last_id and str(last_id).isdigit():
-                seen = {e["id"] for e in event_rows if e.get("seq", 0) <= int(last_id)}
-            elif last_id:
-                for event in event_rows:
-                    seen.add(event["id"])
-                    if event["id"] == last_id:
-                        break
-            for _ in range(30):
+            for iteration in range(30):
+                if not service.identity(self.headers.get("Authorization")):
+                    return
+                if iteration:
+                    try:
+                        event_rows, high = replay(service.store, high)
+                    except ReplayGap:
+                        self.wfile.write(b"event: resync\ndata: required\n\n")
+                        self.wfile.flush()
+                        return
                 digest = hashlib.sha256(json.dumps(service.snapshot(), sort_keys=True).encode()).hexdigest()
                 payload = f"event: revision\ndata: {digest}\n\n" if digest != previous else ": heartbeat\n\n"
                 self.wfile.write(payload.encode())
-                for event in service.store.items("events"):
-                    if event["id"] not in seen:
-                        seen.add(event["id"])
-                        if not requested or event["event"] in requested:
-                            self.wfile.write(("id: "+str(event.get("seq", event["id"]))+"\ndata: "+json.dumps(public_projection(event))+"\n\n").encode())
+                for event in event_rows:
+                    if not requested or event["event"] in requested:
+                        self.wfile.write(("id: "+str(event["seq"])+"\ndata: "+json.dumps(public_projection(event))+"\n\n").encode())
+                # Advance filtered consumers too; this cursor claims only the
+                # journal window checked above, never unseen future records.
+                self.wfile.write(f"event: cursor\nid: {high}\ndata: {high}\n\n".encode())
                 self.wfile.flush()
                 previous = digest
                 time.sleep(1)

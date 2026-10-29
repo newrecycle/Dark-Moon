@@ -204,28 +204,8 @@ class Operations:
                 "attempts": 0, "next_attempt": time.time(), "status": "pending"}
 
     def emit(self, event, payload):
-        if not isinstance(event, str) or not re.fullmatch(r"[a-z][a-z0-9_.-]{0,99}", event):
-            raise ValueError("Invalid event name")
-        if not isinstance(payload, dict):
-            raise ValueError("Event metadata must be an object")
-        safe = {k: payload[k] for k in ("campaign_id", "run_id", "finding_id", "severity", "status", "retest_id", "pr_id", "state", "provider")
-                if isinstance(payload.get(k), str) and 0 < len(payload[k]) <= 200}
-        item = {"id": "evt_" + uuid.uuid4().hex, "event": event, "timestamp": now(), "data": safe}
-        def append(state):
-            state["event_seq"] = state.get("event_seq", 0)+1
-            item.update(seq=state["event_seq"], ts=item["timestamp"], contract_version="1")
-            state.setdefault("events", {})[item["id"]] = item
-        self.store.update(append)
-        def trim(state):
-            events = state.setdefault("events", {})
-            while len(events) > 1000:
-                events.pop(next(iter(events)))
-        self.store.update(trim)
-        for hook in self.store.items("webhooks"):
-            if hook.get("enabled") and (not hook.get("events") or event in hook["events"] or "*" in hook["events"]):
-                delivery = self._delivery(hook["id"], item)
-                self.store.save("deliveries", delivery)
-        return item
+        from .events import append
+        return self.store.update(lambda state: append(state, event, payload))
 
     def register(self, raw):
         if raw.get("format", "darkmoon") != "darkmoon":
@@ -355,38 +335,46 @@ class Operations:
 
     def tick(self):
         snapshot = self.service.snapshot()
-        if not self.initialized:
-            self.observed = {"campaign:"+c["id"]: c.get("status") for c in snapshot["campaigns"]}
-            self.observed.update({("finding", v.get("campaign_id"), v.get("id")): v.get("status") for v in snapshot["findings"]})
-            self.observed.update({"proposal:"+p["id"]: (p.get("status"), bool(p.get("published"))) for p in snapshot["remediations"]})
-            self.initialized = True
-        for campaign in snapshot["campaigns"]:
-            key, value = "campaign:"+campaign["id"], campaign.get("status")
-            if key not in self.observed or self.observed[key] != value:
-                self.emit("campaign.updated", {"campaign_id": campaign["id"], "status": value})
-                event = {"running": "campaign.started", "completed": "campaign.completed", "failed": "campaign.aborted", "aborted": "campaign.aborted", "stopped": "campaign.stopped"}.get(value)
-                if event:
-                    self.emit(event, {"campaign_id": campaign["id"], "status": value})
-            self.observed[key] = value
-        for finding in snapshot["findings"]:
-            key = ("finding", finding.get("campaign_id"), finding.get("id"))
-            if key not in self.observed:
-                self.emit("finding.created", {"finding_id": finding.get("id"), "campaign_id": finding.get("campaign_id"),
-                                              "severity": finding.get("severity"), "status": finding.get("status")})
-                self.emit("finding.discovered", {"finding_id": finding.get("id"), "campaign_id": finding.get("campaign_id"),
+        def observe(state):
+            from .events import append
+            observed = dict(state.get("observation_checkpoint", self.observed))
+            initialized = "observation_checkpoint" in state or self.initialized
+            emit = lambda event, payload: append(state, event, payload)
+            if not initialized:
+                observed = {"campaign:"+c["id"]: c.get("status") for c in snapshot["campaigns"]}
+                observed.update({json.dumps(["finding", v.get("campaign_id"), v.get("id")]): v.get("status") for v in snapshot["findings"]})
+                observed.update({"proposal:"+p["id"]: [p.get("status"), bool(p.get("published"))] for p in snapshot["remediations"]})
+            for campaign in snapshot["campaigns"]:
+                key, value = "campaign:"+campaign["id"], campaign.get("status")
+                if key not in observed or observed[key] != value:
+                    emit("campaign.updated", {"campaign_id": campaign["id"], "status": value})
+                    event = {"running": "campaign.started", "completed": "campaign.completed", "failed": "campaign.aborted", "aborted": "campaign.aborted", "stopped": "campaign.stopped"}.get(value)
+                    if event:
+                        emit(event, {"campaign_id": campaign["id"], "status": value})
+                observed[key] = value
+            for finding in snapshot["findings"]:
+                key = json.dumps(["finding", finding.get("campaign_id"), finding.get("id")])
+                if key not in observed:
+                    emit("finding.created", {"finding_id": finding.get("id"), "campaign_id": finding.get("campaign_id"),
                                                   "severity": finding.get("severity"), "status": finding.get("status")})
-            if self.observed.get(key) != finding.get("status") and finding.get("status") in {"confirmed", "exploited", "remediated"}:
-                self.emit("finding."+finding["status"], {"finding_id": finding.get("id"), "campaign_id": finding.get("campaign_id"),
-                                                        "severity": finding.get("severity"), "status": finding.get("status")})
-            self.observed[key] = finding.get("status")
-        for proposal in snapshot["remediations"]:
-            key = "proposal:"+proposal["id"]
-            state = (proposal.get("status"), bool(proposal.get("published")))
-            previous = self.observed.get(key)
-            if previous != state:
-                event = ("pr.opened" if not previous or not previous[1] else "pr.updated") if state[1] else "remediation.updated"
-                self.emit(event, {"pr_id": proposal["id"], "campaign_id": proposal.get("campaign_id"), "state": state[0]})
-                self.observed[key] = state
+                    emit("finding.discovered", {"finding_id": finding.get("id"), "campaign_id": finding.get("campaign_id"),
+                                                      "severity": finding.get("severity"), "status": finding.get("status")})
+                if observed.get(key) != finding.get("status") and finding.get("status") in {"confirmed", "exploited", "remediated"}:
+                    emit("finding."+finding["status"], {"finding_id": finding.get("id"), "campaign_id": finding.get("campaign_id"),
+                                                            "severity": finding.get("severity"), "status": finding.get("status")})
+                observed[key] = finding.get("status")
+            for proposal in snapshot["remediations"]:
+                key = "proposal:"+proposal["id"]
+                proposal_state = [proposal.get("status"), bool(proposal.get("published"))]
+                previous = observed.get(key)
+                if previous != proposal_state:
+                    event = ("pr.opened" if not previous or not previous[1] else "pr.updated") if proposal_state[1] else "remediation.updated"
+                    emit(event, {"pr_id": proposal["id"], "campaign_id": proposal.get("campaign_id"), "state": proposal_state[0]})
+                    observed[key] = proposal_state
+            state["observation_checkpoint"] = observed
+            return observed
+        self.observed = self.store.update(observe)
+        self.initialized = True
         for record in self.store.items("retests"):
             if record["status"] != "running":
                 continue

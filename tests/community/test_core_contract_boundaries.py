@@ -150,3 +150,11 @@ class EventStreamContractTests(fixtures.Fixture):
             self.assertEqual([row["id"] for row in rows], [second["id"]])
             self.assertEqual(rows[0]["data"]["campaign_id"], "camp_two")
             self.assertNotIn("PRIVATE-STREAM", body.decode())
+
+    def test_unknown_future_or_evicted_cursor_returns_explicit_resync(self):
+        self.service.operations.emit("campaign.updated", {"campaign_id": "c"})
+        for cursor in ("evt_missing", "2", "-1"):
+            status, body, headers = self.request("/api/v1/events", headers={"Last-Event-ID": cursor})
+            self.assertEqual(status, 409)
+            self.assertEqual(headers["X-Darkmoon-Resync"], "required")
+            self.assertNotIn("text/event-stream", headers["Content-Type"])

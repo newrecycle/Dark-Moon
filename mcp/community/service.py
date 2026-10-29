@@ -20,6 +20,8 @@ SEVERITIES = ("critical", "high", "medium", "low", "info")
 
 def graph_for(campaign_id):
     nodes = data.load_infrastructure(identifier(campaign_id))
+    findings = data.load_vulnerabilities(campaign_id)
+    by_id = {row.get("id"): row for row in findings}
     edges, seen = [], set()
     ids = {n.get("id") for n in nodes}
     for node in nodes:
@@ -29,14 +31,31 @@ def graph_for(campaign_id):
             edges.append({"source": parent, "target": node["id"], "kind": "contains"})
         for connection in node.get("connections", []) or []:
             other = connection.get("target") if isinstance(connection, dict) else connection
+            provenance = {"basis": "recorded_connection"}
+            if isinstance(connection, dict) and connection.get("producer"):
+                from .attack_paths import evidence_digest, SUPPORTED_STATUSES
+                finding = by_id.get(connection.get("finding_id"), {})
+                try:
+                    valid = (connection["producer"] == "mcp_observation_v1" and
+                             all(isinstance(connection.get(key), str) and 0 < len(connection[key]) <= 200
+                                 for key in ("observation_id", "finding_id", "observed_at")) and
+                             finding.get("campaign_id") == campaign_id and finding.get("status") in SUPPORTED_STATUSES and
+                             bool({finding.get("node_id"), finding.get("infra_node_id")} & {node.get("id"), other}) and
+                             evidence_digest(finding) == connection.get("evidence_sha256"))
+                except ValueError:
+                    valid = False
+                if not valid:
+                    continue
+                provenance = {key: connection[key] for key in ("observation_id", "producer", "finding_id", "observed_at")}
+                provenance["basis"] = "producer_assertion_with_current_evidence"
             if isinstance(other, str) and other in ids and (node.get("id"), other, "observed") not in seen:
                 seen.add((node.get("id"), other, "observed"))
-                edges.append({"source": node["id"], "target": other, "kind": "observed"})
+                edges.append({"source": node["id"], "target": other, "kind": "observed", **provenance})
     for edge in edges:
         edge["id"] = "edge_" + hashlib.sha256(json.dumps(
             [edge["source"], edge["target"], edge["kind"]], separators=(",", ":")
         ).encode()).hexdigest()[:24]
-    return {"campaign_id": campaign_id, "nodes": nodes, "edges": edges, "findings": data.load_vulnerabilities(campaign_id)}
+    return {"campaign_id": campaign_id, "nodes": nodes, "edges": edges, "findings": findings}
 
 
 class Service:
