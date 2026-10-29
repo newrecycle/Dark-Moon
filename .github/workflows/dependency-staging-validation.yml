@@ -2,7 +2,7 @@ name: Dependency staging validation
 
 on:
   pull_request:
-    branches: [deps]
+    branches: [deps, pro]
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
@@ -12,11 +12,11 @@ permissions:
 
 jobs:
   validate:
-    # Only the canonical Dependabot author can enter the automated staging lane.
+    # Read-only validation for both routine deps PRs and security PRs targeting pro.
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.pull_request.base.ref == 'deps' &&
+      contains(fromJSON('["deps","pro"]'), github.event.pull_request.base.ref) &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 2
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -39,7 +40,7 @@ jobs:
           set -euo pipefail
           gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename' > /tmp/dependency-pr-files
           test -s /tmp/dependency-pr-files
-          python=0; client=0; action=0; n8n=0; vscode=0; grafana=0; go=0; actions=0
+          python=0; client=0; action=0; n8n=0; vscode=0; grafana=0; jenkins=0; go=0; actions=0
           while IFS= read -r file; do
             case "$file" in
               mcp/requirements.txt|mcp/community/requirements.txt) python=1 ;;
@@ -48,6 +49,7 @@ jobs:
               integrations/upstream/n8n/package.json|integrations/upstream/n8n/package-lock.json) n8n=1 ;;
               integrations/upstream/vscode/package.json|integrations/upstream/vscode/package-lock.json) vscode=1 ;;
               integrations/upstream/grafana/plugin/package.json|integrations/upstream/grafana/plugin/package-lock.json) grafana=1 ;;
+              integrations/upstream/jenkins/package.json|integrations/upstream/jenkins/package-lock.json) jenkins=1 ;;
               integrations/upstream/grafana/plugin/go.mod|integrations/upstream/grafana/plugin/go.sum) go=1 ;;
               .github/workflows/*.yml|.github/workflows/*.yaml) actions=1 ;;
               *)
@@ -63,9 +65,14 @@ jobs:
             echo "TEST_N8N=$n8n"
             echo "TEST_VSCODE=$vscode"
             echo "TEST_GRAFANA=$grafana"
+            echo "TEST_JENKINS=$jenkins"
             echo "TEST_GO=$go"
             echo "TEST_ACTIONS=$actions"
           } >> "$GITHUB_ENV"
+      - name: Run baseline regression tests for every Dependabot PR
+        run: |
+          python -m pip install pytest
+          (cd mcp && python -m pytest tests/test_live_push_fixes.py -q)
       - name: Validate Python dependency resolution and regressions
         if: env.TEST_PYTHON == '1'
         run: |
@@ -96,6 +103,11 @@ jobs:
           npm --prefix integrations/upstream/vscode run typecheck
           npm --prefix integrations/upstream/vscode run compile-tests
           npm --prefix integrations/upstream/vscode run package
+      - name: Validate Jenkins bundled runtime dependencies
+        if: env.TEST_JENKINS == '1'
+        run: |
+          npm --prefix integrations/upstream/jenkins install --ignore-scripts --package-lock=false --no-audit --no-fund
+          npm --prefix integrations/upstream/jenkins exec -- esbuild --version
       - name: Validate Grafana frontend
         if: env.TEST_GRAFANA == '1'
         run: |
@@ -121,11 +133,29 @@ jobs:
           python -m pip install PyYAML
           python - <<'PY'
           import pathlib
+          import re
+          import subprocess
           import yaml
+
           files = pathlib.Path('/tmp/dependency-pr-files').read_text().splitlines()
           for file in files:
-              if file.startswith('.github/workflows/'):
-                  data = yaml.load(pathlib.Path(file).read_text(), Loader=yaml.BaseLoader)
-                  assert isinstance(data, dict) and 'jobs' in data and 'on' in data, file
-                  print(f'YAML parsed: {file}')
+              if not file.startswith('.github/workflows/'):
+                  continue
+              data = yaml.load(pathlib.Path(file).read_text(), Loader=yaml.BaseLoader)
+              assert isinstance(data, dict) and 'jobs' in data and 'on' in data, file
+              # Dependabot may upgrade action references, not change CI logic.
+              diff = subprocess.check_output(
+                  ['git', 'diff', '--unified=0', 'HEAD^1', 'HEAD', '--', file],
+                  text=True,
+              )
+              modified = [
+                  line[1:] for line in diff.splitlines()
+                  if line.startswith(('+', '-')) and not line.startswith(('+++', '---'))
+              ]
+              assert modified, f'No changes found in {file}'
+              for line in modified:
+                  assert re.fullmatch(
+                      r'\\s*-?\\s*uses:\\s+[\\w./-]+@[\\w.-]+\\s*', line
+                  ), f'Unexpected GitHub Actions change in {file}: {line}'
+              print(f'Only action references changed in {file}')
           PY
