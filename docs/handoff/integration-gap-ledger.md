@@ -1,5 +1,7 @@
 # Systematic integration continuation
 
+> **Current Jenkins update (28 October):** explicit producer/root-session attribution replaces lone-file/mtime discovery. The actual HPI passed 22 native Pipeline cases and its affected gates in [run 40815284758](https://github.com/newrecycle/Dark-Moon/actions/runs/40815284758). See [the current implementation/acceptance record](jenkins-launch-identity-2026-10-28.md); older Jenkins claims and table entries below are historical baselines.
+
 > **New actual-Pro baseline (2026-10-27):** [image reference](actual-pro-image-baseline-2026-10-27.md), [52-route crosswalk](actual-pro-endpoint-crosswalk-2026-10-27.md) and [implementation parity backlog](actual-pro-parity-ledger-2026-10-27.md). This pre-existing ledger tracks **integration host validation**, not measured parity with the vendor binary.
 
 The new [commercial Pro static audit](../pro-audit/README.md) is a separate source for API/Angular/remediation coverage; it does not supersede integration-host tests or establish commercial runtime behavior. This ledger remains the source for native integration-host follow-up.

@@ -40,9 +40,30 @@ Legacy custom scripts without JSON identity output now fail deliberately.
   producer, bounded/discarded output, mutable binding, link admission, detached
   launch and one-shot verdict behavior.
 - Shell/Python/Node syntax and git whitespace checks passed.
-- Added five native HPI Pipeline cases, for 22 total. Hosted Maven, HPI resource
-  extraction, Pipeline/WarnNG/artifact and affected community checks are pending
-  publication/observation; they are not represented by the local Node result.
+- Added five native HPI Pipeline cases, for 22 total; observed hosted results follow.
+
+## Observed hosted acceptance
+
+Implementation commit: [`5a5ab6eb`](https://github.com/newrecycle/Dark-Moon/commit/5a5ab6eb91fdb8ff38023a39669b5da2fc8523ff).
+[Jenkins HPI and native agent integration, run 40815284758](https://github.com/newrecycle/Dark-Moon/actions/runs/40815284758)
+completed **success**:
+
+- All **21 bundled-launcher Node tests passed** during resource generation.
+- Maven/JenkinsRule: **16 tests, zero failures/errors, one harness-injected test skipped**; build and HPI inspection passed.
+- Actual HPI: **95,268 bytes**, standalone embedded CLI verified byte-for-byte.
+- Native controller **Jenkins 2.580.2**; remote inbound agent **Node v22.23.4**.
+- All **22 real installed-HPI Pipeline cases** matched their required result,
+  Warnings NG count, named artifacts and secret/evidence absence checks.
+- The unrelated-concurrent-campaign case succeeded with exactly one issue;
+  duplicate/missing/wrong/conflicting roots and a failed producer all failed
+  without a findings verdict. Existing high/medium/empty/error and missing
+  credential/Node gates retained their expected behavior.
+- Affected shared community regressions: **49 passed**.
+
+[General Tests](https://github.com/newrecycle/Dark-Moon/actions/runs/40815284719)
+and [supported integration distribution audit](https://github.com/newrecycle/Dark-Moon/actions/runs/40815284709)
+also passed. The CI's base-image ID probes returned `unreported`; no digest
+pinning or reproducibility claim is inferred from the reported host versions.
 
 ## Boundaries
 

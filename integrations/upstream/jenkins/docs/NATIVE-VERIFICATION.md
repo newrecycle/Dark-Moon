@@ -82,6 +82,14 @@ HPI or Jenkins-host acceptance is claimed.
 The native Pipeline matrix expands from 17 to **22 cases**: unrelated concurrent
 campaign success, missing identity, wrong root, failed producer and conflicting
 producer roots. The existing duplicate-campaign case now creates two valid
-records bound to the same root. Hosted Maven/HPI and native results must be
-recorded after the new run completes. Details and boundaries are in
-[the launch contract](CLI-CONTRACT.md#jenkins-oss-launch-identity).
+records bound to the same root. The follow-up [run 40815284758](https://github.com/newrecycle/Dark-Moon/actions/runs/40815284758)
+**passed** on [5a5ab6eb](https://github.com/newrecycle/Dark-Moon/commit/5a5ab6eb91fdb8ff38023a39669b5da2fc8523ff):
+21 bundled Node tests; Maven 16 tests (zero failures/errors, one harness-injected
+skip); HPI **95,268 bytes**; controller **Jenkins 2.580.2** and agent
+**Node v22.23.4**; all **22 native Pipeline cases** with expected WarnNG totals,
+artifacts and absence checks; and **49 affected community tests passed**.
+The five added scenarios produced their expected results, including success
+with an unrelated concurrent campaign. Base-image ID probes returned
+`unreported`, so base-image digest pinning remains a separate follow-up.
+Details and boundaries are in [the launch contract](CLI-CONTRACT.md#jenkins-oss-launch-identity)
+and [the implementation record](../../../../docs/handoff/jenkins-launch-identity-2026-10-28.md).
