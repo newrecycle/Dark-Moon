@@ -17,7 +17,7 @@ Read [commercial API acceptance instructions](commercial-api-parity.md) before m
 | Splunk | Bounded forwarder, Linux/Windows offline and package checks | Actual operator-supplied native host and searches/alerts |
 | Shared OSS SDK | Snapshot/time singleton fallback retained; multiple candidates fail closed | Establish producer binding for singleton discovery; ambiguity rejection implemented |
 | Remediation | Local edits, probes, judge and proposal contracts implemented | Actual Docker gate passed (run 40946712274); model inference/forge workflow acceptance remains |
-| UI/analytics | Independent responsive SPA and current-state posture | Campaign/finding resource links added; remaining routes, historical/as-of cohorts and reference interaction matrix open |
+| UI/analytics | Independent responsive SPA and current-state posture | Campaign/finding resource links added; remaining routes and reference interaction matrix open; campaign-start window API added, as-of reconstruction and window UI open |
 
 JetBrains is intentionally removed. Vendor activation controls are not reconstruction requirements. Stronger fork authentication, evidence restrictions and manual publishing remain intentional differences.
 

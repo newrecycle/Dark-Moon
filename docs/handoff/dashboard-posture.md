@@ -85,3 +85,26 @@ Date-window/as-of metrics, deduplicated vulnerability identity across campaigns,
 project hierarchy drill-down refinements, independent deployed-remediation
 verification and the native Grafana host/plugin remain open. No claim of exact
 visual parity with the reference application is made.
+
+## 29 October: campaign-start window API
+
+GET /api/v1/dashboard/posture now optionally accepts one `from` and/or `to`
+timezone-aware ISO datetime. The selected campaign-start interval is half-open:
+from inclusive, to exclusive. Invalid, blank, duplicate, unknown and reversed
+bounds return 400. Undated campaigns are excluded and counted explicitly.
+Projects/targets/findings/proposals are restricted to the selected campaigns.
+No bounds retains the existing all-retained cohort. Requests remain authenticated.
+
+Example: `/api/v1/dashboard/posture?from=2026-01-01T00:00:00Z&to=2027-01-01T00:00:00Z`.
+The result identifies `cohort=campaign_start_window_current_state` and normalized
+UTC `window` bounds. This is **current triage for assessments started in that
+window**, not historical state as of the end date, distinct-vulnerability
+counting, or a deployed-fix claim. The dashboard UI retains its all-retained
+view; a window picker and correctly cohort-scoped aggregate drill-downs remain
+open. The API does not silently change the UI's cohort.
+
+Run `PYTHONPATH=mcp .venv/bin/python -m pytest tests/community/test_posture.py
+tests/community/test_evidence_access.py -q`. Observed local result: 27 passed,
+6 subtests. Tests cover UTC-equivalent boundaries, upper-bound exclusion,
+empty window, input nonmutation, strict query validation, safe HTTP cohort
+metadata and authentication. No vendor response comparison.

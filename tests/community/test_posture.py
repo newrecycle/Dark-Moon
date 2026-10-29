@@ -35,6 +35,23 @@ def workspace():
 
 
 class PostureTests(unittest.TestCase):
+    def test_window_cohort_is_half_open_current_state_without_mutation(self):
+        from community.posture import windowed_posture
+        original = workspace()
+        before = copy.deepcopy(original)
+        result = windowed_posture(original, {'from':['2024-02-01T02:00:00+01:00'], 'to':['2024-03-01T01:00:00Z']})
+        self.assertEqual({c['id'] for c in result['campaign_history']}, {'c1','c2'})
+        self.assertEqual(result['totals']['findings'], 4)
+        self.assertEqual(result['cohort'], 'campaign_start_window_current_state')
+        self.assertEqual(original, before)
+        self.assertEqual(windowed_posture(original, {'from':['2025-01-01T00:00:00Z']})['totals']['findings'], 0)
+        for params in ({'from':['2024-02-01']}, {'from':['2024-02-01T01:00:00']},
+                       {'from':['']}, {'from':['2024-02-01T01:00:00Z']*2},
+                       {'as_of':['2024-02-01T01:00:00Z']},
+                       {'from':['2024-03-01T00:00:00Z'],'to':['2024-02-01T00:00:00Z']}):
+            with self.subTest(params=params), self.assertRaises(ValueError):
+                windowed_posture(original, params)
+
     def test_empty_metrics_have_no_invented_rates_or_durations(self):
         p = posture({k:[] for k in ("projects","targets","campaigns","findings","remediations")})
         self.assertEqual(p["totals"]["findings"],0)
@@ -148,6 +165,18 @@ class PostureHTTPTests(fixtures.Fixture):
         query='/api/v1/vulnerabilities?triage=excluded&mitre_attack_id=T1190'
         self.assertEqual(json.loads(self.request(query)[1])['total'],1)
         self.assertEqual(self.request('/api/v1/dashboard/posture?from=2020',auth=True)[0],400)
+
+    def test_window_http_keeps_semantics_and_rejects_duplicate_parameters(self):
+        self.campaign()
+        url = '/api/v1/dashboard/posture?from=2000-01-01T00:00:00Z&to=2100-01-01T00:00:00Z'
+        status, body, _ = self.request(url)
+        self.assertEqual(status, 200)
+        result = json.loads(body)
+        self.assertEqual(result['cohort'], 'campaign_start_window_current_state')
+        self.assertEqual(result['totals']['findings'], 1)
+        self.assertEqual(result['window']['to'], '2100-01-01T00:00:00+00:00')
+        self.assertEqual(self.request(url + '&from=2001-01-01T00:00:00Z')[0], 400)
+        self.assertEqual(self.request(url, auth=False)[0], 401)
 
     def test_viewer_can_read_metrics_but_cannot_change_triage(self):
         self.service.accounts.create('reader','long-reader-password','viewer')

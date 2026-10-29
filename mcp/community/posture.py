@@ -91,3 +91,38 @@ def posture(snapshot):
                 "unlinked_proposals": len(snapshot["remediations"]) - len(proposals)},
             "coverage": {"findings_without_registered_target": sum(f.get("target_id") not in target_ids for f in findings),
                          "findings_without_campaign": sum(f.get("campaign_id") not in campaign_ids for f in findings)}}
+
+
+def windowed_posture(snapshot, parameters):
+    """Current triage in a campaign-start cohort, never historical reconstruction."""
+    if set(parameters) - {'from', 'to'} or any(len(v) != 1 or not v[0] for v in parameters.values()):
+        raise ValueError('Use one nonblank from/to timestamp')
+    bounds = {}
+    for key, values in parameters.items():
+        value = values[0]
+        # Require full, timezone-aware timestamps; no locale/date-only guessing.
+        if not isinstance(value, str) or 'T' not in value or timestamp(value) is None:
+            raise ValueError('Use timezone-aware from/to timestamps')
+        bounds[key] = timestamp(value)
+    if 'from' in bounds and 'to' in bounds and bounds['from'] >= bounds['to']:
+        raise ValueError('from must precede to')
+    if not bounds:
+        return posture(snapshot)
+    campaigns = [c for c in snapshot['campaigns'] if timestamp(c.get('date')) is not None
+                 and ('from' not in bounds or timestamp(c['date']) >= bounds['from'])
+                 and ('to' not in bounds or timestamp(c['date']) < bounds['to'])]
+    ids = {c['id'] for c in campaigns}
+    findings = [f for f in snapshot['findings'] if f.get('campaign_id') in ids]
+    target_ids = {c.get('target_id') for c in campaigns} | {f.get('target_id') for f in findings}
+    project_ids = {c.get('project_id') for c in campaigns} | {f.get('project_id') for f in findings}
+    cohort = dict(snapshot, campaigns=campaigns, findings=findings,
+                  targets=[t for t in snapshot['targets'] if t['id'] in target_ids],
+                  projects=[p for p in snapshot['projects'] if p['id'] in project_ids],
+                  remediations=[r for r in snapshot['remediations'] if r.get('campaign_id') in ids])
+    result = posture(cohort)
+    result['cohort'] = 'campaign_start_window_current_state'
+    result['window'] = {key: datetime.fromtimestamp(value, timezone.utc).isoformat()
+                        for key, value in bounds.items()}
+    result['window']['excluded_undated_campaigns'] = sum(
+        timestamp(c.get('date')) is None for c in snapshot['campaigns'])
+    return result

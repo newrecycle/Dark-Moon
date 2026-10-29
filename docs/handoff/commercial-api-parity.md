@@ -182,3 +182,12 @@ production Docker remediation harness before owned-loopback analysis. Actual
 containers exercised validated, validation_failed and infrastructure-error
 unreproduced outcomes. No model inference or forge write was performed. The
 separate image/provider job was still running at this observation.
+
+### Date-window posture increment
+
+An additive fork API selects campaign starts in explicit half-open UTC windows,
+while retaining current triage semantics. Tests: posture + evidence suites,
+27 passed / 6 subtests. See dashboard-posture.md for commands, strict query
+rules and cohort definition. Historical as-of reconstruction, cross-campaign
+identity deduplication and a cohort-aware UI remain open; no vendor comparison
+or complete item-5 closure is claimed.

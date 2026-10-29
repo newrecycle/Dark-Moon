@@ -283,9 +283,10 @@ class API:
             if parts[1:] in (["overview"], []):
                 handler.send(overview())
             elif parts[1:] == ["posture"]:
-                if query:
-                    raise ValueError("Posture covers all retained records; query filters are not supported")
-                handler.send(self.service.snapshot()["posture"])
+                from .posture import windowed_posture
+                parameters = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+                snapshot = self.service.snapshot()
+                handler.send(windowed_posture(snapshot, parameters) if parameters else snapshot["posture"])
             elif parts[1:] == ["analytics"]:
                 handler.send({"overview": overview(), "timeseries": timeseries(query)})
             else:

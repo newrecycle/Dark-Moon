@@ -144,6 +144,10 @@ def _posture(raw):
     raw_totals = raw.get("totals") if isinstance(raw.get("totals"), dict) else {}
     risk = raw_totals.get("risk")
     return {
+        "cohort": raw.get("cohort") if raw.get("cohort") in {"all_retained_records_current_state", "campaign_start_window_current_state"} else "unknown",
+        "window": {k: v for k, v in raw.get("window", {}).items()
+                   if (k in {"from", "to"} and isinstance(v, str) and len(v) <= 40 and re.fullmatch(r"[0-9T:+.Z-]+", v))
+                   or (k == "excluded_undated_campaigns" and type(v) is int and v >= 0)},
         "totals": {**_counts(raw_totals, totals),
                    "risk": risk if risk in severity | {"none"} else "unknown"},
         "severity_distribution": _counts(raw.get("severity_distribution"), severity),
