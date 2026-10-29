@@ -22,7 +22,7 @@ Accordingly, this is independent GPLv3 code with compatibility derived from the
 public SDK, not a claim that the original Pro application has been recovered.
 The public integration repositories are MIT-licensed source
 imports, pinned in [SOURCES.json](../integrations/upstream/SOURCES.json), with
-their licenses preserved. Retained consumers contain documented fork adaptations for identity, privacy, transport and host compatibility; JetBrains has been removed. See each source provenance record;
+their licenses preserved. Retained consumers contain documented fork adaptations for identity, privacy, transport and host compatibility. See each source provenance record;
 caches, dependency installs and locally generated build products are not committed.
 The Action distribution bundle is rebuilt from source; upstream SDK tarballs and
 the required license notices are preserved. See the [import guide](../integrations/upstream/README.md).

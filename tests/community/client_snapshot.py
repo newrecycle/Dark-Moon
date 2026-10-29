@@ -1,4 +1,5 @@
 """Verify vendored consumer archives match the built, patched SDK snapshot."""
+import base64
 import hashlib
 import json
 import tarfile
@@ -13,6 +14,9 @@ for name in ('action', 'vscode'):
     deps = package['dependencies' if name == 'action' else 'devDependencies']
     archive = consumer / deps['@darkmoon/client'].removeprefix('file:')
     assert hashlib.sha256(archive.read_bytes()).hexdigest() == source['client_snapshot']['tarball_sha256']
+    lock = json.loads((consumer / 'package-lock.json').read_text())
+    expected_integrity = 'sha512-' + base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()
+    assert lock['packages']['node_modules/@darkmoon/client']['integrity'] == expected_integrity, f'{name}: stale lockfile integrity'
     with tarfile.open(archive) as bundle:
         manifest = json.load(bundle.extractfile('package/package.json'))
         assert manifest['version'] == source['client_snapshot']['version']
