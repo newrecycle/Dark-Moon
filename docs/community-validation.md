@@ -73,7 +73,7 @@ npm test --prefix integrations/upstream/n8n
 node tests/community/n8n_receiver.cjs
 npm ci --ignore-scripts --prefix integrations/upstream/action
 npm run all --prefix integrations/upstream/action
-DARKMOON_PYTHON="$PWD/.venv/bin/python" node tests/community/sdk_contract.cjs
+DARKMOON_TEST_PYTHON="$PWD/.venv/bin/python" node tests/community/sdk_fork_http.cjs
 DARKMOON_PYTHON="$PWD/.venv/bin/python" CHROMIUM_EXECUTABLE=/path/to/chrome-headless-shell node tests/community/browser_acceptance.cjs
 ```
 

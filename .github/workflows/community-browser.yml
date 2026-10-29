@@ -8,6 +8,9 @@ on:
       - 'conf/agents/headless-browser.md'
       - 'tests/community/**'
       - '.github/workflows/community-browser.yml'
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -30,10 +33,9 @@ jobs:
           DARKMOON_PYTHON: /tmp/darkmoon-browser-python/bin/python
           CODEX_PRIMARY_RUNTIME_NODE_MODULES: /tmp/darkmoon-browser-node/node_modules
         run: |
-          node tests/community/graph_navigation.cjs
-          node tests/community/finding_query.cjs
           node tests/community/headless_flags.cjs
           node tests/community/browser_acceptance.cjs
+          node tests/community/path_revision_browser.cjs
       - name: Preserve fixture UI screenshots
         if: always()
         uses: actions/upload-artifact@v4

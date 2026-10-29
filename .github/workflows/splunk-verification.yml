@@ -31,6 +31,17 @@ jobs:
         run: node --test integrations/upstream/splunk/test/setup_contract.cjs
       - name: Preserve legacy alert guard coverage
         run: python integrations/upstream/splunk/test/test_alert_action.py
+      - name: Verify native harness syntax and unavailable-host boundary
+        shell: bash
+        run: |
+          python -m py_compile integrations/upstream/splunk/test/native_acceptance.py integrations/upstream/splunk/test/native_fixture.py integrations/upstream/splunk/test/native_action.py
+          node --check integrations/upstream/splunk/test/native_browser.cjs
+          set +e
+          python integrations/upstream/splunk/test/native_acceptance.py --native > /tmp/dm-native-preflight.out 2>&1
+          code=$?
+          set -e
+          cat /tmp/dm-native-preflight.out
+          test "$code" -eq 3
       - name: Stage the tested portable source for Windows
         run: tar --exclude=__pycache__ --exclude=dist --exclude=local -czf "$RUNNER_TEMP/splunk-test-source.tar.gz" -C integrations/upstream/splunk .
       - uses: actions/upload-artifact@v4

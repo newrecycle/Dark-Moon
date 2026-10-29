@@ -153,7 +153,7 @@ npm ci --ignore-scripts --prefix integrations/upstream/client
 npm run build --prefix integrations/upstream/client
 npm test --prefix integrations/upstream/client
 npm ci --ignore-scripts --prefix integrations/upstream/action
-DARKMOON_PYTHON="$PWD/.venv/bin/python" node tests/community/sdk_contract.cjs
+DARKMOON_TEST_PYTHON="$PWD/.venv/bin/python" node tests/community/sdk_fork_http.cjs
 ```
 
 The direct contract test uses an authenticated JWT. The imported SDK's read-only

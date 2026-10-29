@@ -1,4 +1,0 @@
-#!/bin/sh
-# Real Darkmoon CI CLI launcher (delegates to the built @darkmoon/client binary).
-ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../../../client" && pwd)
-exec node "$ROOT/dist/cli/darkmoon-ci.cjs" "$@"

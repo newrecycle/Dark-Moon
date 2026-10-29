@@ -14,7 +14,22 @@ const {DarkmoonClient,AuthError}=require('../../integrations/upstream/client/dis
   const findings=await client.listFindings({campaignId:campaign.id});assert.equal(findings.length,3);assert.ok(findings.every(f=>f.campaignId===campaign.id&&f.evidence===null));
   const finding=await client.getFinding(ready.finding_id,{includeEvidence:true});assert.equal(finding.id,ready.finding_id);
   const report=await client.getReport(campaign.id);assert.equal(report.campaignId,campaign.id);assert.equal(report.redacted,true);
+  assert.equal((await client.detect()).available,true);
+  assert.equal((await client.getEvidenceMeta(ready.finding_id)).hasEvidence,true);
+  assert.ok((await client.getTimeseries({metric:'severity',group:'day'})).series.length);
+  const hook=await client.registerWebhook({url:'https://receiver.example/hook',events:['campaign.completed'],secret:'offline-sdk-webhook-secret-123456'});
+  assert.ok(hook.id);assert.equal((await client.listWebhooks()).length,1);
+  assert.equal(await client.deleteWebhook(hook.id),true);
+  const retest=await client.launchRetest({campaignId:campaign.id});
+  assert.equal((await client.getRetest(retest.retestId)).retestId,retest.retestId);
+  const launch=await client.launchCampaign({target:'fixture.example',program:'SDK contract assessment',focus:['sqli']});
+  assert.ok(launch.runId);
+  const progress=[];
+  for await(const event of client.streamProgress(launch,{signal:AbortSignal.timeout(15000)})){
+    progress.push(event);if(event.terminal)break;
+  }
+  assert.ok(progress.some(event=>event.type==='run_completed'));
   const invalid=new DarkmoonClient({mode:'pro',pro:{baseUrl,token:'invalid-fixture-token'}});await assert.rejects(()=>invalid.listCampaigns(),AuthError);
-  console.log('PASS built SDK against actual fork HTTP: authenticated reads, three campaign identities, exact detail/finding/report identity, counts, evidence default and invalid-token rejection');
+  console.log('PASS built SDK against actual fork HTTP: authenticated reads, three campaign identities, exact detail/finding/report identity, counts, evidence default, invalid-token rejection, capabilities, analytics, webhook CRUD, retest and launch/SSE');
  }finally{child.kill('SIGTERM');await new Promise(resolve=>{if(child.exitCode!==null)return resolve();const timer=setTimeout(()=>child.kill('SIGKILL'),5000);child.once('exit',()=>{clearTimeout(timer);resolve();});});}
 })().catch(error=>{console.error(error);process.exitCode=1});

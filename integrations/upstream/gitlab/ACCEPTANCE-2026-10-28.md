@@ -1,5 +1,9 @@
 # GitLab generated component acceptance — 28 October 2026
 
+Historical record: the Runner 15.11 harness and its helper scripts were retired
+on 29 October after real CE/registered-Runner acceptance passed. Commands below
+describe that earlier tree; current CI uses `test/server_acceptance.py`.
+
 Scope: fork `newrecycle/Dark-Moon`, isolated implementation branch
 `agent/gitlab-native-acceptance-20261028`. This record distinguishes
 schema validity, actual historical Runner execution and **unperformed**

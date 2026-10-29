@@ -1,17 +1,15 @@
 """High-cardinality bounded run discovery and live-offset verification.
 
 Synthetic queue rows and local temp dirs only; no queue worker, assessment,
-provider, network target, notifications, or vendor binaries. Memory measures
-are incremental selection allocations, excluding prebuilt fixture/store state.
+provider, network target, notifications, or vendor binaries. Queries exercise the production indexed Store; storage I/O and memory
+bounds are measured in test_control_storage.py.
 """
 import json
-import tracemalloc
-from itertools import islice
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import test_community as fixtures
-from community.run_views import MAX_OFFSET, _page, active_runs, log_collection
+from community.run_views import MAX_OFFSET, active_runs, log_collection
 from community.server import HTTPServer, handler_for
 import threading
 
@@ -35,19 +33,6 @@ def job(i, state=None, campaign=None, date=None):
         "local_path": "/private/path/" + PRIVATE,
         "stdout": PRIVATE,
     }
-
-
-class MemoryStore:
-    def __init__(self, rows):
-        self.rows = rows
-
-    def jobs(self, *, statuses=None, state=None, campaign_id=None, run_id=None, offset=0, limit=100):
-        from community.run_views import public_run
-        rows = (row for row in self.rows if (statuses is None or row["status"] in statuses)
-                and (state is None or public_run(row)["state"] == state)
-                and (campaign_id is None or row.get("campaign_id") == campaign_id)
-                and (run_id is None or row["id"] == run_id))
-        return _page(rows, offset, limit)
 
 
 def handler(path):
@@ -103,13 +88,14 @@ class LargeRunDiscoveryTests(fixtures.Fixture):
         self.assertTrue(all(r["run_id"] != r["campaign_id"] for r in active["data"]))
         self.assertTrue(all(r["status"] in ("queued", "running") for r in active["data"]))
 
-    def test_heap_selection_matches_full_sort_over_filters_and_ties(self):
+    def test_indexed_selection_matches_full_sort_over_filters_and_ties(self):
         records = [job(i, date="2026-10-28T09:00:00Z" if i % 3 == 0 else
                        "2026-10-27T09:00:00Z") for i in range(353)]
         records[200]["campaign_id"] = "camp_shared"
         records[201]["campaign_id"] = "camp_shared"
         records[202]["campaign_id"] = "camp_shared"
-        store = MemoryStore(records)
+        self.bulk(records)
+        store = self.service.store
         for status in (None, "queued", "running", "cancelling", "failed"):
             for campaign in (None, "camp_shared"):
                 for offset, limit in ((0, 1), (0, 50), (25, 40), (50, 100),
@@ -144,49 +130,22 @@ class LargeRunDiscoveryTests(fixtures.Fixture):
         self.assertEqual(selected["data"][0]["campaign_id"], "camp_shared")
         probe.assert_called_once()
 
-    def test_selection_memory_scales_with_page_depth_not_total_queue(self):
-        # Prebuild the input before measuring: This compatibility fixture deliberately
-        # uses the older heap selector; SQLite I/O is covered separately. Isolate only _page heap/projection.
-        records = [job(i, state="queued") for i in range(110500)]
-        def peak(limit, offset, size):
-            tracemalloc.start()
-            try:
-                rows, total = _page(islice(records, size), offset, limit)
-                _, peak_bytes = tracemalloc.get_traced_memory()
-            finally:
-                tracemalloc.stop()
-            self.assertEqual(total, size)
-            self.assertEqual(len(rows), min(limit, max(0, size - offset)))
-            return peak_bytes
-        small = peak(50, 0, 2500)
-        huge = peak(50, 0, len(records))
-        deep = peak(100, MAX_OFFSET, len(records))
-        print(f"RUN_DISCOVERY_SELECTION_MEMORY shallow_2500={small}B "
-              f"shallow_110500={huge}B deep_offset_100000={deep}B "
-              "(excludes JSON store and synthetic fixture)", flush=True)
-        self.assertLess(huge, 1024 * 1024)
-        self.assertLess(huge, small + 512 * 1024)
-        self.assertLess(deep, 32 * 1024 * 1024)
-        # API never allocates unbounded output regardless of active count.
-        page = active_runs(MemoryStore(records))
-        self.assertEqual(page["total"], len(records))
-        self.assertEqual(len(page["data"]), 50)
-        ceiling = active_runs(MemoryStore(records),
-                              handler("/api/v1/run/active?offset=100000&limit=100"))
-        self.assertEqual(len(ceiling["data"]), 100)
-        self.assertFalse(ceiling["has_more"])
-        self.assertTrue(ceiling["paging_limit_reached"])
-        self.assertIsNone(ceiling["next_offset"])
-
     def test_empty_page_and_last_partial_page_are_not_treated_as_empty_total(self):
         records = [job(i, state="queued") for i in range(125)]
-        store = MemoryStore(records)
+        self.bulk(records)
+        store = self.service.store
         for offset, expected in ((0, 50), (50, 50), (100, 25), (125, 0), (99999, 0)):
             page = active_runs(store, handler(f"/api/v1/run/active?offset={offset}"))
             self.assertEqual(page["total"], 125)
             self.assertEqual(len(page["data"]), expected)
             self.assertEqual(page["has_more"], offset < 100)
             self.assertEqual(page["next_offset"], offset + expected if offset < 100 else None)
+
+        with patch("community.run_views.MAX_OFFSET", 100):
+            ceiling = active_runs(store, handler("/api/v1/run/active?offset=100&limit=10"))
+        self.assertFalse(ceiling["has_more"])
+        self.assertTrue(ceiling["paging_limit_reached"])
+        self.assertIsNone(ceiling["next_offset"])
 
 
 class LargeRunHTTPTests(fixtures.Fixture):

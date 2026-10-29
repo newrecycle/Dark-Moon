@@ -17,7 +17,7 @@ def read_workflow(name):
 
 class DependabotWorkflowPolicy(unittest.TestCase):
     def test_dependency_workflows_parse_and_shell_is_valid(self):
-        for name in ("dependency-validation.yml", "dependency-automation-regressions.yml"):
+        for name in ("dependency-validation.yml", "tests.yml"):
             with self.subTest(name=name):
                 _text, workflow = read_workflow(name)
                 self.assertIsInstance(workflow, dict)
@@ -64,7 +64,6 @@ class DependabotWorkflowPolicy(unittest.TestCase):
             "dependabot[bot]",
             "github.event.pull_request.head.repo.full_name == github.repository",
             "github.event.pull_request.base.ref == 'pro'",
-            "tests/test_live_push_fixes.py",
             "TEST_JENKINS",
             "Validate Grafana frontend",
         ):

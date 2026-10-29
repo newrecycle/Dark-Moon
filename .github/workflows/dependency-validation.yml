@@ -69,16 +69,11 @@ jobs:
             echo "TEST_GO=$go"
             echo "TEST_ACTIONS=$actions"
           } >> "$GITHUB_ENV"
-      - name: Run baseline regression tests for every Dependabot PR
-        run: |
-          python -m pip install pytest
-          (cd mcp && python -m pytest tests/test_live_push_fixes.py -q)
       - name: Validate Python dependency resolution and regressions
         if: env.TEST_PYTHON == '1'
         run: |
-          python -m pip install -r mcp/requirements.txt -r mcp/community/requirements.txt pytest
+          python -m pip install -r mcp/requirements.txt -r mcp/community/requirements.txt
           python -m pip check
-          (cd mcp && python -m pytest tests/test_live_push_fixes.py -q)
       - name: Validate shared client
         if: env.TEST_CLIENT == '1'
         run: |

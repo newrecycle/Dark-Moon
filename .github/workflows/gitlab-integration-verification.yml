@@ -6,8 +6,12 @@ on:
       - pro
     paths:
       - 'integrations/upstream/gitlab/**'
+      - 'integrations/upstream/client/**'
       - 'tests/community/gitlab_contract.py'
       - '.github/workflows/gitlab-integration-verification.yml'
+concurrency:
+  group: gitlab-acceptance-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -39,35 +43,6 @@ jobs:
         run: |
           python integrations/upstream/gitlab/test/job_acceptance.py
           python tests/community/gitlab_contract.py
-  legacy-native-runner:
-    needs: generated-and-schema
-    runs-on: ubuntu-22.04
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install Python schema validators
-        run: python -m pip install 'PyYAML==6.0.3' 'jsonschema==4.26.0'
-      - name: Build fork-patched CLI instead of using an unrelated global package
-        run: |
-          npm --prefix integrations/upstream/client ci
-          npm --prefix integrations/upstream/client run build
-          node integrations/upstream/client/dist/cli/darkmoon-ci.cjs --help
-      - name: Download isolated GitLab Runner 15.11.1 for deprecated exec shell
-        run: |
-          set -eu
-          curl -fsSL --retry 3 'https://gitlab-runner-downloads.s3.amazonaws.com/v15.11.1/binaries/gitlab-runner-linux-amd64' -o integrations/upstream/gitlab/test/vendor/gitlab-runner
-          chmod 700 integrations/upstream/gitlab/test/vendor/gitlab-runner
-          integrations/upstream/gitlab/test/vendor/gitlab-runner --version
-      - name: Run actual generated job under historic native Runner shell executor
-        run: bash integrations/upstream/gitlab/test/run_runner_e2e.sh
   modern-registered-runner:
     needs: generated-and-schema
     runs-on: ubuntu-latest

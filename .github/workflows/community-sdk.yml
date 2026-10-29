@@ -6,12 +6,12 @@ on:
     paths:
       - 'integrations/upstream/client/**'
       - 'integrations/upstream/action/**'
-      - 'integrations/upstream/gitlab/**'
+      - 'integrations/upstream/vscode/vendor/**'
+      - 'integrations/upstream/SOURCES.json'
       - 'tests/community/client_contract.cjs'
       - 'tests/community/action_host.cjs'
       - 'tests/community/sdk_fork_http.cjs'
       - 'tests/community/client_snapshot.py'
-      - 'tests/community/gitlab_contract.py'
       - 'mcp/community/**'
       - '.github/workflows/community-sdk.yml'
 permissions:
@@ -39,11 +39,3 @@ jobs:
           python3 -m venv /tmp/darkmoon-sdk-env
           /tmp/darkmoon-sdk-env/bin/pip install -r mcp/requirements.txt -r mcp/community/requirements.txt
       - run: DARKMOON_TEST_PYTHON=/tmp/darkmoon-sdk-env/bin/python node tests/community/sdk_fork_http.cjs
-      - name: Validate GitLab mapper and shipped job script
-        run: |
-          /tmp/darkmoon-sdk-env/bin/pip install pyyaml jsonschema
-          /tmp/darkmoon-sdk-env/bin/python integrations/upstream/gitlab/test/check_schema_pin.py
-          /tmp/darkmoon-sdk-env/bin/python integrations/upstream/gitlab/test/unit_tests.py
-          /tmp/darkmoon-sdk-env/bin/python tests/community/gitlab_contract.py
-          /tmp/darkmoon-sdk-env/bin/python integrations/upstream/gitlab/build/render_template.py
-          git diff --exit-code -- integrations/upstream/gitlab/templates/scan/template.yml

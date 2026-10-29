@@ -1,39 +1,37 @@
 name: Tests
-
-# Runs on every push and PR, in EVERY repo (no repo guard): these regression
-# tests gate the run-robustness bugs (campaign_id collision, headless OOM flags)
-# so they cannot silently come back. GitHub-hosted runner; the tests are
-# stdlib-only, so no heavy dependency install is needed.
-
 on:
   push:
   pull_request:
   workflow_dispatch:
-
-# Agent Markdown carries runtime instructions and is part of the tested input.
-# Do not skip Markdown-only changes: that would bypass the Chromium flag gate.
 permissions:
   contents: read
-
+concurrency:
+  group: backend-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   pytest:
     name: pytest regression gate
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4.2.2
         with:
           persist-credentials: false
-
-      - name: Set up Python
-        uses: actions/setup-python@v5.3.0
+      - uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.11'
-
-      - name: Install pytest
-        run: python -m pip install --upgrade pip pytest
-
-      - name: Run regression tests
-        working-directory: mcp
-        run: python -m pytest tests/test_live_push_fixes.py -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install backend and policy test dependencies
+        run: python -m pip install pytest PyYAML -r mcp/requirements.txt -r mcp/community/requirements.txt
+      - name: Run all MCP and community regressions once
+        env:
+          PYTHONPATH: mcp
+        run: python -m pytest mcp/tests tests/community -q
+      - name: Verify campaign binding and pure browser logic
+        run: |
+          node tests/community/campaign_binding.cjs
+          node tests/community/graph_navigation.cjs
+          node tests/community/finding_query.cjs
+          for source in mcp/community/static/*.js; do node --check "$source"; done

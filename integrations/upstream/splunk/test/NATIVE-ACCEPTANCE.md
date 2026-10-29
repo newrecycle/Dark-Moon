@@ -93,8 +93,8 @@ Raw credentials, tokens, session keys and response bodies are not logged.
 
 ## Existing offline guarantees retained
 
-The `splunk-verification.yml` Linux/Windows workflow is unchanged. The
-additional `splunk-native-offline.yml` job runs the complete pre-existing
+The `splunk-verification.yml` Linux/Windows workflow now owns the consolidated
+offline and native-prerequisite gate. It runs the complete
 Python/loopback/package suite, all 13 Node setup tests and seven legacy alert
 guards, plus new static prerequisite and fixture checks. Its expected
 `native_acceptance.py --native` exit code **3** proves *UNAVAILABLE* for

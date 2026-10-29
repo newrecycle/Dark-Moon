@@ -23,7 +23,7 @@ Darkmoon is open-source — **a star really helps us grow.** [![Star the Darkmoo
 ## Screenshots
 
 Produced by running the **real component job** on a genuine `gitlab-runner`
-(`test/run_runner_e2e.sh` flow) against the synthetic **Demo Shop** campaign
+(historical Runner 15.11 fixture flow; retired in favor of the modern registered-Runner gate) against the synthetic **Demo Shop** campaign
 (`demo-shop.local`). The reports are the actual `gl-code-quality-report.json` /
 `gl-sast-report.json` artifacts (schema-validated in CI).
 
@@ -179,7 +179,8 @@ npm ci && npm run build
 python3 build/render_template.py      # regenerate templates/scan/template.yml from src/
 python3 test/unit_tests.py            # redaction (§4) + degradation (§2.4) + severity maps
 python3 test/check_schema_pin.py      # guard against SAST schema drift
-bash    test/run_runner_e2e.sh        # REAL gitlab-runner (15.11) end-to-end, live-schema validation
+python3 test/job_acceptance.py        # generated job error/identity matrix
+# CI builds the bundled CLI and runs test/server_acceptance.py with a disposable CE server.
 ```
 
 `templates/scan/template.yml` is generated: it embeds `src/darkmoon_gitlab_report.py`
