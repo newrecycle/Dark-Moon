@@ -53,7 +53,7 @@
     "client_snapshot": {
       "source": "../client",
       "version": "0.2.1-darkmoon.1",
-      "tarball_sha256": "5c77b62cce2806f47c53f28df8a1698fc416da4d9df420be6dfe3ed859a04db0",
+      "tarball_sha256": "97703a56db995517997eae4cdbfe1404f71283ffac82863bc424e4e24dc373c9",
       "npm_published": false
     },
     "adaptation": "Replace legacy 0.1 client archive with patched local snapshot via existing @darkmoon/client import alias. Fail closed on failed/stopped assessments and unreadable findings; compute counts from fetched findings and constrain report filenames. Strip free-form description/remediation bodies from JSON artifacts and endpoint query/fragment data from artifacts/SARIF; verification of this follow-up is deferred."
@@ -104,7 +104,7 @@
     "client_snapshot": {
       "source": "../client",
       "version": "0.2.1-darkmoon.1",
-      "tarball_sha256": "5c77b62cce2806f47c53f28df8a1698fc416da4d9df420be6dfe3ed859a04db0",
+      "tarball_sha256": "97703a56db995517997eae4cdbfe1404f71283ffac82863bc424e4e24dc373c9",
       "npm_published": false
     },
     "adaptation": "Patched local SDK snapshot under the existing import alias; required portable fixture tests. Resource/client/session-bound trusted-local reveal grants, fresh authorized finding/report reads with post-await checks, 60-second expiry and revocation on refresh/focus/panel hide. Metadata-only default body previews; refresh failure/concurrency clears stale evidence. Native editor acceptance runs in Docker --network none with pinned VS Code 1.106.3; completion is tracked separately."

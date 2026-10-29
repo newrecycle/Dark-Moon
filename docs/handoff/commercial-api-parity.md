@@ -232,3 +232,20 @@ process attribution, not a vendor engine or cryptographic producer attestation.
 The final integrated Python source before this SDK-only increment passed **499
 tests and 278 subtests**. Browser run 40947738123 passed source grants, resource
 links/reload/Back, policy-denied XR and dedicated path revision acceptance.
+
+### Producer deadline and GitLab fixture compatibility follow-up
+
+CLI --timeout now also bounds its OSS producer. Invalid deadlines reject before
+spawn; a real stalled local child is terminated and cannot yield a campaign.
+SDK lint/types/**106 tests**/build passed. Consumer archives and both lock hashes
+were refreshed again and their provenance check passed.
+
+The disposable GitLab engine now emits its own root-session JSON event and exact
+campaign binding instead of relying on snapshot discovery. The actual built CLI
+passed all five native fixture cases locally (passing, empty, blocking,
+nonblocking, findings-read error), including exact campaign IDs and no private
+canary output. Reproduce after SDK build:
+`python integrations/upstream/gitlab/test/fixture_cli_acceptance.py`.
+This runs before real CE/Runner acceptance in the existing native workflow.
+The preceding hosted native VS Code and SDK runs passed on bc86713; native GitLab
+must be taken from the follow-up revision because its producer fixture changed.

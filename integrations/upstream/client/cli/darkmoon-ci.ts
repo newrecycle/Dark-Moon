@@ -53,6 +53,7 @@ function buildConfig(opts: Record<string, unknown>): DarkmoonClientConfig {
       dataDir: ossData,
       reportsDir: (opts["oss-reports-dir"] as string) ?? env("DARKMOON_OSS_REPORTS_DIR"),
       scriptPath: (opts["oss-script"] as string) ?? env("DARKMOON_OSS_SCRIPT"),
+      timeoutMs: opts.timeout ? Number(opts.timeout) * 1000 : undefined,
     };
   }
   return cfg;

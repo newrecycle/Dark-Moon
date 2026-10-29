@@ -68,6 +68,8 @@ jobs:
           chmod 700 integrations/upstream/gitlab/test/vendor/gitlab-runner-modern
           integrations/upstream/gitlab/test/vendor/gitlab-runner-modern --version
       - name: Verify acceptance contracts
-        run: python -m unittest discover -s integrations/upstream/gitlab/test -p test_server_acceptance.py -v
+        run: |
+          python -m unittest discover -s integrations/upstream/gitlab/test -p test_server_acceptance.py -v
+          python integrations/upstream/gitlab/test/fixture_cli_acceptance.py
       - name: Real disposable CE server, registered Runner and artifact acceptance
         run: python integrations/upstream/gitlab/test/server_acceptance.py

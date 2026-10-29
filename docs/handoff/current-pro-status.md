@@ -52,7 +52,7 @@ backend implementations to replace with synthetic success.
 
 | Queue item | Delivered / verified | Still open |
 |---|---|---|
-| 1 SDK | Own-producer root binding for new launches; 105 SDK tests/build; refreshed consumers | Legacy external handles and untrusted/out-of-band storage are not attestations |
+| 1 SDK | Own-producer root binding for new launches; 106 SDK tests/build; refreshed consumers | Legacy external handles and untrusted/out-of-band storage are not attestations |
 | 2 source picker | Configured roots, admin one-use grants, real-Git HTTP and hosted browser pass | Hostile concurrently modified Git metadata is outside approved-root trust |
 | 3 remediation | Actual Docker validated/failing/unavailable-image cases pass | Real model inference and operator-authorized forge publication |
 | 4 UI | Scoped campaign/finding links; hosted reload/auth/Back/missing-state acceptance passes | Remaining original page routes, full reference visual/interaction matrix |

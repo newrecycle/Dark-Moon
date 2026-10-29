@@ -2,7 +2,7 @@ import {afterEach, describe, expect, it} from "vitest";
 import {mkdtemp, mkdir, writeFile, rm} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import {OssLocalBackend, CorrelationFailed} from "../../src/index.js";
+import {OssLocalBackend, CorrelationFailed, SchemaInvalid} from "../../src/index.js";
 const roots:string[]=[];
 afterEach(async()=>{for(const root of roots.splice(0))await rm(root,{recursive:true,force:true});});
 async function producer(mode:string) {
@@ -33,6 +33,15 @@ describe('Own OSS producer binding',()=>{
   const {backend,correlation}=await producer('unrelated');
   expect(await backend.resolveCampaignId(correlation)).toBeNull();
   expect(correlation.campaignId).toBeNull();
+ });
+ it('bounds a stalled producer and rejects invalid deadlines before launch',async()=>{
+  const dir=await mkdtemp(path.join(os.tmpdir(),"dm-producer-timeout-"));roots.push(dir);
+  const config={dataDir:dir,cwd:dir,launchTemplate:[process.execPath,'-e','setInterval(()=>{},1000)']};
+  await expect(new OssLocalBackend({...config,timeoutMs:0}).launchCampaign({target:'owned.invalid'})).rejects.toBeInstanceOf(SchemaInvalid);
+  const backend=new OssLocalBackend({...config,timeoutMs:50});
+  const {correlation}=await backend.launchCampaign({target:'owned.invalid'});
+  for(let i=0;i<100&&correlation.producerStatus==='running';i++)await new Promise(r=>setTimeout(r,10));
+  await expect(backend.resolveCampaignId(correlation)).rejects.toBeInstanceOf(CorrelationFailed);
  });
  for(const mode of ['failed','conflicting','unbound'])it('rejects '+mode+' producer identity',async()=>{
   const {backend,correlation}=await producer(mode);

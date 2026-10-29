@@ -61,9 +61,10 @@ def pipeline_config(case):
 
 ENGINE = '''#!/usr/bin/env node
 const fs=require('node:fs'), p=process.env.CI_PROJECT_DIR;
-const id='camp_owned_'+process.env.CI_JOB_ID;
+const id='camp_owned_'+process.env.CI_JOB_ID, root='ses_fixture_'+process.env.CI_JOB_ID;
+console.log(JSON.stringify({type:'step_start',sessionID:root,part:{type:'step-start',sessionID:root}}));
 if(process.env.DM_ACCEPTANCE_CASE!=='read_error') fs.writeFileSync(p+'/.data/vulnerabilities/'+id+'.json',JSON.stringify(process.env.DM_ACCEPTANCE_CASE==='empty'?[]:[{id:'finding_owned_one',campaign_id:id,title:'Synthetic issue',severity:'high',status:'confirmed',category:'configuration',endpoint:'/fixture',description:'PRIVATE_EVIDENCE_OWNED_GITLAB'}]));
-fs.writeFileSync(p+'/.data/campaigns/'+id+'.json',JSON.stringify({id,status:'completed',stats:{total_findings:0}}));
+fs.writeFileSync(p+'/.data/campaigns/'+id+'.json',JSON.stringify({id,status:'completed',opencode_session_id:root,is_subagent:false,stats:{total_findings:0}}));
 '''
 
 

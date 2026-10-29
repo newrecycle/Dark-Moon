@@ -129,6 +129,8 @@ export class OssLocalBackend implements Backend {
   }
 
   async launchCampaign(input: LaunchInput): Promise<LaunchResult> {
+    const producerTimeout = this.cfg.timeoutMs ?? 1800000;
+    if (!Number.isSafeInteger(producerTimeout) || producerTimeout < 1 || producerTimeout > 86400000) throw new SchemaInvalid("OSS producer timeout must be 1..86400000 milliseconds.");
     const nonce = input.program ?? `ci-${randomHex(8)}`;
     const prompt = this.buildPrompt(input, nonce);
     const preCampaignIds = await this.listCampaignIds();
@@ -191,7 +193,7 @@ export class OssLocalBackend implements Backend {
     const deadline = setTimeout(() => {
       reject();
       try { if (child.pid) process.kill(-child.pid, "SIGTERM"); } catch { child.kill("SIGTERM"); }
-    }, this.cfg.timeoutMs ?? 1800000);
+    }, producerTimeout);
     deadline.unref();
     child.once("error", () => { clearTimeout(deadline); reject(); });
     child.once("close", code => {
