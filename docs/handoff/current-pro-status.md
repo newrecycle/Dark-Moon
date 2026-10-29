@@ -16,7 +16,7 @@ Read [commercial API acceptance instructions](commercial-api-parity.md) before m
 | GitLab | Real CE 19.5.1 / Runner 19.5.0 pipelines and exact uploaded SAST checks pass | Ultimate dashboard ingestion |
 | Splunk | Bounded forwarder, Linux/Windows offline and package checks | Actual operator-supplied native host and searches/alerts |
 | Shared OSS SDK | Snapshot/time singleton fallback retained; multiple candidates fail closed | Establish producer binding for singleton discovery; ambiguity rejection implemented |
-| Remediation | Local edits, probes, judge and proposal contracts implemented | Real end-to-end model/container/forge workflow acceptance |
+| Remediation | Local edits, probes, judge and proposal contracts implemented | Actual Docker gate added (pending); model inference/forge workflow acceptance remains |
 | UI/analytics | Independent responsive SPA and current-state posture | Resource deep links, historical/as-of cohorts, broad interaction reference matrix |
 
 JetBrains is intentionally removed. Vendor activation controls are not reconstruction requirements. Stronger fork authentication, evidence restrictions and manual publishing remain intentional differences.

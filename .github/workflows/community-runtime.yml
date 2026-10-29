@@ -10,6 +10,7 @@ on:
       - 'tools/validate-community-runtime.py'
       - 'tools/analyze-community-lab.py'
       - 'tools/lab/**'
+      - 'tests/community/remediation_native.py'
       - 'docker-compose*.yml'
       - '.github/workflows/community-runtime.yml'
 permissions:
@@ -55,6 +56,8 @@ jobs:
           /tmp/darkmoon-analysis-venv/bin/pip install -r mcp/requirements.txt -r mcp/community/requirements.txt
       - name: Build disposable toolbox
         run: docker build --file tools/lab/Dockerfile --tag darkmoon-ui-lab .
+      - name: Validate remediation with actual offline Docker probes
+        run: PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tests/community/remediation_native.py > native-remediation.json
       - name: Analyze owned loopback target through real DarkMoon
         run: PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tools/analyze-community-lab.py --output-dir lab-analysis
       - name: Preserve real analysis data and reports
@@ -63,6 +66,7 @@ jobs:
         with:
           name: owned-lab-analysis
           path: |
+            native-remediation.json
             lab-analysis/analysis.json
             lab-analysis/data/campaigns/
             lab-analysis/data/targets.json

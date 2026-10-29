@@ -144,3 +144,23 @@ implemented. Twelve evidence HTTP tests passed, including a real disposable Git
 repository, no unauthorized probe, replay/role/scope/config removal and tracked
 symlink exclusion. Browser assertions added; hosted execution pending. This does
 not change the 52 vendor declarations or close commercial wire comparison.
+
+### Native remediation acceptance
+
+The retained runtime workflow now executes tests/community/remediation_native.py
+using the actual production Docker Sandbox and prebuilt tools/lab image. It checks
+validated, regression-failing and unavailable-image outcomes, unmodified source,
+non-root/read-only/network-isolated probes, and unpublished local results.
+Reproduce with `docker build -f tools/lab/Dockerfile -t darkmoon-ui-lab .` then
+`PYTHONPATH=mcp .venv/bin/python tests/community/remediation_native.py`. Exit 3
+means unavailable. Hosted result pending. No model inference or forge publication
+is included; those remain explicit outstanding workflow stages.
+
+### Observed integrated backend result
+
+After source-browser implementation: `PYTHONPATH=mcp /tmp/dm-current-venv/bin/python
+-m pytest mcp/tests tests/community -q` passed **496 tests and 268 subtests**
+locally. SDK/consumer provenance now also asserts the lockfile SHA-512 matches
+its archive. An initial hosted SDK run exposed stale lock integrity and the
+inventory rejected a retired-integration mention; both were corrected in the
+subsequent checkpoint. Do not label those failed runs successful.
