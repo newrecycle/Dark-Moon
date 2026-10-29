@@ -62,3 +62,37 @@ emits carries evidence, raw requests/responses or extracted data.
 ```
 
 Unknown severities normalize to `info` (never silently escalated).
+
+## Jenkins OSS launch identity
+
+The Jenkins overlay invokes the configured OSS script as
+`script <single-prompt-argument> --format json`. The normal `darkmoon.sh`
+wrapper passes these arguments to the pinned OpenCode runtime. Its JSON event
+contract is pinned at [OpenCode run.ts, revision 77b3b467](https://github.com/ASCIT31/opencode/blob/77b3b46788623317115ae920cf0072e54aa2643c/packages/opencode/src/cli/cmd/run.ts).
+Custom scripts must accept these trailing arguments and emit the same producer
+contract; old scripts that only create files are intentionally rejected.
+
+A `step_start` JSON line supplies `sessionID`; its `part.type` must be
+`step-start` and `part.sessionID` must agree. All observed supported events must
+retain the root identity. A detached Node relay reads that child's private
+stdout pipe and sends only completion/root metadata over a private IPC channel.
+It discards stderr and raw text/tool bodies, retaining at most one 64-KiB line.
+Oversized lines are discarded through their delimiter. It persists no raw log.
+
+The producer must exit successfully before a campaign verdict can be read.
+Exactly one regular, single-link campaign file (at most 4 MiB) must have the
+matching `opencode_session_id`, a matching filename/record ID and no child-run
+marker. The status read rechecks that binding. Missing/conflicting identities,
+duplicate bindings, failed producers and stale/foreign campaigns never become
+empty successful findings. PROGRAM is a display label, not a correlation key.
+Unrelated concurrent campaigns and repeated program names remain supported.
+A prelaunch filename set is used only to reject replay of an existing campaign;
+it never selects a candidate or supplies a missing root identity.
+
+The relay uses the requested CLI timeout (default one hour, maximum 24 hours)
+and a ten-second startup handshake deadline. Background `launch` returns after
+the child starts; the relay continues draining output if that CLI exits. The
+`run` command retains its existing pass/policy/error exit codes. Follow-up reads
+by an explicit campaign ID remain supported. No API, model or shared SDK change
+is required. This relies on the trusted local launcher/storage boundary, not a
+cryptographic attestation or transactional snapshot of all assessment output.

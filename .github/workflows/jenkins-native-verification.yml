@@ -2,7 +2,7 @@ name: Jenkins HPI and native agent integration
 on:
   workflow_dispatch:
   push:
-    branches: [pro, agent/jenkins-native-acceptance-20261028]
+    branches: [pro]
     paths:
       - 'integrations/upstream/jenkins/**'
       - '.github/workflows/jenkins-native-verification.yml'

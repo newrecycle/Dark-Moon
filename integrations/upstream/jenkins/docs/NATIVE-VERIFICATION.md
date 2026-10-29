@@ -58,4 +58,30 @@ Requires Java 21, Maven 3.9+, Node/npm 18+, Docker, Python 3 and network access 
 
 Corrected obsolete assumptions about `~/darkmoon-client` and `darkmoon-client-0.1.0.tgz`, plus bundled CLI runtime dependencies. The Jenkins OSS snapshot now rejects absent/malformed/foreign findings instead of returning `[]`, refuses ambiguous multi-candidate campaign attribution, and never falls back to a different campaign's report or follows report paths/symlinks outside the configured reports directory. Strict status, credential and failure-versus-unstable gates remain enforced by the Pipeline step.
 
-**Limits:** OSS candidate discovery uses local campaign files and can associate one newly observed candidate without a producer-signed nonce; ambiguity is now rejected, but this is not atomic or cryptographic launch attribution. A licensed commercial Pro endpoint, real assessment, remote non-Docker host, Windows agent and vendor-wire parity were not tested. The native controller and agent image tags were not pinned to digests. The single skipped Maven test was a Jenkins harness-injected test, not a failed native acceptance case.
+**Historical limit at the original checkpoint:** OSS candidate discovery associated a lone new campaign without an explicit producer identity. The root-session follow-up below replaces that discovery mechanism; it does not introduce cryptographic attestation or a cross-file transaction. A licensed commercial Pro endpoint, real assessment, remote non-Docker host, Windows agent and vendor-wire parity were not tested. The native controller and agent image tags were not pinned to digests. The single skipped Maven test was a Jenkins harness-injected test, not a failed native acceptance case.
+
+
+## Exact producer/root binding follow-up — 28 October 2026
+
+The Jenkins-only overlay now launches OpenCode in JSON mode through a private
+Node relay, waits for successful producer completion, validates one consistent
+root session and requires exactly one campaign bound to it. Unrelated concurrent
+campaigns are allowed; no modification-time or lone-candidate fallback remains.
+An existing matching campaign cannot be replayed as a fresh launch. Status reads
+recheck the root binding rather than trusting a cached filename.
+
+`e2e/prepare-cli.sh` now checks both source hashes, embeds the relay in the
+standalone agent CLI and runs **21 Node regression tests** against that actual
+bundle. All 21 passed locally, including concurrent same-program launches,
+foreign/duplicate/missing/replayed identities, failed/hung producers, oversized
+output and campaign records, binding mutation, symlinks/hard links, background
+launch and a real one-shot CLI verdict. Shell/Python/JavaScript syntax and
+whitespace checks passed. Maven and Docker are unavailable locally; no new local
+HPI or Jenkins-host acceptance is claimed.
+
+The native Pipeline matrix expands from 17 to **22 cases**: unrelated concurrent
+campaign success, missing identity, wrong root, failed producer and conflicting
+producer roots. The existing duplicate-campaign case now creates two valid
+records bound to the same root. Hosted Maven/HPI and native results must be
+recorded after the new run completes. Details and boundaries are in
+[the launch contract](CLI-CONTRACT.md#jenkins-oss-launch-identity).

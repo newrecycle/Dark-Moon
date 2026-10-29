@@ -180,8 +180,11 @@ configured credentials or unsupported exit codes stop the step. Counts and
 fail/unstable precedence use fetched findings. Empty findings remain valid after
 successful completion. Stale generated artifacts are removed at the next run.
 The bundled OSS adapter rejects missing/malformed or foreign-campaign findings
-and ambiguous concurrent campaign attribution rather than returning an empty
-success. Report retrieval uses only the campaign's explicit report path inside
+and requires the launched producer's exact root session to bind one campaign;
+new files and modification times never establish launch identity. Unrelated
+concurrent campaigns are allowed; duplicate bindings and missing identities fail
+closed. Custom OSS launchers must implement the JSON protocol in
+[CLI-CONTRACT.md](docs/CLI-CONTRACT.md). Report retrieval uses only the campaign's explicit report path inside
 the configured report directory; it never selects another campaign's newest
 report or reads arbitrary absolute/symlink destinations.
 Only named outputs are archived; job permissions determine artifact visibility.

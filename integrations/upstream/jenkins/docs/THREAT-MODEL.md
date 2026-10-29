@@ -21,7 +21,7 @@ leak vector, and its gate must never be silently defeated.
 | Gate silently defeated by an unknown severity | Unknown severities normalize to `info`, never dropped; the gate is computed from the summary counts, independent of the CLI exit code. |
 | Gate skipped because the build already failed | The plugin's fail policy runs last; findings are published via `recordIssues(enabledForFailure: true, …)` so warnings-ng still records them on a failed build. |
 | Credential exfiltration by a malicious job config | Credentials resolved through the standard Credentials API with per-job permission checks (`Item.EXTENDED_READ` / `USE_ITEM`) in the `doFillCredentialsIdItems` descriptor. |
-| OSS campaign mis-attribution | OSS runs share a data dir; the CLI correlates by snapshot-diff + mtime and warns on collision. Operators run one container / compose-project per job. |
+| OSS campaign mis-attribution | Private launcher IPC carries the successfully completed producer's JSON root-session identity. Exactly one campaign must bind that root; directory freshness, PROGRAM labels and modification times are never attribution evidence. |
 | Report artifact contains rehydrated host in the filename | The CLI slugifies the report filename; the plugin writes to a fixed workspace path. |
 
 ## Residual risks (documented, not mitigated in-plugin)
@@ -30,3 +30,8 @@ leak vector, and its gate must never be silently defeated.
   With `includeFullReport`, they can read rehydrated values — restrict accordingly.
 - The plugin trusts `darkmoon-ci`'s redaction. A compromised CLI on the agent could leak;
   pin and verify the CLI supply chain.
+- The configured OSS launcher and agent storage are trusted. This is process-bound
+  correlation, not a signature or protection against a compromised engine/agent
+  or arbitrary mutation of its campaign/findings files. Isolate mutually
+  untrusted jobs in separate agents/containers and data directories. Killing a
+  local Docker client cannot guarantee termination of work inside a container.

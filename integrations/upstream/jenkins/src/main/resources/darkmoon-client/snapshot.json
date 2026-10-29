@@ -1,12 +1,13 @@
 {
   "version": "0.2.1-darkmoon.1",
   "source_commit": "126f6daa930318dd2de0fb61a49ea0fdaf00e0dd",
-  "sha256": "d4064ce729ee3d23c436f142e66b82a435eb895a6c59c3f9e9193786596a0d35",
+  "sha256": "e97adf6abc8036ea34c527613a37f89edad1a9400f6a5406330443fcc4ac6588",
   "npm_published": false,
   "upstream_snapshot_sha256": "b76b685802a1973875e28398da0cbbca8cec14e1017011f46656c56c4e638828",
-  "jenkins_overlay": "Strict findings existence/correlation, ambiguous campaign rejection, and campaign-only report resolution",
+  "jenkins_overlay": "Private producer JSON/IPC root-session binding, strict findings identities and campaign-only report resolution",
   "build_dependencies": {
     "zod": "3.25.76",
     "esbuild": "0.25.12"
-  }
+  },
+  "launch_adapter_sha256": "ff9321784624a83d68ea96b61a70111a29468fd6c7105c38d8b824d2b4e848be"
 }

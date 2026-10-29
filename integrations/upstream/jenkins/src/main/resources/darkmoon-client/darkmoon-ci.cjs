@@ -1222,6 +1222,7 @@ var OssLocalBackend = class {
     this.edition = "oss";
     /** In-process retest tracking (OSS is stateless across runs; best-effort). */
     this.retests = /* @__PURE__ */ new Map();
+    this.launches = new Map();
     this.cfg = cfg;
     this.log = cfg.logger ?? new Logger("warn");
     this.campaignsDir = path.join(cfg.dataDir, "campaigns");
@@ -1276,86 +1277,98 @@ var OssLocalBackend = class {
     return parts.join(" ");
   }
   async launchCampaign(input) {
-    const nonce = input.program ?? `ci-${randomHex2(8)}`;
-    const prompt = this.buildPrompt(input, nonce);
-    const preCampaignIds = await this.listCampaignIds();
+    // Correlation is independent of the display/program name, including when
+    // concurrent jobs deliberately use the same program.
+    const nonce = `ci-${randomHex2(32)}`;
+    const prompt = this.buildPrompt(input, input.program ?? nonce);
+    let priorCampaignIds;
+    try {
+      priorCampaignIds = new Set((await import_node_fs.promises.readdir(this.campaignsDir))
+        .filter(file => file.endsWith(".json")).map(file => file.slice(0, -5)));
+    } catch { throw new SchemaInvalid("OSS campaign storage is unavailable."); }
     let cmd;
     let args;
     if (this.cfg.launchTemplate?.length) {
-      const tpl = this.cfg.launchTemplate.map((a) => a === "{PROMPT}" ? prompt : a);
-      cmd = tpl[0];
-      args = tpl.slice(1);
+      const tpl = this.cfg.launchTemplate.map(a => a === "{PROMPT}" ? prompt : a);
+      cmd = tpl[0]; args = tpl.slice(1);
     } else {
       if (!(0, import_node_fs2.existsSync)(this.scriptPath)) {
-        throw new DarkmoonNotAvailable(`darkmoon.sh not found at ${this.scriptPath}.`);
+        throw new DarkmoonNotAvailable("OSS launcher is unavailable.");
       }
-      cmd = this.scriptPath;
-      args = [prompt];
+      cmd = this.scriptPath; args = [prompt];
     }
-    const child = (0, import_node_child_process.spawn)(cmd, args, {
+    const { launchProducer } = require("../../../../cli/oss-launch.cjs");
+    const state = launchProducer({
+      cmd, args: [...args, "--format", "json"],
       cwd: this.cfg.cwd ?? path.dirname(this.scriptPath),
-      env: process.env,
-      detached: true,
-      stdio: "ignore"
+      timeoutMs: this.cfg.launchTimeoutMs ?? 3600000,
     });
-    child.unref();
+    state.priorCampaignIds = priorCampaignIds;
+    this.launches.set(nonce, state);
+    await state.ready;
+    if (state.status === "failed") throw new CorrelationFailed("OSS producer could not be started.");
     const correlation = {
-      edition: "oss",
-      runId: null,
-      campaignId: null,
-      nonce,
-      preCampaignIds,
-      startedAtMs: Date.now()
+      edition: "oss", runId: null, campaignId: null, nonce, startedAtMs: Date.now(),
     };
-    this.log.info(`OSS campaign launched (nonce=${nonce}, pid=${child.pid ?? "?"}). Correlation deferred.`);
     return { correlation, campaignId: null, runId: null };
   }
-  async listCampaignIds() {
-    try {
-      const files = await import_node_fs.promises.readdir(this.campaignsDir);
-      return files.filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
-    } catch {
-      return [];
-    }
-  }
   async resolveCampaignId(ref) {
-    const direct = refToId(ref);
-    if (direct) return direct;
     if (typeof ref === "string") return ref;
-    if (ref.campaignId) return ref.campaignId;
-    const pre = new Set(ref.preCampaignIds ?? []);
+    const state = this.launches.get(ref.nonce);
+    if (!state || state.status === "failed") {
+      throw new CorrelationFailed("OSS launcher failed or supplied no verified root-session identity.");
+    }
+    // A completed campaign file alone is insufficient: the actual launched
+    // producer must finish successfully and its entire stream must be checked.
+    if (state.status !== "completed") return null;
     let files;
-    try {
-      files = (await import_node_fs.promises.readdir(this.campaignsDir)).filter((f) => f.endsWith(".json") && f !== "unknown.json");
-    } catch {
-      return null;
-    }
-    const fresh = [];
-    for (const f of files) {
-      const id = f.replace(/\.json$/, "");
-      if (pre.has(id)) continue;
-      try {
-        const st = await import_node_fs.promises.stat(path.join(this.campaignsDir, f));
-        if (st.mtimeMs >= ref.startedAtMs - 2e3) fresh.push({ id, mtimeMs: st.mtimeMs });
-      } catch {
+    try { files = await import_node_fs.promises.readdir(this.campaignsDir); }
+    catch { throw new SchemaInvalid("OSS campaign storage is unavailable."); }
+    const matches = [];
+    for (const file of files) {
+      if (!/^camp_[A-Za-z0-9_-]{1,180}\.json$/.test(file)) continue;
+      const id = file.slice(0, -5);
+      const raw = await this.readCampaignFile(id);
+      if (raw?.opencode_session_id !== state.rootSessionId) continue;
+      if (raw.id !== id || raw.is_subagent === true || state.priorCampaignIds.has(id)) {
+        throw new CorrelationFailed("OSS root-session campaign binding is invalid.");
       }
+      matches.push(id);
     }
-    if (fresh.length === 0) return null;
-    if (fresh.length === 1) {
-      ref.campaignId = fresh[0].id;
-      return fresh[0].id;
+    if (matches.length !== 1) {
+      throw new CorrelationFailed("OSS root session must bind exactly one campaign.");
     }
-    // Sorting by mtime is not an exact run identity. Fail closed if another
-    // process created a candidate campaign concurrently.
-    throw new CorrelationFailed("Multiple new OSS campaigns match this launch; identity is ambiguous.");
+    if (ref.campaignId && ref.campaignId !== matches[0]) {
+      throw new CorrelationFailed("OSS campaign binding changed after launch.");
+    }
+    ref.campaignId = matches[0];
+    return matches[0];
   }
   async readCampaignFile(id) {
+    if (!/^camp_[A-Za-z0-9_-]{1,180}$/.test(id)) throw new SchemaInvalid("Invalid OSS campaign identity.");
     const p = path.join(this.campaignsDir, `${id}.json`);
-    if (!(0, import_node_fs2.existsSync)(p)) return null;
+    let file;
     try {
-      return JSON.parse(await import_node_fs.promises.readFile(p, "utf8"));
+      const flags = import_node_fs.constants.O_RDONLY | (import_node_fs.constants.O_NOFOLLOW ?? 0) |
+        (import_node_fs.constants.O_NONBLOCK ?? 0);
+      file = await import_node_fs.promises.open(p, flags);
+      const stat = await file.stat();
+      if (!stat.isFile() || stat.nlink !== 1 || stat.size > 4194304) return null;
+      // Bound the read even if another writer grows the file after fstat.
+      const buffer = Buffer.alloc(Math.min(stat.size + 1, 4194305));
+      let size = 0;
+      while (size < buffer.length) {
+        const { bytesRead } = await file.read(buffer, size, buffer.length - size, size);
+        if (!bytesRead) break;
+        size += bytesRead;
+      }
+      if (size > 4194304) return null;
+      const raw = JSON.parse(buffer.subarray(0, size).toString("utf8"));
+      return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : null;
     } catch {
       return null;
+    } finally {
+      await file?.close();
     }
   }
   async readFindingsFile(campaignId) {
@@ -1377,9 +1390,12 @@ var OssLocalBackend = class {
     }
     return findings;
   }
-  async getCampaign(id) {
+  async getCampaign(id, expectedRoot = null) {
     const raw = await this.readCampaignFile(id);
     if (!raw) throw new CampaignNotFound(`Campaign ${id} not found in ${this.campaignsDir}.`, { id });
+    if (raw.id !== id || expectedRoot && (raw.opencode_session_id !== expectedRoot || raw.is_subagent === true)) {
+      throw new CorrelationFailed("OSS campaign binding changed while reading status.");
+    }
     const campaign = normalizeCampaign(parseCampaign(raw), "oss");
     const raws = await this.readFindingsFile(id);
     if (raws.length > 0) {
@@ -1408,7 +1424,7 @@ var OssLocalBackend = class {
         edition: "oss"
       };
     }
-    return this.getCampaign(id);
+    return this.getCampaign(id, typeof ref === "string" ? null : this.launches.get(ref.nonce)?.rootSessionId);
   }
   async listCampaigns(filter) {
     let files;
@@ -1995,7 +2011,8 @@ function buildConfig(opts) {
     cfg.oss = {
       dataDir: ossData,
       reportsDir: opts["oss-reports-dir"] ?? env("DARKMOON_OSS_REPORTS_DIR"),
-      scriptPath: opts["oss-script"] ?? env("DARKMOON_OSS_SCRIPT")
+      scriptPath: opts["oss-script"] ?? env("DARKMOON_OSS_SCRIPT"),
+      launchTimeoutMs: opts.timeout ? Number(opts.timeout) * 1000 : 3600000
     };
   }
   return cfg;
@@ -2189,7 +2206,8 @@ function stripRaw(o) {
 function usage(msg) {
   return new DarkmoonError("BAD_REQUEST", msg);
 }
-main(process.argv.slice(2)).then((code) => process.exit(code)).catch((err) => {
+module.exports.OssLocalBackend = OssLocalBackend;
+if (require.main === module) main(process.argv.slice(2)).then((code) => process.exit(code)).catch((err) => {
   const msg = err instanceof DarkmoonError ? `${err.code}: ${err.message}` : String(err?.message ?? err);
   process.stderr.write(`[darkmoon-ci] error: ${scrubSecrets(msg)}
 `);
