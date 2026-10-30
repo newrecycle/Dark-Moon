@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import test_community as fixtures
 from api import json_storage as data
-from community.remediation import git, remediate
+from community.remediation import git, remediate, judge_patch
 from native_forge import exercise
 
 SOURCE = '''import sqlite3
@@ -69,11 +69,20 @@ def main():
             if not selector.select(timeout=600):
                 raise RuntimeError('model startup timeout; no acceptance claim')
             host = json.loads(process.stdout.readline())
+        negative = None
         with patch.dict(os.environ, {'DARKMOON_REMEDIATION_BASE_URL': f'http://127.0.0.1:{host["port"]}/v1',
                                     'DARKMOON_REMEDIATION_MODEL': host['model'],
                                     'DARKMOON_REMEDIATION_API_KEY': ''}):
             result = remediate(repo, cid, 'vuln_fixture', files=['app.py'], generate=True,
                                validate=not args.model_only, store=fixture.service.store)
+            if result['status'] == ('proposed' if args.model_only else 'validated'):
+                # A comment-only change leaves the original injectable query.
+                # The actual reviewer must reject it; never repair its verdict.
+                lines = SOURCE.splitlines()
+                unsafe_diff = '\n'.join(['diff --git a/app.py b/app.py', '--- a/app.py',
+                    '+++ b/app.py', f'@@ -1,{len(lines)} +1,{len(lines)+1} @@',
+                    '+# Review-only comment'] + [' ' + line for line in lines]) + '\n'
+                negative = judge_patch(finding, unsafe_diff)
         patch_text = Path(result['patch_path']).read_text()[:16384] if result.get('patch_path') else None
         expected = 'proposed' if args.model_only else 'validated'
         if result['status'] != expected:
@@ -82,10 +91,13 @@ def main():
                               'generated_patch': patch_text}))
             return 1
         assert result['judge']['approved'] and result['judge']['confidence'] >= .75
+        assert negative is not None and negative['approved'] is False, 'actual reviewer must reject unfixed negative control'
         assert not result['published'] and (repo / 'app.py').read_text() == SOURCE
         forge = None if args.model_only else exercise(fixture.service.store, result, repo, fixture.root)
         print(json.dumps({'accepted': True, 'model': host['model'], 'revision': host['revision'],
-                          'actual_generation_and_review': True, 'docker_probes': not args.model_only,
+                          'quantization': host['quantization'], 'actual_generation_and_review': True,
+                          'negative_control_rejected': True, 'negative_judge': negative,
+                          'docker_probes': not args.model_only,
                           'status': result['status'], 'judge': result['judge'],
                           'generated_patch': patch_text, 'forge': forge}))
         return 0

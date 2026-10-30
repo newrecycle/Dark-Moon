@@ -21,6 +21,19 @@ def main():
                                                trust_remote_code=False, use_safetensors=True,
                                                dtype=torch.bfloat16)
     model.eval()
+    # Convert one Linear at a time: never materialize the entire 4B model in
+    # float32 or make a full-model deepcopy. CPU int8 avoids slow bf16 emulation.
+    def quantize_linears(module):
+        for name, child in list(module.named_children()):
+            if isinstance(child, torch.nn.Linear):
+                wrapped = torch.nn.Sequential(child.float()).eval()
+                converted = torch.ao.quantization.quantize_dynamic(
+                    wrapped, {torch.nn.Linear}, dtype=torch.qint8)
+                setattr(module, name, converted[0])
+            else:
+                quantize_linears(child)
+    quantize_linears(model)
+    model.float()
     lock = threading.Lock()
 
     class Handler(BaseHTTPRequestHandler):
@@ -57,7 +70,8 @@ def main():
                 self.send_error(500, 'native model request failed')
 
     server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
-    print(json.dumps({'port': server.server_port, 'model': MODEL, 'revision': REVISION}), flush=True)
+    print(json.dumps({'port': server.server_port, 'model': MODEL, 'revision': REVISION,
+                      'quantization': 'dynamic-int8-linear'}), flush=True)
     server.serve_forever()
 
 

@@ -1,27 +1,27 @@
-# Actual model and forge acceptance
+# Actual model, Docker and forge acceptance
 
-This uses an owned synthetic SQLite SQL-injection application, a pinned public
-CPU model and a disposable Gitea Docker host. No provider credential, commercial
-license, external assessment or external repository is needed. It exercises
-production generation, scope validation, independent review request, real
-offline Docker probes and explicitly authorized publication. Both model calls
-use the same weights in separate stateless requests; this is not independent
-model diversity or a security guarantee.
+This optional native gate uses an owned synthetic SQLite SQL-injection
+application, a pinned Apache-2.0 CPU model and a disposable Gitea host. No
+provider credential, commercial license, external assessment or external
+repository is needed. It executes production generation, edit scope checks,
+separate review requests, real offline Docker probes and explicit publication.
 
-Prerequisites: Linux, Docker engine, Git, OpenSSL, Python 3.11/3.12, internet for
-pinned dependencies/model/image downloads, at least 12 GiB RAM (four CPU cores recommended) and 20 GiB free
-disk. Do not run on a constrained production host. All application/forge test
-traffic is loopback; the forge's outbound integrations, actions and registration
-are disabled. The script creates only its own ephemeral fixture and deletes it,
-including its uniquely named Docker container/volumes. No real notifications or
-merges are requested.
+The two review requests use the same model weights as generation, with separate
+stateless prompts. This is not model diversity or a security guarantee. A
+positive verdict never substitutes for before/after probes or human merge review.
 
-From a fresh checkout of pro at the recorded commit:
+## Fresh checkout
+
+Prerequisites: Linux, Docker engine, Git, OpenSSL, Python 3.12, build/download
+network access, at least 12 GiB RAM and 20 GiB free disk; four CPU cores
+recommended. Do not use a constrained production host.
+
+From the repository root at the recorded pro revision:
 
 ~~~sh
-python3 -m venv /tmp/darkmoon-analysis-venv
+python3.12 -m venv /tmp/darkmoon-analysis-venv
 /tmp/darkmoon-analysis-venv/bin/pip install -r mcp/requirements.txt -r mcp/community/requirements.txt
-python3 -m venv /tmp/darkmoon-model-venv
+python3.12 -m venv /tmp/darkmoon-model-venv
 /tmp/darkmoon-model-venv/bin/pip install torch==2.9.0+cpu --index-url https://download.pytorch.org/whl/cpu
 /tmp/darkmoon-model-venv/bin/pip install transformers==4.57.1
 docker build -f tools/lab/Dockerfile -t darkmoon-ui-lab .
@@ -29,67 +29,65 @@ PYTHONPATH=mcp DARKMOON_NATIVE_MODEL_PYTHON=/tmp/darkmoon-model-venv/bin/python 
  /tmp/darkmoon-analysis-venv/bin/python tests/community/remediation_model_native.py
 ~~~
 
-The public model is Qwen/Qwen3-4B-Instruct-2507 at immutable revision
-abcc171021d4f320b2e7f47c6f0deca67ded870c; remote model code is disabled. CPU bfloat16 bounds model memory.
-Gitea 1.24.6 rootless is pinned by manifest digest in native_forge.py.
-Its disposable certificate is explicitly trusted with hostname validation;
-verification is never disabled. Publication requires both production opt-ins,
-set only while the owned disposable repository exists. Synthetic credentials
-are neither recorded in output nor used for any external account.
+community-runtime.yml executes this in its existing owned-lab job, with Python
+3.12 explicitly selected, and retains native-model-forge.json. Failures remain
+failures. A --model-only run explicitly omits Docker/forge acceptance.
 
-Success requires actual generated edits, a valid approving model verdict
-(confidence >= .75), vulnerable-before/fixed-after exploit probes and preserved
-normal behavior, followed by a real Git push and PR. The harness reads the PR
-back and checks exact head SHA, target main, open/unmerged state, unchanged base
-and original working tree, and one PR after a repeated publication call.
-Malformed model output or rejected/failed validation fails; no fixture patches
-or approving verdicts are substituted. The report must say accepted:true with
-docker_probes:true and all forge checks true. A model-only run explicitly omits
-container and forge acceptance and cannot close those requirements.
+## Pins and isolation
 
-community-runtime.yml runs this in its existing owned-lab job and retains
-native-model-forge.json, including failure disposition. Check the exact run SHA
-before citing a pass. A successful synthetic acceptance is not proof for another
-application, model, forge adapter, vendor runtime or real-world remediation.
-The local model experiment lost its execution environment before completion;
-no local generation/forge success is claimed. The first hosted inference ran
-but did not satisfy acceptance; its report is retained in run 41005570435.
-Python is now pinned to 3.12 and the bounded disposition is logged as well as
-retained, to make any model rejection or failure immediately reviewable.
-The 0.5B model attempted an edit outside app.py, so the production scope gate
-correctly rejected it (run 41005816146). The acceptance profile now uses the
-larger pinned 1.5B model. No path is rewritten to excuse model output, and no
-scope, review or validation gate is relaxed. Hosted acceptance remains pending.
+Model: Qwen/Qwen3-4B-Instruct-2507 at immutable revision
+abcc171021d4f320b2e7f47c6f0deca67ded870c. Remote model code is disabled;
+safetensors are required. The optional server loads bfloat16 then converts one
+Linear at a time to PyTorch dynamic int8, keeping remaining operations float32.
+This avoids a full-model float32 copy and CPU bfloat16 emulation. Reports name
+the quantization profile; it is still actual model inference, with no canned
+patches or verdicts. Production has no bundled model and keeps its explicitly
+configured endpoint/model contract.
 
+Gitea 1.24.6 rootless is pinned by manifest digest in native_forge.py. It binds
+only a random loopback HTTPS port. Its disposable certificate is explicitly
+trusted with hostname validation; verification is never disabled. Actions,
+mail, registration and outbound integrations are disabled. Synthetic credentials
+are used only while that owned repository exists and are not printed. No real
+notification or merge is requested. The uniquely named container/volumes and
+private fixture files are removed on exit.
 
-The first 1.5B candidate was rejected by its separate model review request
-(run 41006090710); no publication ran. Reports now retain the bounded generated
-patch from this exclusively synthetic source so rejected proposals can be
-reviewed. The fixture finding identifies its actual app.py:allowed source
-without inherited unrelated demo metadata. There is no preselected patch,
-approving verdict override or bypass of a rejection.
+## Acceptance requirements
 
+1. Actual generated edits must remain in app.py, apply exactly, and pass the
+   unchanged production scope and model-verdict schema/confidence gates.
+2. The owned exploit must work before and fail after; legitimate admin/visitor
+   behavior must remain. Real production Sandbox containers run with no network.
+3. A separate actual model review must reject a comment-only diff that leaves
+   the injectable query intact. A false verdict is never flipped from its prose.
+4. Production publication, with both required opt-ins, must perform a real Git
+   push and create a PR in disposable Gitea.
+5. Read the PR back: exact head SHA/ref, target main, open/unmerged, unchanged
+   base and original working tree. Repeated publication must return the same PR;
+   the actual forge must contain exactly one PR.
 
-Run 41006616041 retained a genuine model-generated parameter-binding patch.
-Its model reviewer nevertheless described the removed concatenating line as
-still present and rejected it. The production review prompt now explicitly
-explains unified-diff removal/addition semantics and asks it to assess the
-resulting code, rejecting unsafe or uncertain results. Verdict schema,
-confidence threshold, scope restrictions and Docker validation are unchanged.
-This corrects ambiguous review context; it does not force approval.
+Success requires accepted:true, actual_generation_and_review:true,
+negative_control_rejected:true, docker_probes:true and all forge checks true.
+The bounded generated synthetic patch and both actual review verdicts are
+retained. Malformed output, low confidence, rejection or failed probes fail.
+No operator patch, approving fake response or validation substitute is supplied.
 
+## Observed checkpoints
 
-The next review described parameter binding as preventing injection, but returned
-approved:false (run 41006913818). The field contract now explicitly defines
-approved=true as a fix without regression/scope creep, approved=false as unsafe,
-incomplete or uncertain, and confidence as certainty in that verdict. A positive
-reason never overrides a false boolean in code; the original rejection remains
-a rejection. No model-specific response repair is performed.
+Actual operator-edit Docker acceptance passed in run 40946712274 and repeated
+later runtime runs: validated, failed and missing-image outcomes are distinct.
+All commercial runtime evidence remains unavailable.
 
+Earlier small-model attempts were rejected rather than published: 0.5B edited
+outside the source context (41005816146); 1.5B produced a parameter-binding
+patch but its reviewer misread deleted lines or verdict semantics
+(41006616041, 41006913818, 41007286594). The review prompt now explains unified
+diff semantics and boolean/confidence meanings; no threshold or denial changed.
+An unquantized 4B CPU response exceeded the 140-second generation budget and
+was rejected as incomplete JSON (41007607590). The int8 profile and negative
+control are now pending hosted execution. These failed attempts remain evidence,
+not successful acceptance.
 
-The 1.5B reviewer continued to reject a genuine parameter-binding patch with
-incorrect reasoning in run 41007286594. That rejection is retained; no false
-verdict or low confidence is accepted. The final acceptance profile therefore
-uses the larger Apache-2.0 Qwen3-4B-Instruct-2507 model, pinned above. This raises
-the optional fixture's hardware requirements; production has no bundled model,
-and operators still select their own explicitly configured endpoint/model.
+A synthetic pass would establish this fixture/profile/forge only. It cannot
+prove another application/model/adapter, deployed remediation, vendor runtime
+equivalence or independently verified exploitation on a real assessment.
