@@ -42,7 +42,7 @@ def main():
                     if isinstance(child, torch.nn.Linear):
                         wrapped = torch.nn.Sequential(child.float()).eval()
                         converted = torch.ao.quantization.quantize_dynamic(
-                            wrapped, {torch.nn.Linear}, dtype=torch.qint8)
+                            wrapped, {torch.nn.Linear: torch.ao.quantization.per_channel_dynamic_qconfig})
                         setattr(module, child_name, converted[0])
                     else:
                         quantize_linears(child)
@@ -96,7 +96,7 @@ def main():
     server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     print(json.dumps({'port': server.server_port, 'model': GENERATOR, 'revision': REVISIONS[GENERATOR],
                       'review_model': REVIEWER, 'review_revision': REVISIONS[REVIEWER],
-                      'quantization': {'generation': 'bfloat16', 'review': 'dynamic-int8-linear'}}), flush=True)
+                      'quantization': {'generation': 'bfloat16', 'review': 'dynamic-int8-linear-per-channel'}}), flush=True)
     server.serve_forever()
 
 

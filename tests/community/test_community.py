@@ -333,6 +333,26 @@ class RemediationTests(Fixture):
             with self.assertRaisesRegex(ValueError, 'explicit review model'):
                 model_json('owned test context', review=True)
 
+    def test_patch_review_uses_exact_pinned_source_and_only_changed_files(self):
+        from community.remediation import review_sources
+        repo = self.root / 'review-source'
+        repo.mkdir()
+        before, after = '\nvalue = "before"\n\n', '\nvalue = "after"\n\n'
+        (repo / 'app.py').write_text(before)
+        (repo / 'unrelated.py').write_text('PRIVATE-UNRELATED-CONTEXT')
+        git(repo, 'init')
+        git(repo, 'config', 'user.name', 'Owned fixture')
+        git(repo, 'config', 'user.email', 'fixture@example.invalid')
+        git(repo, 'add', '.')
+        git(repo, 'commit', '-m', 'Pinned baseline')
+        base = git(repo, 'rev-parse', 'HEAD')
+        (repo / 'app.py').write_text(after)
+        context = review_sources(repo, base, ['app.py'])
+        self.assertEqual(context, {'before': {'app.py': before}, 'after': {'app.py': after}})
+        self.assertNotIn('PRIVATE-UNRELATED-CONTEXT', json.dumps(context))
+        with self.assertRaisesRegex(ValueError, 'relative source'):
+            review_sources(repo, base, ['../unrelated.py'])
+
     def test_model_generation_preserves_structured_edits_and_auth(self):
         from community.remediation import generate_edits
         repo=self.source_repo()

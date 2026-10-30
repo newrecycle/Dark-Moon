@@ -86,7 +86,9 @@ def main():
                 unsafe_diff = '\n'.join(['diff --git a/app.py b/app.py', '--- a/app.py',
                     '+++ b/app.py', f'@@ -1,{len(lines)} +1,{len(lines)+1} @@',
                     '+# Review-only comment'] + [' ' + line for line in lines]) + '\n'
-                negative = judge_patch(finding, unsafe_diff)
+                negative = judge_patch(finding, unsafe_diff, source_context={
+                    'before': {'app.py': SOURCE},
+                    'after': {'app.py': '# Review-only comment\n' + SOURCE}})
         patch_text = Path(result['patch_path']).read_text()[:16384] if result.get('patch_path') else None
         expected = 'proposed' if args.model_only else 'validated'
         if result['status'] != expected:

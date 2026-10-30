@@ -40,7 +40,7 @@ d18ecad881a290f0c792f1c2b5dbee1820d4a424. Reviewer:
 Qwen/Qwen3-4B-Instruct-2507 at immutable revision
 abcc171021d4f320b2e7f47c6f0deca67ded870c. Remote model code is disabled;
 safetensors are required. The optional server uses bfloat16 generation, then unloads that model and
-loads the reviewer, converting one Linear at a time to PyTorch dynamic int8, keeping remaining operations float32.
+loads the reviewer, converting one Linear at a time to PyTorch per-channel dynamic int8, keeping remaining operations float32.
 This avoids a full-model float32 copy and CPU bfloat16 emulation. Reports name
 the quantization profile; it is still actual model inference, with no canned
 patches or verdicts. Production has no bundled model and keeps its explicitly
@@ -89,7 +89,12 @@ An unquantized 4B CPU response exceeded the 140-second generation budget and
 was rejected as incomplete JSON (41007607590). The int8 4B model returned an invalid empty edit list for generation
 (41008272319). The final profile separates the proven 1.5B generator from the
 larger 4B reviewer. Both are actual pinned model calls; no response is repaired.
-The two-model profile and negative control are pending hosted execution. These failed attempts remain evidence,
+The initial two-model run also rejected the patch (41009036100). Review now
+receives exact complete before/after contents for changed approved files,
+read from the pinned base commit and worktree, bounded to 200,000 characters.
+Unrelated source is excluded and exact whitespace is preserved. This removes
+partial-diff ambiguity without weakening a verdict or probe gate. The CPU
+review profile uses per-channel weight quantization. Hosted acceptance is pending. These failed attempts remain evidence,
 not successful acceptance.
 
 A synthetic pass would establish this fixture/profile/forge only. It cannot
