@@ -63,7 +63,8 @@ def main():
         git(repo, 'add', '.')
         git(repo, 'commit', '-m', 'Owned SQLi fixture')
         process = subprocess.Popen([python, str(Path(__file__).with_name('native_model_server.py'))],
-                                   stdout=subprocess.PIPE, text=True)
+                                   stdout=subprocess.PIPE, text=True,
+                                   env={**os.environ, 'DARKMOON_NATIVE_MODEL_TRACE': '1'})
         with selectors.DefaultSelector() as selector:
             selector.register(process.stdout, selectors.EVENT_READ)
             if not selector.select(timeout=600):
@@ -72,7 +73,10 @@ def main():
         negative = None
         with patch.dict(os.environ, {'DARKMOON_REMEDIATION_BASE_URL': f'http://127.0.0.1:{host["port"]}/v1',
                                     'DARKMOON_REMEDIATION_MODEL': host['model'],
-                                    'DARKMOON_REMEDIATION_API_KEY': ''}):
+                                    'DARKMOON_REMEDIATION_API_KEY': '',
+                                    'DARKMOON_REMEDIATION_JUDGE_BASE_URL': f'http://127.0.0.1:{host["port"]}/v1',
+                                    'DARKMOON_REMEDIATION_JUDGE_MODEL': host['review_model'],
+                                    'DARKMOON_REMEDIATION_JUDGE_API_KEY': ''}):
             result = remediate(repo, cid, 'vuln_fixture', files=['app.py'], generate=True,
                                validate=not args.model_only, store=fixture.service.store)
             if result['status'] == ('proposed' if args.model_only else 'validated'):
@@ -94,7 +98,8 @@ def main():
         assert negative is not None and negative['approved'] is False, 'actual reviewer must reject unfixed negative control'
         assert not result['published'] and (repo / 'app.py').read_text() == SOURCE
         forge = None if args.model_only else exercise(fixture.service.store, result, repo, fixture.root)
-        print(json.dumps({'accepted': True, 'model': host['model'], 'revision': host['revision'],
+        print(json.dumps({'accepted': True, 'model': host['model'], 'revision': host['revision'], 'review_model': host['review_model'],
+                          'review_revision': host['review_revision'],
                           'quantization': host['quantization'], 'actual_generation_and_review': True,
                           'negative_control_rejected': True, 'negative_judge': negative,
                           'docker_probes': not args.model_only,

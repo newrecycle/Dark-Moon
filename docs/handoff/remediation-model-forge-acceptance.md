@@ -6,8 +6,8 @@ provider credential, commercial license, external assessment or external
 repository is needed. It executes production generation, edit scope checks,
 separate review requests, real offline Docker probes and explicit publication.
 
-The two review requests use the same model weights as generation, with separate
-stateless prompts. This is not model diversity or a security guarantee. A
+Generation and review use separately pinned model families and stateless
+requests. This provides model diversity, not a security guarantee. A
 positive verdict never substitutes for before/after probes or human merge review.
 
 ## Fresh checkout
@@ -35,10 +35,12 @@ failures. A --model-only run explicitly omits Docker/forge acceptance.
 
 ## Pins and isolation
 
-Model: Qwen/Qwen3-4B-Instruct-2507 at immutable revision
+Generator: Qwen/Qwen2.5-Coder-1.5B-Instruct at immutable revision
+d18ecad881a290f0c792f1c2b5dbee1820d4a424. Reviewer:
+Qwen/Qwen3-4B-Instruct-2507 at immutable revision
 abcc171021d4f320b2e7f47c6f0deca67ded870c. Remote model code is disabled;
-safetensors are required. The optional server loads bfloat16 then converts one
-Linear at a time to PyTorch dynamic int8, keeping remaining operations float32.
+safetensors are required. The optional server uses bfloat16 generation, then unloads that model and
+loads the reviewer, converting one Linear at a time to PyTorch dynamic int8, keeping remaining operations float32.
 This avoids a full-model float32 copy and CPU bfloat16 emulation. Reports name
 the quantization profile; it is still actual model inference, with no canned
 patches or verdicts. Production has no bundled model and keeps its explicitly
@@ -84,10 +86,25 @@ patch but its reviewer misread deleted lines or verdict semantics
 (41006616041, 41006913818, 41007286594). The review prompt now explains unified
 diff semantics and boolean/confidence meanings; no threshold or denial changed.
 An unquantized 4B CPU response exceeded the 140-second generation budget and
-was rejected as incomplete JSON (41007607590). The int8 profile and negative
-control are now pending hosted execution. These failed attempts remain evidence,
+was rejected as incomplete JSON (41007607590). The int8 4B model returned an invalid empty edit list for generation
+(41008272319). The final profile separates the proven 1.5B generator from the
+larger 4B reviewer. Both are actual pinned model calls; no response is repaired.
+The two-model profile and negative control are pending hosted execution. These failed attempts remain evidence,
 not successful acceptance.
 
 A synthetic pass would establish this fixture/profile/forge only. It cannot
 prove another application/model/adapter, deployed remediation, vendor runtime
 equivalence or independently verified exploitation on a real assessment.
+
+
+## Explicit independent review configuration
+
+Production defaults to the existing generation endpoint/model for review.
+To select independent review, set DARKMOON_REMEDIATION_JUDGE_MODEL, optionally
+DARKMOON_REMEDIATION_JUDGE_BASE_URL and DARKMOON_REMEDIATION_JUDGE_API_KEY.
+A model-only override uses the generation endpoint and credential unless a
+review key is provided. An explicit review endpoint requires an explicit review
+model and uses only its review key, including no Authorization header if absent;
+the generator key is never forwarded to that explicitly selected endpoint.
+Redirects remain denied for both stages. Offline transport tests cover these
+credential boundaries. The native harness sets both model identities explicitly.

@@ -296,6 +296,43 @@ class HTTPTests(Fixture):
 
 
 class RemediationTests(Fixture):
+    def test_review_model_routes_credentials_without_cross_endpoint_fallback(self):
+        from community.remediation import model_json
+        captured = []
+        class Client:
+            def open(self, request, timeout):
+                captured.append(request)
+                return io.BytesIO(json.dumps({"choices": [{"message": {"content": '{"ok":true}'}}]}).encode())
+        primary = {'DARKMOON_REMEDIATION_BASE_URL': 'https://generator.example.invalid/v1',
+                   'DARKMOON_REMEDIATION_MODEL': 'generator',
+                   'DARKMOON_REMEDIATION_API_KEY': 'PRIMARY-SECRET',
+                   'DARKMOON_REMEDIATION_JUDGE_BASE_URL': '',
+                   'DARKMOON_REMEDIATION_JUDGE_MODEL': '',
+                   'DARKMOON_REMEDIATION_JUDGE_API_KEY': ''}
+        cases = [
+            ({}, False, primary['DARKMOON_REMEDIATION_BASE_URL'], 'generator', 'Bearer PRIMARY-SECRET'),
+            ({'DARKMOON_REMEDIATION_JUDGE_MODEL': 'reviewer'}, True,
+             primary['DARKMOON_REMEDIATION_BASE_URL'], 'reviewer', 'Bearer PRIMARY-SECRET'),
+            ({'DARKMOON_REMEDIATION_JUDGE_BASE_URL': 'https://review.example.invalid/v1',
+              'DARKMOON_REMEDIATION_JUDGE_MODEL': 'reviewer'}, True,
+             'https://review.example.invalid/v1', 'reviewer', None),
+            ({'DARKMOON_REMEDIATION_JUDGE_BASE_URL': 'https://review.example.invalid/v1',
+              'DARKMOON_REMEDIATION_JUDGE_MODEL': 'reviewer',
+              'DARKMOON_REMEDIATION_JUDGE_API_KEY': 'REVIEW-SECRET'}, True,
+             'https://review.example.invalid/v1', 'reviewer', 'Bearer REVIEW-SECRET')]
+        for changes, review, base, model, authorization in cases:
+            with self.subTest(review=review, model=model, base=base), patch.dict(os.environ, primary | changes), patch('urllib.request.build_opener', return_value=Client()):
+                self.assertEqual(model_json('owned test context', review=review), {'ok': True})
+                request = captured[-1]
+                self.assertEqual(request.full_url, base + '/chat/completions')
+                self.assertEqual(json.loads(request.data)['model'], model)
+                self.assertEqual(request.get_header('Authorization'), authorization)
+                self.assertNotIn('PRIMARY-SECRET', request.data.decode())
+                self.assertNotIn('REVIEW-SECRET', request.data.decode())
+        with patch.dict(os.environ, primary | {'DARKMOON_REMEDIATION_JUDGE_BASE_URL': 'https://review.example.invalid/v1'}):
+            with self.assertRaisesRegex(ValueError, 'explicit review model'):
+                model_json('owned test context', review=True)
+
     def test_model_generation_preserves_structured_edits_and_auth(self):
         from community.remediation import generate_edits
         repo=self.source_repo()
