@@ -36,3 +36,11 @@ checks uncaught page errors and retains desktop/mobile screenshots. This
 closes the executable native-browser gap if both matrix legs pass; screenshot
 retention is not a claim of exact vendor visual matching. The added browser
 step is pending on its matching revision.
+
+
+The first browser run loaded the overview/campaign/finding pages on both real
+hosts, then exposed ambiguous accessible names on native selects: option text
+became part of the implicit label, preventing exact Severity lookup. Production
+datasource, severity, campaign and retest controls now have explicit accessible
+names. The filter check also waits for its matching native query response.
+The test still requires all eight pages and never substitutes API-only success.

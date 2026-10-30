@@ -31,7 +31,10 @@ const {chromium} = require('playwright');
       assert.equal(await page.getByText('Reading current metadata…',{exact:true}).count(),0);
       assert.doesNotMatch(await page.locator('body').innerText(),/PRIVATE-EVIDENCE|fixture-only/);
       if(view==='findings') {
+        const filtered=page.waitForResponse(response=>response.url().endsWith('/api/ds/query') &&
+          response.request().method()==='POST' && response.request().postDataJSON()?.queries?.[0]?.severity==='critical');
         await page.getByLabel('Severity',{exact:true}).selectOption('critical');
+        assert.equal((await filtered).status(),200);
         await page.getByRole('table').getByText('SQL Injection in /product?id',{exact:true}).first().waitFor();
         // Wait for the response corresponding to this filter, not the prior rows.
         await page.waitForFunction(()=>!document.body.textContent.includes('Reading current metadata…'));

@@ -104,15 +104,15 @@ export default function DatasourceView({ type, defaultUid }: { type: DarkmoonQue
     </nav>
     <p>Reads use the configured Grafana datasource and its encrypted credentials. Raw evidence and report bodies are excluded.</p>
     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
-      <label>Datasource <select value={uid} onChange={event => setSelected(event.target.value)}>
+      <label>Datasource <select aria-label="Datasource" value={uid} onChange={event => setSelected(event.target.value)}>
         <option value="">Select a Darkmoon datasource</option>
         {sources.map(source => <option value={source.uid} key={source.uid}>{source.name}</option>)}
       </select></label>
-      {['findings', 'pullrequests', 'remediation'].includes(type) && <label>Campaign ID <input value={campaign} onChange={event => setCampaign(event.target.value.trim())} /></label>}
-      {type === 'findings' && <label>Severity <select value={severity} onChange={event => setSeverity(event.target.value)}>
+      {['findings', 'pullrequests', 'remediation'].includes(type) && <label>Campaign ID <input aria-label="Campaign ID" value={campaign} onChange={event => setCampaign(event.target.value.trim())} /></label>}
+      {type === 'findings' && <label>Severity <select aria-label="Severity" value={severity} onChange={event => setSeverity(event.target.value)}>
         <option value="">All severities</option>{['critical', 'high', 'medium', 'low', 'info'].map(value => <option key={value}>{value}</option>)}
       </select></label>}
-      {type === 'retest' && <label>Retest ID <input value={retest} onChange={event => setRetest(event.target.value.trim())} /></label>}
+      {type === 'retest' && <label>Retest ID <input aria-label="Retest ID" value={retest} onChange={event => setRetest(event.target.value.trim())} /></label>}
       <button type="button" disabled={!uid || loading} onClick={() => setRefresh(value => value + 1)}>Refresh</button>
       <a href="/connections/datasources">Configure datasource</a>
     </div>
