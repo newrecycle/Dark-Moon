@@ -249,3 +249,13 @@ canary output. Reproduce after SDK build:
 This runs before real CE/Runner acceptance in the existing native workflow.
 The preceding hosted native VS Code and SDK runs passed on bc86713; native GitLab
 must be taken from the follow-up revision because its producer fixture changed.
+
+### Legacy identity closure
+
+Unbound legacy OSS handles now reject automatic discovery, including a sole new
+campaign. Callers must use new producer-bound launch handles or explicit known
+campaign IDs. This removes the last timestamp/snapshot attribution heuristic.
+The compatibility change is documented in the SDK README. SDK lint/types/build
+and all 106 tests passed; both consumer archives and lock hashes were refreshed.
+All five workflows on d6bd57f completed successfully, including modern GitLab
+CE/Runner and native VS Code. Commercial wire evidence remains unavailable.

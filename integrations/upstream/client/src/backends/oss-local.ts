@@ -238,32 +238,7 @@ export class OssLocalBackend implements Backend {
     if (typeof ref === "string") return ref;
     if (ref.campaignId) return ref.campaignId;
 
-    const pre = new Set(ref.preCampaignIds ?? []);
-    let files: string[];
-    try {
-      files = (await fs.readdir(this.campaignsDir)).filter((f) => f.endsWith(".json") && f !== "unknown.json");
-    } catch {
-      return null;
-    }
-    const fresh: Array<{ id: string; mtimeMs: number }> = [];
-    for (const f of files) {
-      const id = f.replace(/\.json$/, "");
-      if (pre.has(id)) continue;
-      try {
-        const st = await fs.stat(path.join(this.campaignsDir, f));
-        // Only consider campaigns created at/after launch (mtime tie-break).
-        if (st.mtimeMs >= ref.startedAtMs - 2000) fresh.push({ id, mtimeMs: st.mtimeMs });
-      } catch {
-        /* ignore */
-      }
-    }
-    if (fresh.length === 0) return null;
-    if (fresh.length === 1) {
-      ref.campaignId = fresh[0]!.id;
-      return fresh[0]!.id;
-    }
-    // A timestamp is not producer identity. Never gate another concurrent run.
-    throw new CorrelationFailed("Multiple new OSS campaigns cannot be attributed safely. Use an explicit campaign ID or isolate one data directory per launch.");
+    throw new CorrelationFailed("Legacy OSS discovery has no producer identity. Use a new launch handle or an explicit known campaign ID.");
   }
 
   private async readCampaignFile(id: string): Promise<Record<string, unknown> | null> {

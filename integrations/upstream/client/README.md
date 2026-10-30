@@ -93,7 +93,7 @@ Backends configure via flags or env (`DARKMOON_PRO_URL`, `DARKMOON_PRO_USER`,
 |---|---|---|
 | Transport | reads the on-disk JSON tree, launches `darkmoon.sh` | `/api/v1` REST + JWT + SSE |
 | Launch | `opencode run "TARGET: … PROGRAM=ci-<nonce>"` | `POST /run/campaign` |
-| Correlation | own-producer JSON root session; legacy handle snapshot ambiguity fails closed | explicit campaign/run binding, or complete unambiguous root session ID |
+| Correlation | own-producer JSON root session; unbound legacy handles fail closed | explicit campaign/run binding, or complete unambiguous root session ID |
 | Progress | synthetic poll stream | live SSE `/run/{id}/stream` |
 | Report not ready | missing/empty file | placeholder-200 → `ReportNotReady` |
 | Dashboard / remediation / scheduler | no | yes (Pro only) |
@@ -158,9 +158,8 @@ opencode). stderr/tool text is never forwarded or persisted. Nonzero exits,
 missing/conflicting session identity and producer deadlines fail closed. Resolution
 requires an exact new non-subagent campaign with that complete session identity,
 and rechecks pinned bindings. A sole unrelated campaign is never a fallback for
-new launches. Old externally constructed handles without producer fields retain
-the documented singleton heuristic; multiple candidates reject. Prefer newly
-returned handles or explicit known campaign IDs. Producer handles are live
+new launches. Old externally constructed handles without producer fields reject discovery.
+Use newly returned handles or explicit known campaign IDs. Producer handles are live
 in-process state; they are not a durable cross-process job database.
 
 The launcher and assessment directory remain trusted. A root-session association

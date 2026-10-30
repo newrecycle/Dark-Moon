@@ -70,7 +70,7 @@ describe("OssLocalBackend (real fixture JSON tree)", () => {
     await expect(be.getFinding("does-not-exist")).rejects.toBeInstanceOf(FindingNotFound);
   });
 
-  it("resolves a correlation handle to the single new campaign since launch", async () => {
+  it("rejects legacy singleton discovery but accepts an explicit known campaign", async () => {
     const be = new OssLocalBackend({ dataDir: DATAROOT });
     // Pretend everything except 70602bf9 pre-existed → it is the 'new' one.
     const handle = {
@@ -81,8 +81,8 @@ describe("OssLocalBackend (real fixture JSON tree)", () => {
       preCampaignIds: ["camp_20260728_9018be77", "camp_noreport", "camp_stuck", "camp_sub"],
       startedAtMs: 0, // fixtures are older; use 0 so mtime>=start passes
     };
-    const id = await be.resolveCampaignId(handle);
-    expect(id).toBe("camp_20260924_70602bf9");
+    await expect(be.resolveCampaignId(handle)).rejects.toBeInstanceOf(CorrelationFailed);
+    expect(await be.resolveCampaignId("camp_20260924_70602bf9")).toBe("camp_20260924_70602bf9");
   });
   it("rejects ambiguous concurrent campaigns without pinning either candidate", async () => {
     const be = new OssLocalBackend({ dataDir: DATAROOT });

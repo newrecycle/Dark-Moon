@@ -10,7 +10,7 @@
       "docs/screenshots",
       "test/screenshots"
     ],
-    "adaptation": "Fork snapshot 0.2.1-darkmoon.1: explicit run/campaign/full-session correlation, authenticated reads, typed malformed/identity/transport failures, redirects refused, bounded SSE and response-body timeouts, failed/stopped CLI runs never pass and cached zero totals never suppress fetched findings. OSS ambiguous concurrent snapshot candidates now raise CorrelationFailed instead of selecting newest. New OSS launches bind to their own validated producer JSON root session; no singleton/mtime fallback; custom launchers must emit OpenCode JSON events."
+    "adaptation": "Fork snapshot 0.2.1-darkmoon.1: explicit run/campaign/full-session correlation, authenticated reads, typed malformed/identity/transport failures, redirects refused, bounded SSE and response-body timeouts, failed/stopped CLI runs never pass and cached zero totals never suppress fetched findings. OSS ambiguous concurrent snapshot candidates now raise CorrelationFailed instead of selecting newest. New OSS launches bind to their own validated producer JSON root session; no singleton/mtime fallback; custom launchers must emit OpenCode JSON events. Unbound legacy discovery now rejects even singleton candidates; explicit IDs and producer handles remain supported."
   },
   {
     "path": "integrations/upstream/n8n",
@@ -53,7 +53,7 @@
     "client_snapshot": {
       "source": "../client",
       "version": "0.2.1-darkmoon.1",
-      "tarball_sha256": "97703a56db995517997eae4cdbfe1404f71283ffac82863bc424e4e24dc373c9",
+      "tarball_sha256": "175a5b70920d64716e355d804f34ac4f77a1fe7c221a439d648d77c1b27835fa",
       "npm_published": false
     },
     "adaptation": "Replace legacy 0.1 client archive with patched local snapshot via existing @darkmoon/client import alias. Fail closed on failed/stopped assessments and unreadable findings; compute counts from fetched findings and constrain report filenames. Strip free-form description/remediation bodies from JSON artifacts and endpoint query/fragment data from artifacts/SARIF; verification of this follow-up is deferred."
@@ -104,7 +104,7 @@
     "client_snapshot": {
       "source": "../client",
       "version": "0.2.1-darkmoon.1",
-      "tarball_sha256": "97703a56db995517997eae4cdbfe1404f71283ffac82863bc424e4e24dc373c9",
+      "tarball_sha256": "175a5b70920d64716e355d804f34ac4f77a1fe7c221a439d648d77c1b27835fa",
       "npm_published": false
     },
     "adaptation": "Patched local SDK snapshot under the existing import alias; required portable fixture tests. Resource/client/session-bound trusted-local reveal grants, fresh authorized finding/report reads with post-await checks, 60-second expiry and revocation on refresh/focus/panel hide. Metadata-only default body previews; refresh failure/concurrency clears stale evidence. Native editor acceptance runs in Docker --network none with pinned VS Code 1.106.3; completion is tracked separately."
