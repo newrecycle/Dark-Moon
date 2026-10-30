@@ -1,0 +1,34 @@
+{
+  "native_docker": true,
+  "cases": [
+    {
+      "status": "validated",
+      "before": 3,
+      "after": 3,
+      "published": true
+    },
+    {
+      "status": "validation_failed",
+      "before": 3,
+      "after": 3,
+      "published": false
+    },
+    {
+      "status": "unreproduced",
+      "infrastructure_error": true,
+      "patch_applied": false
+    }
+  ],
+  "model_inference": false,
+  "forge_publication": true,
+  "forge": {
+    "forge": "gitea",
+    "version": "1.24.6",
+    "https_verified": true,
+    "exact_head_sha": true,
+    "open_unmerged_pr": true,
+    "idempotent": true,
+    "original_source_unchanged": true,
+    "external_repository": false
+  }
+}

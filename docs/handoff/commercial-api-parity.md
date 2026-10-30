@@ -60,7 +60,7 @@ The declaration numbers below cover all 52 reference rows.
 | 11 | History target filter, limits/offset/snapshot sequence, corruption, stable event identity | test_finding_lifecycle.py; test_finding_history_durable.py | Unavailable |
 | 14 | Overview totals, missing/null values, denominator/cohort definitions | test_posture.py; test_pro_features.py | Unavailable |
 | 15 | Launch flat input fields, credential references, target scope, idempotency and distinct run/campaign IDs | test_pro_contract_aliases.py; test_campaign_identity.py; test_credential_access.py | Unavailable |
-| 16 | Run SSE names/envelopes, heartbeat, terminal/error, disconnect/reconnect, raw grant expiry and log rotation | test_run_discovery.py; test_evidence_access.py; test_core_contract_boundaries.py | Unavailable; rotation matrix incomplete |
+| 16 | Run SSE names/envelopes, heartbeat, terminal/error, disconnect/reconnect, raw grant expiry and log rotation | test_run_discovery.py; test_evidence_access.py; test_core_contract_boundaries.py | Unavailable; fork rotation checks below |
 | 17–20 | DELETE stop idempotency, queued/running/cancelling/terminal states; active/log paging; missing/unsafe files | test_run_discovery.py; test_run_discovery_scale.py | Unavailable |
 | 21–25 | Slash aliases, flat create/update, PUT version conflict, recurrence/default/timezone/DST, deletion and overlap | test_scheduler_compatibility.py; test_calendar_scheduling.py | Unavailable; vendor defaults unknown |
 | 26–29 | Login errors, password change validation/revocation, me, logout; role and session transitions | test_pro_contract_aliases.py; test_community.py | Unavailable |
@@ -361,3 +361,20 @@ Physical headset, native Splunk, licensed Ultimate ingestion, signed
 distribution and authentic commercial wire comparison retain their exact
 prerequisites in current-pro-status.md. No vendor execution, hardware result,
 provider approval or distribution credential was fabricated.
+
+
+### Run-log SSE rotation follow-up — 30 October 2026
+
+The fork stream now resets on an observed file replacement or in-place shrink,
+using device/inode from the safely opened descriptor. Actual loopback HTTP tests
+cover shorter/longer replacements, shrink, append without duplicate output,
+terminal identity, reconnect with a fresh one-use grant, replacement-symlink
+denial and expiry during a stream. Three rotation cases failed before the fix.
+See [retained follow-up evidence](../validation/remediation-followup-2026-10-30/README.md).
+
+This covers those fork cases only; authentic vendor SSE remains unavailable.
+There is no durable per-run replay cursor: each authorized reconnect starts at
+the current file's beginning. A truncate-and-regrow on the same inode entirely
+between polls, unread bytes in a removed file, or transient rotations missed
+between observations cannot be reconstructed. Reads stay bounded to 8,192 bytes
+per poll and the existing 30-poll connection lifecycle remains in effect.

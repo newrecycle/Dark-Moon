@@ -71,6 +71,10 @@ Other affected source checkpoints:
    --configured-models with an explicitly selected capable endpoint. Require
    positive review >= .75, rejection of the unfixed control, real probes and
    real publication. The separate operator-reviewed pass does not close it.
+   On 30 October the follow-up worker had no configured generation/review
+   endpoint or credentials; `--configured-models` exited 3 (UNAVAILABLE).
+   The real Docker/Gitea operator-reviewed harness passed again locally; see
+   the [follow-up evidence](../validation/remediation-followup-2026-10-30/README.md).
 2. **Splunk:** no operator-supplied preinstalled disposable licensed host,
    matching self-hosted runner or credentials are available. Do not acquire or
    accept a license. Exact preparation and commands are in
@@ -86,6 +90,19 @@ Other affected source checkpoints:
    and error behavior remain unavailable. Use the complete scenario matrix in
    [commercial API acceptance](commercial-api-parity.md); never fabricate responses
    or bypass activation.
+
+## Follow-up fork acceptance
+
+The linked API matrix's run-log SSE rotation gap was actionable without vendor
+access. Streams now reset their byte offset on an observed replacement file or
+in-place shrink, using the opened descriptor's device/inode. HTTP regression
+checks cover append without duplication, shorter/longer replacements, observed
+truncation, fresh-grant reconnect, symlink denial and grant expiry. This is fork
+behavior only. Truncate-and-regrow between polls and unobserved rotated bytes
+cannot be reconstructed; see the follow-up evidence for exact limits and checks.
+Local final verification passed: 511 Python tests / 301 subtests, all seven
+Tests-workflow Node scripts and static JavaScript syntax checks. No new hosted
+workflow result is claimed by this local checkpoint.
 
 ## Reproduction and recovery
 

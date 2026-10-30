@@ -176,7 +176,7 @@ def log_collection(store, handler, principal=None):
             **pagination, "content_policy": "metadata_only"}
 
 
-def _read_chunk(store, job_id, offset=0, count=MAX_TAIL_BYTES, tail=False):
+def _read_chunk(store, job_id, offset=0, count=MAX_TAIL_BYTES, tail=False, cursor=None):
     """No traversal or symlink following; always bounded binary reads."""
     path = store.job_path(identifier(job_id))
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
@@ -191,6 +191,13 @@ def _read_chunk(store, job_id, offset=0, count=MAX_TAIL_BYTES, tail=False):
         if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
             return b"", offset, "unavailable", False
         size = info.st_size
+        if cursor is not None:
+            # Compare the opened descriptor, never a separate path stat: rotation
+            # can replace the path between polls (or during the open itself).
+            identity = (info.st_dev, info.st_ino)
+            if cursor.get("identity") != identity or size < offset:
+                offset = 0
+            cursor["identity"] = identity
         start = max(0, size - count) if tail else min(offset, size)
         os.lseek(fd, start, os.SEEK_SET)
         chunk = os.read(fd, min(count, max(0, size - start)))
@@ -201,8 +208,8 @@ def _read_chunk(store, job_id, offset=0, count=MAX_TAIL_BYTES, tail=False):
         os.close(fd)
 
 
-def stream_chunk(store, job_id, offset):
-    return _read_chunk(store, job_id, offset=offset, count=8192)
+def stream_chunk(store, job_id, offset, *, cursor=None):
+    return _read_chunk(store, job_id, offset=offset, count=8192, cursor=cursor)
 
 
 def _lifecycle(job):

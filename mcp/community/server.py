@@ -314,6 +314,7 @@ def handler_for(service, allowed_hosts):
             self.end_headers()
             self.close_connection = True
             offset = 0
+            cursor = {}
             for _ in range(30):
                 job = service.store.get("jobs", run_id)
                 if job is None:
@@ -324,7 +325,7 @@ def handler_for(service, allowed_hosts):
                     if (time.time() >= getattr(self, "_evidence_until", 0) or
                             not service.identity(self.headers.get("Authorization"))):
                         return
-                    chunk, offset, _, _ = stream_chunk(service.store, run_id, offset)
+                    chunk, offset, _, _ = stream_chunk(service.store, run_id, offset, cursor=cursor)
                     if chunk:
                         self.wfile.write(("data: "+json.dumps({"type": "output", "text": chunk.decode("utf-8", errors="replace"),
                             "run_id": run_id, "campaign_id": job["campaign_id"], "untrusted": True})+"\n\n").encode())

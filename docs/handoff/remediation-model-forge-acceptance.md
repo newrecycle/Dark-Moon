@@ -173,3 +173,20 @@ genuine parameter-binding patch. Passing operator publication does not close
 that gap, and making the model test manual does not turn its failed runs into
 passes. Reuse --configured-models with a capable explicitly selected endpoint
 and retain the strict positive/negative controls above to close it.
+
+
+## Local follow-up — 30 October 2026
+
+A fresh managed worker reran the existing operator-reviewed Docker/HTTPS Gitea
+harness successfully: validated fix, rejected bad fix, unreproduced missing image,
+and every actual forge check true. Model inference was false. The
+[retained summary and exact commands](../validation/remediation-followup-2026-10-30/README.md)
+include the initial fixture-permission failure and successful rerun.
+
+This worker has no configured generation/review endpoint, model or credential;
+its environment readiness reports no secret/runtime-variable bindings. Provider
+hosts are absent from its enforced restricted network policy. The real
+`--configured-models` preflight exited 3 with `NATIVE UNAVAILABLE`; it made no
+inference or review call. No positive or negative model verdict was obtained.
+A capable operator-selected endpoint/model, each required credential, and allowed
+network access remain prerequisites. The automatic acceptance gap stays OPEN.

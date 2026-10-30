@@ -7,6 +7,7 @@ import http.client
 import json
 import os
 import threading
+import time
 from unittest.mock import patch
 
 import test_community as fixtures
@@ -288,3 +289,78 @@ class RunDiscoveryHTTP(fixtures.Fixture):
         self.assertIn(b'"untrusted": true', untrusted)
         for q in ("?raw=unexpected", "?raw=true&extra=1"):
             self.assertEqual(self.get(route + q)[0], 400)
+
+    def test_sse_rotation_reads_replacement_from_start_and_append_once(self):
+        for mode in ("append", "replace_shorter", "replace_longer", "truncate"):
+            with self.subTest(mode=mode):
+                job = self.job(mode, status="running")
+                path = self.service.store.job_path(job["id"])
+                path.parent.mkdir(parents=True, exist_ok=True)
+                original = b"original-stream-line\n"
+                replacement = b"new\n" if mode in {"replace_shorter", "truncate"} else b"replacement-stream-line-longer-than-original\n"
+                path.write_bytes(original)
+                def change(_seconds):
+                    if mode == "append":
+                        with path.open("ab") as handle:
+                            handle.write(replacement)
+                    else:
+                        if mode.startswith("replace"):
+                            path.rename(path.with_suffix(".old"))
+                        path.write_bytes(replacement)
+                    self.service.queue._patch(job["id"], status="succeeded", finished_at=now())
+                route = "/api/v1/run/" + job["id"] + "/stream?raw=true"
+                grant = self.raw_grant(job, "stream")
+                with patch("community.server.time.sleep", side_effect=change):
+                    status, body, _ = self.request(route, headers=grant)
+                self.assertEqual(status, 200)
+                frames = [json.loads(line[6:]) for line in body.decode().splitlines() if line.startswith("data: ")]
+                self.assertEqual([f["text"] for f in frames if f["type"] == "output"],
+                                 [original.decode(), replacement.decode()])
+                self.assertEqual(frames[-1]["type"], "run_completed")
+                self.assertTrue(all(f["run_id"] == job["id"] and f["campaign_id"] == job["campaign_id"] for f in frames))
+                # A reconnect must obtain a fresh one-use grant.
+                self.assertEqual(self.request(route, headers=grant)[0], 403)
+                status, reconnected, _ = self.request(route, headers=self.raw_grant(job, "stream"))
+                self.assertEqual(status, 200)
+                outputs = [json.loads(line[6:])["text"] for line in reconnected.decode().splitlines()
+                           if line.startswith("data: ") and json.loads(line[6:])["type"] == "output"]
+                self.assertEqual(outputs, [(original + replacement if mode == "append" else replacement).decode()])
+
+    def test_sse_rotation_does_not_follow_replacement_symlink(self):
+        job = self.job("rotation_link", status="running")
+        path = self.service.store.job_path(job["id"])
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"original\n")
+        outside = self.root / "outside-stream-secret"
+        outside.write_bytes(b"PRIVATE-ROTATION-OUTSIDE\n")
+        def change(_seconds):
+            path.rename(path.with_suffix(".old"))
+            path.symlink_to(outside)
+            self.service.queue._patch(job["id"], status="succeeded", finished_at=now())
+        grant = self.raw_grant(job, "stream")
+        with patch("community.server.time.sleep", side_effect=change):
+            status, body, _ = self.request("/api/v1/run/" + job["id"] + "/stream?raw=true", headers=grant)
+        self.assertEqual(status, 200)
+        self.assertIn(b"original", body)
+        self.assertNotIn(b"PRIVATE-ROTATION-OUTSIDE", body)
+        self.assertIn(b'"type": "run_completed"', body)
+
+    def test_sse_grant_expiry_before_rotated_output_stops_stream(self):
+        from community.evidence_access import GRANT_TTL
+        job = self.job("rotation_expiry", status="running")
+        path = self.service.store.job_path(job["id"])
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"before-expiry\n")
+        grant = self.raw_grant(job, "stream")
+        stamp = time.time()
+        with patch("community.server.time.time", return_value=stamp) as clock:
+            def expire(_seconds):
+                path.rename(path.with_suffix(".old"))
+                path.write_bytes(b"PRIVATE-AFTER-GRANT-EXPIRY\n")
+                clock.return_value = stamp + GRANT_TTL + 1
+            with patch("community.server.time.sleep", side_effect=expire):
+                status, body, _ = self.request("/api/v1/run/" + job["id"] + "/stream?raw=true", headers=grant)
+        self.assertEqual(status, 200)
+        self.assertIn(b"before-expiry", body)
+        self.assertIn(b": heartbeat", body)
+        self.assertNotIn(b"PRIVATE-AFTER-GRANT-EXPIRY", body)
