@@ -96,8 +96,13 @@ def _pagination(total, offset, limit, count):
             "ordering": "created_at_desc,id_desc", "page_consistency": "live_offset"}
 
 
-def _discovery_page(store, params, query, limit, offset):
-    mode = params.get("pagination", "cursor" if "cursor" in params else "offset")
+def _discovery_page(store, params, query, limit, offset, principal=None):
+    mode = params.get("pagination", "snapshot" if "snapshot" in params else "cursor" if "cursor" in params else "offset")
+    if mode == "snapshot":
+        if "cursor" in params: raise ValueError("Do not mix frozen snapshots and cursors")
+        from .run_snapshots import page
+        return page(store,query,principal,params.get("snapshot"),offset,limit)
+    if "snapshot" in params: raise ValueError("Do not mix snapshot and live pagination")
     if mode not in {"offset", "cursor"} or (mode == "offset" and "cursor" in params):
         raise ValueError("Choose offset or cursor pagination")
     if mode == "offset":
@@ -133,11 +138,11 @@ def _discovery_page(store, params, query, limit, offset):
                   "page_consistency": "live_keyset"}
 
 
-def active_runs(store, handler=None):
-    params = _parameters(handler, ("limit", "offset", "pagination", "cursor")) if handler is not None else {}
+def active_runs(store, handler=None, principal=None):
+    params = _parameters(handler, ("limit", "offset", "pagination", "cursor", "snapshot")) if handler is not None else {}
     limit = _positive(params, "limit", 50, MAX_PAGE, 1)
     offset = _positive(params, "offset", 0, MAX_OFFSET)
-    page, pagination = _discovery_page(store, params, {"statuses": ACTIVE}, limit, offset)
+    page, pagination = _discovery_page(store, params, {"statuses": ACTIVE}, limit, offset, principal)
     rows = [public_run(job) for job in page]
     return {"data": rows, **pagination,
             "active_states": ["queued", "running", "cancelling"]}
@@ -157,8 +162,8 @@ def log_metadata(store, job):
     return {"log_status": "available", "log_bytes": item.st_size}
 
 
-def log_collection(store, handler):
-    params = _parameters(handler, ("limit", "offset", "status", "campaign_id", "run_id", "pagination", "cursor"))
+def log_collection(store, handler, principal=None):
+    params = _parameters(handler, ("limit", "offset", "status", "campaign_id", "run_id", "pagination", "cursor", "snapshot"))
     limit = _positive(params, "limit", 25, MAX_PAGE, 1)
     offset = _positive(params, "offset", 0, MAX_OFFSET)
     status = params.get("status")
@@ -166,7 +171,7 @@ def log_collection(store, handler):
         raise ValueError("Unsupported run status")
     campaign_id = _identity_filter(params, "campaign_id")
     run_id = _identity_filter(params, "run_id")
-    page, pagination = _discovery_page(store, params, {"state": status, "campaign_id": campaign_id, "run_id": run_id}, limit, offset)
+    page, pagination = _discovery_page(store, params, {"state": status, "campaign_id": campaign_id, "run_id": run_id}, limit, offset, principal)
     return {"data": [public_run(job) | log_metadata(store, job) for job in page],
             **pagination, "content_policy": "metadata_only"}
 

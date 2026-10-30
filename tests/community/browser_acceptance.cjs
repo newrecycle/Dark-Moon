@@ -106,6 +106,13 @@ const assert = require("node:assert/strict");
     // collection/detail responses after verifying the fixture's empty queue.
     await page.locator('nav a[href="#campaigns"]').click();
     await page.getByText('Queue is empty', {exact:false}).waitFor();
+    assert.deepEqual(await page.evaluate(()=>[activePager.mode,historyPager.mode]),['cursor','cursor']);
+    await page.locator('[data-freeze-run-pages]').click();
+    await page.getByText('Active frozen page 1 · 0 shown · 0 captured matches',{exact:true}).waitFor();
+    assert.deepEqual(await page.evaluate(()=>[activePager.mode,historyPager.mode]),['snapshot','snapshot']);
+    await page.locator('[data-reset-run-pages]').click();
+    await page.getByText('Active page 1 · 0 shown · 0 matching now',{exact:true}).waitFor();
+
     const mockRun = {id:'job_mock',run_id:'job_mock',campaign_id:fixture.campaign_id,
       status:'running',state:'running',kind:'assessment',created_at:'2026-10-28T09:00:00Z'};
     const mockOld = {...mockRun,id:'job_old',run_id:'job_old',status:'succeeded',state:'succeeded'};

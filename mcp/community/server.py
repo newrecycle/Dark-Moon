@@ -64,6 +64,12 @@ def handler_for(service, allowed_hosts):
                         "Schedule changed; reload its current version before saving",
                         "Schedule changed; reload before duplicating",
                         "Start time does not exist in this timezone; choose another time",
+                        "Frozen snapshot is unavailable or expired; reset pages",
+                        "Frozen run snapshot capacity reached; retry after expiry",
+                        "Frozen run snapshot byte capacity reached",
+                        "Frozen snapshot exceeds row capacity; narrow filters",
+                        "Posture history is full; archive before recording more observations",
+
                     }
                     existing = content.get("error") if isinstance(content, dict) else None
                     content = {"error": "Not found" if status == 404 else
@@ -153,8 +159,8 @@ def handler_for(service, allowed_hosts):
             if method == "GET" and (path in {"/login", "/change-password", "/new-campaign", "/scheduler", "/history", "/projects"}
                     or re.fullmatch(r"/(campaign|project|report|vulnerability|infra|pull-request)/[A-Za-z0-9_-]{1,200}", path)):
                 return self.send((STATIC / "index.html").read_bytes(), "text/html")
-            if method == "GET" and path in {"/", "/callback", "/resource-routes.js", "/campaign-window.js", "/app.js", "/app.css", "/workspace.js", "/paths.js", "/finding-query.js", "/schedules.js", "/posture.js"}:
-                name, kind = {"/campaign-window.js": ("campaign-window.js", "text/javascript"), "/resource-routes.js": ("resource-routes.js", "text/javascript"), "/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
+            if method == "GET" and path in {"/", "/callback", "/resource-routes.js", "/campaign-window.js", "/run-paging.js", "/app.js", "/app.css", "/workspace.js", "/paths.js", "/finding-query.js", "/schedules.js", "/posture.js"}:
+                name, kind = {"/run-paging.js": ("run-paging.js", "text/javascript"), "/campaign-window.js": ("campaign-window.js", "text/javascript"), "/resource-routes.js": ("resource-routes.js", "text/javascript"), "/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
                               "/callback": ("index.html", "text/html"), "/workspace.js": ("workspace.js", "text/javascript"),
                               "/app.css": ("app.css", "text/css"), "/paths.js": ("paths.js", "text/javascript"),
                               "/finding-query.js": ("finding-query.js", "text/javascript"),

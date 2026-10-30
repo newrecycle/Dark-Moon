@@ -83,3 +83,27 @@ Run discovery/storage tests:
 tests/community/test_run_discovery_scale.py tests/community/test_control_storage.py -q`.
 The added case traverses tied timestamps during a newer insertion and anchor
 deletion; verifies exact unique IDs and rejects wrong-filter/malformed cursors.
+
+## Completed run-page consumers and frozen paging
+
+Dashboard run/history navigation now uses live keyset cursors by default, with
+independent Previous/Next stacks. Reset includes newer runs. A valid explicit
+legacy offset response is supported; transport failures never trigger fallback.
+
+**Freeze run metadata for paging** selects a frozen SQLite transaction capture.
+The same API is available on /api/v1/run/active and /api/v1/run/logs: start with
+`pagination=snapshot&limit=50`, then preserve filters and send `snapshot=ID` plus
+the returned next_offset. Captured lifecycle rows, membership and exact total
+remain fixed despite subsequent status/deletion/insertion changes. Log-file
+availability/size is intentionally live and raw output still needs a grant.
+
+Snapshots are authenticated, principal-bound, filter-bound and expire in five
+minutes. Bounds are 100000 rows, 64 MiB total, 128 retained captures. Capacity
+refuses admission atomically; expired captures are cleaned on creation. No fresh
+snapshot is evicted. Use narrower campaign/run/status filters when necessary.
+This is control-job consistency, not an atomic snapshot of assessment files.
+Ephemeral tables do not alter authoritative jobs or view revisions.
+
+Whole-workspace recovery is now executable and tested; see workspace-recovery.md.
+Posture retention has explicit lossless archive/prune/restore, documented in
+posture-observations.md. Neither mechanism silently deletes assessment evidence.

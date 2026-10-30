@@ -320,9 +320,9 @@ class API:
         if resource == "run":
             # Literal collection routes must precede generic /run/{run_id}.
             if method == "GET" and parts == ["run", "active"]:
-                handler.send(active_runs(self.store, handler))
+                handler.send(active_runs(self.store, handler, principal=identity["id"]))
             elif method == "GET" and parts == ["run", "logs"]:
-                handler.send(log_collection(self.store, handler))
+                handler.send(log_collection(self.store, handler, principal=identity["id"]))
             elif method == "POST" and parts[1:] == ["campaign"]:
                 job = self.service.launch(handler.body(), key=handler.headers.get("Idempotency-Key"), actor=identity)
                 handler.send({"run_id": job["id"], "campaign_id": job["campaign_id"], "status": job["status"]}, status=202)

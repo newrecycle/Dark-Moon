@@ -280,3 +280,15 @@ are executable via community.posture_history. See posture-observations.md for
 complete fresh-session commands and HTTP scenarios. Existing posture/evidence
 checks plus observation tests passed 30 tests / 21 subtests before the additional
 tracking-group case; final combined results are recorded at the final checkpoint.
+
+### Scale/consistency implementation closure
+
+Dashboard cursors are now consumed directly, with optional principal/filter-bound
+frozen run pages. Immutable lifecycle membership/metadata and current log-file
+availability are explicitly separated. Offline complete workspace backup/verify/
+restore now includes private keys, control/finding SQLite WAL data, reports,
+assessment files and validated legacy-history rebinding. Restore quiesces work
+and invalidates sessions/grants rather than replaying old side effects. Fresh
+commands and exact bounds are in workspace-recovery.md and the control-state
+runbook. Focused run/storage tests passed 28 tests / 110 subtests before the final
+recovery policy/rebind cases; final results are recorded at the final checkpoint.

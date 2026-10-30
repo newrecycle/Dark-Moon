@@ -62,7 +62,7 @@ class LargeRunDiscoveryTests(fixtures.Fixture):
         self.assertEqual(len(found), len(set(found)))
         for query in ({'cursor':first['next_cursor'],'offset':1},
                       {'cursor':first['next_cursor'],'pagination':'offset'},
-                      {'cursor':'!not-base64!'}, {'pagination':'snapshot'}):
+                      {'cursor':'!not-base64!'}, {'pagination':'unsupported'}):
             with self.subTest(query=query), self.assertRaises(ValueError):
                 active_runs(self.service.store, handler('/api/v1/run/active?'+urlencode(query)))
         # A token from active discovery cannot be reused for a different filter family.
@@ -188,6 +188,39 @@ class LargeRunHTTPTests(fixtures.Fixture):
         self.server.server_close()
         self.thread.join(timeout=5)
         super().tearDown()
+
+    def test_frozen_pages_keep_original_rows_and_enforce_principal_filters_expiry(self):
+        from urllib.parse import urlencode
+        from community import run_snapshots
+        rows=[job(i,state='queued') for i in range(12)]
+        self.service.store.update(lambda state:state['jobs'].update({r['id']:r for r in rows}))
+        url='/api/v1/run/logs?pagination=snapshot&limit=3'
+        status,body,_=self.request(url)
+        self.assertEqual(status,200,body)
+        first=json.loads(body);token=first['snapshot']
+        self.assertEqual(first['page_consistency'],'frozen_run_metadata')
+        def replace(state):
+            state['jobs'].clear();state['jobs']['job_new']=job(999,state='running')|{'id':'job_new'}
+        self.service.store.update(replace)
+        next_url='/api/v1/run/logs?'+urlencode({'snapshot':token,'offset':3,'limit':3})
+        status,body,_=self.request(next_url)
+        self.assertEqual(status,200,body)
+        second=json.loads(body)
+        self.assertEqual(second['total'],12)
+        self.assertEqual(len(second['data']),3)
+        self.assertFalse({r['id'] for r in first['data']}&{r['id'] for r in second['data']})
+        self.assertNotIn(PRIVATE,body.decode())
+        self.assertEqual(self.request(next_url+'&status=running')[0],400)
+        self.assertEqual(self.request(next_url,auth=False)[0],401)
+        user=self.service.accounts.create('snapshot-reader','snapshot-reader-long-password','viewer')
+        bearer=self.service.accounts.login('snapshot-reader','snapshot-reader-long-password','127.0.0.1')['token']
+        self.assertEqual(self.request(next_url,headers={'Authorization':'Bearer '+bearer})[0],403)
+        with patch.object(run_snapshots.time,'time',return_value=first['snapshot_expires_at']+1):
+            self.assertEqual(self.request(next_url)[0],400)
+        with patch.object(run_snapshots,'MAX_ROWS',0):
+            self.assertEqual(self.request(url)[0],400)
+        with self.service.store.connection() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM run_snapshot_headers').fetchone()[0],1)
 
     def test_strict_active_and_history_query_matrix_without_state_mutation(self):
         rows = [job(i) for i in range(165)]

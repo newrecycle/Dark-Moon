@@ -36,4 +36,5 @@ jobs:
           node tests/community/finding_query.cjs
           node tests/community/resource_routes.cjs
           node tests/community/campaign_window.cjs
+          node tests/community/run_paging.cjs
           for source in mcp/community/static/*.js; do node --check "$source"; done
