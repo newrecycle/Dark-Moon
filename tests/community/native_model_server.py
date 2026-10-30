@@ -4,17 +4,18 @@ Optional isolated dependencies: torch==2.9.0+cpu, transformers==4.57.1.
 No remote code, fixed model revision, no canned patch or review responses.
 """
 import json
+import os
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-MODEL = 'Qwen/Qwen2.5-Coder-1.5B-Instruct'
-REVISION = 'd18ecad881a290f0c792f1c2b5dbee1820d4a424'
+MODEL = 'Qwen/Qwen3-4B-Instruct-2507'
+REVISION = 'abcc171021d4f320b2e7f47c6f0deca67ded870c'
 
 
 def main():
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    torch.set_num_threads(2)
+    torch.set_num_threads(min(4, os.cpu_count() or 2))
     tokenizer = AutoTokenizer.from_pretrained(MODEL, revision=REVISION, trust_remote_code=False)
     model = AutoModelForCausalLM.from_pretrained(MODEL, revision=REVISION,
                                                trust_remote_code=False, use_safetensors=True,

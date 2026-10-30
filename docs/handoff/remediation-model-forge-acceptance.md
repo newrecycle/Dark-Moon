@@ -9,7 +9,7 @@ use the same weights in separate stateless requests; this is not independent
 model diversity or a security guarantee.
 
 Prerequisites: Linux, Docker engine, Git, OpenSSL, Python 3.11/3.12, internet for
-pinned dependencies/model/image downloads, at least 7 GiB RAM and 12 GiB free
+pinned dependencies/model/image downloads, at least 12 GiB RAM (four CPU cores recommended) and 20 GiB free
 disk. Do not run on a constrained production host. All application/forge test
 traffic is loopback; the forge's outbound integrations, actions and registration
 are disabled. The script creates only its own ephemeral fixture and deletes it,
@@ -29,8 +29,8 @@ PYTHONPATH=mcp DARKMOON_NATIVE_MODEL_PYTHON=/tmp/darkmoon-model-venv/bin/python 
  /tmp/darkmoon-analysis-venv/bin/python tests/community/remediation_model_native.py
 ~~~
 
-The public model is Qwen/Qwen2.5-Coder-1.5B-Instruct at immutable revision
-d18ecad881a290f0c792f1c2b5dbee1820d4a424; remote model code is disabled. CPU bfloat16 bounds model memory.
+The public model is Qwen/Qwen3-4B-Instruct-2507 at immutable revision
+abcc171021d4f320b2e7f47c6f0deca67ded870c; remote model code is disabled. CPU bfloat16 bounds model memory.
 Gitea 1.24.6 rootless is pinned by manifest digest in native_forge.py.
 Its disposable certificate is explicitly trusted with hostname validation;
 verification is never disabled. Publication requires both production opt-ins,
@@ -85,3 +85,11 @@ approved=true as a fix without regression/scope creep, approved=false as unsafe,
 incomplete or uncertain, and confidence as certainty in that verdict. A positive
 reason never overrides a false boolean in code; the original rejection remains
 a rejection. No model-specific response repair is performed.
+
+
+The 1.5B reviewer continued to reject a genuine parameter-binding patch with
+incorrect reasoning in run 41007286594. That rejection is retained; no false
+verdict or low confidence is accepted. The final acceptance profile therefore
+uses the larger Apache-2.0 Qwen3-4B-Instruct-2507 model, pinned above. This raises
+the optional fixture's hardware requirements; production has no bundled model,
+and operators still select their own explicitly configured endpoint/model.
