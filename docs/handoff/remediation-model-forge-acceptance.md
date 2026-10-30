@@ -29,9 +29,12 @@ PYTHONPATH=mcp DARKMOON_NATIVE_MODEL_PYTHON=/tmp/darkmoon-model-venv/bin/python 
  /tmp/darkmoon-analysis-venv/bin/python tests/community/remediation_model_native.py
 ~~~
 
-community-runtime.yml executes this in its existing owned-lab job, with Python
-3.12 explicitly selected, and retains native-model-forge.json. Failures remain
-failures. A --model-only run explicitly omits Docker/forge acceptance.
+community-runtime.yml runs real SQLi/Docker/operator-reviewed publication on
+pushes. Positive model acceptance is a separate explicit workflow_dispatch
+input, model_acceptance=true, and retains native-model-forge.json. Its known
+CPU-model rejection remains a failed acceptance result, never successful
+publication. Resource-intensive model-quality checks do not replace the normal
+native gate. Python 3.12 is explicitly selected. A --model-only run explicitly omits Docker/forge acceptance.
 
 ## Pins and isolation
 
@@ -94,8 +97,10 @@ receives exact complete before/after contents for changed approved files,
 read from the pinned base commit and worktree, bounded to 200,000 characters.
 Unrelated source is excluded and exact whitespace is preserved. This removes
 partial-diff ambiguity without weakening a verdict or probe gate. The CPU
-review profile uses per-channel weight quantization. Hosted acceptance is pending. These failed attempts remain evidence,
-not successful acceptance.
+review profile uses per-channel weight quantization. Run 41009928342 still rejected the valid patch at confidence .2 with full
+source context. Positive automatic model-review acceptance therefore remains
+OPEN for this CPU profile. No verdict is overridden, and these failed runs
+remain evidence rather than successful acceptance.
 
 A synthetic pass would establish this fixture/profile/forge only. It cannot
 prove another application/model/adapter, deployed remediation, vendor runtime
@@ -113,3 +118,30 @@ model and uses only its review key, including no Authorization header if absent;
 the generator key is never forwarded to that explicitly selected endpoint.
 Redirects remain denied for both stages. Offline transport tests cover these
 credential boundaries. The native harness sets both model identities explicitly.
+
+
+## Close the remaining positive-model evidence gap
+
+A capable explicitly configured review endpoint is required to establish a
+positive result; no such provider credential is available in this environment.
+A fresh worker can reuse the identical owned fixture and strict gates, without
+changing code or the expected verdict:
+
+~~~sh
+# Explicit operator choice; only this public synthetic application is submitted.
+export DARKMOON_REMEDIATION_BASE_URL=https://GENERATOR/v1
+export DARKMOON_REMEDIATION_MODEL=GENERATOR_MODEL
+export DARKMOON_REMEDIATION_JUDGE_BASE_URL=https://REVIEWER/v1
+export DARKMOON_REMEDIATION_JUDGE_MODEL=REVIEW_MODEL
+# Supply each endpoint's own credential through the environment if required.
+PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python \
+ tests/community/remediation_model_native.py --configured-models
+~~~
+
+Record provider/model revision and configuration with the report. Local
+operator-controlled endpoints also work; paid providers are not required.
+Require actual positive review >= .75, rejection of the unfixed negative
+control, exploit/normal probes, and all actual forge assertions. A
+--configured-models --model-only result cannot close Docker/forge acceptance.
+Never change false to true, lower the threshold, stub a response, or claim this
+gap closed from the separate operator-reviewed publication gate.

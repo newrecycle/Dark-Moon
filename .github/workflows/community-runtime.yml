@@ -1,6 +1,11 @@
 name: Community runtime validation
 on:
   workflow_dispatch:
+    inputs:
+      model_acceptance:
+        description: 'Run resource-intensive positive model acceptance (known CPU review limitation)'
+        type: boolean
+        default: false
   push:
     branches: [pro]
     paths:
@@ -62,16 +67,18 @@ jobs:
           /tmp/darkmoon-analysis-venv/bin/pip install -r mcp/requirements.txt -r mcp/community/requirements.txt
       - name: Build disposable toolbox
         run: docker build --file tools/lab/Dockerfile --tag darkmoon-ui-lab .
-      - name: Validate remediation with actual offline Docker probes
+      - name: Validate SQLi remediation and actual disposable HTTPS publication
         run: PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tests/community/remediation_native.py > native-remediation.json
       - name: Analyze owned loopback target through real DarkMoon
         run: PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tools/analyze-community-lab.py --output-dir lab-analysis
       - name: Install isolated pinned local model
+        if: github.event_name == 'workflow_dispatch' && inputs.model_acceptance
         run: |
           python3 -m venv /tmp/darkmoon-model-venv
           /tmp/darkmoon-model-venv/bin/pip install torch==2.9.0+cpu --index-url https://download.pytorch.org/whl/cpu
           /tmp/darkmoon-model-venv/bin/pip install transformers==4.57.1
       - name: Generate, review, validate and publish to disposable HTTPS Gitea
+        if: github.event_name == 'workflow_dispatch' && inputs.model_acceptance
         env:
           DARKMOON_NATIVE_MODEL_PYTHON: /tmp/darkmoon-model-venv/bin/python
         run: |

@@ -29,9 +29,11 @@ def allowed(name):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--model-only', action='store_true')
+    parser.add_argument('--configured-models', action='store_true',
+                        help='Use explicitly configured production model endpoints instead of the optional CPU fixture')
     args = parser.parse_args()
     python = os.environ.get('DARKMOON_NATIVE_MODEL_PYTHON')
-    if not python:
+    if not args.configured_models and not python:
         print('NATIVE UNAVAILABLE: set DARKMOON_NATIVE_MODEL_PYTHON to pinned model environment')
         return 3
     fixture = fixtures.Fixture()
@@ -62,21 +64,33 @@ def main():
         git(repo, 'config', 'user.email', 'fixture@example.invalid')
         git(repo, 'add', '.')
         git(repo, 'commit', '-m', 'Owned SQLi fixture')
-        process = subprocess.Popen([python, str(Path(__file__).with_name('native_model_server.py'))],
-                                   stdout=subprocess.PIPE, text=True,
-                                   env={**os.environ, 'DARKMOON_NATIVE_MODEL_TRACE': '1'})
-        with selectors.DefaultSelector() as selector:
-            selector.register(process.stdout, selectors.EVENT_READ)
-            if not selector.select(timeout=600):
-                raise RuntimeError('model startup timeout; no acceptance claim')
-            host = json.loads(process.stdout.readline())
+        if args.configured_models:
+            if not os.environ.get('DARKMOON_REMEDIATION_BASE_URL') or not os.environ.get('DARKMOON_REMEDIATION_MODEL'):
+                print('NATIVE UNAVAILABLE: configure the production model endpoint and model')
+                return 3
+            host = {'model': os.environ['DARKMOON_REMEDIATION_MODEL'],
+                    'review_model': os.environ.get('DARKMOON_REMEDIATION_JUDGE_MODEL') or os.environ['DARKMOON_REMEDIATION_MODEL'],
+                    'revision': 'operator-configured; record provider revision separately',
+                    'review_revision': 'operator-configured; record provider revision separately',
+                    'quantization': 'operator-configured'}
+            model_env = {}
+        else:
+            process = subprocess.Popen([python, str(Path(__file__).with_name('native_model_server.py'))],
+                                       stdout=subprocess.PIPE, text=True,
+                                       env={**os.environ, 'DARKMOON_NATIVE_MODEL_TRACE': '1'})
+            with selectors.DefaultSelector() as selector:
+                selector.register(process.stdout, selectors.EVENT_READ)
+                if not selector.select(timeout=600):
+                    raise RuntimeError('model startup timeout; no acceptance claim')
+                host = json.loads(process.stdout.readline())
+            model_env = {'DARKMOON_REMEDIATION_BASE_URL': f'http://127.0.0.1:{host["port"]}/v1',
+                         'DARKMOON_REMEDIATION_MODEL': host['model'],
+                         'DARKMOON_REMEDIATION_API_KEY': '',
+                         'DARKMOON_REMEDIATION_JUDGE_BASE_URL': f'http://127.0.0.1:{host["port"]}/v1',
+                         'DARKMOON_REMEDIATION_JUDGE_MODEL': host['review_model'],
+                         'DARKMOON_REMEDIATION_JUDGE_API_KEY': ''}
         negative = None
-        with patch.dict(os.environ, {'DARKMOON_REMEDIATION_BASE_URL': f'http://127.0.0.1:{host["port"]}/v1',
-                                    'DARKMOON_REMEDIATION_MODEL': host['model'],
-                                    'DARKMOON_REMEDIATION_API_KEY': '',
-                                    'DARKMOON_REMEDIATION_JUDGE_BASE_URL': f'http://127.0.0.1:{host["port"]}/v1',
-                                    'DARKMOON_REMEDIATION_JUDGE_MODEL': host['review_model'],
-                                    'DARKMOON_REMEDIATION_JUDGE_API_KEY': ''}):
+        with patch.dict(os.environ, model_env):
             result = remediate(repo, cid, 'vuln_fixture', files=['app.py'], generate=True,
                                validate=not args.model_only, store=fixture.service.store)
             if result['status'] == ('proposed' if args.model_only else 'validated'):
