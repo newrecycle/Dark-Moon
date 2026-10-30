@@ -1259,6 +1259,30 @@ const assert = require("node:assert/strict");
     assert.equal(await page.locator('[data-revealed-content]').count(), 0);
     await page.goBack();
     await page.locator('#detail[open] a', {hasText:'Link to assessment'}).waitFor();
+    // Remaining resource pages retain exact identity and do not mint evidence grants.
+    const projectId = await page.evaluate(() => snapshot.projects[0].id);
+    await page.evaluate(id => { location.hash = `project/${id}`; }, projectId);
+    await page.getByText('Project assessments', {exact:true}).waitFor();
+    const proposalId = await page.evaluate(() => snapshot.remediations[0]?.id);
+    assert.ok(proposalId, 'The owned remediation fixture must exist');
+    await page.evaluate(id => { location.hash = `pull-request/${id}`; }, proposalId);
+    await page.getByText('Local remediation proposal', {exact:true}).waitFor();
+    await page.evaluate(id => { location.hash = `report/${id}`; }, fixture.campaign_id);
+    await page.getByText('Authorize report preview', {exact:true}).waitFor();
+    assert.equal(await page.locator('[data-revealed-content]').count(), 0);
+    await page.evaluate(id => { location.hash = `infra/${id}`; }, fixture.campaign_id);
+    await page.locator('#surface-canvas').waitFor();
+    await page.evaluate(() => { location.hash = 'scheduler'; });
+    await page.getByText('Scheduled assessments', {exact:true}).waitFor();
+    await page.evaluate(() => { location.hash = 'history'; });
+    await page.getByText('Execution queue and run logs', {exact:true}).waitFor();
+    // Direct path navigation serves the same shell and waits for sign-in.
+    await page.goto(`http://127.0.0.1:${fixture.port}/report/${fixture.campaign_id}`);
+    await page.locator('#login[open]').waitFor();
+    await page.locator('#login-username').fill('fixture-reader');
+    await page.locator('#token').fill('rotated-fixture-reader-password');
+    await page.locator('#login-form button[type=submit]').click();
+    await page.getByText('Authorize report preview', {exact:true}).waitFor();
     await page.evaluate(() => {location.hash='campaign/camp_missing_fixture';});
     await page.getByText('Resource unavailable', {exact:true}).waitFor();
     console.log(

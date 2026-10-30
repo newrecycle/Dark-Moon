@@ -259,3 +259,12 @@ The compatibility change is documented in the SDK README. SDK lint/types/build
 and all 106 tests passed; both consumer archives and lock hashes were refreshed.
 All five workflows on d6bd57f completed successfully, including modern GitLab
 CE/Runner and native VS Code. Commercial wire evidence remains unavailable.
+
+### Remaining frontend routes implemented
+
+All 13 original page surfaces now map to explicit fork paths/views; see
+ui-route-acceptance.md for the table, commands and divergence rules. Direct URLs
+serve only a shell and wait for authentication. Reports never mint reveal grants
+from navigation; reused bare finding IDs require explicit campaign choice.
+Pure route checks passed, and 13 HTTP tests / 12 subtests passed locally. Native
+browser coverage was extended; its matching hosted run is pending.

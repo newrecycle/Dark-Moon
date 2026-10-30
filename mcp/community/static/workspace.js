@@ -19,8 +19,8 @@
       label: `${c.name} (${c.provider})`,
     })),
   ];
-  async function loadChoices() {
-    choices = await api("/api/v1/options");
+  async function loadChoices(signal) {
+    choices = await api("/api/v1/options", {signal});
     return choices;
   }
   function providerModels() {
@@ -91,8 +91,9 @@
         .map((v) => ({ value: v.id, label: `${v.title} (${v.severity})` })),
     ]);
   }
-  window.populateLaunch = async () => {
-    await loadChoices();
+  window.populateLaunch = async (signal) => {
+    await loadChoices(signal);
+    if (signal?.aborted) return;
     const f = $("#launch-form");
     f.reset();
     f.elements.known_target.innerHTML = optionsHtml([

@@ -213,13 +213,61 @@ function applyRoles() {
   ))
     b.hidden = viewer;
 }
+const initialResourceLink = !location.hash && ResourceRoutes.fromPath(location.pathname, location.search);
+if (initialResourceLink) history.replaceState(null, "", "/" + initialResourceLink);
 let lastResourceRoute = "";
+async function openResource(resource, signal) {
+  if (resource.kind === "infra") return; // The surface view already loads the exact campaign.
+  if (resource.kind === "campaign") return showCampaign(resource.id);
+  if (resource.kind === "new-campaign") {
+    if (identity?.role === "viewer") throw new Error("Assessment launch requires analyst access");
+    return launchDialog(false, null, signal);
+  }
+  if (resource.kind === "change-password") {
+    await window.renderWorkspace("settings");
+    if (!signal.aborted) $("[data-workspace=password]")?.click();
+    return;
+  }
+  if (resource.kind === "vulnerability") {
+    if (resource.campaignId) return showFinding(resource.id, resource.campaignId);
+    const matches = snapshot.findings.filter(f => f.id === resource.id);
+    if (matches.length === 1) return showFinding(resource.id, matches[0].campaign_id);
+    if (!matches.length) throw new Error("Finding unavailable");
+    clearDetail();
+    $("#detail-title").textContent = "Choose the finding's assessment";
+    $("#detail-body").innerHTML = matches.map(f => `<p><a href="${ResourceRoutes.link("vulnerability", f.id, f.campaign_id)}">${esc(f.campaign_id)}</a></p>`).join("");
+    if (!$("#detail").open) $("#detail").showModal();
+    return;
+  }
+  if (!resource.id) return;
+  clearDetail();
+  const request = campaignDetailRequest, session = token;
+  $("#detail-title").textContent = "Loading resource…";
+  if (!$("#detail").open) $("#detail").showModal();
+  const type = resource.kind === "project" ? "projects" : resource.kind === "pull-request" ? "pull-requests" : "campaigns";
+  const result = await api(`/api/v1/${type}/${encodeURIComponent(resource.id)}`, {signal});
+  if (signal.aborted || token !== session || campaignDetailRequest !== request) return;
+  const item = result.data || result;
+  if (resource.kind === "project") {
+    const campaigns = snapshot.campaigns.filter(c => c.project_id === resource.id);
+    $("#detail-title").textContent = item.name || resource.id;
+    $("#detail-body").innerHTML = `<h3>Project assessments</h3>${campaignsTable(campaigns)}<p><a href="${FindingQuery.hash({...FindingQuery.read("#findings"),project_id:resource.id})}">Project findings</a></p>`;
+  } else if (resource.kind === "report") {
+    $("#detail-title").textContent = "Assessment report";
+    $("#detail-body").innerHTML = `<p>${esc(resource.id)} · ${badge(item.status)}</p><p>Recorded report content requires an explicit scoped authorization.</p><button class="secondary" data-report-preview="${esc(resource.id)}">Authorize report preview</button>`;
+  } else {
+    $("#detail-title").textContent = item.record_type === "published_pr" ? "Published pull request" : "Local remediation proposal";
+    $("#detail-body").innerHTML = `<p>${esc(item.id)} ${badge(item.status)}</p><pre>${esc(JSON.stringify(item, null, 2))}</pre>${identity?.role === "admin" ? `<button class="secondary" data-patch="${esc(item.id)}">Authorize patch download</button>` : ""}`;
+  }
+  applyRoles();
+}
 function render() {
   if (!snapshot) return;
   viewControl?.abort();
   viewControl = new AbortController();
   const resourceRoute = ResourceRoutes.read(location.hash);
-  route = resourceRoute ? "campaigns" : location.hash.slice(1).split("?")[0] || "overview";
+  route = resourceRoute ? resourceRoute.page || ({infra:"surface",project:"projects","pull-request":"remediation"})[resourceRoute.kind] || "campaigns" : location.hash.slice(1).split("?")[0] || "overview";
+  if (resourceRoute?.kind === "infra") campaignId = resourceRoute.id;
   const headings = {
     overview: "Overview",
     campaigns: "Campaigns",
@@ -278,8 +326,7 @@ function render() {
   if (resourceRoute && lastResourceRoute !== token + location.hash) {
     const expected = token + location.hash;
     lastResourceRoute = expected;
-    const opening = resourceRoute.kind === "campaign"
-      ? showCampaign(resourceRoute.id) : showFinding(resourceRoute.id, resourceRoute.campaignId);
+    const opening = openResource(resourceRoute, viewControl.signal);
     const detailVersion = campaignDetailRequest;
     opening.catch(() => {
       if (token + location.hash !== expected || campaignDetailRequest !== detailVersion) return;
@@ -548,13 +595,15 @@ async function showJob(id) {
       $("#detail-body").textContent = "Run details unavailable: " + error.message;
   }
 }
-async function launchDialog(schedule = false, record = null) {
+async function launchDialog(schedule = false, record = null, signal) {
   try {
-    await window.populateLaunch();
+    await window.populateLaunch(signal);
   } catch (error) {
+    if (signal?.aborted) return;
     fail(error);
     return;
   }
+  if (signal?.aborted) return;
   scheduleMode = schedule;
   $("#launch-title").textContent = schedule
     ? "New recurring assessment"

@@ -90,6 +90,18 @@ class EvidenceHTTPTests(fixtures.Fixture):
                 self.assertEqual(self.request("/api/v1/source-files", "POST", payload,
                     headers={"X-Darkmoon-Evidence-Grant": grant["grant"]})[0], 403)
 
+    def test_frontend_deep_links_serve_only_the_public_shell(self):
+        for route in ('/login','/change-password','/new-campaign','/scheduler','/history','/projects',
+                      '/project/proj_1','/campaign/camp_1','/report/camp_1',
+                      '/vulnerability/f_1','/infra/camp_1','/pull-request/rem_1'):
+            with self.subTest(route=route):
+                status, body, _ = self.request(route, auth=False)
+                self.assertEqual(status, 200)
+                self.assertIn(b'/resource-routes.js', body)
+                self.assertNotIn(EVIDENCE_CANARY.encode(), body)
+        self.assertEqual(self.request('/project/bad/path', auth=False)[0], 401)
+        self.assertEqual(self.request('/api/v1/campaigns/'+self.cid, auth=False)[0], 401)
+
     def test_default_workspace_routes_withhold_canaries_for_every_role(self):
         routes = [
             "/api/v1/overview", "/api/v1/campaigns", f"/api/v1/campaigns/{self.cid}",

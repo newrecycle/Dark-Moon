@@ -23,13 +23,13 @@ JetBrains is intentionally removed. Vendor activation controls are not reconstru
 
 ## Execution queue
 
-Proceed sequentially: (1) shared SDK identity, (2) scoped source picker (implemented; native browser verification pending), (3) remediation acceptance, (4) UI navigation, (5) historical analytics, (6) scale/consistency, (7) graph/headset boundaries, (8) native-host boundaries. Update this file and commercial-api-parity.md at every completed checkpoint. Separate implemented, fork-tested, vendor-compared and unavailable outcomes. Do not acquire licenses or claim unavailable hardware/hosts passed.
+Proceed sequentially: (1) shared SDK identity, (2) scoped source picker (implemented and browser-verified), (3) remediation acceptance, (4) UI navigation, (5) historical analytics, (6) scale/consistency, (7) graph/headset boundaries, (8) native-host boundaries. Update this file and commercial-api-parity.md at every completed checkpoint. Separate implemented, fork-tested, vendor-compared and unavailable outcomes. Do not acquire licenses or claim unavailable hardware/hosts passed.
 
 All seven workflows triggered on `9ee85be` completed successfully, including Jenkins and GitLab. This does not re-execute workflows whose path filters did not trigger.
 
 ## Items 7–8: concrete unavailable acceptance
 
-XR policy-denial and view/session cleanup implemented; browser rerun pending.
+XR policy-denial and view/session cleanup passed hosted browser run 40947738123.
 There is no physical headset in this environment. Do not mark immersive playback
 accepted from a mocked navigator.xr result.
 
@@ -55,7 +55,7 @@ backend implementations to replace with synthetic success.
 | 1 SDK | Own-producer root binding for new launches; 106 SDK tests/build; refreshed consumers | Unbound legacy discovery removed; untrusted/out-of-band storage remains outside the trusted-directory contract |
 | 2 source picker | Configured roots, admin one-use grants, real-Git HTTP and hosted browser pass | Hostile concurrently modified Git metadata is outside approved-root trust |
 | 3 remediation | Actual Docker validated/failing/unavailable-image cases pass | Real model inference and operator-authorized forge publication |
-| 4 UI | Scoped campaign/finding links; hosted reload/auth/Back/missing-state acceptance passes | Remaining original page routes, full reference visual/interaction matrix |
+| 4 UI | Scoped campaign/finding links; hosted reload/auth/Back/missing-state acceptance passes | All 13 page surfaces implemented; matching browser run pending; exact vendor visuals remain evidence-only |
 | 5 analytics | Current triage by assessment-start window API; strict HTTP tests | Window UI/drill-downs, historical as-of reconstruction and deduplication |
 | 6 scale | Optional live keyset run pages, insertion/deleted-anchor tests | Consumer adoption, frozen multi-request snapshots, retention and whole-system recovery |
 | 7 graph | XR denial/abort lifecycle; hosted normal graph/path acceptance passes | Physical headset and independent exploitation verification |
