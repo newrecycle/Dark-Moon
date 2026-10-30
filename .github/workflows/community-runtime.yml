@@ -11,6 +11,9 @@ on:
       - 'tools/analyze-community-lab.py'
       - 'tools/lab/**'
       - 'tests/community/remediation_native.py'
+      - 'tests/community/remediation_model_native.py'
+      - 'tests/community/native_model_server.py'
+      - 'tests/community/native_forge.py'
       - 'docker-compose*.yml'
       - '.github/workflows/community-runtime.yml'
 permissions:
@@ -45,7 +48,7 @@ jobs:
 
   owned-lab-analysis:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -60,6 +63,15 @@ jobs:
         run: PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tests/community/remediation_native.py > native-remediation.json
       - name: Analyze owned loopback target through real DarkMoon
         run: PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tools/analyze-community-lab.py --output-dir lab-analysis
+      - name: Install isolated pinned local model
+        run: |
+          python3 -m venv /tmp/darkmoon-model-venv
+          /tmp/darkmoon-model-venv/bin/pip install torch==2.9.0+cpu --index-url https://download.pytorch.org/whl/cpu
+          /tmp/darkmoon-model-venv/bin/pip install transformers==4.57.1
+      - name: Generate, review, validate and publish to disposable HTTPS Gitea
+        env:
+          DARKMOON_NATIVE_MODEL_PYTHON: /tmp/darkmoon-model-venv/bin/python
+        run: PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tests/community/remediation_model_native.py > native-model-forge.json
       - name: Preserve real analysis data and reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -67,6 +79,7 @@ jobs:
           name: owned-lab-analysis
           path: |
             native-remediation.json
+            native-model-forge.json
             lab-analysis/analysis.json
             lab-analysis/data/campaigns/
             lab-analysis/data/targets.json
