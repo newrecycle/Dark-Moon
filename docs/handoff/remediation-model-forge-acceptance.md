@@ -60,3 +60,11 @@ The 0.5B model attempted an edit outside app.py, so the production scope gate
 correctly rejected it (run 41005816146). The acceptance profile now uses the
 larger pinned 1.5B model. No path is rewritten to excuse model output, and no
 scope, review or validation gate is relaxed. Hosted acceptance remains pending.
+
+
+The first 1.5B candidate was rejected by its separate model review request
+(run 41006090710); no publication ran. Reports now retain the bounded generated
+patch from this exclusively synthetic source so rejected proposals can be
+reviewed. The fixture finding identifies its actual app.py:allowed source
+without inherited unrelated demo metadata. There is no preselected patch,
+approving verdict override or bypass of a rejection.

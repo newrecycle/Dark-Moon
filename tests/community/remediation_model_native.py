@@ -39,10 +39,11 @@ def main():
     process = None
     try:
         cid = fixture.campaign()
-        finding = data.load_vulnerabilities(cid)[0]
-        finding.update(title='SQL injection in owned allowed(name) fixture',
-                       endpoint='owned app.py:allowed', evidence={},
-                       description='Concatenating untrusted name into SQL permits authentication bypass.')
+        finding = {'id': 'vuln_fixture', 'status': 'confirmed', 'severity': 'high',
+                   'category': 'sqli', 'title': 'SQL injection in allowed(name)',
+                   'endpoint': 'app.py:allowed',
+                   'description': 'Untrusted name is concatenated into the SELECT query, permitting authentication bypass.',
+                   'remediation': 'Bind name as a query parameter; preserve normal admin and visitor results.'}
         data.save_vulnerabilities(cid, [finding])
         repo = fixture.root / 'owned-source'
         repo.mkdir()
@@ -73,17 +74,20 @@ def main():
                                     'DARKMOON_REMEDIATION_API_KEY': ''}):
             result = remediate(repo, cid, 'vuln_fixture', files=['app.py'], generate=True,
                                validate=not args.model_only, store=fixture.service.store)
+        patch_text = Path(result['patch_path']).read_text()[:16384] if result.get('patch_path') else None
         expected = 'proposed' if args.model_only else 'validated'
         if result['status'] != expected:
             print(json.dumps({'accepted': False, 'status': result['status'],
-                              'error': result.get('error'), 'judge': result.get('judge')}))
+                              'error': result.get('error'), 'judge': result.get('judge'),
+                              'generated_patch': patch_text}))
             return 1
         assert result['judge']['approved'] and result['judge']['confidence'] >= .75
         assert not result['published'] and (repo / 'app.py').read_text() == SOURCE
         forge = None if args.model_only else exercise(fixture.service.store, result, repo, fixture.root)
         print(json.dumps({'accepted': True, 'model': host['model'], 'revision': host['revision'],
                           'actual_generation_and_review': True, 'docker_probes': not args.model_only,
-                          'status': result['status'], 'forge': forge}))
+                          'status': result['status'], 'judge': result['judge'],
+                          'generated_patch': patch_text, 'forge': forge}))
         return 0
     finally:
         if process:
