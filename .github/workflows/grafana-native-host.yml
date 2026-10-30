@@ -15,6 +15,10 @@ jobs:
   host:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        grafana: ['10.4.19', '13.1']
     steps:
       - uses: actions/checkout@v4
         with:
@@ -70,7 +74,7 @@ jobs:
             -v "$PWD/integrations/upstream/grafana/plugin/dist:/var/lib/grafana/plugins/darkmoon-securityposture-app:ro" \
             -v "$RUNNER_TEMP/ds.yaml:/etc/grafana/provisioning/datasources/dm.yaml:ro" \
             -v "$RUNNER_TEMP/app.yaml:/etc/grafana/provisioning/plugins/dm.yaml:ro" \
-            grafana/grafana:13.1
+            grafana/grafana:${{ matrix.grafana }}
           # Docker's internal network intentionally blocks host-published ports.
           # Query the real Grafana HTTP API from the adjacent Python fixture only.
           fixture_http() {
@@ -119,7 +123,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: grafana-host-metadata
+          name: grafana-${{ matrix.grafana }}-host-metadata
           path: |
             ${{ runner.temp }}/grafana-health.json
             ${{ runner.temp }}/app.json
