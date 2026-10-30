@@ -12,8 +12,8 @@ that Grafana loads them, executes a datasource query through the native plugin
 and verifies returned frame/schema/lifecycle identities. Per-version health,
 plugin and datasource metadata are retained. Do not label every intervening
 version accepted from two host samples or infer frontend rendering from API
-results. The previously observed 13.1 host acceptance remains valid evidence;
-the added matrix is pending execution at its matching commit.
+results. Both matrix legs passed in run 41005616438 on a97c504. The previously
+observed 13.1 acceptance remains valid separate evidence.
 
 Reproduce with the exact commands in the workflow, substituting either tested
 image version for the matrix expression. Requires Docker, Go from go.mod, Node
@@ -25,3 +25,14 @@ and release process. It is not emulated with an unsigned local signature.
 Native browser visual behavior and the exact minimum patch 10.4.0 remain
 separate compatibility evidence. Splunk and GitLab Ultimate prerequisites are
 listed in current-pro-status.md; they are not replaced by this Grafana test.
+
+
+The same private host job now starts a version-matched Playwright container
+using the dependency already locked/installed by the plugin build. No browser
+network access outside the fixture origin is allowed. It signs into the real
+Grafana with synthetic credentials, opens all eight app views, exercises a
+severity filter and saved retest, denies an unavailable explicit datasource,
+checks uncaught page errors and retains desktop/mobile screenshots. This
+closes the executable native-browser gap if both matrix legs pass; screenshot
+retention is not a claim of exact vendor visual matching. The added browser
+step is pending on its matching revision.

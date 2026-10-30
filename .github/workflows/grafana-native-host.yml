@@ -119,6 +119,15 @@ jobs:
               assert state[col][0]==value,(col,state[col])
           print("PASS: packaged Grafana app, nested datasource and retest lifecycle")
           PY
+          mkdir -p "$RUNNER_TEMP/grafana-browser"
+          playwright_version=$(node -p "require('./integrations/upstream/grafana/plugin/node_modules/playwright/package.json').version")
+          docker run --rm --init --network dm-private --shm-size=256m \
+            -e GRAFANA_URL=http://dm-grafana:3000 -e GRAFANA_ADMIN="$GRAFANA_ADMIN" \
+            -e NODE_PATH=/browser/node_modules \
+            -v "$PWD/integrations/upstream/grafana/plugin/node_modules:/browser/node_modules:ro" \
+            -v "$PWD/integrations/upstream/grafana/fixtures:/fixture:ro" \
+            -v "$RUNNER_TEMP/grafana-browser:/evidence" \
+            "mcr.microsoft.com/playwright:v$playwright_version-noble" node /fixture/native_browser.cjs
       - name: Keep nonsecret host metadata
         if: always()
         uses: actions/upload-artifact@v4
@@ -128,4 +137,5 @@ jobs:
             ${{ runner.temp }}/grafana-health.json
             ${{ runner.temp }}/app.json
             ${{ runner.temp }}/datasource.json
+            ${{ runner.temp }}/grafana-browser/
           if-no-files-found: warn
