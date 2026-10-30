@@ -1,6 +1,6 @@
 # Commercial API parity: runnable acceptance and evidence register
 
-Updated 29 October 2026. Start with [current status](current-pro-status.md).
+Updated 30 October 2026. Start with [current status](current-pro-status.md).
 This runbook is for a new worker starting with no conversation history.
 
 ## What is and is not closed
@@ -267,7 +267,7 @@ ui-route-acceptance.md for the table, commands and divergence rules. Direct URLs
 serve only a shell and wait for authentication. Reports never mint reveal grants
 from navigation; reused bare finding IDs require explicit campaign choice.
 Pure route checks passed, and 13 HTTP tests / 12 subtests passed locally. Native
-browser coverage was extended; its matching hosted run is pending.
+browser acceptance passed at 7ddb11a and on later integrated source revisions.
 
 ### Analytics UI, observations and identity groups
 
@@ -301,3 +301,63 @@ Node lifecycle check executes that production function and passes. Physical
 headset steps and required device metadata are in [XR acceptance](xr-device-acceptance.md).
 `refresh()` now waits for asynchronous overview rendering, so completion means
 the refreshed posture is visible; a hosted browser check exposed the earlier race.
+
+
+### Final eight-workstream checkpoint — 30 October 2026
+
+Current implementation and acceptance status is consolidated in
+[current Pro status](current-pro-status.md). Earlier increment notes above are
+historical checkpoints, not the remaining task list.
+
+On 18057c8, all four triggered workflows passed: Tests 41011660077,
+browser 41011660160, runtime 41011660161 and distribution 41011660102.
+The full suite passed **508 tests and 297 subtests**. Pure checks include exact
+producer attribution, resource links, UTC windows, cursor consumers and actual
+production XR lifecycle cancellation/resource cleanup.
+
+The runtime's owned-lab-analysis artifact (12958041662) contains
+native-remediation.json. Real offline Docker probes cover a SQLi exploit and
+variant, normal admin/visitor behavior, nonroot/read-only/no-network restrictions,
+a deliberately ineffective patch and an unavailable image. The operator-reviewed
+fix then passed actual TLS-verified Gitea Git push/PR/readback: exact head/base,
+open and unmerged, unchanged original source and one PR after repeated
+publication. This is an operator-reviewed acceptance, not a successful automatic
+model-review result. The ephemeral Gitea repository mount permits generated
+hooks to execute and trusts its own test CA for internal callbacks; TLS
+verification was never disabled.
+
+Actual model inference generated the parameter-binding candidate, but CPU
+reviewers rejected it, even with bounded complete before/after source context.
+Run 41009928342 records that failure. Production still rejects it. Independent
+review endpoint/model/key configuration now has credential-isolation tests;
+an explicit review endpoint never inherits the generator key. Exact baseline
+and changed-file-only context, including CRLF, is tested. The positive model
+gate remains OPEN and explicit/manual. Use --configured-models in
+[the acceptance runbook](remediation-model-forge-acceptance.md) with a capable
+explicitly selected endpoint; require positive review >= .75, rejection of the
+unfixed control, real probes and real publication. Do not close this gap from
+the separate operator-reviewed pass.
+
+SDK 4c921ee passed all five triggered workflows, including actual GitLab
+CE/Runner 41000257766 and native VS Code 41000257813, after the last legacy
+attribution heuristic was removed. All 106 SDK tests/build and consumer
+provenance passed. Native n8n on 64b6961 passed 41009928358.
+
+Grafana ddf7542 passed both real 10.4.19 and 13.1 API/browser legs in
+41006932019. All eight app views rendered; severity filtering, saved retest,
+explicit unavailable-source denial and protected-content checks passed.
+Desktop/mobile screenshots are retained. These samples do not establish every
+host version or Catalog signing.
+
+Analytics focused checks passed 39 tests / 27 subtests; run/storage checks
+28 tests / 110 subtests; final recovery/rebinding checks 17 tests / 110 subtests,
+followed by the integrated suite above. Fresh commands and limits are in
+posture-observations.md and workspace-recovery.md. Recorded as-of reads are
+explicit observations, not invented historical backfill or live cross-file
+transactions. Whole-workspace restore quiesces side effects and invalidates
+old sessions/grants while retaining verified keys and original history IDs.
+
+Physical headset, native Splunk, licensed Ultimate ingestion, signed
+distribution and authentic commercial wire comparison retain their exact
+prerequisites in current-pro-status.md. No vendor execution, hardware result,
+provider approval or distribution credential was fabricated.

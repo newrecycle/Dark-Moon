@@ -10,11 +10,11 @@ crash recovery, real browser and supported native-host coverage.
 | community-browser.yml | Chromium UI, headless flags and the dedicated path revision/expiry/conflict component acceptance, sharing one browser install |
 | community-sdk.yml | Built SDK/CLI, consumer archive provenance, Action, authenticated SDK-to-fork HTTP contracts |
 | community-integrations.yml | Real isolated n8n host, package tests, signed receiver and replay contracts |
-| community-runtime.yml | Actual image/provider API and owned-loopback analysis |
+| community-runtime.yml | Actual image/provider API, owned-loopback analysis, real SQLi/Docker probes and disposable HTTPS Gitea publication; explicit manual model-positive gate |
 | community-vscode.yml | Packaged native extension host |
 | gitlab-integration-verification.yml | Generated template, mapper/schema/error matrix and modern CE/registered-Runner acceptance |
 | grafana-integration-verification.yml | Go backend and frontend package checks |
-| grafana-native-host.yml | Real Grafana host |
+| grafana-native-host.yml | Real Grafana 10.4.19/13.1 API and all-eight-view browser matrix |
 | jenkins-native-verification.yml | Packaged HPI, bundled CLI, controller and remote agent |
 | splunk-verification.yml | Linux/Windows offline contracts plus native prerequisites/unavailable-host checks |
 | splunk-native-host.yml | Operator-supplied native Splunk host; manual only |
@@ -52,7 +52,7 @@ triggers for shared client changes. Superseded backend/browser/GitLab runs are
 cancelled per ref. Dated validation reports remain historical evidence; active
 commands and native acceptance guidance point to retained harnesses.
 
-Local validation: 495 Python tests and 268 subtests; current SDK HTTP contract
+Historical workflow-cleanup validation: 495 Python tests and 268 subtests; current SDK HTTP contract
 (including the transferred scenarios); 78 Splunk tests and native preflight exit
 3; 37 GitLab mapper checks and 21 generated-job scenarios; campaign/graph/finding
 Node checks; all retained YAML and embedded Bash blocks parsed; actionlint 1.7.12

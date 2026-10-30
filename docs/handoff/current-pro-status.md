@@ -1,65 +1,105 @@
-# Current Pro reintegration status — 29 October 2026
+# Current Pro reintegration status — 30 October 2026
 
-This is the current status index. Dated audits and validation reports are historical evidence, not live task lists. Starting revision: `9ee85be`. Reference: commercial image `sha256:48248382877ec1fd7362d2268656956268129d5ea565befab3a24436ea2fc907`.
+Authoritative current queue for [pro](https://github.com/newrecycle/Dark-Moon/tree/pro).
+Dated audits describe their inspected revision, not an active missing-feature
+list. Read [commercial API acceptance](commercial-api-parity.md) before claiming
+parity. The pinned commercial image is
+sha256:48248382877ec1fd7362d2268656956268129d5ea565befab3a24436ea2fc907.
 
-Read [commercial API acceptance instructions](commercial-api-parity.md) before making parity claims. [CI ownership](../ci.md) names retained workflows. The [latest completed integration run](long-run-2026-10-29.md) records source and native-host evidence.
+Implementation work has been delivered across all eight workstreams. Acceptance
+is not universally closed: the positive model-review test and the unavailable
+device/licensed-host/vendor observations below must not be counted as passed.
 
-| Area | Current result | Remaining work |
+| Item | Delivered and verified | Remaining acceptance or boundary |
 |---|---|---|
-| 13 static API discrepancies | Route/method/filter adapters implemented and fork-tested | Authentic vendor request/response/error/authorization comparison; unknown defaults |
-| Credentials/evidence | Structured ownership/adapters, masked defaults and expiring scoped grants implemented | Configured-root source browser implemented with one-use grants; scheduling/configuration projection policy remains |
-| History/storage | Indexed SQLite finding history, snapshot sequence, mutation recovery; SQLite control storage | Optional live keyset run pages added; whole-system recovery, retention and assessment analytics scaling remain |
-| Events | Atomic event/webhook admission, durable observer checkpoint, replay-gap signaling | Transient offline observations cannot be recovered; adversarial log rotation coverage |
-| Graph | Evidence-bound producer, reviewed paths, editing and immutable revisions | Independent exploitation proof, headset acceptance and exact reference visuals |
-| Reports | Impact/disposition, roadmap, protected previews/exports and race fixes | Full commercial interaction/visual comparison |
-| n8n / VS Code / Jenkins / Grafana | Native disposable-host acceptance recorded | Other versions; Grafana signed distribution/browser visuals; external deployment configuration |
-| GitLab | Real CE 19.5.1 / Runner 19.5.0 pipelines and exact uploaded SAST checks pass | Ultimate dashboard ingestion |
-| Splunk | Bounded forwarder, Linux/Windows offline and package checks | Actual operator-supplied native host and searches/alerts |
-| Shared OSS SDK | New launches bind to their own producer JSON root session; pinned bindings rechecked | Unbound legacy discovery now rejects; new producer handles or explicit IDs required |
-| Remediation | Local edits, probes, judge and proposal contracts implemented | Actual Docker gate passed (run 40946712274); model inference/forge workflow acceptance remains |
-| UI/analytics | Independent responsive SPA and current-state posture | Campaign/finding resource links added; remaining routes and reference interaction matrix open; campaign-start window API added, as-of reconstruction and window UI open |
+| 1. Shared SDK | Own-producer root-session binding; all unbound legacy discovery guesses removed; 106 tests/build; refreshed Action/VS Code archives and provenance; actual GitLab/VS Code consumers passed | Trusted producer storage remains an explicit trust boundary |
+| 2. Source picker | Configured approved roots, administrator one-use grants; real Git HTTP and hosted browser acceptance | Approved roots must be operator-controlled |
+| 3. Remediation | Scoped worktrees/edits; independent review model/credential configuration; bounded exact before/after source; actual SQLi exploit and variant probes, normal behavior and sandbox restrictions; actual HTTPS Gitea push/PR/readback/idempotency | Positive automatic model-review acceptance remains OPEN: CPU reviewers rejected a valid generated patch; no rejection was overridden |
+| 4. UI navigation | All 13 original page surfaces mapped to authenticated independent views; exact-resource navigation, reload/Back/missing states; metadata-first report/proposal access; hosted browser passed | Exact vendor interactions/visual matching remain unverified |
+| 5. Analytics | UTC assessment-start windows and preserved drill-downs; explicitly recorded as-of posture; archive/restore/prune; reviewed target-qualified finding identity groups | No invented pre-recording history or between-observation reconstruction |
+| 6. Scale/recovery | Dashboard cursor consumer; principal/filter-bound frozen lifecycle pages; explicit retention; verified offline complete workspace backup/restore with quiescent restart and preserved history identities | No live cross-file transaction guarantee; external Git/worktree relocation needs operator review |
+| 7. Graph/XR | Normal graph/path acceptance; permission denial, late permission, setup abort, external end, rejected end, shader compile/link cleanup; production lifecycle and browser checks passed | Physical headset rendering; independent exploitation evidence remains assessment-specific |
+| 8. Native hosts | Actual CE/Runner, Jenkins, n8n, packaged VS Code; Grafana 10.4.19/13.1 native APIs and all eight app views in Chromium | Native Splunk, licensed Ultimate ingestion, Catalog signing and untested host versions |
 
-JetBrains is intentionally removed. Vendor activation controls are not reconstruction requirements. Stronger fork authentication, evidence restrictions and manual publishing remain intentional differences.
+JetBrains remains intentionally removed. PBKDF2 authentication, roles,
+revocation, scoped evidence grants and manual publication remain intact.
+No commercial Pro license is available or to be acquired; none of the 52
+original API declarations is vendor-wire verified. Static extraction is not
+runtime equivalence.
 
-## Execution queue
+## Final executable checkpoint
 
-Proceed sequentially: (1) shared SDK identity, (2) scoped source picker (implemented and browser-verified), (3) remediation acceptance, (4) UI navigation, (5) historical analytics, (6) scale/consistency, (7) graph/headset boundaries, (8) native-host boundaries. Update this file and commercial-api-parity.md at every completed checkpoint. Separate implemented, fork-tested, vendor-compared and unavailable outcomes. Do not acquire licenses or claim unavailable hardware/hosts passed.
+On 18057c8, all four triggered workflows passed:
 
-All seven workflows triggered on `9ee85be` completed successfully, including Jenkins and GitLab. This does not re-execute workflows whose path filters did not trigger.
+- Tests 41011660077: 508 tests, 297 subtests, production XR lifecycle and pure
+  browser logic checks.
+- Community browser 41011660160: routes, authentication, retained/recorded
+  posture, assessment windows, frozen run pages and graph/path interactions.
+- Runtime 41011660161: actual image/provider API, owned-loopback analysis,
+  offline Docker SQLi remediation and actual disposable HTTPS publication.
+- Distribution/provenance 41011660102.
 
-## Items 7–8: concrete unavailable acceptance
+The runtime artifact owned-lab-analysis (12958041662) contains
+native-remediation.json. Its operator-reviewed publication is distinct from
+the optional model-positive gate. Both SQLi variants are blocked after the
+parameter-binding fix; normal behavior and sandbox restrictions remain.
+A bad patch fails validation; an unavailable image is unreproduced.
+The real Gitea PR stays open/unmerged, matches the exact head SHA and base,
+leaves original source unchanged, and remains a single PR after a repeated call.
+The ephemeral repository mount allows Gitea's generated hooks to execute;
+TLS verification is enabled for both client and internal callbacks.
 
-XR policy-denial and view/session cleanup passed hosted browser run 40947738123.
-There is no physical headset in this environment. Do not mark immersive playback
-accepted from a mocked navigator.xr result.
+Other affected source checkpoints:
 
-Native Splunk remains unavailable: no operator-supplied preinstalled disposable
-host, matching self-hosted runner or host credentials have been provided. The
-manual workflow is deliberately not dispatched onto an absent runner. Exact
-preparation and executable commands are in
-[integrations/upstream/splunk/test/NATIVE-ACCEPTANCE.md](../../integrations/upstream/splunk/test/NATIVE-ACCEPTANCE.md).
-Its offline/native-preflight gates remain valid separate evidence.
+- SDK 4c921ee: all five triggered workflows passed, including actual GitLab
+  CE/Runner 41000257766 and packaged VS Code 41000257813.
+- Grafana ddf7542: both complete native API/browser matrix legs passed in
+  41006932019, including filtering, saved retest, inaccessible source denial,
+  protected-content checks and retained desktop/mobile screenshots.
+- Native n8n on 64b6961: 41009928358 passed.
+- Earlier image/provider, SDK and broad browser/native evidence is retained
+  in the dated runbooks; do not imply a path-filtered workflow reran when it did not.
 
-GitLab Ultimate ingestion requires an available appropriately licensed instance;
-the user does not intend to acquire a license. CE/Runner artifact acceptance is
-already verified. Grafana 13.1 native API acceptance passed previously; a signed
-Catalog release and other host versions are separate operator/distribution work.
-No license acquisition, signing account, external publication, service restart or
-hardware interaction was performed. These are acceptance blockers, not missing
-backend implementations to replace with synthetic success.
+## Remaining acceptance and exact handoff
 
-## This run's closure boundaries
+1. **Positive automatic model review:** real CPU inference produced a correct
+   parameter-binding candidate but its reviewers rejected it, including with
+   complete source context (41009928342). The production gate stayed closed.
+   The positive gate is now an explicit manual workflow input, not a routine
+   model-quality requirement on every push. Use
+   [the model/forge runbook](remediation-model-forge-acceptance.md) and
+   --configured-models with an explicitly selected capable endpoint. Require
+   positive review >= .75, rejection of the unfixed control, real probes and
+   real publication. The separate operator-reviewed pass does not close it.
+2. **Splunk:** no operator-supplied preinstalled disposable licensed host,
+   matching self-hosted runner or credentials are available. Do not acquire or
+   accept a license. Exact preparation and commands are in
+   [native Splunk acceptance](../../integrations/upstream/splunk/test/NATIVE-ACCEPTANCE.md).
+   Offline Linux/Windows contracts and native preflight are separate evidence.
+3. **GitLab Ultimate:** actual dashboard ingestion needs an appropriately
+   licensed instance. No license will be acquired. CE 19.5.1 / Runner 19.5.0
+   execution and exact uploaded SAST artifacts are already verified.
+4. **Hardware/distribution:** no physical headset or Grafana signing account
+   is available. Follow [XR acceptance](xr-device-acceptance.md) if hardware
+   becomes available. Unsigned disposable-host loading is not Catalog signing.
+5. **Commercial wire comparison:** authentic bodies, defaults, authorization
+   and error behavior remain unavailable. Use the complete scenario matrix in
+   [commercial API acceptance](commercial-api-parity.md); never fabricate responses
+   or bypass activation.
 
-| Queue item | Delivered / verified | Still open |
-|---|---|---|
-| 1 SDK | Own-producer root binding for new launches; 106 SDK tests/build; refreshed consumers | Unbound legacy discovery removed; untrusted/out-of-band storage remains outside the trusted-directory contract |
-| 2 source picker | Configured roots, admin one-use grants, real-Git HTTP and hosted browser pass | Hostile concurrently modified Git metadata is outside approved-root trust |
-| 3 remediation | Actual Docker validated/failing/unavailable-image cases pass | Real model inference and operator-authorized forge publication |
-| 4 UI | Scoped campaign/finding links; hosted reload/auth/Back/missing-state acceptance passes | All 13 page surfaces implemented; matching browser run pending; exact vendor visuals remain evidence-only |
-| 5 analytics | Current triage by assessment-start window API; strict HTTP tests | Window UI/drill-downs, recorded as-of reads and reviewed target-qualified groups implemented; no historical backfill or vendor equivalence claimed |
-| 6 scale | Optional live keyset run pages, insertion/deleted-anchor tests | Cursor consumer, frozen lifecycle pages, explicit retention and offline complete recovery implemented; live cross-file transactions are not promised |
-| 7 graph | XR denial/abort lifecycle; hosted normal graph/path acceptance passes | Physical headset and independent exploitation verification |
-| 8 hosts | Existing native/CE acceptance retained; exact blocked prerequisites recorded | Native Splunk, paid-tier ingestion, other versions and signed distribution |
+## Reproduction and recovery
 
-No row should be read as complete commercial parity. All authentic commercial
-wire comparisons remain unavailable; use the acceptance runbook's scenario matrix.
+Start with the parity runbook's fresh checkout/environment commands. Then read:
+
+- [UI route mapping](ui-route-acceptance.md)
+- [Posture observations and reviewed identity](posture-observations.md)
+- [Offline complete workspace recovery](workspace-recovery.md)
+- [Actual model/Docker/forge acceptance](remediation-model-forge-acceptance.md)
+- [Grafana native host boundaries](grafana-host-boundaries.md)
+- [CI ownership and exact retained workflows](../ci.md)
+
+Backups must be created with all writers stopped. Restore invalidates sessions
+and grants, quiesces work and preserves verified vault/history material; it
+does not replay old side effects. Source trust, observed-history limits and
+transient observations missed while an external producer is offline remain
+explicit operational contracts.

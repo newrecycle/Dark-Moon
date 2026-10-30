@@ -145,3 +145,31 @@ control, exploit/normal probes, and all actual forge assertions. A
 --configured-models --model-only result cannot close Docker/forge acceptance.
 Never change false to true, lower the threshold, stub a response, or claim this
 gap closed from the separate operator-reviewed publication gate.
+
+
+## Final native publication result
+
+The always-on operator-reviewed SQLi/Docker/HTTPS forge gate passed in runtime
+run 41011660161 on 18057c8. Artifact owned-lab-analysis (12958041662) contains
+native-remediation.json. Run without model dependencies:
+
+~~~sh
+python3.12 -m venv /tmp/darkmoon-analysis-venv
+/tmp/darkmoon-analysis-venv/bin/pip install -r mcp/requirements.txt -r mcp/community/requirements.txt
+docker build -f tools/lab/Dockerfile -t darkmoon-ui-lab .
+PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tests/community/remediation_native.py
+~~~
+
+Require native_docker:true and forge_publication:true, model_inference:false,
+validated/validation_failed/unreproduced cases, and all forge checks true.
+It proves actual exploit/variant blocking, preserved normal behavior,
+container restrictions, real push/PR creation, exact head/base and idempotency.
+The fixture uses a rootless Gitea container, executable ephemeral repository
+mount for its generated hooks, explicit PR support/readiness and a trusted
+local callback certificate. It creates no external repository or merge.
+
+The separate positive model gate is still OPEN: CPU reviewers rejected the
+genuine parameter-binding patch. Passing operator publication does not close
+that gap, and making the model test manual does not turn its failed runs into
+passes. Reuse --configured-models with a capable explicitly selected endpoint
+and retain the strict positive/negative controls above to close it.

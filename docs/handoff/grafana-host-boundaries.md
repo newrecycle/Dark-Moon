@@ -22,7 +22,7 @@ to a public interface or reuse its credentials in a deployment.
 
 Signed Grafana Catalog distribution requires the maintainer's signing account
 and release process. It is not emulated with an unsigned local signature.
-Native browser visual behavior and the exact minimum patch 10.4.0 remain
+Exact commercial visual matching and the exact minimum patch 10.4.0 remain
 separate compatibility evidence. Splunk and GitLab Ultimate prerequisites are
 listed in current-pro-status.md; they are not replaced by this Grafana test.
 
@@ -33,9 +33,10 @@ network access outside the fixture origin is allowed. It signs into the real
 Grafana with synthetic credentials, opens all eight app views, exercises a
 severity filter and saved retest, denies an unavailable explicit datasource,
 checks uncaught page errors and retains desktop/mobile screenshots. This
-closes the executable native-browser gap if both matrix legs pass; screenshot
-retention is not a claim of exact vendor visual matching. The added browser
-step is pending on its matching revision.
+closed the executable native-browser gap for the sampled versions: both legs
+passed in run 41006932019 on ddf7542. All eight views, the severity filter,
+saved retest, inaccessible-source denial and protected-content checks passed.
+Desktop/mobile screenshots are retained; this is not exact vendor visual matching.
 
 
 The first browser run loaded the overview/campaign/finding pages on both real
