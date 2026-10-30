@@ -292,3 +292,12 @@ and invalidates sessions/grants rather than replaying old side effects. Fresh
 commands and exact bounds are in workspace-recovery.md and the control-state
 runbook. Focused run/storage tests passed 28 tests / 110 subtests before the final
 recovery policy/rebind cases; final results are recorded at the final checkpoint.
+
+### XR cleanup and asynchronous posture refresh
+
+Production XR initialization now installs idempotent graphics cleanup before
+shader compilation; failure and normal end release created resources. The
+Node lifecycle check executes that production function and passes. Physical
+headset steps and required device metadata are in [XR acceptance](xr-device-acceptance.md).
+`refresh()` now waits for asynchronous overview rendering, so completion means
+the refreshed posture is visible; a hosted browser check exposed the earlier race.

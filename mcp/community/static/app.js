@@ -115,7 +115,7 @@ async function refresh() {
   if (!campaignId && snapshot.campaigns.length)
     campaignId = snapshot.campaigns.at(-1).id;
   $("#error").hidden = true;
-  render();
+  await render();
 }
 let eventCursor = "";
 async function connect() {
@@ -292,12 +292,13 @@ function render() {
   document
     .querySelectorAll("nav a")
     .forEach((a) => a.classList.toggle("active", a.hash === `#${route}`));
+  let pending;
   let bounds;
   try { bounds = CampaignWindow.read(location.hash); }
   catch(error) { $("#content").innerHTML = `<p role="alert">${esc(error.message)} <a href="#overview">Clear window</a></p>`; return; }
   const s = CampaignWindow.cohort(snapshot, bounds), total = s.findings.length;
   if (route === "overview") {
-    renderOverview(bounds, viewControl.signal);
+    pending = renderOverview(bounds, viewControl.signal);
   } else if (route === "campaigns") {
     $("#content").innerHTML =
       `<section class="panel flush"><div class="section-top"><div><h3>All assessments</h3><p>Select one to review its findings, report and infrastructure.</p></div></div>${campaignsTable(s.campaigns)}</section><section class="panel"><div class="section-top"><h3>Execution queue and run logs</h3><span class="subtle">Lifecycle metadata; raw output restricted</span></div><div id="run-queue" role="status">Loading runs…</div></section>`;
@@ -341,6 +342,7 @@ function render() {
     });
   }
 
+  return pending;
 }
 
 async function renderOverview(bounds, signal) {
@@ -1274,20 +1276,30 @@ async function startVR(nodes, edges, signal) {
   const stop = () => { ended = true; session.end().catch(() => {}); };
   if (signal.aborted) { stop(); return; }
   signal.addEventListener("abort", stop, {once:true});
-  session.addEventListener("end", () => { ended = true; signal.removeEventListener("abort", stop); }, {once:true});
+  let program, buffer, cleaned=false;
+  const shaders=[];
+  const cleanup=()=>{
+    if(cleaned)return;
+    cleaned=true;
+    if(buffer)gl.deleteBuffer(buffer);
+    if(program)gl.deleteProgram(program);
+    for(const shader of shaders)gl.deleteShader(shader);
+  };
+  session.addEventListener("end", () => { ended = true; signal.removeEventListener("abort", stop); cleanup(); }, {once:true});
   try {
     await gl.makeXRCompatible();
     session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
     const space = await session.requestReferenceSpace("local");
     function shader(type, source) {
       const s = gl.createShader(type);
+      shaders.push(s);
       gl.shaderSource(s, source);
       gl.compileShader(s);
       if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
         throw new Error(gl.getShaderInfoLog(s));
       return s;
     }
-    const program = gl.createProgram();
+    program = gl.createProgram();
     gl.attachShader(
       program,
       shader(
@@ -1311,7 +1323,7 @@ async function startVR(nodes, edges, signal) {
           : [],
       ),
       points = nodes.flatMap((n) => n.p);
-    const buffer = gl.createBuffer();
+    buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(
       gl.ARRAY_BUFFER,
@@ -1364,17 +1376,10 @@ async function startVR(nodes, edges, signal) {
       }
       session.requestAnimationFrame(frame);
     }
-    session.addEventListener(
-      "end",
-      () => {
-        gl.deleteBuffer(buffer);
-        gl.deleteProgram(program);
-      },
-      { once: true },
-    );
     session.requestAnimationFrame(frame);
   } catch (e) {
-    await session.end();
+    await session.end().catch(()=>{});
+    cleanup();
     throw e;
   }
 }
