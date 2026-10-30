@@ -7,8 +7,8 @@ import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-MODEL = 'Qwen/Qwen2.5-Coder-0.5B-Instruct'
-REVISION = 'ea3f2471cf1b1f0db85067f1ef93848e38e88c25'
+MODEL = 'Qwen/Qwen2.5-Coder-1.5B-Instruct'
+REVISION = 'd18ecad881a290f0c792f1c2b5dbee1820d4a424'
 
 
 def main():
@@ -17,7 +17,8 @@ def main():
     torch.set_num_threads(2)
     tokenizer = AutoTokenizer.from_pretrained(MODEL, revision=REVISION, trust_remote_code=False)
     model = AutoModelForCausalLM.from_pretrained(MODEL, revision=REVISION,
-                                               trust_remote_code=False, use_safetensors=True)
+                                               trust_remote_code=False, use_safetensors=True,
+                                               dtype=torch.bfloat16)
     model.eval()
     lock = threading.Lock()
 
