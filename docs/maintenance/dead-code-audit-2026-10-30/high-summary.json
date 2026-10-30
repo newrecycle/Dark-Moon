@@ -1,0 +1,14 @@
+{
+  "high-files.csv": {
+    "retain": 928,
+    "remove": 16
+  },
+  "high-dependencies.csv": {
+    "retain": 125,
+    "retain-blocked-validation": 80
+  },
+  "high-symbols.csv": {
+    "remove": 2,
+    "retain": 82
+  }
+}

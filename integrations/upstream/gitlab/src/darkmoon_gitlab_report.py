@@ -68,10 +68,6 @@ def _now() -> str:
     return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
 
-def _sast_time(value: Any) -> str:
-    """GitLab SAST schema requires 'yyyy-mm-ddThh:mm:ss' (no timezone suffix)."""
-    m = _re.match(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})", str(value or ""))
-    return m.group(1) if m else _now()
 
 
 def _norm_sev(value: Any) -> str:

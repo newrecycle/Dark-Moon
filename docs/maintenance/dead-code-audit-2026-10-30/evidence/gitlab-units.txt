@@ -1,0 +1,43 @@
+== finding shape + redaction (§4) ==
+  PASS: sensitive description/infra never appears in shared reports
+  PASS: no emails/IPs from description leak into shared reports
+  PASS: redaction-safe TITLE is used on shared surfaces
+  PASS: critical -> blocker (CodeClimate)
+  PASS: endpoint 'POST /rest/user/login' -> location.path 'rest/user/login'
+  PASS: check_name = darkmoon/<category>
+  PASS: critical -> Critical (SAST)
+  PASS: SAST identifiers include category + enriched CWE + MITRE
+  PASS: SAST scan.start_time has no timezone suffix
+== object wrapper ==
+  PASS: mapper accepts {findings:[...]} object too
+== degradation (§2.4) ==
+  PASS: missing findings file -> tool error, never clean success
+  PASS: missing input -> empty code-quality array
+  PASS: missing input -> empty SAST vulns
+  PASS: malformed findings file -> tool error, never clean success
+  PASS: invalid input marks the SAST scan failed
+  PASS: empty reports still validate against live schemas
+== strict boundaries ==
+  PASS: invalid envelope/item/identity/severity/CVSS fails closed
+  PASS: parse error does not echo finding contents
+  PASS: invalid envelope/item/identity/severity/CVSS fails closed
+  PASS: parse error does not echo finding contents
+  PASS: invalid envelope/item/identity/severity/CVSS fails closed
+  PASS: parse error does not echo finding contents
+  PASS: invalid envelope/item/identity/severity/CVSS fails closed
+  PASS: parse error does not echo finding contents
+  PASS: invalid envelope/item/identity/severity/CVSS fails closed
+  PASS: parse error does not echo finding contents
+  PASS: invalid envelope/item/identity/severity/CVSS fails closed
+  PASS: parse error does not echo finding contents
+  PASS: invalid envelope/item/identity/severity/CVSS fails closed
+  PASS: parse error does not echo finding contents
+  PASS: invalid envelope/item/identity/severity/CVSS fails closed
+  PASS: parse error does not echo finding contents
+  PASS: invalid envelope/item/identity/severity/CVSS fails closed
+  PASS: parse error does not echo finding contents
+  PASS: explicit empty array is a valid result
+  PASS: explicit empty array is a valid result
+  PASS: explicit empty array is a valid result
+
+== UNIT SUMMARY: 37 passed, 0 failed ==

@@ -1,0 +1,120 @@
+
+> securityposture@1.0.0 typecheck
+> tsc --noEmit
+
+
+> securityposture@1.0.0 test:ci
+> jest --passWithNoTests --maxWorkers 4
+
+PASS src/components/App/App.test.tsx
+  ● Console
+
+    console.warn
+      ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+
+      15 |
+      16 | test('routes to live datasource-backed overview using configured UID', () => {
+    > 17 |   render(<MemoryRouter initialEntries={['/overview']}><App {...props} /></MemoryRouter>);
+         |         ^
+      18 |   expect(screen.getByText('Darkmoon overview datasource darkmoon-1')).toBeInTheDocument();
+      19 | });
+      20 |
+
+      at warn (node_modules/react-router/lib/deprecations.ts:9:13)
+      at warnOnce (node_modules/react-router/lib/deprecations.ts:14:3)
+      at logDeprecation (node_modules/react-router/lib/deprecations.ts:26:5)
+      at logV6DeprecationWarnings (node_modules/react-router/lib/components.tsx:257:25)
+      at commitHookEffectListMount (node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+      at commitPassiveMountOnFiber (node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+      at commitPassiveMountEffects_complete (node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+      at commitPassiveMountEffects_begin (node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+      at commitPassiveMountEffects (node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+      at flushPassiveEffectsImpl (node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+      at flushPassiveEffects (node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+      at node_modules/react-dom/cjs/react-dom.development.js:26808:9
+      at flushActQueue (node_modules/react/cjs/react.development.js:2667:24)
+      at act (node_modules/react/cjs/react.development.js:2582:11)
+      at node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at renderRoot (node_modules/@testing-library/react/dist/pure.js:198:26)
+      at render (node_modules/@testing-library/react/dist/pure.js:300:10)
+      at Object.<anonymous> (src/components/App/App.test.tsx:17:9)
+
+    console.warn
+      ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+      15 |
+      16 | test('routes to live datasource-backed overview using configured UID', () => {
+    > 17 |   render(<MemoryRouter initialEntries={['/overview']}><App {...props} /></MemoryRouter>);
+         |         ^
+      18 |   expect(screen.getByText('Darkmoon overview datasource darkmoon-1')).toBeInTheDocument();
+      19 | });
+      20 |
+
+      at warn (node_modules/react-router/lib/deprecations.ts:9:13)
+      at warnOnce (node_modules/react-router/lib/deprecations.ts:14:3)
+      at logDeprecation (node_modules/react-router/lib/deprecations.ts:37:5)
+      at logV6DeprecationWarnings (node_modules/react-router/lib/components.tsx:257:25)
+      at commitHookEffectListMount (node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+      at commitPassiveMountOnFiber (node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+      at commitPassiveMountEffects_complete (node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+      at commitPassiveMountEffects_begin (node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+      at commitPassiveMountEffects (node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+      at flushPassiveEffectsImpl (node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+      at flushPassiveEffects (node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+      at node_modules/react-dom/cjs/react-dom.development.js:26808:9
+      at flushActQueue (node_modules/react/cjs/react.development.js:2667:24)
+      at act (node_modules/react/cjs/react.development.js:2582:11)
+      at node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at renderRoot (node_modules/@testing-library/react/dist/pure.js:198:26)
+      at render (node_modules/@testing-library/react/dist/pure.js:300:10)
+      at Object.<anonymous> (src/components/App/App.test.tsx:17:9)
+
+PASS src/components/AppConfig/AppConfig.test.tsx
+PASS src/components/DatasourceView.test.tsx
+
+Test Suites: 3 passed, 3 total
+Tests:       7 passed, 7 total
+Snapshots:   0 total
+Time:        1.93 s
+Ran all test suites.
+
+> securityposture@1.0.0 build
+> webpack -c ./.config/webpack/webpack.config.ts --env production
+
+assets by path img/ 1.37 MiB
+  asset img/screenshots/overview.png 1.23 MiB [emitted] [from: img/screenshots/overview.png] [copied] [big]
+  + 2 assets
+assets by path *.js 21.1 KiB
+  asset 202.js?_cache=9a66d768bb3f3570b121 9.35 KiB [emitted] [immutable] [minimized] 1 related asset
+  + 2 assets
+assets by path datasource/ 10.5 KiB
+  asset datasource/module.js 7.86 KiB [emitted] [minimized] (name: datasource/module) 1 related asset
+  asset datasource/img/logo.svg 1.55 KiB [emitted] [from: datasource/img/logo.svg] [copied]
+  asset datasource/plugin.json 1.11 KiB [emitted] [from: datasource/plugin.json] [copied]
+assets by path *.md 8.73 KiB
+  asset README.md 8.14 KiB [emitted] [from: ../README.md] [copied]
+  asset CHANGELOG.md 598 bytes [emitted] [from: ../CHANGELOG.md] [copied]
+asset LICENSE 11.1 KiB [emitted] [from: ../LICENSE] [copied]
+asset plugin.json 2.92 KiB [emitted] [from: plugin.json] [copied]
+runtime modules 7.48 KiB 15 modules
+orphan modules 264 KiB [orphan] 9 modules
+built modules 36.2 KiB [built]
+  cacheable modules 36 KiB
+    modules by path ./components/ 18.8 KiB 3 modules
+    ./module.tsx + 1 modules 1010 bytes [built] [code generated]
+    ./datasource/module.ts + 5 modules 14.3 KiB [built] [code generated]
+    ./constants.ts + 1 modules 1.84 KiB [built] [code generated]
+  modules by path external "@grafana/ 126 bytes
+    external "@grafana/data" 42 bytes [built] [code generated]
+    external "@grafana/ui" 42 bytes [built] [code generated]
+    external "@grafana/runtime" 42 bytes [built] [code generated]
+  external "module" 42 bytes [built] [code generated]
+  external "react" 42 bytes [built] [code generated]
+  external "react-router" 42 bytes [built] [code generated]
+
+WARNING in asset size limit: The following asset(s) exceed the recommended size limit (244 KiB).
+This can impact web performance.
+Assets:
+  img/screenshots/overview.png (1.23 MiB)
+
+webpack 5.111.1 compiled with 1 warning in 582 ms

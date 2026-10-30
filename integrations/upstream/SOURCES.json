@@ -34,9 +34,15 @@
     "excluded": [
       ".github",
       "docs/screenshots",
-      "test/screenshots"
+      "test/screenshots",
+      "plugin/src/pages/PageOne.tsx",
+      "plugin/src/pages/PageTwo.tsx",
+      "plugin/src/pages/PageThree.tsx",
+      "plugin/src/pages/PageFour.tsx",
+      "plugin/src/components/testIds.ts",
+      "plugin/src/utils/utils.routing.ts"
     ],
-    "adaptation": "Replace starter pages and unused app API-key settings with real encrypted-datasource-backed views and saved datasource UID; prefer retained-workspace posture with legacy 404 fallback; distinguish local proposals from PRs; authenticate health via protected reads; align sparse trends with null gaps; strict lists/scalar projections, safe metadata resource proxy, no redirect credential forwarding and correct nested asset packaging. Implementation pass; type/build/native verification is deferred. Follow-up preserves pre-comparison retest state and exact references, Grafana time bounds/ISO week buckets, nullable CVSS and campaign-qualified finding rows; validates aligned frames and refuses silent datasource substitution. Follow-up behavioral/build verification remains delegated."
+    "adaptation": "Replace starter pages and unused app API-key settings with real encrypted-datasource-backed views and saved datasource UID; prefer retained-workspace posture with legacy 404 fallback; distinguish local proposals from PRs; authenticate health via protected reads; align sparse trends with null gaps; strict lists/scalar projections, safe metadata resource proxy, no redirect credential forwarding and correct nested asset packaging. Implementation pass; type/build/native verification is deferred. Follow-up preserves pre-comparison retest state and exact references, Grafana time bounds/ISO week buckets, nullable CVSS and campaign-qualified finding rows; validates aligned frames and refuses silent datasource substitution. Follow-up behavioral/build verification remains delegated. Cleanup removes unreachable starter pages/helpers and replaces obsolete Playwright starter navigation/API-key assertions with current eight-view and datasource-UID settings contracts."
   },
   {
     "path": "integrations/upstream/action",
@@ -48,7 +54,8 @@
       ".github/workflows/ci.yml",
       ".github/workflows/example-usage.yml",
       "docs/screenshots",
-      "dist"
+      "dist",
+      "vendor/darkmoon-client-0.1.0.tgz"
     ],
     "client_snapshot": {
       "source": "../client",
@@ -99,7 +106,8 @@
     "excluded": [
       ".github",
       "docs/screenshots",
-      "test/screenshots"
+      "test/screenshots",
+      "vendor/darkmoon-client-0.1.0.tgz"
     ],
     "client_snapshot": {
       "source": "../client",

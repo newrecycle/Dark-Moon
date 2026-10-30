@@ -135,9 +135,6 @@ def ip_of(container):
     return out.stdout.strip()
 
 
-def first_match(text, pattern, default="-"):
-    m = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
-    return m.group(0).strip() if m else default
 
 
 def main():

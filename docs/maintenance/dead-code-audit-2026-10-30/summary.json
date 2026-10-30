@@ -1,0 +1,16 @@
+{
+  "base": "d691fdc2780628e8927587bb208f358e1a2e7a15",
+  "tracked_files_accounted": 944,
+  "file_decisions": {
+    "retain": 804,
+    "remove": 10,
+    "defer": 130
+  },
+  "dependency_declarations": 204,
+  "dependency_decisions": {
+    "retain": 95,
+    "defer": 109
+  },
+  "installation_sites": 105,
+  "python_symbol_candidates": 84
+}

@@ -1,19 +1,17 @@
 import { test, expect } from './fixtures';
 
-test('should be possible to save app configuration', async ({ appConfigPage, page }) => {
-  const saveButton = page.getByRole('button', { name: /Save API settings/i });
-
-  // reset the configured secret
-  await page.getByRole('button', { name: /reset/i }).click();
-
-  // enter some valid values
-  await page.getByRole('textbox', { name: 'API Key' }).fill('secret-api-key');
-  await page.getByRole('textbox', { name: 'API Url' }).clear();
-  await page.getByRole('textbox', { name: 'API Url' }).fill('http://www.my-awsome-grafana-app.com/api');
-
-  // listen for the server response on the saved form
-  const saveResponse = appConfigPage.waitForSettingsResponse();
-
-  await saveButton.click();
-  await expect(saveResponse).toBeOK();
+// Synthetic datasource-list admission, real Grafana app settings save.
+test('saves a datasource UID without storing a second API credential', async ({ appConfigPage, page }) => {
+  await page.route('**/api/datasources', route => route.fulfill({ json: [
+    { uid: 'cleanup-fixture', name: 'Cleanup fixture', type: 'darkmoon-securityposture-datasource' },
+  ] }));
+  await page.reload();
+  await page.getByRole('combobox', { name: 'Default datasource' }).selectOption('cleanup-fixture');
+  const request = page.waitForRequest(r => r.method() === 'POST' && r.url().includes('/api/plugins/') && r.url().endsWith('/settings'));
+  const response = appConfigPage.waitForSettingsResponse();
+  await page.getByRole('button', { name: 'Save datasource selection' }).click();
+  expect((await request).postDataJSON().jsonData).toEqual({ datasourceUid: 'cleanup-fixture' });
+  await expect(response).toBeOK();
+  await expect(page.getByRole('status').filter({ hasText: 'Saved. Reopen the Darkmoon app' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'API Key' })).toHaveCount(0);
 });

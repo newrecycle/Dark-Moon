@@ -1,31 +1,20 @@
 import { test, expect } from './fixtures';
-import { ROUTES } from '../src/constants';
+import pluginJson from '../src/plugin.json';
 
-test.describe('navigating app', () => {
-  test('page one should render successfully', async ({ gotoPage, page }) => {
-    await gotoPage(`/${ROUTES.One}`);
-    await expect(page.getByText('This is page one.')).toBeVisible();
+const VIEWS = pluginJson.includes.filter(item => item.type === 'page' && item.addToNav && item.path.startsWith('/a/')).map(item => ({
+  type: item.path.split('/').pop(), label: item.name,
+}));
+
+for (const view of VIEWS) {
+  test(`${view.label} route renders the current app`, async ({ gotoPage, page }) => {
+    await gotoPage(`/${view.type}`);
+    await expect(page.getByRole('heading', { name: `Darkmoon · ${view.label}`, exact: true })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Datasource', exact: true })).toBeVisible();
   });
+}
 
-  test('page two should render successfully', async ({ gotoPage, page }) => {
-    await gotoPage(`/${ROUTES.Two}`);
-    await expect(page.getByText('This is page two.')).toBeVisible();
-  });
-
-  test('page three should support an id parameter', async ({ gotoPage, page }) => {
-    await gotoPage(`/${ROUTES.Three}/123456`);
-    await expect(page.getByText('ID: 123456')).toBeVisible();
-  });
-
-  test('page three should render sucessfully', async ({ gotoPage, page }) => {
-    // wait for page to successfully render
-    await gotoPage(`/${ROUTES.One}`);
-    await expect(page.getByText('This is page one.')).toBeVisible();
-
-    // navigating to page four with full width layout without sidebar menu
-    await page.getByText('Full-width page example').click();
-
-    // navigate back to page one
-    await page.getByRole('link', { name: 'Back', exact: true }).click();
-  });
+test('unknown routes return to overview', async ({ gotoPage, page }) => {
+  await gotoPage('/unknown-route');
+  await expect(page).toHaveURL(/\/overview(?:[?#]|$)/);
+  await expect(page.getByRole('heading', { name: 'Darkmoon · Overview', exact: true })).toBeVisible();
 });
