@@ -44,6 +44,7 @@ def exercise(store, result, repo, root):
     base = f'https://127.0.0.1:{port}'
     password = secrets.token_urlsafe(32)
     token = None
+    seed_notes = ''
     context = ssl.create_default_context(cafile=str(cert))
 
     def api(path, payload=None, basic=False, method=None):
@@ -62,7 +63,7 @@ def exercise(store, result, repo, root):
     try:
         argv = ['docker', 'run', '-d', '--name', name, '--pull=missing',
                 '-p', f'127.0.0.1:{port}:3000',
-                '--tmpfs', '/var/lib/gitea:uid=1000,gid=1000,mode=755',
+                '--tmpfs', '/var/lib/gitea:uid=1000,gid=1000,mode=755,exec',
                 '--tmpfs', '/etc/gitea:uid=1000,gid=1000,mode=755',
                 '-v', f'{certs}:/certs:ro', '-e', 'SSL_CERT_FILE=/certs/cert.pem']
         settings = {'security__INSTALL_LOCK': 'true', 'server__PROTOCOL': 'https',
@@ -101,8 +102,12 @@ def exercise(store, result, repo, root):
                'DARKMOON_ALLOW_PUBLISH': '1', 'SSL_CERT_FILE': str(cert),
                'GIT_SSL_CAINFO': str(cert), 'GIT_ASKPASS': str(helper), 'GIT_TERMINAL_PROMPT': '0'}
         with patch.dict(os.environ, env):
-            command('git', '-c', 'credential.helper=', '-c', 'core.hooksPath=/dev/null',
-                    'push', '--no-verify', destination, 'HEAD:refs/heads/main', cwd=repo)
+            seeded = subprocess.run(['git', '-c', 'credential.helper=', '-c', 'core.hooksPath=/dev/null',
+                    'push', '--no-verify', destination, 'HEAD:refs/heads/main'], cwd=repo,
+                    capture_output=True, text=True, timeout=120)
+            seed_notes = seeded.stderr[:4096]
+            if seeded.returncode:
+                raise RuntimeError('owned forge source seeding failed')
             for attempt in range(20):
                 state = api('/repos/fixture/owned-remediation')
                 if state.get('empty') is False and state.get('has_pull_requests') is True:
@@ -126,7 +131,7 @@ def exercise(store, result, repo, root):
                 'exact_head_sha': True, 'open_unmerged_pr': True, 'idempotent': True,
                 'original_source_unchanged': True, 'external_repository': False}
     except Exception as error:
-        diagnostic = {'native_forge_error': type(error).__name__}
+        diagnostic = {'native_forge_error': type(error).__name__, 'seed_git_notes': seed_notes}
         if isinstance(error, urllib.error.HTTPError):
             diagnostic.update(status=error.code, body=error.read(4096).decode('utf-8', 'replace'))
         try:
