@@ -55,7 +55,7 @@ def exercise(store, result, repo, root):
         body = None if payload is None else json.dumps(payload).encode()
         if body is not None:
             headers['Content-Type'] = 'application/json'
-        request = urllib.request.Request(base + '/api/v1' + path, data=body, headers=headers)
+        request = urllib.request.Request(base + '/api/v1' + path, data=body, headers=headers, method=method)
         with urllib.request.urlopen(request, context=context, timeout=10) as response:
             return json.loads(response.read(1024 * 1024))
 
