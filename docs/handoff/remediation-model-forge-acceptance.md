@@ -52,4 +52,8 @@ native-model-forge.json, including failure disposition. Check the exact run SHA
 before citing a pass. A successful synthetic acceptance is not proof for another
 application, model, forge adapter, vendor runtime or real-world remediation.
 The local model experiment lost its execution environment before completion;
-no local generation/forge success is claimed. Hosted acceptance is pending.
+no local generation/forge success is claimed. The first hosted inference ran
+but did not satisfy acceptance; its report is retained in run 41005570435.
+Python is now pinned to 3.12 and the bounded disposition is logged as well as
+retained, to make any model rejection or failure immediately reviewable.
+Hosted acceptance remains pending; no failed gate is bypassed.

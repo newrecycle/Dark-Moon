@@ -53,6 +53,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install analysis dependencies
         run: |
           python3 -m venv /tmp/darkmoon-analysis-venv
@@ -71,7 +74,9 @@ jobs:
       - name: Generate, review, validate and publish to disposable HTTPS Gitea
         env:
           DARKMOON_NATIVE_MODEL_PYTHON: /tmp/darkmoon-model-venv/bin/python
-        run: PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tests/community/remediation_model_native.py > native-model-forge.json
+        run: |
+          set -euo pipefail
+          PYTHONPATH=mcp /tmp/darkmoon-analysis-venv/bin/python tests/community/remediation_model_native.py | tee native-model-forge.json
       - name: Preserve real analysis data and reports
         if: always()
         uses: actions/upload-artifact@v4
