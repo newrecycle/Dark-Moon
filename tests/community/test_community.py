@@ -337,10 +337,11 @@ class RemediationTests(Fixture):
         from community.remediation import review_sources
         repo = self.root / 'review-source'
         repo.mkdir()
-        before, after = '\nvalue = "before"\n\n', '\nvalue = "after"\n\n'
+        before, after = '\r\nvalue = "before"\r\n\r\n', '\r\nvalue = "after"\r\n\r\n'
         (repo / 'app.py').write_text(before)
         (repo / 'unrelated.py').write_text('PRIVATE-UNRELATED-CONTEXT')
         git(repo, 'init')
+        git(repo, 'config', 'core.autocrlf', 'false')
         git(repo, 'config', 'user.name', 'Owned fixture')
         git(repo, 'config', 'user.email', 'fixture@example.invalid')
         git(repo, 'add', '.')

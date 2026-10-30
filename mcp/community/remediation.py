@@ -263,7 +263,8 @@ def review_sources(repo, base_commit, names):
         raise ValueError("Review context requires between one and eight source files")
     before, after = {}, {}
     for name in names:
-        after[name] = source_file(repo, name).read_text()
+        with source_file(repo, name).open(encoding="utf-8", newline="") as handle:
+            after[name] = handle.read()
         before[name] = git(repo, "show", base_commit + ":" + name, raw=True)
     if sum(map(len, before.values())) + sum(map(len, after.values())) > 200000:
         raise ValueError("Review source context exceeds 200,000 characters")
