@@ -3,11 +3,13 @@ import base64
 import json
 import os
 import secrets
+import sys
 import socket
 import ssl
 import subprocess
 import time
 import urllib.request
+import urllib.error
 import uuid
 from pathlib import Path
 from unittest.mock import patch
@@ -44,7 +46,7 @@ def exercise(store, result, repo, root):
     token = None
     context = ssl.create_default_context(cafile=str(cert))
 
-    def api(path, payload=None, basic=False):
+    def api(path, payload=None, basic=False, method=None):
         headers = {'Accept': 'application/json'}
         if basic:
             headers['Authorization'] = 'Basic ' + base64.b64encode(('fixture:' + password).encode()).decode()
@@ -62,9 +64,10 @@ def exercise(store, result, repo, root):
                 '-p', f'127.0.0.1:{port}:3000',
                 '--tmpfs', '/var/lib/gitea:uid=1000,gid=1000,mode=755',
                 '--tmpfs', '/etc/gitea:uid=1000,gid=1000,mode=755',
-                '-v', f'{certs}:/certs:ro']
+                '-v', f'{certs}:/certs:ro', '-e', 'SSL_CERT_FILE=/certs/cert.pem']
         settings = {'security__INSTALL_LOCK': 'true', 'server__PROTOCOL': 'https',
                     'server__ROOT_URL': base + '/', 'server__HTTP_PORT': '3000',
+                    'server__LOCAL_ROOT_URL': 'https://127.0.0.1:3000/',
                     'server__CERT_FILE': '/certs/cert.pem', 'server__KEY_FILE': '/certs/key.pem',
                     'server__OFFLINE_MODE': 'true', 'server__DISABLE_SSH': 'true',
                     'service__DISABLE_REGISTRATION': 'true', 'mailer__ENABLED': 'false',
@@ -89,6 +92,7 @@ def exercise(store, result, repo, root):
         token = api('/users/fixture/tokens', {'name': 'native-acceptance', 'scopes': ['all']}, basic=True)['sha1']
         api('/user/repos', {'name': 'owned-remediation', 'private': True, 'auto_init': False,
                            'default_branch': 'main'})
+        api('/repos/fixture/owned-remediation', {'has_pull_requests': True}, method='PATCH')
         destination = base + '/fixture/owned-remediation.git'
         helper = Path(root) / 'askpass'
         helper.write_text('#!/bin/sh\ncase "$1" in *Username*) printf "%s\\n" fixture;; *) printf "%s\\n" "$DARKMOON_FORGE_TOKEN";; esac\n')
@@ -99,6 +103,13 @@ def exercise(store, result, repo, root):
         with patch.dict(os.environ, env):
             command('git', '-c', 'credential.helper=', '-c', 'core.hooksPath=/dev/null',
                     'push', '--no-verify', destination, 'HEAD:refs/heads/main', cwd=repo)
+            for attempt in range(20):
+                state = api('/repos/fixture/owned-remediation')
+                if state.get('empty') is False and state.get('has_pull_requests') is True:
+                    break
+                time.sleep(.25)
+            else:
+                raise RuntimeError('seeded forge repository is not ready for pull requests')
             first = publish(store, result['id'], destination, forge='gitea', execute=True)
             second = publish(store, result['id'], destination, forge='gitea', execute=True)
         assert first == second
@@ -114,5 +125,22 @@ def exercise(store, result, repo, root):
         return {'forge': 'gitea', 'version': api('/version')['version'], 'https_verified': True,
                 'exact_head_sha': True, 'open_unmerged_pr': True, 'idempotent': True,
                 'original_source_unchanged': True, 'external_repository': False}
+    except Exception as error:
+        diagnostic = {'native_forge_error': type(error).__name__}
+        if isinstance(error, urllib.error.HTTPError):
+            diagnostic.update(status=error.code, body=error.read(4096).decode('utf-8', 'replace'))
+        try:
+            state = api('/repos/fixture/owned-remediation')
+            diagnostic['repository'] = {key: state.get(key) for key in ('empty', 'has_pull_requests', 'default_branch')}
+        except Exception:
+            pass
+        logs = subprocess.run(['docker', 'logs', '--tail', '60', name], capture_output=True, text=True, timeout=15)
+        diagnostic['host_errors'] = [line for line in (logs.stdout + logs.stderr).splitlines()
+                                     if any(word in line.lower() for word in ('error', 'fatal', 'hook'))][-12:]
+        encoded = json.dumps(diagnostic).replace(password, '[redacted]')
+        if token:
+            encoded = encoded.replace(token, '[redacted]')
+        print(encoded, file=sys.stderr, flush=True)
+        raise
     finally:
         subprocess.run(['docker', 'rm', '-f', '-v', name], capture_output=True, timeout=30)
