@@ -56,7 +56,7 @@ backend implementations to replace with synthetic success.
 | 2 source picker | Configured roots, admin one-use grants, real-Git HTTP and hosted browser pass | Hostile concurrently modified Git metadata is outside approved-root trust |
 | 3 remediation | Actual Docker validated/failing/unavailable-image cases pass | Real model inference and operator-authorized forge publication |
 | 4 UI | Scoped campaign/finding links; hosted reload/auth/Back/missing-state acceptance passes | All 13 page surfaces implemented; matching browser run pending; exact vendor visuals remain evidence-only |
-| 5 analytics | Current triage by assessment-start window API; strict HTTP tests | Window UI/drill-downs, historical as-of reconstruction and deduplication |
+| 5 analytics | Current triage by assessment-start window API; strict HTTP tests | Window UI/drill-downs, recorded as-of reads and reviewed target-qualified groups implemented; no historical backfill or vendor equivalence claimed |
 | 6 scale | Optional live keyset run pages, insertion/deleted-anchor tests | Consumer adoption, frozen multi-request snapshots, retention and whole-system recovery |
 | 7 graph | XR denial/abort lifecycle; hosted normal graph/path acceptance passes | Physical headset and independent exploitation verification |
 | 8 hosts | Existing native/CE acceptance retained; exact blocked prerequisites recorded | Native Splunk, paid-tier ingestion, other versions and signed distribution |

@@ -1,5 +1,6 @@
 """Current-state posture over retained records; no cached risk or evidence bodies."""
 import math
+import re
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
@@ -44,6 +45,11 @@ def counts(findings):
             "risk": next((s for s in SEVERITIES if severity[s]), "unknown" if current else "none")}
 
 
+def tracking_key(finding):
+    values = finding.get('target_id'), finding.get('tracking_id')
+    return values if all(isinstance(v,str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,199}',v) for v in values) else None
+
+
 def posture(snapshot):
     findings, campaigns = snapshot["findings"], snapshot["campaigns"]
     projects, targets = snapshot["projects"], snapshot["targets"]
@@ -76,7 +82,10 @@ def posture(snapshot):
     durations = [c["duration_seconds"] for c in campaign_rows if c["duration_seconds"] is not None]
     return {"cohort": "all_retained_records_current_state", "totals": {
                 "projects": len(projects), "targets": len(targets), "campaigns": len(campaigns),
-                **counts(findings), "running_campaigns": sum(c.get("status") == "running" for c in campaigns)},
+                **counts(findings),
+                "tracked_records": sum(tracking_key(f) is not None for f in findings),
+                "distinct_tracked_issues": len({tracking_key(f) for f in findings if tracking_key(f) is not None}),
+                "untracked_records": sum(tracking_key(f) is None for f in findings), "running_campaigns": sum(c.get("status") == "running" for c in campaigns)},
             "severity_distribution": {**dict.fromkeys(SEVERITIES, 0), **distribution(findings, "severity", "unknown")},
             "status_distribution": {"confirmed": 0, "exploited": 0, **distribution(findings, "status", "unconfirmed")},
             "mitre_distribution": distribution([f for f in findings if f.get("mitre_attack_id")], "mitre_attack_id", "unknown"),
@@ -93,8 +102,7 @@ def posture(snapshot):
                          "findings_without_campaign": sum(f.get("campaign_id") not in campaign_ids for f in findings)}}
 
 
-def windowed_posture(snapshot, parameters):
-    """Current triage in a campaign-start cohort, never historical reconstruction."""
+def window_bounds(parameters):
     if set(parameters) - {'from', 'to'} or any(len(v) != 1 or not v[0] for v in parameters.values()):
         raise ValueError('Use one nonblank from/to timestamp')
     bounds = {}
@@ -106,6 +114,12 @@ def windowed_posture(snapshot, parameters):
         bounds[key] = timestamp(value)
     if 'from' in bounds and 'to' in bounds and bounds['from'] >= bounds['to']:
         raise ValueError('from must precede to')
+    return bounds
+
+
+def windowed_posture(snapshot, parameters):
+    """Current triage in a campaign-start cohort, never historical reconstruction."""
+    bounds = window_bounds(parameters)
     if not bounds:
         return posture(snapshot)
     campaigns = [c for c in snapshot['campaigns'] if timestamp(c.get('date')) is not None

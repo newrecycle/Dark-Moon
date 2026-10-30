@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const Window=require('../../mcp/community/static/campaign-window.js');
+const Findings=require('../../mcp/community/static/finding-query.js');
+const campaigns=[{id:'a',date:'2026-01-01T00:00:00Z'},{id:'b',date:'2026-02-01T00:00:00Z'},{id:'c',date:'not dated'}];
+const findings=campaigns.map(c=>({id:'f_'+c.id,campaign_id:c.id,severity:'high'}));
+const bounds=Window.read('#overview?from=2026-01-01T01%3A00%3A00%2B01%3A00&to=2026-02-01T00%3A00%3A00Z');
+assert.deepEqual([...Window.ids(campaigns,bounds)],['a']);
+const hash=Findings.hash({...Findings.read('#findings'),campaign_from:bounds.from,campaign_to:bounds.to});
+assert.deepEqual(Findings.page(findings,Findings.read(hash),campaigns).items.map(f=>f.id),['f_a']);
+for(const q of ['from=2026-01-01','from=2026-02-30T00:00:00Z','from=','from=a&from=b','from=2027-01-01T00:00:00Z&to=2026-01-01T00:00:00Z'])assert.throws(()=>Window.read('#overview?'+q));
+const snapshot={campaigns,findings,targets:[],projects:[],remediations:[]},before=JSON.stringify(snapshot);
+Window.cohort(snapshot,bounds);assert.equal(JSON.stringify(snapshot),before);
+console.log('PASS UTC campaign cohort: half-open boundaries, strict queries, scoped finding links, no source mutation');

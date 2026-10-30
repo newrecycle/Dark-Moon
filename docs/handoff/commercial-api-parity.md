@@ -268,3 +268,15 @@ serve only a shell and wait for authentication. Reports never mint reveal grants
 from navigation; reused bare finding IDs require explicit campaign choice.
 Pure route checks passed, and 13 HTTP tests / 12 subtests passed locally. Native
 browser coverage was extended; its matching hosted run is pending.
+
+### Analytics UI, observations and identity groups
+
+Current UTC windows now have UI controls and cohort-preserving drill-downs.
+Recorded aggregate observations provide honest as-of reads with explicit absence
+before recording, not a backfill or atomic cross-file reconstruction. Reviewed
+tracking IDs group findings only within an exact target; unknown identity is
+reported separately. Bounded retention, fsynced archive/prune and atomic restore
+are executable via community.posture_history. See posture-observations.md for
+complete fresh-session commands and HTTP scenarios. Existing posture/evidence
+checks plus observation tests passed 30 tests / 21 subtests before the additional
+tracking-group case; final combined results are recorded at the final checkpoint.

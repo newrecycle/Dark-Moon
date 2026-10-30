@@ -256,7 +256,12 @@ class API:
             items = data.load_all_vulnerabilities()
             if method == "GET" and len(parts) == 1:
                 from .finding_query import finding_page
-                page = finding_page(items, query)
+                window_params = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+                if any(len(v) != 1 for k,v in window_params.items() if k in {"campaign_from","campaign_to"}):
+                    raise ValueError("Use one campaign window bound")
+                for key in ("campaign_from", "campaign_to"):
+                    if key in window_params: query[key] = window_params[key][0]
+                page = finding_page(items, query, data.load_campaigns() if any(k in query for k in ("campaign_from","campaign_to")) else None)
                 handler.send(page | {"data": [safe_finding(v) for v in page["data"]]})
             elif method == "GET" and parts[1:] == ["history"]:
                 params = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
@@ -279,14 +284,34 @@ class API:
             else:
                 return False
             return True
+        if resource == "dashboard" and parts[1:] == ["posture", "captures"]:
+            from .posture_history import capture, observations
+            if urlsplit(handler.path).query:
+                raise ValueError("Capture collection does not accept query parameters")
+            if method == "GET":
+                handler.send(observations(self.store))
+            elif method == "POST":
+                if not admin:
+                    raise PermissionError("Administrator access is required to record posture")
+                if handler.body():
+                    raise ValueError("Capture takes an empty object")
+                handler.send(capture(self.store, self.service.snapshot()["posture"]), status=201)
+            else: return False
+            return True
         if resource == "dashboard" and method == "GET":
             if parts[1:] in (["overview"], []):
                 handler.send(overview())
             elif parts[1:] == ["posture"]:
                 from .posture import windowed_posture
                 parameters = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
-                snapshot = self.service.snapshot()
-                handler.send(windowed_posture(snapshot, parameters) if parameters else snapshot["posture"])
+                if "as_of" in parameters:
+                    if set(parameters) != {"as_of"} or len(parameters["as_of"]) != 1:
+                        raise ValueError("Use one as_of timestamp without window bounds")
+                    from .posture_history import read
+                    handler.send(read(self.store, parameters["as_of"][0]))
+                else:
+                    snapshot = self.service.snapshot()
+                    handler.send(windowed_posture(snapshot, parameters) if parameters else snapshot["posture"])
             elif parts[1:] == ["analytics"]:
                 handler.send({"overview": overview(), "timeseries": timeseries(query)})
             else:

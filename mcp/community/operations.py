@@ -41,7 +41,7 @@ class WebhookTestRateLimitError(Exception):
         self.retry_after = max(1, min(3600, int(retry_after)))
 
 
-SAFE_FINDING_FIELDS = ("id", "campaign_id", "project_id", "target_id", "severity", "status", "category", "cve",
+SAFE_FINDING_FIELDS = ("tracking_id", "id", "campaign_id", "project_id", "target_id", "severity", "status", "category", "cve",
                        "mitre_attack_id", "iso27001_control", "discovered_at", "discovered_by_agent", "node_id", "cvss_score")
 
 

@@ -23,7 +23,7 @@ KINDS = frozenset({"finding", "campaign", "graph", "report", "report_pdf", "reme
 # evidence/probe/patch/source content and network identifiers are not public.
 FIELDS = frozenset({
     "id", "run_id", "campaign_id", "target_id", "project_id", "finding_id",
-    "current_finding_id", "base_campaign_id", "new_campaign_id", "retest_id",
+    "tracking_id", "current_finding_id", "base_campaign_id", "new_campaign_id", "retest_id",
     "proposal_id", "schedule_id", "pr_id", "webhook_id", "job_id", "edge_id",
     "parent_id", "parent_node_id", "node_id", "source_id", "target_node_id",
     "status", "state", "severity", "risk_level", "verdict", "kind", "type",
@@ -76,7 +76,7 @@ STATUS_VALUES = frozenset({
 })
 OPAQUE = frozenset({
     "id", "run_id", "campaign_id", "target_id", "project_id", "finding_id",
-    "current_finding_id", "base_campaign_id", "new_campaign_id", "retest_id",
+    "tracking_id", "current_finding_id", "base_campaign_id", "new_campaign_id", "retest_id",
     "proposal_id", "schedule_id", "pr_id", "webhook_id", "job_id", "node_id",
     "parent_id", "parent_node_id", "source_id", "target_node_id",
 })
@@ -125,7 +125,7 @@ def _posture(raw):
     totals = {"projects", "targets", "campaigns", "findings", "active", "excluded",
               "running_campaigns", "recorded_campaigns", "total_campaigns", "mean_seconds",
               "proposals", "validated", "validated_share", "findings_with_proposals",
-              "unlinked_proposals", "findings_without_registered_target", "findings_without_campaign"}
+              "unlinked_proposals", "findings_without_registered_target", "findings_without_campaign", "tracked_records", "distinct_tracked_issues", "untracked_records"}
     severity = {"critical", "high", "medium", "low", "info", "unknown"}
     def rows(items):
         result = []
@@ -144,7 +144,11 @@ def _posture(raw):
     raw_totals = raw.get("totals") if isinstance(raw.get("totals"), dict) else {}
     risk = raw_totals.get("risk")
     return {
-        "cohort": raw.get("cohort") if raw.get("cohort") in {"all_retained_records_current_state", "campaign_start_window_current_state"} else "unknown",
+        "cohort": raw.get("cohort") if raw.get("cohort") in {"all_retained_records_current_state", "campaign_start_window_current_state", "recorded_posture_snapshot"} else "unknown",
+        "historical": raw.get("historical") is True,
+        "captured_at": raw.get("captured_at") if isinstance(raw.get("captured_at"), str) and len(raw["captured_at"]) <= 40 else None,
+        "requested_as_of": raw.get("requested_as_of") if isinstance(raw.get("requested_as_of"), str) and len(raw["requested_as_of"]) <= 40 else None,
+        "capture_consistency": "observed_cross_file_state" if raw.get("historical") else None,
         "window": {k: v for k, v in raw.get("window", {}).items()
                    if (k in {"from", "to"} and isinstance(v, str) and len(v) <= 40 and re.fullmatch(r"[0-9T:+.Z-]+", v))
                    or (k == "excluded_undated_campaigns" and type(v) is int and v >= 0)},

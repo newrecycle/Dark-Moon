@@ -1,3 +1,5 @@
+> **Current extension:** Window controls and recorded as-of observations are now implemented; see [posture observations](posture-observations.md). Earlier no-window/no-as-of statements below describe their historical checkpoints.
+
 # Record-backed dashboard (D01 / I07)
 
 The WebUI overview uses a server-calculated `posture` object included in the

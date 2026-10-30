@@ -35,6 +35,17 @@ def workspace():
 
 
 class PostureTests(unittest.TestCase):
+    def test_explicit_tracking_groups_are_target_scoped_and_never_inferred(self):
+        sample=workspace()
+        self.assertEqual(posture(sample)['totals']['distinct_tracked_issues'],0)
+        for index in (0,2,4):sample['findings'][index]['tracking_id']='reviewed_issue'
+        totals=posture(sample)['totals']
+        self.assertEqual(totals['tracked_records'],3)
+        self.assertEqual(totals['distinct_tracked_issues'],2)
+        self.assertEqual(totals['untracked_records'],3)
+        sample['findings'][0]['tracking_id']={'malformed':'not an identity'}
+        self.assertEqual(posture(sample)['totals']['untracked_records'],4)
+
     def test_window_cohort_is_half_open_current_state_without_mutation(self):
         from community.posture import windowed_posture
         original = workspace()
@@ -177,6 +188,13 @@ class PostureHTTPTests(fixtures.Fixture):
         self.assertEqual(result['window']['to'], '2100-01-01T00:00:00+00:00')
         self.assertEqual(self.request(url + '&from=2001-01-01T00:00:00Z')[0], 400)
         self.assertEqual(self.request(url, auth=False)[0], 401)
+        all_findings='/api/v1/vulnerabilities?campaign_from=2000-01-01T00:00:00Z&campaign_to=2100-01-01T00:00:00Z'
+        self.assertEqual(json.loads(self.request(all_findings)[1])['total'],1)
+        empty='/api/v1/vulnerabilities?campaign_from=2100-01-01T00:00:00Z'
+        self.assertEqual(json.loads(self.request(empty)[1])['total'],0)
+        self.assertEqual(self.request(empty+'&campaign_from=2200-01-01T00:00:00Z')[0],400)
+        self.assertEqual(self.request('/api/v1/vulnerabilities?campaign_from=')[0],400)
+
 
     def test_viewer_can_read_metrics_but_cannot_change_triage(self):
         self.service.accounts.create('reader','long-reader-password','viewer')

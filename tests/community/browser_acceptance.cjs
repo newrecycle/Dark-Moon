@@ -1211,6 +1211,14 @@ const assert = require("node:assert/strict");
       "Mobile page overflows horizontally",
     );
     await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.evaluate(() => {location.hash='overview';});
+    await page.locator('[data-capture-posture]').waitFor();
+    await page.locator('[data-capture-posture]').click();
+    await page.getByText(/Recorded posture observed at/).waitFor();
+    assert.equal(await page.locator('#posture-totals a').count(),0,
+      'Frozen historical aggregates cannot link to a different current cohort');
+    await page.evaluate(() => {location.hash='overview';});
+    await page.locator('[data-capture-posture]').waitFor();
     await page.locator("#logout").click();
     await page.locator("#login[open]").waitFor();
     await page.locator("#login-username").fill("fixture-reader");
@@ -1283,6 +1291,17 @@ const assert = require("node:assert/strict");
     await page.locator('#token').fill('rotated-fixture-reader-password');
     await page.locator('#login-form button[type=submit]').click();
     await page.getByText('Authorize report preview', {exact:true}).waitFor();
+    await page.evaluate(() => {location.hash='overview';});
+    await page.locator('#posture-window [name=from]').fill('2100-01-01T00:00');
+    await page.locator('#posture-window [name=to]').fill('2101-01-01T00:00');
+    await page.locator('#posture-window button[type=submit]').click();
+    await page.getByText(/Current triage for assessments started in the selected UTC window/).waitFor();
+    await page.locator('#posture-totals .card').filter({hasText:'Findings'}).getByRole('link').click();
+    await page.getByText('No findings in this view', {exact:true}).waitFor();
+    assert.match(page.url(), /campaign_from=/);
+    await page.goBack();
+    await page.locator('#posture-window [name=from]').waitFor();
+    assert.equal(await page.locator('#posture-window [name=from]').inputValue(),'2100-01-01T00:00');
     await page.evaluate(() => {location.hash='campaign/camp_missing_fixture';});
     await page.getByText('Resource unavailable', {exact:true}).waitFor();
     console.log(

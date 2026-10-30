@@ -389,6 +389,9 @@
     if (page === "projects") {
       const result = await api("/api/v1/projects");
       if (route !== page) return;
+      const cohort = CampaignWindow.cohort(snapshot, CampaignWindow.read(location.hash));
+      const selected = new Set(cohort.projects.map(p=>p.id));
+      result.data = result.data.filter(p=>selected.has(p.id));
       $("#content").innerHTML =
         `<section class="panel"><div class="section-top"><div><h3>Projects and assessment history</h3><p>Compare evidence and severity counts across campaigns for the same target.</p></div><button class="primary" data-workspace="project">+ Add project</button></div>${result.data.map((p) => `<div class="list-item"><div><a class="clickable" data-project-analytics="${esc(p.id)}">${esc(p.name || p.id)}</a><small>${esc(p.description || "")}</small></div><button class="secondary" data-project-analytics="${esc(p.id)}">Analytics →</button></div>`).join("") || empty("No projects yet")}</section>`;
     } else if (page === "credentials") {
@@ -870,6 +873,13 @@
         }
       }
       if (button.dataset.projectAnalytics) {
+        const bounds = CampaignWindow.read(location.hash);
+        if (bounds.from || bounds.to) {
+          const cohort = CampaignWindow.cohort(snapshot,bounds), id=button.dataset.projectAnalytics;
+          const campaigns=cohort.campaigns.filter(c=>c.project_id===id), findings=cohort.findings.filter(f=>f.project_id===id);
+          details("Project assessment window", `<p>${campaigns.length} assessments · ${findings.length} current finding records in the selected UTC window.</p>${campaignsTable(campaigns)}`);
+          return;
+        }
         const result = await api(
           `/api/v1/projects/${button.dataset.projectAnalytics}/analytics`,
         );

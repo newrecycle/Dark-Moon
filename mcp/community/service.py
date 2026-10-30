@@ -342,6 +342,10 @@ class Service:
     def change_finding(self, campaign_id, finding_id, raw):
         identifier(campaign_id)
         identifier(finding_id)
+        if set(raw) - {"status", "tracking_id"}:
+            raise ValueError("Unsupported triage fields")
+        tracking = raw.get("tracking_id")
+        if tracking is not None and tracking != "": identifier(tracking)
         status = raw.get("status")
         if status not in {"unconfirmed", "confirmed", "exploited", "false_positive", "accepted_risk", "remediated", "resolved"}:
             raise ValueError("Invalid triage status")
@@ -355,6 +359,10 @@ class Service:
                 raise KeyError(finding_id)
             old_status = finding.get("status")
             finding.update(status=status, triaged_at=now(), triage_source="operator")
+            if "tracking_id" in raw:
+                if tracking: identifier(finding.get("target_id"))
+                if tracking: finding["tracking_id"] = tracking
+                else: finding.pop("tracking_id", None)
             event = "finding.status_changed" if old_status != status else None
             return findings, finding, event, old_status, "operator_triage"
 

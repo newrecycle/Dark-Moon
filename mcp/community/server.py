@@ -153,8 +153,8 @@ def handler_for(service, allowed_hosts):
             if method == "GET" and (path in {"/login", "/change-password", "/new-campaign", "/scheduler", "/history", "/projects"}
                     or re.fullmatch(r"/(campaign|project|report|vulnerability|infra|pull-request)/[A-Za-z0-9_-]{1,200}", path)):
                 return self.send((STATIC / "index.html").read_bytes(), "text/html")
-            if method == "GET" and path in {"/", "/callback", "/resource-routes.js", "/app.js", "/app.css", "/workspace.js", "/paths.js", "/finding-query.js", "/schedules.js", "/posture.js"}:
-                name, kind = {"/resource-routes.js": ("resource-routes.js", "text/javascript"), "/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
+            if method == "GET" and path in {"/", "/callback", "/resource-routes.js", "/campaign-window.js", "/app.js", "/app.css", "/workspace.js", "/paths.js", "/finding-query.js", "/schedules.js", "/posture.js"}:
+                name, kind = {"/campaign-window.js": ("campaign-window.js", "text/javascript"), "/resource-routes.js": ("resource-routes.js", "text/javascript"), "/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
                               "/callback": ("index.html", "text/html"), "/workspace.js": ("workspace.js", "text/javascript"),
                               "/app.css": ("app.css", "text/css"), "/paths.js": ("paths.js", "text/javascript"),
                               "/finding-query.js": ("finding-query.js", "text/javascript"),

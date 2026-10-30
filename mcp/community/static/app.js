@@ -204,6 +204,7 @@ function applyRoles() {
   const viewer = identity?.role === "viewer",
     admin = identity?.role === "admin";
   $("#new-campaign").hidden = viewer;
+  if ($("#tracking-id")) $("#tracking-id").disabled = viewer;
   for (const a of document.querySelectorAll(
     'nav a[href="#credentials"],nav a[href="#webhooks"]',
   ))
@@ -289,11 +290,12 @@ function render() {
   document
     .querySelectorAll("nav a")
     .forEach((a) => a.classList.toggle("active", a.hash === `#${route}`));
-  const s = snapshot,
-    total = s.findings.length;
+  let bounds;
+  try { bounds = CampaignWindow.read(location.hash); }
+  catch(error) { $("#content").innerHTML = `<p role="alert">${esc(error.message)} <a href="#overview">Clear window</a></p>`; return; }
+  const s = CampaignWindow.cohort(snapshot, bounds), total = s.findings.length;
   if (route === "overview") {
-    $("#content").innerHTML = window.PostureUI.render(s, {esc, badge, date, empty});
-    if (new URLSearchParams(location.hash.split("?")[1]).get("targets") === "all") $("#posture-targets").scrollIntoView();
+    renderOverview(bounds, viewControl.signal);
   } else if (route === "campaigns") {
     $("#content").innerHTML =
       `<section class="panel flush"><div class="section-top"><div><h3>All assessments</h3><p>Select one to review its findings, report and infrastructure.</p></div></div>${campaignsTable(s.campaigns)}</section><section class="panel"><div class="section-top"><h3>Execution queue and run logs</h3><span class="subtle">Lifecycle metadata; raw output restricted</span></div><div id="run-queue" role="status">Loading runs…</div></section>`;
@@ -339,6 +341,47 @@ function render() {
 
 }
 
+async function renderOverview(bounds, signal) {
+  const previousToken=token, target=$("#content");
+  const form = `<form id="posture-window" class="toolbar"><label>From (UTC, inclusive)<input type="datetime-local" name="from" value="${esc(bounds.from?.slice(0,16)||"")}"></label><label>Before (UTC, exclusive)<input type="datetime-local" name="to" value="${esc(bounds.to?.slice(0,16)||"")}"></label><button class="secondary" type="submit">Apply assessment window</button><a href="#overview">All retained records</a></form>`;
+  target.innerHTML=form+'<p role="status">Loading posture…</p>';
+  try {
+    const q=new URLSearchParams(location.hash.split('?')[1]), asOf=q.get('as_of');
+    if(q.has('as_of') && (q.getAll('as_of').length!==1 || !asOf || bounds.from || bounds.to))throw new Error('Use one recorded as-of timestamp without a campaign window');
+    const selected=CampaignWindow.cohort(snapshot,bounds);
+    const query=asOf?new URLSearchParams({as_of:asOf}):new URLSearchParams(bounds);
+    const [posture,observations]=await Promise.all([
+      query.size?api('/api/v1/dashboard/posture?'+query,{signal}):Promise.resolve(snapshot.posture),
+      api('/api/v1/dashboard/posture/captures',{signal}).catch(()=>null)]);
+    if(signal.aborted || previousToken!==token || target!==$("#content"))return;
+    const history=`<section class="panel"><h3>Recorded posture observations</h3><p>Snapshots contain safe aggregates at explicit observation times. Earlier state is unavailable; links below never reconstruct unrecorded history.</p>${identity?.role==='admin'?'<button class="secondary" data-capture-posture="1">Record current posture</button>':''}<form id="posture-asof" class="toolbar"><label>At or before (UTC)<input type="datetime-local" name="as_of" step="1" required></label><button class="secondary" type="submit">Review recorded posture</button></form>${observations?observations.data.map(row=>`<a class="metric-link" href="${esc(CampaignWindow.url('overview',{}, {as_of:row.created_at}))}">${esc(row.created_at)}</a>`).join(' ')||'<p>No observations recorded yet.</p>':'<p role="alert">Recorded observation list unavailable.</p>'}</section>`;
+    target.innerHTML=form+history+window.PostureUI.render({...selected,posture},{esc,badge,date,empty});
+    if(q.get('targets')==='all')$('#posture-targets').scrollIntoView();
+  } catch(error) { if(!signal.aborted && token===previousToken)target.innerHTML=form+`<p role="alert">${esc(error.message)} Recorded state is available only after an observation has been saved.</p>`; }
+}
+document.addEventListener('submit',event=>{
+  if(!['posture-window','posture-asof'].includes(event.target.id))return;
+  event.preventDefault();
+  if(event.target.id==='posture-asof') {
+    location.hash=CampaignWindow.url('overview',{}, {as_of:new Date(event.target.elements.as_of.value+'Z').toISOString()});
+    return;
+  }
+  const bounds={};
+  for(const key of ['from','to'])if(event.target.elements[key].value)bounds[key]=new Date(event.target.elements[key].value+'Z').toISOString();
+  location.hash=CampaignWindow.url('overview',bounds);
+});
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-capture-posture]');
+  if(!button)return;
+  button.disabled=true;
+  try {
+    const record=await api('/api/v1/dashboard/posture/captures',{method:'POST',body:'{}'});
+    location.hash=CampaignWindow.url('overview',{}, {as_of:record.created_at});
+  } catch(error) {fail(error);}
+  finally {if(button.isConnected)button.disabled=false;}
+});
+
+
 function updateFindingView(changes, push = false) {
   const state = {...FindingQuery.read(location.hash), ...changes};
   const hash = FindingQuery.hash(state);
@@ -346,7 +389,10 @@ function updateFindingView(changes, push = false) {
   render();
 }
 function renderFindings() {
-  const state = FindingQuery.read(location.hash), result = FindingQuery.page(snapshot.findings, state);
+  const state = FindingQuery.read(location.hash);
+  let result;
+  try { result = FindingQuery.page(snapshot.findings, state, snapshot.campaigns); }
+  catch(error) { $("#content").innerHTML=`<p role="alert">${esc(error.message)} <a href="#findings">Clear filters</a></p>`; return; }
   state.page = result.page;
   const canonical = FindingQuery.hash(state);
   if (location.hash !== canonical) history.replaceState(null, "", canonical);
@@ -435,7 +481,7 @@ async function showFinding(id, cid) {
       )
       .join(
         "",
-      )}<div class="detail-label">Recorded evidence</div>${evidence}${f.evidence_commands ? `<pre>${esc(f.evidence_commands)}</pre>` : ""}<div class="detail-label">Remediation guidance</div><div class="detail-text">${esc(f.remediation || "No guidance recorded.")}</div>${["confirmed", "exploited"].includes(f.status) ? `<div class="report-actions"><button class="primary" data-prepare-fix="${esc(id)}" data-cid="${esc(cid)}">Prepare local fix →</button></div>` : ""}<div class="detail-label">Operator triage</div><div class="toolbar"><select id="triage-status">${["unconfirmed", "confirmed", "exploited", "false_positive", "accepted_risk", "remediated", "resolved"].map((x) => `<option value="${x}" ${f.status === x ? "selected" : ""}>${x.replaceAll("_", " ")}</option>`).join("")}</select><button class="secondary" data-triage="${esc(id)}" data-cid="${esc(cid)}">Save triage</button></div><small>Operator triage does not constitute a validated remediation retest.</small>`;
+      )}<div class="detail-label">Recorded evidence</div>${evidence}${f.evidence_commands ? `<pre>${esc(f.evidence_commands)}</pre>` : ""}<div class="detail-label">Remediation guidance</div><div class="detail-text">${esc(f.remediation || "No guidance recorded.")}</div>${["confirmed", "exploited"].includes(f.status) ? `<div class="report-actions"><button class="primary" data-prepare-fix="${esc(id)}" data-cid="${esc(cid)}">Prepare local fix →</button></div>` : ""}<div class="detail-label">Operator triage</div><div class="toolbar"><label>Cross-assessment tracking ID<input id="tracking-id" maxlength="200" value="${esc(f.tracking_id || "")}" placeholder="Optional, operator-reviewed identity"></label><select id="triage-status">${["unconfirmed", "confirmed", "exploited", "false_positive", "accepted_risk", "remediated", "resolved"].map((x) => `<option value="${x}" ${f.status === x ? "selected" : ""}>${x.replaceAll("_", " ")}</option>`).join("")}</select><button class="secondary" data-triage="${esc(id)}" data-cid="${esc(cid)}">Save triage</button></div><small>Operator triage does not constitute a validated remediation retest.</small>`;
   $("#detail-body").insertAdjacentHTML("beforeend",
     `<div class="detail-label">Linked remediation records</div>${related ? (related.data.length ? related.data.map(r => `<div class="list-item"><div><strong>${esc(r.id)}</strong><small>${esc(r.record_type === "published_pr" ? "Published PR" : "Local proposal")} · ${esc(r.status || "unknown")}</small></div><button class="secondary" data-remediation="${esc(r.id)}" data-cid="${esc(cid)}" data-proposal-finding="${esc(id)}">Review</button></div>`).join("") : '<p class="instructions">No linked remediation records.</p>') : '<p class="instructions">Linked remediation records unavailable.</p>'}`);
   $("#detail-body").insertAdjacentHTML("afterbegin", `<p><a href="${ResourceRoutes.link("vulnerability", id, cid)}">Link to finding</a></p>`);
@@ -852,7 +898,7 @@ document.addEventListener("click", async (e) => {
         `/api/v1/campaigns/${b.dataset.cid}/findings/${b.dataset.triage}`,
         {
           method: "PATCH",
-          body: JSON.stringify({ status: $("#triage-status").value }),
+          body: JSON.stringify({ status: $("#triage-status").value, tracking_id: $("#tracking-id")?.value || "" }),
         },
       );
       await showFinding(b.dataset.triage, b.dataset.cid);

@@ -2,14 +2,22 @@
 from functools import cmp_to_key
 import math
 
-from .posture import active
+from .posture import active, timestamp, window_bounds
 
 FILTERS = ("severity", "status", "category", "campaign_id", "project_id", "target_id", "mitre_attack_id")
 FIELDS = {"severity", "cvss", "title", "status", "campaign", "target"}
 SEVERITY = {"critical": 5, "high": 4, "medium": 3, "low": 2, "info": 1}
 
 
-def finding_page(items, query):
+def finding_page(items, query, campaigns=None):
+    bounds = window_bounds({k:[query['campaign_'+k]] for k in ('from','to') if 'campaign_'+k in query})
+    campaign_ids = None
+    if bounds:
+        if campaigns is None:
+            raise ValueError("Campaign dates are required for a window filter")
+        campaign_ids = {c['id'] for c in campaigns if timestamp(c.get('date')) is not None
+                        and ('from' not in bounds or timestamp(c['date']) >= bounds['from'])
+                        and ('to' not in bounds or timestamp(c['date']) < bounds['to'])}
     search = query.get("q", "")
     if len(search) > 500:
         raise ValueError("Finding search is limited to 500 characters")
@@ -20,7 +28,7 @@ def finding_page(items, query):
     triage = query.get("triage", "")
     if triage not in {"", "active", "excluded"}:
         raise ValueError("Choose active or excluded triage")
-    selected = [f for f in items if (not triage or active(f) == (triage == "active")) and all(not query.get(k) or str(f.get(k) or {"severity": "unknown", "status": "unconfirmed"}.get(k, "")) == query[k] for k in FILTERS)
+    selected = [f for f in items if (campaign_ids is None or f.get("campaign_id") in campaign_ids) and (not triage or active(f) == (triage == "active")) and all(not query.get(k) or str(f.get(k) or {"severity": "unknown", "status": "unconfirmed"}.get(k, "")) == query[k] for k in FILTERS)
                 and (not search.strip() or search.strip().lower() in " ".join(
                     str(f.get(k) or "") for k in ("id", "title", "endpoint", "category", "campaign_id", "target_id")
                 ).lower())]
