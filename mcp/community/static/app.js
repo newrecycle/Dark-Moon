@@ -1272,11 +1272,7 @@ async function startVR(nodes, edges, signal) {
     gl = canvas.getContext("webgl", { xrCompatible: true });
   if (!gl) throw new Error("WebGL is unavailable");
   const session = await navigator.xr.requestSession("immersive-vr");
-  let ended = false;
-  const stop = () => { ended = true; session.end().catch(() => {}); };
-  if (signal.aborted) { stop(); return; }
-  signal.addEventListener("abort", stop, {once:true});
-  let program, buffer, cleaned=false;
+  let ended = false, program, buffer, cleaned=false;
   const shaders=[];
   const cleanup=()=>{
     if(cleaned)return;
@@ -1285,11 +1281,21 @@ async function startVR(nodes, edges, signal) {
     if(program)gl.deleteProgram(program);
     for(const shader of shaders)gl.deleteShader(shader);
   };
+  const stop = () => {
+    ended = true;
+    signal.removeEventListener("abort", stop);
+    cleanup();
+    session.end().catch(() => {});
+  };
+  if (signal.aborted) { stop(); return; }
+  signal.addEventListener("abort", stop, {once:true});
   session.addEventListener("end", () => { ended = true; signal.removeEventListener("abort", stop); cleanup(); }, {once:true});
   try {
     await gl.makeXRCompatible();
+    if (ended || signal.aborted) { cleanup(); return; }
     session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
     const space = await session.requestReferenceSpace("local");
+    if (ended || signal.aborted) { cleanup(); return; }
     function shader(type, source) {
       const s = gl.createShader(type);
       shaders.push(s);
@@ -1315,6 +1321,8 @@ async function startVR(nodes, edges, signal) {
       ),
     );
     gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+      throw new Error(gl.getProgramInfoLog(program) || "XR shader linking failed");
     gl.useProgram(program);
     const lookup = new Map(nodes.map((n) => [n.id, n.p])),
       linePoints = edges.flatMap((e) =>
@@ -1378,8 +1386,10 @@ async function startVR(nodes, edges, signal) {
     }
     session.requestAnimationFrame(frame);
   } catch (e) {
-    await session.end().catch(()=>{});
+    ended = true;
+    signal.removeEventListener("abort", stop);
     cleanup();
+    await session.end().catch(()=>{});
     throw e;
   }
 }

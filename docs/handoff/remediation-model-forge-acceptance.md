@@ -77,3 +77,11 @@ explains unified-diff removal/addition semantics and asks it to assess the
 resulting code, rejecting unsafe or uncertain results. Verdict schema,
 confidence threshold, scope restrictions and Docker validation are unchanged.
 This corrects ambiguous review context; it does not force approval.
+
+
+The next review described parameter binding as preventing injection, but returned
+approved:false (run 41006913818). The field contract now explicitly defines
+approved=true as a fix without regression/scope creep, approved=false as unsafe,
+incomplete or uncertain, and confidence as certainty in that verdict. A positive
+reason never overrides a false boolean in code; the original rejection remains
+a rejection. No model-specific response repair is performed.

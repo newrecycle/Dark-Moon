@@ -29,3 +29,10 @@ infrastructure nodes; authenticate with an account allowed to read it.
 
 Physical acceptance is unavailable in this environment. Exact commercial
 visuals and independently demonstrated exploitation are separate evidence gaps.
+
+
+Initialization cancellation is also checked during makeXRCompatible and
+requestReferenceSpace, including an external end event while setup is pending.
+No graphics objects or frame loop may be created after cleanup. Abort releases
+resources even if session.end rejects; shader link failure is surfaced and
+cleaned up. These are production-code lifecycle checks, not a device emulator.
