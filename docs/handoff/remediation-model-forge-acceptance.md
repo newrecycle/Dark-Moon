@@ -68,3 +68,12 @@ patch from this exclusively synthetic source so rejected proposals can be
 reviewed. The fixture finding identifies its actual app.py:allowed source
 without inherited unrelated demo metadata. There is no preselected patch,
 approving verdict override or bypass of a rejection.
+
+
+Run 41006616041 retained a genuine model-generated parameter-binding patch.
+Its model reviewer nevertheless described the removed concatenating line as
+still present and rejected it. The production review prompt now explicitly
+explains unified-diff removal/addition semantics and asks it to assess the
+resulting code, rejecting unsafe or uncertain results. Verdict schema,
+confidence threshold, scope restrictions and Docker validation are unchanged.
+This corrects ambiguous review context; it does not force approval.
