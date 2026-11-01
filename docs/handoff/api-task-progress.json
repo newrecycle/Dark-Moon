@@ -162,11 +162,12 @@
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Reference synchronous five-attempt failure observed; fork pending failure retries were bounded and cancelled on deletion. Full exhaustion/restart and consumer matrix remain open.",
+      "remaining": "All event families, concurrent-hook and downstream consumer/replay matrices remain open. Reference synchronous test delivery and fork asynchronous admission/backoff remain distinct; fork five-attempt exhaustion and restart are now observed.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
-        "observed": "Owned verified-TLS callbacks: explicit test success, 503 retry, normal finding-producer delivery, HMAC and actual-byte replay/tamper/key/staleness negatives observed."
-      }
+        "observed": "Owned verified-TLS callbacks: explicit test success, 503 retry, normal finding-producer delivery, HMAC and actual-byte replay/tamper/key/staleness negatives observed. Subsequent actual fork failure exhaustion reached five 503 attempts with verified HMACs; pending/cooldown and terminal state survived two normal runtime restarts."
+      },
+      "fork_durable_acceptance": "passed: five actual HTTPS 503 attempts, unchanged clock/backoff, stable identities, body/V2 HMAC, persisted cooldown/pending state and terminal restart without redelivery"
     },
     {
       "task": "API11",
