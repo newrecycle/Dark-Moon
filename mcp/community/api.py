@@ -171,8 +171,10 @@ class API:
                 from .credential_catalog import catalog as credential_catalog
                 handler.send(credential_catalog())
             elif method == "GET" and len(parts) == 1:
+                from .credential_catalog import QUERY_ALIASES
                 requested = credential_params.get("capability")
-                handler.send(envelope(self.service.vault.list(requested[0] if requested else None)))
+                capability = requested[0] if requested else None
+                handler.send(envelope(self.service.vault.list(QUERY_ALIASES.get(capability, capability))))
             elif method == "GET" and len(parts) == 2:
                 handler.send({"data": self.service.vault.get(parts[1])})
             elif method == "POST" and len(parts) == 1:

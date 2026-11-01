@@ -10,6 +10,7 @@ CAPABILITIES = {
     "source_checkout": {"name": "HTTPS Git checkout", "consumer": "credential_id (launch/remediation)", "requires_username": False},
     "provider_api_key": {"name": "OpenCode/provider API key", "consumer": "credential_id (provider profile/connection)", "requires_username": False},
 }
+QUERY_ALIASES = {"scm": "source_checkout"}
 
 # Suggested labels for fork consumers. Not a list of implemented vendor adapters.
 PROVIDERS = (
@@ -38,6 +39,7 @@ def catalog():
                              "adapter": "scm_token", "default_scope": "private"}
                             for key, spec in SCM_PROVIDERS.items()],
         "capabilities": [{"id": key, **metadata} for key, metadata in CAPABILITIES.items()],
+        "capability_query_aliases": dict(QUERY_ALIASES),
         "scope": "administrator-managed workspace vault",
         "note": "SCM field forms use the private encrypted checkout adapter. Endpoint/project metadata is descriptive; checkout uses its explicit repository URL. Provider APIs and publication are separate capabilities.",
     }

@@ -171,6 +171,23 @@ class CredentialDiscoveryTests(Fixture):
                 self.assertNotIn(self.SECRET, json.dumps(body))
         self.assertEqual(self.request("/api/v1/credentials?capability=source_checkout")[0], 200)
 
+    def test_scm_query_alias_selects_checkout_metadata_without_expanding_use_capabilities(self):
+        source = self.service.vault.save({"provider": "gitlab", "fields": {"token": self.SECRET}})
+        self.service.vault.save({"provider": "target-token", "adapter": "target_token", "secret": self.SECRET})
+        revoked = self.service.vault.save({"provider": "github", "fields": {"token": self.SECRET}, "revoked": True})
+        self.internal()
+        status, aliased = self.request("/api/v1/credentials?capability=scm")
+        self.assertEqual(status, 200)
+        self.assertEqual([row["id"] for row in aliased["data"]], [source["id"]])
+        self.assertEqual(aliased, self.request("/api/v1/credentials?capability=source_checkout")[1])
+        self.assertNotIn(self.SECRET, json.dumps(aliased))
+        self.assertEqual(aliased["data"][0]["capabilities"], ["source_checkout"])
+        self.assertNotIn(revoked["id"], [row["id"] for row in aliased["data"]])
+        with self.assertRaises(ValueError):
+            self.service.vault.require(source["id"], "scm")
+        for query in ("capability=scm&capability=source_checkout", "capability=scm&capability=scm", "capability=pr"):
+            self.assertEqual(self.request("/api/v1/credentials?" + query)[0], 400)
+
     def test_internal_webhook_and_extension_metadata_never_visible_or_selectable(self):
         self.credential("cred_visible", "", "generic")
         hidden = self.internal()
