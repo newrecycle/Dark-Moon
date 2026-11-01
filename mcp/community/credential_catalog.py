@@ -31,6 +31,8 @@ def catalog():
                   "fields": ["name", "provider", "username", "secret"]}
                  for key, name, caps in PROVIDERS],
         "total": len(PROVIDERS),
+        "request_aliases": [{"provider": "github", "fields": ["token"],
+                             "adapter": "scm_token", "default_scope": "private"}],
         "capabilities": [{"id": key, **metadata} for key, metadata in CAPABILITIES.items()],
         "scope": "administrator-managed workspace vault",
         "note": "Provider labels are descriptive, not a verified vendor entitlement or owner-scoped schema.",

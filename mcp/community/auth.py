@@ -42,16 +42,18 @@ class CredentialVault:
             raise ValueError("Credential body must be an object")
         credential_id = identifier(credential_id) if credential_id else "cred_" + uuid.uuid4().hex[:16]
         def change(state):
+            from .credential_inputs import token_fields
             credentials = state.setdefault("credentials", {})
             old = credentials.get(credential_id)
             if old and old.get("internal") and not internal:
                 raise KeyError("Credential not found")
-            structured = ("adapter" in raw or "model_version" in raw or
-                          "scope" in raw or "owner_id" in raw or "grants" in raw or
-                          "revoked" in raw or (old and old.get("model_version") == VERSION))
-            policy = validate(raw, state, actor, old) if structured else {}
-            secret = raw.get("secret")
-            if secret is None and old and structured:
+            values = token_fields(raw, old)
+            structured = ("adapter" in values or "model_version" in values or
+                          "scope" in values or "owner_id" in values or "grants" in values or
+                          "revoked" in values or (old and old.get("model_version") == VERSION))
+            policy = validate(values, state, actor, old) if structured else {}
+            secret = values.get("secret")
+            if secret is None and old and (structured or "secret" not in values):
                 sealed = old.get("sealed")
             elif isinstance(secret, str) and 1 <= len(secret) <= 65536:
                 sealed = self.box.encrypt(secret.encode()).decode()
@@ -59,9 +61,9 @@ class CredentialVault:
                 raise ValueError("A non-empty secret is required (at most 64 KiB)")
             if not isinstance(sealed, str) or not sealed:
                 raise ValueError("Credential secret is missing")
-            name = raw.get("name", (old or {}).get("name", "Credential"))
-            provider = raw.get("provider", (old or {}).get("provider", "generic"))
-            username = raw.get("username", (old or {}).get("username", ""))
+            name = values.get("name", (old or {}).get("name", "Credential"))
+            provider = values.get("provider", (old or {}).get("provider", "generic"))
+            username = values.get("username", (old or {}).get("username", ""))
             if not all(isinstance(v, str) for v in (name, provider, username)) or len(name) > 160 or len(provider) > 80 or len(username) > 160:
                 raise ValueError("Invalid credential metadata")
             item = {"id": credential_id, "name": name, "provider": provider,

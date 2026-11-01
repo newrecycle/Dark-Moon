@@ -63,6 +63,107 @@ class CredentialAccessTests(fixtures.Fixture):
         self.assertNotIn("aws", {x["id"] for x in response["adapters"]})
         self.assertEqual(set(response["adapters"][0]), {"id", "required_fields", "capabilities"})
 
+    def test_token_field_http_create_uses_private_encrypted_scm_adapter(self):
+        headers = self.authorization("operator")
+        status, body, _ = self.request("/api/v1/credentials", "POST", {
+            "name": "Source token", "provider": "github", "fields": {"token": SECRET}}, headers=headers)
+        self.assertEqual(status, 201, body)
+        row = json.loads(body)["data"]
+        self.assertEqual((row["adapter"], row["scope"], row["owner_id"]), ("scm_token", "private", "operator"))
+        self.assertEqual(row["capabilities"], ["source_checkout"])
+        self.assertEqual(row["grants"], [])
+        self.assertEqual(self.service.vault.resolve(row["id"]), SECRET)
+        self.assertNotIn(SECRET, json.dumps(self.service.store.read()))
+        for path in ("/api/v1/credentials", "/api/v1/credentials/" + row["id"]):
+            status, content, _ = self.request(path, headers=headers)
+            self.assertEqual(status, 200)
+            self.assertNotIn(SECRET, content.decode())
+            self.assertNotIn("sealed", content.decode())
+        self.service.vault.require(row["id"], "source_checkout", actor=self.actors["operator"])
+        for actor in (self.actors["alice"], self.actors["bob"], None):
+            with self.assertRaises(KeyError):
+                self.service.vault.require(row["id"], "source_checkout", actor=actor)
+        with self.assertRaises(KeyError):
+            self.service.vault.require(row["id"], "provider_api_key", actor=self.actors["operator"])
+
+    def test_legacy_rename_and_token_update_preserve_id_and_existing_scope(self):
+        row = self.service.vault.save({"name": "Before", "provider": "github", "secret": SECRET}, "cred_legacy_alias")
+        before = self.service.store.get("credentials", row["id"])
+        path = "/api/v1/credentials/" + row["id"]
+        status, body, _ = self.request(path, "PUT", {"name": "After"})
+        self.assertEqual(status, 200, body)
+        after = self.service.store.get("credentials", row["id"])
+        self.assertEqual(after["name"], "After")
+        self.assertEqual(after["sealed"], before["sealed"])
+        self.assertEqual(after["created_at"], before["created_at"])
+        self.assertNotIn("model_version", after)
+        self.service.vault.require(row["id"], "source_checkout", actor=self.actors["bob"])
+        updated_secret = SECRET + "-rotated"
+        status, body, _ = self.request(path, "PUT", {"fields": {"token": updated_secret}})
+        self.assertEqual(status, 200, body)
+        self.assertEqual(self.service.vault.resolve(row["id"]), updated_secret)
+        self.assertNotIn(updated_secret, body.decode())
+        self.assertEqual(self.service.store.get("credentials", row["id"])["created_at"], before["created_at"])
+        self.assertNotIn("model_version", self.service.store.get("credentials", row["id"]))
+
+    def test_token_field_updates_retain_owner_grants_and_irreversible_revocation(self):
+        original = self.typed(adapter="scm_token", scope="shared", grants=["bob"], cid="cred_typed_alias")
+        self.service.vault.save({"provider": "github"}, original["id"], actor=self.actors["operator"])
+        before = self.service.store.get("credentials", original["id"])
+        path = "/api/v1/credentials/" + original["id"]
+        status, body, _ = self.request(path, "PUT", {"name": "Renamed", "fields": {}})
+        self.assertEqual(status, 200, body)
+        row = json.loads(body)["data"]
+        self.assertEqual((row["owner_id"], row["scope"], row["grants"]), ("alice", "shared", ["bob"]))
+        self.assertEqual(self.service.store.get("credentials", original["id"])["sealed"], before["sealed"])
+        self.service.vault.save({"revoked": True}, original["id"], actor=self.actors["operator"])
+        status, body, _ = self.request(path, "PUT", {"fields": {"token": SECRET + "-new"}})
+        self.assertEqual(status, 200, body)
+        self.assertTrue(json.loads(body)["data"]["revoked"])
+        self.assertEqual(json.loads(body)["data"]["capabilities"], [])
+        self.assertEqual(self.request(path, "PUT", {"fields": {"token": SECRET}, "revoked": False})[0], 400)
+        with self.assertRaises(KeyError):
+            self.service.vault.require(original["id"], "source_checkout", actor=self.actors["alice"])
+
+    def test_invalid_or_conflicting_field_forms_leave_vault_unchanged(self):
+        for change in ({"fields": None}, {"fields": []}, {"fields": {"token": ""}},
+                       {"fields": {"token": None}}, {"fields": {"token": True}},
+                       {"fields": {"token": SECRET, "unexpected": SECRET}},
+                       {"fields": {"token": SECRET}, "secret": "conflicting-token"},
+                       {"fields": {"token": SECRET}, "adapter": "provider_api_key"},
+                       {"fields": {"token": SECRET}, "provider": "unimplemented"},
+                       {"fields": {"token": SECRET}, "owner_id": "viewer2"},
+                       {"fields": {"token": SECRET}, "model_version": 99}):
+            with self.subTest(change=change):
+                before = self.service.store.read()
+                status, body, _ = self.request("/api/v1/credentials", "POST", {
+                    "name": "Rejected", "provider": "github", **change}, headers=self.authorization("operator"))
+                self.assertEqual(status, 400, body)
+                self.assertNotIn(SECRET, body.decode())
+                # Authorization issuance adds a session; credential writes must be absent.
+                self.assertEqual(self.service.store.read().get("credentials", {}), before.get("credentials", {}))
+        self.assertEqual(self.service.store.items("credentials"), [])
+
+    def test_token_fields_do_not_bypass_credential_http_roles(self):
+        body = {"name": "Denied", "provider": "github", "fields": {"token": SECRET}}
+        self.assertEqual(self.request("/api/v1/credentials", "POST", body, auth=False)[0], 401)
+        for uid in ("alice", "viewer2"):
+            self.assertEqual(self.request("/api/v1/credentials", "POST", body, headers=self.authorization(uid))[0], 403)
+        self.assertFalse(self.service.store.items("credentials"))
+
+    def test_concurrent_legacy_rename_does_not_restore_an_old_secret(self):
+        self.service.vault.save({"name": "Before", "secret": SECRET}, "cred_rename_race")
+        barrier = threading.Barrier(2)
+        def edit(values):
+            barrier.wait(timeout=5)
+            self.service.vault.save(values, "cred_rename_race")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(edit, {"name": "After"}), pool.submit(edit, {"secret": SECRET + "-new"})]
+            for future in futures:
+                future.result(timeout=5)
+        self.assertEqual(self.service.vault.get("cred_rename_race")["name"], "After")
+        self.assertEqual(self.service.vault.resolve("cred_rename_race"), SECRET + "-new")
+
     def test_private_owner_choices_are_isolated_and_admin_management_is_masked(self):
         row = self.typed(cid="cred_private")
         self.assertEqual(row["capabilities"], ["assessment_token"])
