@@ -117,12 +117,10 @@ def _rule(raw, existing=None):
         every = raw["recurrence_interval"]
         if type(every) is not int or not 1 <= every <= 366:
             raise ValueError("recurrence_interval must be an integer from 1 to 366")
-    elif base and base["kind"] == kind:
+    elif kind != "once" and base:
         every = base["every"]
-    elif kind == "once":
-        every = 1
     else:
-        raise ValueError("recurrence_interval is required for a new daily, weekly or monthly recurrence")
+        every = 1
     if kind == "once" and every != 1:
         raise ValueError("recurrence_interval must be 1 or omitted for once")
     if "scheduled_at" in raw:

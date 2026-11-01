@@ -34,6 +34,21 @@ def flat(kind="once", **values):
 
 
 class FlatAdapterTests(fixtures.Fixture):
+    def test_omitted_calendar_interval_defaults_to_one_without_resetting_existing_rules(self):
+        for kind in ("daily", "weekly", "monthly"):
+            with self.subTest(kind=kind):
+                raw = flat(kind)
+                raw.pop("recurrence_interval")
+                item = self.service.scheduler.create(raw)
+                self.assertEqual(item["rule"]["every"], 1)
+                changed = self.service.scheduler.update(item["id"], {"version": 1, "recurrence_interval": 3})
+                self.assertEqual(changed["rule"]["every"], 3)
+                renamed = self.service.scheduler.update(item["id"], {"version": 2, "recurrence": kind, "name": "Retain interval"})
+                self.assertEqual(renamed["rule"]["every"], 3)
+                other = "weekly" if kind != "weekly" else "daily"
+                switched = self.service.scheduler.update(item["id"], {"version": 3, "recurrence": other})
+                self.assertEqual(switched["rule"]["every"], 3)
+
     def test_omitted_and_none_recurrence_create_the_same_one_shot_as_once(self):
         expected = self.service.scheduler.preview(flat())["definition"]
         for recurrence in ("omitted", "none"):
@@ -282,7 +297,7 @@ class FlatAdapterTests(fixtures.Fixture):
             {"version": 1, "target": None},
             {"version": 1, "recurrence": "interval"},
             {"version": 1, "recurrence_interval": 0},
-            {"version": 1, "recurrence": "weekly"},
+            {"version": 1, "recurrence_interval": 367},
             {"version": 1, "credentials": ["secret"]},
             {"version": 1, "spec": {"target": "other.invalid"}, "target": "owned.invalid"},
             {"version": 1, "rule": {"kind": "once", "timezone": "UTC",
