@@ -6,6 +6,11 @@ import uuid
 from .store import now
 
 MAX_EVENTS = 1000
+EVENT_TYPES = (
+    "campaign.started", "campaign.completed", "campaign.stopped", "campaign.aborted", "campaign.updated",
+    "finding.created", "finding.discovered", "finding.confirmed", "finding.exploited", "finding.remediated",
+    "pr.opened", "pr.updated", "retest.started", "retest.completed",
+)
 
 
 class ReplayGap(ValueError):

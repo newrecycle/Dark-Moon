@@ -264,15 +264,34 @@ def handler_for(service, allowed_hosts):
 
         def events(self):
             from urllib.parse import parse_qs
-            from .events import replay, ReplayGap
-            query = parse_qs(urlsplit(self.path).query)
+            from .events import EVENT_TYPES, replay, ReplayGap
+            query = parse_qs(urlsplit(self.path).query, keep_blank_values=True)
             requested = set(query.get("events", [""])[0].split(",")) - {""}
             last_id = self.headers.get("Last-Event-ID") or query.get("since", [None])[0]
+            polling = query.get("poll", ["0"])[0] == "1"
+            if polling:
+                if set(query) - {"poll", "since", "events", "limit"} or any(len(values) != 1 for values in query.values()):
+                    raise ValueError("Invalid event polling query")
+                limit_text = query.get("limit", ["1000"])[0]
+                if not re.fullmatch(r"[0-9]{1,4}", limit_text) or not 1 <= int(limit_text) <= 1000:
+                    raise ValueError("Event polling limit must be between 1 and 1000")
+                # Pollers start with retained history; SSE clients keep the
+                # existing snapshot-then-live contract when no cursor is given.
+                if last_id is None:
+                    last_id = "0"
             try:
                 event_rows, high = replay(service.store, last_id)
             except ReplayGap:
                 return self.send({"error": "Event history requires a fresh snapshot"}, status=409,
                                  extra_headers={"X-Darkmoon-Resync": "required"})
+            if polling:
+                matching = [row for row in event_rows if not requested or row["event"] in requested]
+                page = matching[:int(limit_text)]
+                # Advance through filtered records, but never past unreturned
+                # matching records when the caller requests a bounded page.
+                cursor = page[-1]["seq"] if len(matching) > len(page) else high
+                return self.send({"data": page, "cursor": cursor, "count": len(page),
+                                  "event_types": list(EVENT_TYPES), "contract_version": "1"})
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-store")

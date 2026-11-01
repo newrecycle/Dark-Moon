@@ -35,7 +35,7 @@ FIELDS = frozenset({
     "campaigns_count", "projects_count", "targets_count",
     "total_vulnerabilities", "critical", "high", "medium", "low", "info",
     "confirmed", "exploited", "unconfirmed", "cvss_score", "risk", "open_vulns",
-    "version", "seq", "exit_code", "log_bytes", "http_status", "attempts",
+    "version", "seq", "cursor", "exit_code", "log_bytes", "http_status", "attempts",
     "created_at", "started_at", "finished_at", "discovered_at",
     "recorded_at", "triaged_at", "due_at", "next_run", "last_run",
     "timestamp", "ts", "contract_version", "log_status", "content_policy",
@@ -84,6 +84,8 @@ OPAQUE = frozenset({
 
 
 def _safe_value(key, value):
+    if key == "contract_version":
+        return value if value == "1" else None
     if key == "workspace_revision":
         return value if isinstance(value, str) and re.fullmatch(r"[a-f0-9]{64}", value) else None
     if value is None or type(value) in (int, float, bool):
@@ -192,6 +194,9 @@ def public_projection(value, depth=0):
             projected[key] = item
         elif key == "active_states" and isinstance(item, list):
             projected[key] = [x for x in item if isinstance(x, str) and x in STATUS_VALUES]
+        elif key == "event_types" and isinstance(item, list):
+            from .events import EVENT_TYPES
+            projected[key] = [x for x in item if isinstance(x, str) and x in EVENT_TYPES]
         elif key == "posture":
             projected[key] = _posture(item)
         elif key == "content":
