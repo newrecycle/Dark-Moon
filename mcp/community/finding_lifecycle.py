@@ -52,7 +52,15 @@ def target_evolution(target_id):
                        "stats": {**dict.fromkeys(SEVERITIES, 0),
                                  **public_histogram(finding_stats(findings)["by_severity"], set(SEVERITIES))},
                        "total_vulns": record["findings"], "overall_risk": record["risk"]})
+    if len(series) < 2:
+        trend = "new_target"
+    elif any(_campaign_key(c)[0] for c in campaigns):
+        trend = "unknown"
+    else:
+        previous, latest = series[-2]["total_vulns"], series[-1]["total_vulns"]
+        trend = "degrading" if latest > previous else "improving" if latest < previous else "stable"
     return {"target_id": target_id, "projection": "retained_campaign_current_snapshots_v1",
+            "trend": trend, "trend_basis": "latest_two_retained_campaign_totals",
             "historical_transitions_available": False,
             "note": "Campaign start dates are recorded; finding counts and statuses are current retained snapshots, not as-of-start history.",
             "data": records, "campaigns": series, "total": len(records)}

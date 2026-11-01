@@ -42,6 +42,26 @@ class FindingLifecycleTests(fixtures.Fixture):
         data._write_json(self.service.store.root / "remediation" / identifier / "result.json", row)
         return row
 
+    def test_evolution_trend_compares_latest_two_totals_without_inventing_history(self):
+        data.save_target({"id": "trend_target"})
+        self.assertEqual(self.get("/api/v1/targets/trend_target/evolution")[1]["trend"], "new_target")
+        for index, size in enumerate((1, 3, 2)):
+            cid = "trend_" + str(index)
+            data.save_campaign({"id": cid, "target_id": "trend_target", "date": f"2026-10-0{index + 1}T12:00:00Z"})
+            data.save_vulnerabilities(cid, [{"id": "f" + str(n), "campaign_id": cid, "target_id": "trend_target",
+                                           "severity": "critical" if index == 2 else "low"} for n in range(size)])
+        response = self.get("/api/v1/targets/trend_target/evolution")[1]
+        self.assertEqual(response["trend"], "improving")
+        self.assertEqual(response["trend_basis"], "latest_two_retained_campaign_totals")
+        self.assertFalse(response["historical_transitions_available"])
+        findings = data.load_vulnerabilities("trend_2")
+        data.save_vulnerabilities("trend_2", findings + [{"id": "extra", "campaign_id": "trend_2", "severity": "info"}])
+        self.assertEqual(self.get("/api/v1/targets/trend_target/evolution")[1]["trend"], "stable")
+        data.save_vulnerabilities("trend_2", findings * 2)
+        self.assertEqual(self.get("/api/v1/targets/trend_target/evolution")[1]["trend"], "degrading")
+        data.save_campaign({"id": "undated", "target_id": "trend_target", "date": None})
+        self.assertEqual(self.get("/api/v1/targets/trend_target/evolution")[1]["trend"], "unknown")
+
     def test_target_evolution_is_current_retained_campaign_projection_not_backfilled_history(self):
         data.save_target({"id": "target_exact", "host": "owned.invalid"})
         data.save_target({"id": "target_other", "host": "owned.invalid"})
