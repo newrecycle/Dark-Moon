@@ -67,7 +67,9 @@ class ProContractAliasTests(fixtures.Fixture):
                     {"current_password":None,"new_password":raw['new_password']},
                     raw|{"new_password":"eight888"},raw|{"new_password":"x"*1025}):
             self.assertEqual(self.request('/api/v1/auth/change-password','POST',bad,headers=headers)[0],400)
-        self.assertEqual(self.request('/api/v1/auth/change-password','POST',raw|{"current_password":"wrong"},headers=headers)[0],403)
+        self.assertEqual(self.request('/api/v1/auth/change-password','POST',raw|{"current_password":"wrong"},headers=headers)[0],401)
+        # A failed confirmation does not rotate the password or revoke the session.
+        self.assertEqual(self.request('/api/v1/auth/me',headers=headers)[0],200)
         self.assertEqual(self.service.store.get('users','operator'),before)
         self.assertEqual(self.request('/api/v1/auth/change-password','POST',raw)[0],400)
 

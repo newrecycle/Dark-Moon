@@ -16,6 +16,10 @@ from api import json_storage as data
 from .store import identifier, now
 
 
+class PasswordConfirmationError(PermissionError):
+    """The authenticated account supplied an incorrect current password."""
+
+
 def private_key(path, length=32):
     path = Path(path)
     try:
@@ -265,7 +269,7 @@ class Accounts:
                 raise ValueError("This identity does not use a local password; create a local account or manage it at your SSO provider")
             digest = hashlib.pbkdf2_hmac("sha256", old.encode(), bytes.fromhex(user["salt"]), 600000).hex()
             if not hmac.compare_digest(digest, user["password_hash"]):
-                raise PermissionError("Current password is incorrect")
+                raise PasswordConfirmationError("Current password is incorrect")
             user["salt"] = secrets.token_hex(16)
             user["password_hash"] = hashlib.pbkdf2_hmac("sha256", new.encode(), bytes.fromhex(user["salt"]), 600000).hex()
             user["auth_version"] = user.get("auth_version", 1)+1

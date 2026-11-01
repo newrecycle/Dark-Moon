@@ -137,10 +137,16 @@ class API:
                 raw = handler.body()
                 handler.send(self.service.accounts.password(identity, raw.get("old_password"), raw.get("new_password")))
             elif method == "POST" and parts == ["auth", "change-password"]:
+                from .auth import PasswordConfirmationError
                 raw = handler.body()
                 if set(raw) != {"current_password", "new_password"}:
                     raise ValueError("Use current_password and new_password")
-                handler.send(self.service.accounts.password(identity, raw["current_password"], raw["new_password"], renew=True))
+                try:
+                    result = self.service.accounts.password(identity, raw["current_password"], raw["new_password"], renew=True)
+                except PasswordConfirmationError:
+                    handler.send({"error": "Current password is incorrect"}, status=401)
+                else:
+                    handler.send(result)
             elif method == "POST" and parts == ["auth", "setup"]:
                 if identity.get("authentication") != "workspace-token":
                     raise PermissionError("Use the private workspace recovery token for initial setup")
