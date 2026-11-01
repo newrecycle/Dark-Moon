@@ -85,13 +85,34 @@ class CredentialDiscoveryTests(Fixture):
     def test_provider_catalog_is_fork_native_and_route_precedes_identifier(self):
         status, catalog = self.request("/api/v1/credentials/providers")
         self.assertEqual(status, 200)
-        self.assertEqual(catalog["total"], 5)
+        self.assertEqual(catalog["total"], 12)
         self.assertEqual([row["id"] for row in catalog["data"]],
-                         ["generic", "target-login", "target-token", "scm", "api-key"])
+                         ["generic", "target-login", "target-token", "scm", "api-key",
+                          "github", "gitlab", "gitea", "gogs", "bitbucket", "azure_devops", "generic_git"])
         self.assertEqual({row["id"] for row in catalog["capabilities"]}, set(CAPABILITIES))
         self.assertNotIn("aws", [row["id"] for row in catalog["data"]])
         self.credential("providers")
         self.assertEqual(self.request("/api/v1/credentials/providers")[1], catalog)
+
+    def test_scm_catalog_describes_supported_fields_without_claiming_provider_api_or_pr_use(self):
+        status, response = self.request("/api/v1/credentials/providers")
+        self.assertEqual(status, 200)
+        rows = {row["id"]: row for row in response["data"] if row.get("adapter") == "scm_token"}
+        self.assertEqual(len(rows), 7)
+        for provider, row in rows.items():
+            with self.subTest(provider=provider):
+                self.assertEqual(row["capabilities"], ["source_checkout"])
+                self.assertEqual(row["default_scope"], "private")
+                fields = {field["name"]: field for field in row["fields"]}
+                self.assertEqual((fields["token"]["required"], fields["token"]["secret"], fields["token"]["type"]),
+                                 (True, True, "password"))
+                self.assertEqual(set(fields) & {"private_key", "api_key", "password"}, set())
+                alias = next(item for item in response["request_aliases"] if item["provider"] == provider)
+                self.assertEqual(set(alias["fields"]), set(fields))
+                self.assertEqual(set(alias["required_fields"]), {key for key, field in fields.items() if field["required"]})
+        self.assertEqual(rows["github"]["fields"][0]["default"], "https://api.github.com")
+        self.assertTrue(next(field for field in rows["gitea"]["fields"] if field["name"] == "endpoint_url")["required"])
+        self.assertTrue(next(field for field in rows["bitbucket"]["fields"] if field["name"] == "username")["required"])
 
     def test_create_detail_list_and_update_return_only_explicit_public_fields(self):
         status, result = self.request("/api/v1/credentials", "POST", {

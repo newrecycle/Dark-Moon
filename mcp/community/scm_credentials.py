@@ -44,7 +44,8 @@ def endpoint(value):
 
 
 def catalog():
-    return [{"id": key, "name": spec["name"], "capabilities": ["source_checkout"],
+    return [{"id": key, "name": spec["name"], "label": spec["name"], "group": "Source control",
+             "capabilities": ["source_checkout"],
              "adapter": "scm_token", "default_scope": "private",
              "fields": [{"name": field, "type": "password" if field == "token" else "text",
                          "secret": field == "token", "required": field in spec["required"],

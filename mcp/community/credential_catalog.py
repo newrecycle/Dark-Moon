@@ -23,19 +23,23 @@ PROVIDERS = (
 
 def catalog():
     from .credential_policy import ADAPTERS, VERSION
+    from .scm_credentials import SCM_PROVIDERS, catalog as scm_catalog
+    scm = scm_catalog()
     return {
         "model_version": VERSION,
         "adapters": [{"id": key, "required_fields": list(spec["fields"]), "capabilities": list(spec["capabilities"])}
                      for key, spec in ADAPTERS.items()],
         "data": [{"id": key, "name": name, "capabilities": list(caps),
                   "fields": ["name", "provider", "username", "secret"]}
-                 for key, name, caps in PROVIDERS],
-        "total": len(PROVIDERS),
-        "request_aliases": [{"provider": "github", "fields": ["token"],
-                             "adapter": "scm_token", "default_scope": "private"}],
+                 for key, name, caps in PROVIDERS] + scm,
+        "total": len(PROVIDERS) + len(scm),
+        "request_aliases": [{"provider": key, "fields": list(spec["fields"]),
+                             "required_fields": list(spec["required"]),
+                             "adapter": "scm_token", "default_scope": "private"}
+                            for key, spec in SCM_PROVIDERS.items()],
         "capabilities": [{"id": key, **metadata} for key, metadata in CAPABILITIES.items()],
         "scope": "administrator-managed workspace vault",
-        "note": "Provider labels are descriptive, not a verified vendor entitlement or owner-scoped schema.",
+        "note": "SCM field forms use the private encrypted checkout adapter. Endpoint/project metadata is descriptive; checkout uses its explicit repository URL. Provider APIs and publication are separate capabilities.",
     }
 
 
