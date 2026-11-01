@@ -47,7 +47,7 @@ class CredentialVault:
             old = credentials.get(credential_id)
             if old and old.get("internal") and not internal:
                 raise KeyError("Credential not found")
-            values = token_fields(raw, old)
+            values, connection = token_fields(raw, old)
             structured = ("adapter" in values or "model_version" in values or
                           "scope" in values or "owner_id" in values or "grants" in values or
                           "revoked" in values or (old and old.get("model_version") == VERSION))
@@ -72,6 +72,8 @@ class CredentialVault:
             if internal or (old and old.get("internal")):
                 item["internal"] = True
             item.update(policy)
+            if connection:
+                item["scm_fields"] = connection
             credentials[credential_id] = item
             return self.public(item)
         return self.store.update(change)
@@ -89,6 +91,21 @@ class CredentialVault:
                   "set": bool(item.get("sealed")), "capabilities": capabilities(item)}
         if item.get("model_version") == VERSION:
             result.update(metadata(item))
+        if isinstance(item.get("scm_fields"), dict):
+            from .scm_credentials import SCM_PROVIDERS, endpoint
+            spec = SCM_PROVIDERS.get(item.get("provider"))
+            if spec:
+                fields = {"token": "********"}
+                if "username" in spec["fields"]:
+                    fields["username"] = string("username")
+                try:
+                    fields["endpoint_url"] = endpoint(item["scm_fields"].get("endpoint_url", ""))
+                except ValueError:
+                    fields["endpoint_url"] = ""
+                if "project" in spec["fields"]:
+                    value = item["scm_fields"].get("project", "")
+                    fields["project"] = value if isinstance(value, str) and len(value) <= 160 else ""
+                result.update(endpoint_url=fields["endpoint_url"], fields=fields)
         return result
 
     def list(self, capability=None, *, actor=None, for_use=False):
