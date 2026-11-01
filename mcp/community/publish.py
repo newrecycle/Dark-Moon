@@ -161,8 +161,11 @@ def publish(store, proposal_id, url, forge="github", base="main", execute=False,
         pr_url = response.get("html_url") or response.get("web_url")
         if not isinstance(pr_url, str) or not pr_url.startswith("https://"):
             raise ValueError("Forge response lacked a PR URL; inspect the destination")
-        prior.update(url=pr_url, id=response.get("number") or response.get("iid") or response.get("id"),
-                     completed_at=now(), draft=plan["draft"])
+        remote_id = response.get("number") or response.get("iid") or response.get("id")
+        remote_state = response.get("state")
+        prior.update(url=pr_url, id=remote_id if type(remote_id) is int and remote_id > 0 else None,
+                     completed_at=now(), draft=plan["draft"], provider=forge,
+                     state=remote_state if isinstance(remote_state, str) and remote_state in {"open", "opened", "closed", "merged", "draft"} else None)
         result.update(publication=prior, published=True)
         data._write_json(path, result)
         return {"executed": True, "publication": prior}

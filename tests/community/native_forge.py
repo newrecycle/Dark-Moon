@@ -119,8 +119,10 @@ def exercise(store, result, repo, root):
             second = publish(store, result['id'], destination, forge='gitea', execute=True)
         assert first == second
         publication = first['publication']
+        assert publication['provider'] == 'gitea'
         pull = api('/repos/fixture/owned-remediation/pulls/' + str(publication['id']))
         assert pull['state'] == 'open' and not pull['merged']
+        assert publication['state'] == pull['state']
         assert pull['head']['sha'] == publication['commit']
         assert pull['head']['ref'] == result['branch'] and pull['base']['ref'] == 'main'
         assert api('/repos/fixture/owned-remediation/branches/main')['commit']['id'] == result['base_commit']

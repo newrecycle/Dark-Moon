@@ -275,9 +275,9 @@ def _safe_pr_response(body):
     def record(p):
         if not isinstance(p, dict):
             return {}
-        result = {key: p.get(key) for key in ("id", "campaign_id", "pr_id")}
+        result = {key: _safe_value(key, p.get(key)) for key in ("id", "campaign_id", "pr_id")}
         result.update(status=_safe_value("status", p.get("status")),
-                      state=_safe_value("state", p.get("state")),
+                      state=p.get("state") if p.get("state") is None or isinstance(p.get("state"), str) and p["state"] in {"open", "opened", "closed", "merged", "draft"} else "unknown",
                       record_type=p.get("record_type") if p.get("record_type") in
                          {"published_pr", "local_proposal"} else "local_proposal",
                       published=p.get("published") is True,
@@ -296,7 +296,7 @@ def _safe_pr_response(body):
             result["validation"] = {
                 stage: [{
                     "kind": v.get("kind") if v.get("kind") in
-                        {"unit", "lint", "build", "exploit", "regression", "retest",
+                        {"unit", "lint", "build", "exploit", "variant", "normal", "regression", "retest",
                          "smoke", "integration", "security", "static", "dynamic",
                          "test", "custom"} else "unknown",
                     "passed": v.get("passed") if type(v.get("passed")) is bool else None,

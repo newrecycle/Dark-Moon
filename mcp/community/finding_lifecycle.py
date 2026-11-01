@@ -145,7 +145,9 @@ def _public_url(value):
         return None
     try:
         parts = urlsplit(value)
-        if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
+        if (parts.scheme != "https" or not parts.hostname or parts.username is not None or parts.password is not None
+                or any(c.isspace() or ord(c) < 32 or ord(c) == 127 for c in value)
+                or (parts.port is not None and not 1 <= parts.port <= 65535)):
             return None
         # The publication flag plus an arbitrary HTTPS URL is insufficient
         # proof of a PR. Only recognizable PR/MR detail paths are exposed.

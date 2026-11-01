@@ -62,6 +62,40 @@ class FindingLifecycleTests(fixtures.Fixture):
         data.save_campaign({"id": "undated", "target_id": "trend_target", "date": None})
         self.assertEqual(self.get("/api/v1/targets/trend_target/evolution")[1]["trend"], "unknown")
 
+    def test_published_metadata_retains_remote_states_and_valid_probe_kinds(self):
+        cid = self.campaign()
+        for state in ("open", "opened", "closed", "merged", "draft"):
+            self.record("state_" + state, cid, "vuln_fixture", published=True,
+                        publication={"url": "https://forge.invalid/owned/repo/pulls/1", "provider": "gitea", "state": state},
+                        validation={"before": [{"kind": "normal", "passed": True}],
+                                    "after": [{"kind": "variant", "passed": True}]})
+        status, body = self.get("/api/v1/pull-requests")
+        self.assertEqual(status, 200)
+        self.assertEqual({row["state"] for row in body["data"]}, {"open", "opened", "closed", "merged", "draft"})
+        for row in body["data"]:
+            self.assertEqual(row["provider"], "gitea")
+            self.assertEqual(row["validation"]["before"][0]["kind"], "normal")
+            self.assertEqual(row["validation"]["after"][0]["kind"], "variant")
+
+    def test_publication_urls_reject_empty_userinfo_bad_ports_and_controls(self):
+        from community.finding_lifecycle import _public_url
+        for value in ("https://@forge.invalid/owned/repo/pulls/1", "https://forge.invalid:99999/owned/repo/pulls/1",
+                      "https://forge.invalid/owned/repo/pulls/1\n", "https://forge.invalid:0/owned/repo/pulls/1"):
+            with self.subTest(value=value):
+                self.assertIsNone(_public_url(value))
+
+    def test_untyped_remote_publication_metadata_is_withheld(self):
+        cid = self.campaign()
+        self.record("untyped_remote", cid, "vuln_fixture", published=True,
+                    publication={"url": "https://forge.invalid/owned/repo/pulls/1",
+                                 "id": {"secret": "PRIVATE-REMOTE-METADATA"},
+                                 "state": {"secret": "PRIVATE-REMOTE-METADATA"}})
+        status, body = self.get("/api/v1/pull-requests")
+        self.assertEqual(status, 200)
+        self.assertIsNone(body["data"][0]["pr_id"])
+        self.assertEqual(body["data"][0]["state"], "unknown")
+        self.assertNotIn("PRIVATE-REMOTE-METADATA", json.dumps(body))
+
     def test_target_evolution_is_current_retained_campaign_projection_not_backfilled_history(self):
         data.save_target({"id": "target_exact", "host": "owned.invalid"})
         data.save_target({"id": "target_other", "host": "owned.invalid"})
