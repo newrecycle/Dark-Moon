@@ -122,6 +122,10 @@ class FindingLifecycleTests(fixtures.Fixture):
         self.assertIsNone(created["data"][0]["previous_status"])
         self.assertEqual(created["data"][0]["source"], "live_finding_push")
         self.assertFalse(created["history_complete"])
+        self.assertEqual(created["history"][0]["campaign_id"], cid)
+        self.assertEqual(created["history"][0]["vulnerabilities"], [
+            {"id": "vuln_fixture", "severity": "high", "status": "confirmed", "cve": None}])
+        self.assertEqual(created["history_projection"], "retained_campaign_current_snapshots_v1")
         path = "/api/v1/campaigns/" + cid + "/findings/vuln_fixture"
         self.assertEqual(self.request(path, "PATCH", {"status": "resolved"})[0], 200)
         self.assertEqual(self.request(path, "PATCH", {"status": "resolved"})[0], 200)
@@ -151,6 +155,8 @@ class FindingLifecycleTests(fixtures.Fixture):
             self.assertEqual(status, 200)
             self.assertEqual(wrapped.call_count, 1)
         self.assertEqual((a["total"], a["limit"], a["offset"]), (5, 2, 0))
+        self.assertEqual(a["history_total"], 1)
+        self.assertEqual([row["campaign_id"] for row in a["history"]], ["c1"])
         self.assertTrue(a["has_more"])
         self.assertEqual(a["next_offset"], 2)
         b = self.get("/api/v1/vulnerabilities/history?target_id=t1&limit=2&offset=2")[1]
@@ -187,10 +193,40 @@ class FindingLifecycleTests(fixtures.Fixture):
         data.init_finding_history()
         self.assertEqual(data.load_finding_history()["recording_started_at"], before["recording_started_at"])
         self.assertEqual(self.get("/api/v1/vulnerabilities/history")[1]["data"], [])
+        snapshot = self.get("/api/v1/vulnerabilities/history")[1]
+        self.assertEqual(snapshot["history"][0]["vulnerabilities"][0]["id"], "preexisting")
+        self.assertEqual(snapshot["total"], 0)
+        self.assertFalse(snapshot["history_complete"])
         data.record_finding_event({"id": "c1", "target_id": "t1"},
                                   {"id": "new", "status": "confirmed"}, "finding.created")
         data.init_finding_history()
         self.assertEqual(self.get("/api/v1/vulnerabilities/history")[1]["total"], 1)
+
+    def test_history_snapshots_are_bounded_private_and_distinct_from_journal_pages(self):
+        data.save_target({"id": "t1", "host": "PRIVATE-HISTORY-HOST"})
+        for cid, date in [("c_old", "2026-01-01"), ("c_new", "2026-10-31"), ("c_bad", "PRIVATE-HISTORY-DATE")]:
+            data.save_campaign({"id": cid, "target_id": "t1", "date": date})
+        data.save_vulnerabilities("c_old", [{"id": "f" + str(i), "campaign_id": "c_old", "target_id": "t1",
+            "severity": "high", "status": "confirmed", "title": "PRIVATE-HISTORY-TITLE",
+            "evidence": {"raw": "PRIVATE-HISTORY-EVIDENCE"}} for i in range(501)])
+        with patch.object(data, "load_all_vulnerabilities", side_effect=AssertionError("Do not load the whole workspace finding collection")):
+            status, body = self.get("/api/v1/vulnerabilities/history?target_id=t1&limit=1")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["history_total"], 3)
+        self.assertEqual(body["history"][0]["campaign_id"], "c_old")
+        self.assertEqual(body["history"][0]["date"], "2026-01-01")
+        self.assertEqual(len(body["history"][0]["vulnerabilities"]), 500)
+        self.assertEqual(body["history"][0]["vulnerabilities_total"], 501)
+        self.assertTrue(body["history"][0]["vulnerabilities_truncated"])
+        self.assertEqual(body["history_next_offset"], 1)
+        self.assertEqual(body["data"], [])
+        self.assertEqual(body["total"], 0)
+        self.assertNotIn("PRIVATE-HISTORY", json.dumps(body))
+        next_page = self.get("/api/v1/vulnerabilities/history?target_id=t1&limit=1&offset=1")[1]
+        self.assertEqual(next_page["history"][0]["campaign_id"], "c_new")
+        last = self.get("/api/v1/vulnerabilities/history?target_id=t1&limit=1&offset=2")[1]
+        self.assertIsNone(last["history"][0]["date"])
+        self.assertFalse(last["history_has_more"])
 
     def test_journal_parallel_appends_and_corruption_fail_explicitly(self):
         campaign = {"id": "c1", "target_id": "t1"}

@@ -5,6 +5,7 @@ The journal contains only recorded events after activation.
 """
 import math
 import re
+from datetime import datetime, timezone
 from urllib.parse import urlsplit, urlunsplit
 
 from api import json_storage as data
@@ -13,14 +14,32 @@ from .finding_stats import finding_stats, public_histogram
 from .posture import SEVERITIES
 from .store import identifier
 
+HISTORY_FINDINGS_LIMIT = 500
+
+
+def _campaign_key(campaign):
+    value = campaign.get("date")
+    started = timestamp(value)
+    if started is None and isinstance(value, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        try:
+            # Display order only; do not invent an exact assessment start time.
+            started = datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
+        except ValueError:
+            pass
+    return (started is None, started or 0, str(campaign.get("id") or ""))
+
+
+def _campaign_date(campaign):
+    value = campaign.get("date")
+    return value if isinstance(value, str) and not _campaign_key(campaign)[0] else None
+
 
 def target_evolution(target_id):
     target_id = identifier(target_id)
     if not data.load_target(target_id):
         raise KeyError(target_id)
     campaigns = [c for c in data.load_campaigns() if c.get("target_id") == target_id]
-    campaigns.sort(key=lambda c: (timestamp(c.get("date")) is None,
-                                  timestamp(c.get("date")) or 0, str(c.get("id") or "")))
+    campaigns.sort(key=_campaign_key)
     records, series = [], []
     for c in campaigns:
         findings = [f for f in data.load_vulnerabilities(c["id"])
@@ -29,7 +48,7 @@ def target_evolution(target_id):
                         "started_at": c.get("date") if timestamp(c.get("date")) is not None else None,
                         "status": c.get("status"), **counts(findings)}
         records.append(record)
-        series.append({"campaign_id": record["campaign_id"], "date": record["started_at"],
+        series.append({"campaign_id": record["campaign_id"], "date": _campaign_date(c),
                        "stats": {**dict.fromkeys(SEVERITIES, 0),
                                  **public_histogram(finding_stats(findings)["by_severity"], set(SEVERITIES))},
                        "total_vulns": record["findings"], "overall_risk": record["risk"]})
@@ -37,6 +56,34 @@ def target_evolution(target_id):
             "historical_transitions_available": False,
             "note": "Campaign start dates are recorded; finding counts and statuses are current retained snapshots, not as-of-start history.",
             "data": records, "campaigns": series, "total": len(records)}
+
+
+def _campaign_history(target_id, limit, offset):
+    """A bounded current-state series, separate from the recorded event journal."""
+    from .evidence_access import public_projection
+    campaigns = [c for c in data.load_campaigns() if target_id is None or c.get("target_id") == target_id]
+    campaigns.sort(key=_campaign_key)
+    history = []
+    for campaign in campaigns[offset:offset + limit]:
+        findings = [f for f in data.load_vulnerabilities(campaign["id"])
+                    if f.get("campaign_id") == campaign["id"]
+                    and f.get("target_id") in (None, campaign.get("target_id"))]
+        rows = []
+        for finding in findings[:HISTORY_FINDINGS_LIMIT]:
+            row = public_projection({key: finding.get(key) for key in ("id", "severity", "status", "cve")})
+            row.setdefault("cve", None)
+            rows.append(row)
+        date = _campaign_date(campaign)
+        history.append({"campaign_id": campaign["id"], "date": date[:10] if date else None,
+                        "vulnerabilities": rows, "vulnerabilities_total": len(findings),
+                        "vulnerabilities_truncated": len(findings) > HISTORY_FINDINGS_LIMIT})
+    total = len(campaigns)
+    end = offset + len(history)
+    more = end < total and end <= data.FINDING_HISTORY_MAX_OFFSET
+    return {"history": history, "history_total": total, "history_limit": limit, "history_offset": offset,
+            "history_has_more": more, "history_next_offset": end if more else None,
+            "history_projection": "retained_campaign_current_snapshots_v1",
+            "history_page_consistency": "live_offset", "history_vulnerabilities_limit": HISTORY_FINDINGS_LIMIT}
 
 
 def history_page(params):
@@ -70,7 +117,8 @@ def history_page(params):
             "max_offset": data.FINDING_HISTORY_MAX_OFFSET,
             "snapshot_seq": journal.get("snapshot_seq"),
             "page_consistency": "snapshot_seq" if snapshot_seq is not None else "live_offset",
-            "history_complete": False, "projection": "recorded_finding_mutations_v1"}
+            "history_complete": False, "projection": "recorded_finding_mutations_v1",
+            **_campaign_history(target, limit, offset)}
 
 
 def _linked_ids(proposal):

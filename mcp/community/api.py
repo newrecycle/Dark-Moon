@@ -253,9 +253,9 @@ class API:
             handler.send(content, "application/pdf", filename=identifier(parts[1])+".pdf")
             return True
         if resource == "vulnerabilities":
-            items = data.load_all_vulnerabilities()
             if method == "GET" and len(parts) == 1:
                 from .finding_query import finding_page
+                items = data.load_all_vulnerabilities()
                 window_params = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
                 if any(len(v) != 1 for k,v in window_params.items() if k in {"campaign_from","campaign_to"}):
                     raise ValueError("Use one campaign window bound")
