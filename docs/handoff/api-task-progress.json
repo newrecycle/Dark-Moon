@@ -1,0 +1,294 @@
+{
+  "base_commit": "95f3c472a8c9b452dfd71793dbcf10eed7eecad8",
+  "code_head": "d35aed9996850a32894699e347935cdedf5880da",
+  "local_only": true,
+  "closure_rule": "A successful implementation increment is distinct from full reference workflow acceptance.",
+  "commits": [
+    {
+      "commit": "c802b50c4ebad6656b792b4faf2c881cafae9fae",
+      "title": "API03: accept omitted and none one-shot recurrence"
+    },
+    {
+      "commit": "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b",
+      "title": "API07: accept GitHub token fields and preserve secrets on rename"
+    },
+    {
+      "commit": "92c71909d1afb4a9333805a5aba5c33e10916922",
+      "title": "API14: add safe finding statistics and overview navigation"
+    },
+    {
+      "commit": "014dff019c2632ec524baf449b9a4ae9e7c8b150",
+      "title": "API04: expose safe target evolution campaign series"
+    },
+    {
+      "commit": "d127107f463b159db1b234c0d7cf6d608673ff34",
+      "title": "API05: add bounded campaign history without fabricating journal events"
+    },
+    {
+      "commit": "8280b026e21609c2699ebf82d886d7f39813199b",
+      "title": "API08: return empty unqualified finding PR collections"
+    },
+    {
+      "commit": "05a226d87c6be0b75c5f117137487fa6aca7660c",
+      "title": "API14: validate UTC metric bounds and redact free-form series labels"
+    },
+    {
+      "commit": "d35aed9996850a32894699e347935cdedf5880da",
+      "title": "F01: wait for finding query persistence before reload acceptance"
+    }
+  ],
+  "tasks": [
+    {
+      "task": "API01",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Complete input boundaries, role/session transitions and deployment-specific semantics"
+    },
+    {
+      "task": "API02",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Actual reference queued/running/cancelling/terminal stop and idempotency"
+    },
+    {
+      "task": "API03",
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "c802b50c4ebad6656b792b4faf2c881cafae9fae"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Execution, DST/recurrence reference semantics and complete response/update matrix"
+    },
+    {
+      "task": "API04",
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "014dff019c2632ec524baf449b9a4ae9e7c8b150"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Trend rules, full date/ordering and status-cohort reference matrix; host redaction remains intentional."
+    },
+    {
+      "task": "API05",
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "d127107f463b159db1b234c0d7cf6d608673ff34"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Current snapshot groups now exposed separately from journal events; complete reference paging, ordering and mutation semantics remain open."
+    },
+    {
+      "task": "API06",
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Full provider field/catalog/capability schema and actual consumer behavior"
+    },
+    {
+      "task": "API07",
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Full masked field-response contract, additional fields/providers and owner transitions"
+    },
+    {
+      "task": "API08",
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "8280b026e21609c2699ebf82d886d7f39813199b"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Unqualified missing IDs now return empty collections; populated reference publication/linkage state matrix remains open."
+    },
+    {
+      "task": "API09",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Valid reference runs, logs, page ordering/filters and lifecycle transitions"
+    },
+    {
+      "task": "API10",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Reference admission/delivery/retry/HMAC/replay/failure outcomes"
+    },
+    {
+      "task": "API11",
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "c802b50c4ebad6656b792b4faf2c881cafae9fae",
+        "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b",
+        "92c71909d1afb4a9333805a5aba5c33e10916922",
+        "05a226d87c6be0b75c5f117137487fa6aca7660c"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Complete schemas/values/headers/errors across all 52 declarations"
+    },
+    {
+      "task": "API12",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Valid-run frames, terminal/error, heartbeat, reconnect/cursors/replay/expiry/rotation"
+    },
+    {
+      "task": "API13",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Actual reference retest launches and failed/stopped/completed/empty comparison states"
+    },
+    {
+      "task": "API14",
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "92c71909d1afb4a9333805a5aba5c33e10916922",
+        "05a226d87c6be0b75c5f117137487fa6aca7660c"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Remaining reference metrics/timezone/denominator/evidence matrix; UTC input validation, current cohorts and safe labels are fork-tested."
+    },
+    {
+      "task": "UI01",
+      "implementation_status": "fork_browser_reload_restoration_check_committed; original UI parity remains open",
+      "local_commits": [
+        "d35aed9996850a32894699e347935cdedf5880da"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Original visual and interaction state matrix"
+    },
+    {
+      "task": "UI02",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Pinned visible-state comparisons; no source-map/source reconstruction claim"
+    },
+    {
+      "task": "UI03",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Reference full launch/error/reconnect flow"
+    },
+    {
+      "task": "UI04",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Physical headset and reference graph interaction/linkage comparison"
+    },
+    {
+      "task": "UI05",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Preserve security extension; do not assert same vendor implementation"
+    },
+    {
+      "task": "UI06",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Do not invent original pages or claim visual parity"
+    },
+    {
+      "task": "REM01",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Original state/error workflow matrix and native reference outcomes"
+    },
+    {
+      "task": "REM02",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Reference probe/gate semantics; distinguish operator-reviewed from automatic approval"
+    },
+    {
+      "task": "REM03",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Capable actual model positive >= .75, unfixed negative, probes and real disposable forge acceptance"
+    },
+    {
+      "task": "REM04",
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "c802b50c4ebad6656b792b4faf2c881cafae9fae",
+        "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b",
+        "92c71909d1afb4a9333805a5aba5c33e10916922",
+        "05a226d87c6be0b75c5f117137487fa6aca7660c"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Complete cross-owner/reference consumer comparison and downstream credential lifecycle"
+    },
+    {
+      "task": "REM05",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Adequate authorized infrastructure and real reference native workflow"
+    },
+    {
+      "task": "SEC01",
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "c802b50c4ebad6656b792b4faf2c881cafae9fae",
+        "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b",
+        "92c71909d1afb4a9333805a5aba5c33e10916922",
+        "05a226d87c6be0b75c5f117137487fa6aca7660c"
+      ],
+      "full_reference_acceptance": "open",
+      "remaining": "Preserve protections; remaining security transition matrix stays explicit"
+    },
+    {
+      "task": "INT01",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Actual original responses per consumer; Splunk/Ultimate/signing prerequisites remain"
+    },
+    {
+      "task": "OPS01",
+      "implementation_status": "existing_implementation; no change in this increment",
+      "local_commits": [],
+      "full_reference_acceptance": "open",
+      "remaining": "Deployment/runtime claims remain attributable; no equivalence from source image names"
+    }
+  ],
+  "runtime_boundaries": {
+    "valid_run_and_retest": "Normal successful reference execution and populated run/retest lifecycle evidence are still required.",
+    "webhook": "Reference delivery, retry, signature and replay outcomes require successful live observation.",
+    "remediation": "Actual capable model approval with negative control, probes and disposable forge publication remains a separate gate.",
+    "ui_native": "Reference UI, physical XR and licensed/native-host acceptance remain separate from fork browser/SDK checks."
+  },
+  "validation": {
+    "backend_tests_passed": 534,
+    "subtests_passed": 330,
+    "backend_seconds": 132.34,
+    "sdk_http": "passed",
+    "chromium_application": "passed",
+    "retained_response_checks_passed": 16,
+    "fresh_reference_execution": false,
+    "hosted_ci": "not run",
+    "pushes": 0,
+    "per_item_checks": {
+      "API04": "24 tests / 12 subtests",
+      "API05": "47 tests / 61 subtests",
+      "API08": "34 tests / 39 subtests",
+      "API14_metrics": "72 tests / 29 subtests"
+    }
+  },
+  "browser_correction": "The reload test now waits for the debounced URL query to persist before capturing the reload URL. Restoration assertions remain unchanged."
+}
