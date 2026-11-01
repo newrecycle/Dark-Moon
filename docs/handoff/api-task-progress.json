@@ -1,6 +1,6 @@
 {
   "base_commit": "95f3c472a8c9b452dfd71793dbcf10eed7eecad8",
-  "code_head": "d35aed9996850a32894699e347935cdedf5880da",
+  "code_head": "3735193a89ec2e82ff0c2178f7143f99b8890339",
   "local_only": true,
   "closure_rule": "A successful implementation increment is distinct from full reference workflow acceptance.",
   "commits": [
@@ -35,6 +35,14 @@
     {
       "commit": "d35aed9996850a32894699e347935cdedf5880da",
       "title": "F01: wait for finding query persistence before reload acceptance"
+    },
+    {
+      "commit": "28e80f5612c5c176521e76ae7f9288a73f727a75",
+      "title": "API12: support bounded JSON event polling with safe replay cursors"
+    },
+    {
+      "commit": "3735193a89ec2e82ff0c2178f7143f99b8890339",
+      "title": "API14: support campaign metric groups and aligned zero counts"
     }
   ],
   "tasks": [
@@ -43,14 +51,22 @@
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Complete input boundaries, role/session transitions and deployment-specific semantics"
+      "remaining": "Remaining complete input/refresh/deployment matrix; reference retains older claims after role/deletion transitions.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Live password, logout, correctly signed expiry, role downgrade and account deletion observed; fork revocation and current-role enforcement preserved."
+      }
     },
     {
       "task": "API02",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Actual reference queued/running/cancelling/terminal stop and idempotency"
+      "remaining": "Successful native assessment, queued/running/cancelling/terminal state matrix still required.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Normal launch/stop attempts and controlled sleeping-process stop/idempotency observed."
+      }
     },
     {
       "task": "API03",
@@ -59,7 +75,11 @@
         "c802b50c4ebad6656b792b4faf2c881cafae9fae"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Execution, DST/recurrence reference semantics and complete response/update matrix"
+      "remaining": "Reference schedule remained due without dispatch during bounded observation; recurrence/DST execution remains open. Subsecond input remains intentionally rejected.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Disabled schedule CRUD and due whole-second one-shot observed; fork dispatched once and disabled its schedule."
+      }
     },
     {
       "task": "API04",
@@ -68,7 +88,11 @@
         "014dff019c2632ec524baf449b9a4ae9e7c8b150"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Trend rules, full date/ordering and status-cohort reference matrix; host redaction remains intentional."
+      "remaining": "Trend, ordering/cohort and mutation semantics remain incomplete; preserve host redaction.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Populated target evolution plus missing/null/invalid/calendar/offset-date reads observed."
+      }
     },
     {
       "task": "API05",
@@ -77,7 +101,11 @@
         "d127107f463b159db1b234c0d7cf6d608673ff34"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Current snapshot groups now exposed separately from journal events; complete reference paging, ordering and mutation semantics remain open."
+      "remaining": "Snapshot groups and journal events remain distinct; complete reference ordering/mutation equivalence is open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Live history paging/filter/date input observations collected."
+      }
     },
     {
       "task": "API06",
@@ -86,7 +114,11 @@
         "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Full provider field/catalog/capability schema and actual consumer behavior"
+      "remaining": "Provider families beyond supported token inputs remain gaps; no external credential validation or downstream consumer equivalence established.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Live provider catalog and fields/admission matrix exercised."
+      }
     },
     {
       "task": "API07",
@@ -95,7 +127,11 @@
         "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Full masked field-response contract, additional fields/providers and owner transitions"
+      "remaining": "Complete provider fields, masks, ownership and actual consumer transitions remain open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Compatible GitHub token-only create/read/rename/rotate/delete observed on both runtimes."
+      }
     },
     {
       "task": "API08",
@@ -104,21 +140,33 @@
         "8280b026e21609c2699ebf82d886d7f39813199b"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Unqualified missing IDs now return empty collections; populated reference publication/linkage state matrix remains open."
+      "remaining": "Populated reference publication/linkage matrix remains unverified.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Missing/unqualified finding PR collections observed."
+      }
     },
     {
       "task": "API09",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Valid reference runs, logs, page ordering/filters and lifecycle transitions"
+      "remaining": "Successful engine logs and complete paging/order/filter matrix remain open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Default-launch logs plus controlled append, rotation and reconnect observed."
+      }
     },
     {
       "task": "API10",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Reference admission/delivery/retry/HMAC/replay/failure outcomes"
+      "remaining": "Reference synchronous five-attempt failure observed; fork pending failure retries were bounded and cancelled on deletion. Full exhaustion/restart and consumer matrix remain open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Owned verified-TLS callbacks: explicit test success, 503 retry, normal finding-producer delivery, HMAC and actual-byte replay/tamper/key/staleness negatives observed."
+      }
     },
     {
       "task": "API11",
@@ -130,31 +178,50 @@
         "05a226d87c6be0b75c5f117137487fa6aca7660c"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Complete schemas/values/headers/errors across all 52 declarations"
+      "remaining": "Route coverage is not semantic acceptance. Remaining values, schemas, validation, headers and state matrices stay open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "All 52 declarations touched on both live runtimes; sanitized fixtures retained outside Git."
+      }
     },
     {
       "task": "API12",
-      "implementation_status": "existing_implementation; no change in this increment",
-      "local_commits": [],
+      "implementation_status": "tested_increment_committed",
+      "local_commits": [
+        "28e80f5612c5c176521e76ae7f9288a73f727a75"
+      ],
       "full_reference_acceptance": "open",
-      "remaining": "Valid-run frames, terminal/error, heartbeat, reconnect/cursors/replay/expiry/rotation"
+      "remaining": "Reference tail-page and header behavior differ intentionally from lossless fork replay; no successful scan stream acceptance. Complete interruption/eviction/restart matrix remains open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "JSON polling implemented; replay/reconnect, controlled log append/rotation, token expiry and unused 45-second grant expiry observed."
+      }
     },
     {
       "task": "API13",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Actual reference retest launches and failed/stopped/completed/empty comparison states"
+      "remaining": "Reference remained running; fork became incomplete on engine failure. No completed/empty/fixed verdict acceptance established.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Both native retest aliases launched and read back."
+      }
     },
     {
       "task": "API14",
       "implementation_status": "tested_increment_committed",
       "local_commits": [
         "92c71909d1afb4a9333805a5aba5c33e10916922",
-        "05a226d87c6be0b75c5f117137487fa6aca7660c"
+        "05a226d87c6be0b75c5f117137487fa6aca7660c",
+        "3735193a89ec2e82ff0c2178f7143f99b8890339"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Remaining reference metrics/timezone/denominator/evidence matrix; UTC input validation, current cohorts and safe labels are fork-tested."
+      "remaining": "Series-label ordering and reference day-based boundary behavior differ; fork keeps strict aware UTC bounds and protected labels. Full denominator/trend matrix remains open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Campaign metric groups, calendar-day labels and aligned zero counts implemented; eight fixed interior-cohort series comparisons matched by label and point order."
+      }
     },
     {
       "task": "UI01",
@@ -163,63 +230,99 @@
         "d35aed9996850a32894699e347935cdedf5880da"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Original visual and interaction state matrix"
+      "remaining": "Original path/hash behavior differs; no full interaction or visual acceptance.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Chromium login, basic page navigation and mobile observations on both actual applications."
+      }
     },
     {
       "task": "UI02",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Pinned visible-state comparisons; no source-map/source reconstruction claim"
+      "remaining": "Pinned visible-state comparisons remain incomplete.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Rendered reference headings/routes observed without retaining proprietary assets."
+      }
     },
     {
       "task": "UI03",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Reference full launch/error/reconnect flow"
+      "remaining": "Complete browser launch, reconnect, error and recovery flow remains open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Actual new-campaign page rendered; native API launch/error observations collected separately."
+      }
     },
     {
       "task": "UI04",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Physical headset and reference graph interaction/linkage comparison"
+      "remaining": "Physical XR and full reference graph interaction remain open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "not_attempted",
+        "observed": "No physical headset acceptance in this run."
+      }
     },
     {
       "task": "UI05",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Preserve security extension; do not assert same vendor implementation"
+      "remaining": "Do not claim identical reference security implementation.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "preserved_extension",
+        "observed": "Security controls retained and fresh auth/grant observations collected."
+      }
     },
     {
       "task": "UI06",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Do not invent original pages or claim visual parity"
+      "remaining": "Original-page state matrix remains open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "not_attempted",
+        "observed": "No invented original pages or visual parity claim."
+      }
     },
     {
       "task": "REM01",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Original state/error workflow matrix and native reference outcomes"
+      "remaining": "Successful reference remediation state/error workflow remains open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Reference native launch/retest failure-prerequisite observations collected."
+      }
     },
     {
       "task": "REM02",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Reference probe/gate semantics; distinguish operator-reviewed from automatic approval"
+      "remaining": "No approval thresholds or gates changed; actual reference/model gate acceptance remains open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "unavailable",
+        "observed": "Production model preflight exited 3 because endpoint/model configuration is absent."
+      }
     },
     {
       "task": "REM03",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Capable actual model positive >= .75, unfixed negative, probes and real disposable forge acceptance"
+      "remaining": "Capable actual-model positive >= .75, unfixed negative, real probes and forge publication still required.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "unavailable",
+        "observed": "Configured-model acceptance preflight executed with explicit unavailable result."
+      }
     },
     {
       "task": "REM04",
@@ -231,14 +334,22 @@
         "05a226d87c6be0b75c5f117137487fa6aca7660c"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Complete cross-owner/reference consumer comparison and downstream credential lifecycle"
+      "remaining": "Cross-owner/provider and downstream consumer matrix remains incomplete.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Live credential role controls and token lifecycle observed."
+      }
     },
     {
       "task": "REM05",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Adequate authorized infrastructure and real reference native workflow"
+      "remaining": "Adequate native execution infrastructure and successful reference workflow remain required.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "unavailable",
+        "observed": "Runtime attempts retained normal prerequisites."
+      }
     },
     {
       "task": "SEC01",
@@ -250,45 +361,70 @@
         "05a226d87c6be0b75c5f117137487fa6aca7660c"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Preserve protections; remaining security transition matrix stays explicit"
+      "remaining": "Complete adversarial cross-owner, source and downstream transition matrix remains open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Live password/logout/expiry/role/deletion checks and evidence-grant reuse/expiry verified while preserving stronger protections."
+      }
     },
     {
       "task": "INT01",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Actual original responses per consumer; Splunk/Ultimate/signing prerequisites remain"
+      "remaining": "Full stateful consumers, native Splunk/Ultimate and signing prerequisites remain open.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Built shared SDK completed 20 live read observations across both HTTP runtimes without call failures."
+      }
     },
     {
       "task": "OPS01",
       "implementation_status": "existing_implementation; no change in this increment",
       "local_commits": [],
       "full_reference_acceptance": "open",
-      "remaining": "Deployment/runtime claims remain attributable; no equivalence from source image names"
+      "remaining": "No unchanged-upstream-image equivalence or deployment-wide acceptance claimed.",
+      "workflow_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Runtime identity/configuration and full filesystem audit recorded outside Git."
+      }
     }
   ],
   "runtime_boundaries": {
-    "valid_run_and_retest": "Normal successful reference execution and populated run/retest lifecycle evidence are still required.",
-    "webhook": "Reference delivery, retry, signature and replay outcomes require successful live observation.",
+    "valid_run_and_retest": "Normal attempts and controlled process/log fixtures were observed; successful engine assessment and completed retest acceptance remain open.",
+    "webhook": "Verified-TLS explicit tests, retry, HMAC and normal synthetic producer delivery observed on both; full failure exhaustion/restart and consumers remain open.",
     "remediation": "Actual capable model approval with negative control, probes and disposable forge publication remains a separate gate.",
-    "ui_native": "Reference UI, physical XR and licensed/native-host acceptance remain separate from fork browser/SDK checks."
+    "ui_native": "Actual Chromium login/basic pages observed on both; visual/full interaction, physical XR and native licensed-host acceptance remain open."
   },
   "validation": {
-    "backend_tests_passed": 534,
-    "subtests_passed": 330,
-    "backend_seconds": 132.34,
+    "backend_tests_passed": 540,
+    "subtests_passed": 338,
+    "backend_seconds": 138.66,
     "sdk_http": "passed",
     "chromium_application": "passed",
     "retained_response_checks_passed": 16,
-    "fresh_reference_execution": false,
+    "fresh_reference_execution": true,
     "hosted_ci": "not run",
     "pushes": 0,
     "per_item_checks": {
       "API04": "24 tests / 12 subtests",
       "API05": "47 tests / 61 subtests",
       "API08": "34 tests / 39 subtests",
-      "API14_metrics": "72 tests / 29 subtests"
-    }
+      "API14_metrics": "72 tests / 29 subtests",
+      "API12_polling": "10 focused tests passed",
+      "API14_campaign_metrics": "49 focused tests passed"
+    },
+    "fresh_http_observations": 1935,
+    "fresh_http_by_runtime": {
+      "reference": 1032,
+      "fork": 903
+    },
+    "declarations_touched_both": 52,
+    "sdk_live_read_observations": 20,
+    "sdk_live_call_failures": 0,
+    "chromium_live_observations": 16,
+    "postfix_interior_metric_comparisons": 8,
+    "full_reference_acceptance": "open"
   },
   "browser_correction": "The reload test now waits for the debounced URL query to persist before capturing the reload URL. Restoration assertions remain unchanged."
 }
