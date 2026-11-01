@@ -4,6 +4,10 @@ This is an **independent fork policy**, not a recovered commercial DarkMoon
 credential schema. The previous single-secret catalog only described eligible
 consumer *uses*, not a vendor adapter or permission system.
 
+The [1 November SCM continuation](scm-workflow-progress-2026-11-01.md) adds
+observed SCM request aliases and descriptive connection metadata while retaining
+the adapter and ownership policy below.
+
 ## Version 1 structured model
 
 A typed credential adds \`model_version: 1\`, \`adapter\`, \`scope\`, \`owner_id\`,

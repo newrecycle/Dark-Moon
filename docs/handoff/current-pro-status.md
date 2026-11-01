@@ -4,6 +4,8 @@ Authoritative current queue for [pro](https://github.com/newrecycle/Dark-Moon/tr
 The [31 October API compatibility continuation](api-compatibility-continuation.md)
 records subsequent request/metadata changes against the existing parity task IDs;
 it does not close the reference acceptance matrix or the native/model gates.
+The [1 November SCM/workflow checkpoint](scm-workflow-progress-2026-11-01.md)
+records later credential, browser and durable webhook acceptance increments.
 Dated audits describe their inspected revision, not an active missing-feature
 list. Read [commercial API acceptance](commercial-api-parity.md) before claiming
 parity. The pinned commercial image is

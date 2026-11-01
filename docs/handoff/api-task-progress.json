@@ -1,6 +1,6 @@
 {
   "base_commit": "95f3c472a8c9b452dfd71793dbcf10eed7eecad8",
-  "code_head": "3735193a89ec2e82ff0c2178f7143f99b8890339",
+  "code_head": "faf5f4897d795ce89bb3b5c856a012039b3da950",
   "local_only": true,
   "closure_rule": "A successful implementation increment is distinct from full reference workflow acceptance.",
   "commits": [
@@ -43,6 +43,30 @@
     {
       "commit": "3735193a89ec2e82ff0c2178f7143f99b8890339",
       "title": "API14: support campaign metric groups and aligned zero counts"
+    },
+    {
+      "commit": "fdb2c988ba7ea5759b962d5da81b44502c9d7c40",
+      "title": "API07: accept SCM token field schemas with masked connection metadata"
+    },
+    {
+      "commit": "3dd1ccb7818cb2f9272d0013ab7b83bbbddadbac",
+      "title": "API06: discover supported SCM field schemas and checkout capabilities"
+    },
+    {
+      "commit": "d052380a126985a13c7ef08068e403d50c792da4",
+      "title": "API10: record actual webhook retry exhaustion and restart acceptance"
+    },
+    {
+      "commit": "d12d4c8e99f84265b9295b009a497498fda74c1a",
+      "title": "UI01: verify authenticated direct links and viewer launch denial"
+    },
+    {
+      "commit": "2ea6ce99dffdb37cd99fd898181864d006a661e0",
+      "title": "API06: accept the SCM credential capability query alias"
+    },
+    {
+      "commit": "faf5f4897d795ce89bb3b5c856a012039b3da950",
+      "title": "API07: create private SCM credentials from the workspace form"
     }
   ],
   "tasks": [
@@ -111,26 +135,30 @@
       "task": "API06",
       "implementation_status": "tested_increment_committed",
       "local_commits": [
-        "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b"
+        "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b",
+        "3dd1ccb7818cb2f9272d0013ab7b83bbbddadbac",
+        "2ea6ce99dffdb37cd99fd898181864d006a661e0"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Provider families beyond supported token inputs remain gaps; no external credential validation or downstream consumer equivalence established.",
+      "remaining": "Other provider families, full catalog/value/default matrix and vendor-native consumers remain open. Fork exposes actual checkout capability and does not infer PR/provider API eligibility.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
-        "observed": "Live provider catalog and fields/admission matrix exercised."
+        "observed": "Live provider catalog and fields/admission matrix exercised. Seven supported SCM input schemas are discoverable; field names/types/secrecy/required flags match live observations. Populated SCM query aliases work on both runtimes."
       }
     },
     {
       "task": "API07",
       "implementation_status": "tested_increment_committed",
       "local_commits": [
-        "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b"
+        "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b",
+        "fdb2c988ba7ea5759b962d5da81b44502c9d7c40",
+        "faf5f4897d795ce89bb3b5c856a012039b3da950"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Complete provider fields, masks, ownership and actual consumer transitions remain open.",
+      "remaining": "Remaining cloud/SSH/SIEM/OAuth field families, complete ownership/error/concurrency/default matrix and vendor-host auth remain open; no publication capability is inferred.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
-        "observed": "Compatible GitHub token-only create/read/rename/rotate/delete observed on both runtimes."
+        "observed": "Compatible GitHub token-only create/read/rename/rotate/delete observed on both runtimes. All seven live SCM field create/read/rename/rotate/delete flows preserve metadata. Actual verified-TLS Git checkout and cached revocation denial passed for seven forms. Workspace SCM creation now uses private typed records and clears secrets on provider changes."
       }
     },
     {
@@ -160,7 +188,9 @@
     {
       "task": "API10",
       "implementation_status": "existing_implementation; no change in this increment",
-      "local_commits": [],
+      "local_commits": [
+        "d052380a126985a13c7ef08068e403d50c792da4"
+      ],
       "full_reference_acceptance": "open",
       "remaining": "All event families, concurrent-hook and downstream consumer/replay matrices remain open. Reference synchronous test delivery and fork asynchronous admission/backoff remain distinct; fork five-attempt exhaustion and restart are now observed.",
       "workflow_checkpoint_2026_11_01": {
@@ -228,13 +258,14 @@
       "task": "UI01",
       "implementation_status": "fork_browser_reload_restoration_check_committed; original UI parity remains open",
       "local_commits": [
-        "d35aed9996850a32894699e347935cdedf5880da"
+        "d35aed9996850a32894699e347935cdedf5880da",
+        "d12d4c8e99f84265b9295b009a497498fda74c1a"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Original path/hash behavior differs; no full interaction or visual acceptance.",
+      "remaining": "Fork path-to-hash normalization is intentional. Complete original visual/interaction matrix remains open; initial login redirects are not evidence of a missing authenticated route.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
-        "observed": "Chromium login, basic page navigation and mobile observations on both actual applications."
+        "observed": "Chromium login, basic page navigation and mobile observations on both actual applications. 18 authenticated browser observations across both actual applications. Reproducible fork checks pass eight direct links, exact resource scope, protected defaults and viewer launch denial."
       }
     },
     {
@@ -273,12 +304,14 @@
     {
       "task": "UI05",
       "implementation_status": "existing_implementation; no change in this increment",
-      "local_commits": [],
+      "local_commits": [
+        "faf5f4897d795ce89bb3b5c856a012039b3da950"
+      ],
       "full_reference_acceptance": "open",
-      "remaining": "Do not claim identical reference security implementation.",
+      "remaining": "Preserve independent security policy; do not claim identical reference implementation.",
       "workflow_checkpoint_2026_11_01": {
         "status": "preserved_extension",
-        "observed": "Security controls retained and fresh auth/grant observations collected."
+        "observed": "Security controls retained and fresh auth/grant observations collected. SCM form creates privately owned checkout-only credentials, honors required fields and clears secrets across provider changes; full browser regression passed."
       }
     },
     {
@@ -332,13 +365,16 @@
         "c802b50c4ebad6656b792b4faf2c881cafae9fae",
         "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b",
         "92c71909d1afb4a9333805a5aba5c33e10916922",
-        "05a226d87c6be0b75c5f117137487fa6aca7660c"
+        "05a226d87c6be0b75c5f117137487fa6aca7660c",
+        "fdb2c988ba7ea5759b962d5da81b44502c9d7c40",
+        "2ea6ce99dffdb37cd99fd898181864d006a661e0",
+        "faf5f4897d795ce89bb3b5c856a012039b3da950"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Cross-owner/provider and downstream consumer matrix remains incomplete.",
+      "remaining": "Full cross-owner/provider/downstream lifecycle remains open; native owned Git clone acceptance does not establish provider API or model acceptance.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
-        "observed": "Live credential role controls and token lifecycle observed."
+        "observed": "Live credential role controls and token lifecycle observed. New SCM field forms retain encrypted tokens, existing ownership/grants/revocation, administrator CRUD and cross-owner use checks."
       }
     },
     {
@@ -359,13 +395,16 @@
         "c802b50c4ebad6656b792b4faf2c881cafae9fae",
         "3126dfbd3419dcaf0e4d50625e16ef1eb43fb42b",
         "92c71909d1afb4a9333805a5aba5c33e10916922",
-        "05a226d87c6be0b75c5f117137487fa6aca7660c"
+        "05a226d87c6be0b75c5f117137487fa6aca7660c",
+        "fdb2c988ba7ea5759b962d5da81b44502c9d7c40",
+        "2ea6ce99dffdb37cd99fd898181864d006a661e0",
+        "faf5f4897d795ce89bb3b5c856a012039b3da950"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Complete adversarial cross-owner, source and downstream transition matrix remains open.",
+      "remaining": "Remaining full adversarial ownership, source and downstream matrix stays open.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
-        "observed": "Live password/logout/expiry/role/deletion checks and evidence-grant reuse/expiry verified while preserving stronger protections."
+        "observed": "Live password/logout/expiry/role/deletion checks and evidence-grant reuse/expiry verified while preserving stronger protections. Scoped SCM input, masked metadata, rejected sensitive URLs, private UI creation and real revoked-cache checkout denial verified without expanding capabilities."
       }
     },
     {
@@ -387,20 +426,21 @@
       "remaining": "No unchanged-upstream-image equivalence or deployment-wide acceptance claimed.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
-        "observed": "Runtime identity/configuration and full filesystem audit recorded outside Git."
+        "observed": "Runtime identity/configuration and full filesystem audit recorded outside Git. A subsequent full reference filesystem/configuration audit passed; its normal isolated guarded runtime was used for the SCM and browser follow-up."
       }
     }
   ],
   "runtime_boundaries": {
     "valid_run_and_retest": "Normal attempts and controlled process/log fixtures were observed; successful engine assessment and completed retest acceptance remain open.",
-    "webhook": "Verified-TLS explicit tests, retry, HMAC and normal synthetic producer delivery observed on both; full failure exhaustion/restart and consumers remain open.",
+    "webhook": "Owned TLS success/retry/normal producer observations on both runtimes; actual fork five-attempt 503 exhaustion and persisted pending/cooldown/terminal state across two restarts now passed. Full event-family/consumer matrix remains open.",
     "remediation": "Actual capable model approval with negative control, probes and disposable forge publication remains a separate gate.",
-    "ui_native": "Actual Chromium login/basic pages observed on both; visual/full interaction, physical XR and native licensed-host acceptance remain open."
+    "ui_native": "Actual Chromium login/basic pages observed on both; visual/full interaction, physical XR and native licensed-host acceptance remain open.",
+    "credentials": "Seven SCM field forms and actual owned HTTPS Git checkout verified. Other provider families and vendor-host/publication capability equivalence remain open."
   },
   "validation": {
-    "backend_tests_passed": 540,
-    "subtests_passed": 338,
-    "backend_seconds": 138.66,
+    "backend_tests_passed": 549,
+    "subtests_passed": 375,
+    "backend_seconds": 146.39,
     "sdk_http": "passed",
     "chromium_application": "passed",
     "retained_response_checks_passed": 16,
@@ -413,19 +453,39 @@
       "API08": "34 tests / 39 subtests",
       "API14_metrics": "72 tests / 29 subtests",
       "API12_polling": "10 focused tests passed",
-      "API14_campaign_metrics": "49 focused tests passed"
+      "API14_campaign_metrics": "49 focused tests passed",
+      "API06_API07_followup": "53 tests and 62 subtests passed; 354 fresh live HTTP observations",
+      "API10_durable": "actual five-attempt failure exhaustion and two restarts passed",
+      "UI01_followup": "18 actual application browser observations; 8 fork direct links and role/evidence/SCM form assertions passed"
     },
-    "fresh_http_observations": 1935,
+    "fresh_http_observations": 2297,
     "fresh_http_by_runtime": {
-      "reference": 1032,
-      "fork": 903
+      "reference": 1209,
+      "fork": 1088
     },
     "declarations_touched_both": 52,
     "sdk_live_read_observations": 20,
     "sdk_live_call_failures": 0,
     "chromium_live_observations": 16,
     "postfix_interior_metric_comparisons": 8,
-    "full_reference_acceptance": "open"
+    "full_reference_acceptance": "open",
+    "subsequent_scm_http_observations": 354,
+    "scm_schema_comparisons": 7,
+    "scm_populated_alias_observations": 14,
+    "native_scm_checkout_forms": 7,
+    "subsequent_chromium_live_observations": 18,
+    "fork_authenticated_direct_links": "8 passed; private SCM form and viewer launch denial passed",
+    "application_browser_regression": "passed after SCM form integration",
+    "webhook_real_exhaustion_and_restart": "passed; five actual 503 callbacks, both HMACs, unchanged backoff and two restarts"
   },
-  "browser_correction": "The reload test now waits for the debounced URL query to persist before capturing the reload URL. Restoration assertions remain unchanged."
+  "browser_correction": "The reload test now waits for the debounced URL query to persist before capturing the reload URL. Restoration assertions remain unchanged.",
+  "workflow_followup_scope": {
+    "date": "2026-11-01",
+    "earlier_http_observations": 1935,
+    "scm_http_observations": 354,
+    "fork_durable_http_observations": 8,
+    "native_git": "Owned loopback Git HTTP backend, real Git/TLS; not vendor-host equivalence",
+    "browser": "Actual reference and fork for 18 observations; standalone/broad fork browser fixtures are separate",
+    "model": "Endpoint/model configuration remains unavailable; no substitute verdict or lowered gate"
+  }
 }
