@@ -34,7 +34,7 @@ FIELDS = frozenset({
     "total", "limit", "offset", "next_offset", "count", "total_findings", "jobs_total", "jobs_has_more",
     "campaigns_count", "projects_count", "targets_count",
     "total_vulnerabilities", "critical", "high", "medium", "low", "info",
-    "confirmed", "exploited", "unconfirmed", "cvss_score",
+    "confirmed", "exploited", "unconfirmed", "cvss_score", "risk", "open_vulns",
     "version", "seq", "exit_code", "log_bytes", "http_status", "attempts",
     "created_at", "started_at", "finished_at", "discovered_at",
     "recorded_at", "triaged_at", "due_at", "next_run", "last_run",
@@ -53,7 +53,8 @@ CONTAINERS = frozenset({
     "jobs", "schedules", "remediations", "retests", "history", "events", "steps",
     "stats", "summary", "overview", "timeseries", "series", "points",
     "counts", "severity_distribution", "status_distribution",
-    "category_distribution", "by_severity", "by_status",
+    "category_distribution", "by_severity", "by_status", "by_category",
+    "recent_campaigns", "targets_at_risk",
     "verdicts", "verdicts_summary", "active_states", "result",
     "log", "target", "destination", "metadata",
     "scope", "graph", "links", "timeline", "analytics",
@@ -99,7 +100,9 @@ def _safe_value(key, value):
         return value if re.fullmatch(r"A\.[0-9]{1,2}(?:\.[0-9]{1,2})?", value) else None
     if key == "cve":
         return value if re.fullmatch(r"CVE-[0-9]{4}-[0-9]{4,10}", value) else None
-    if key in ("status", "state", "severity", "verdict", "risk_level", "disposition"):
+    if key == "risk" and value == "none":
+        return value
+    if key in ("status", "state", "severity", "verdict", "risk_level", "disposition", "risk"):
         return value if value in STATUS_VALUES else "unknown"
     if key in OPAQUE:
         return value[:200] if len(value) <= 200 else None
@@ -180,7 +183,14 @@ def public_projection(value, depth=0):
         return None
     projected = {}
     for key, item in value.items():
-        if key == "active_states" and isinstance(item, list):
+        if key in {"category_distribution", "by_category", "severity_distribution", "by_severity", "status_distribution", "by_status"}:
+            from .finding_stats import PUBLIC_CATEGORIES, public_histogram
+            allowed = PUBLIC_CATEGORIES if key in {"category_distribution", "by_category"} else (
+                {"critical", "high", "medium", "low", "info", "unknown"} if key in {"severity_distribution", "by_severity"} else STATUS_VALUES)
+            projected[key] = public_histogram(item, allowed)
+        elif key == "findings" and type(item) is int and item >= 0:
+            projected[key] = item
+        elif key == "active_states" and isinstance(item, list):
             projected[key] = [x for x in item if isinstance(x, str) and x in STATUS_VALUES]
         elif key == "posture":
             projected[key] = _posture(item)

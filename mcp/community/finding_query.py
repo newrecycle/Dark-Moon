@@ -3,6 +3,7 @@ from functools import cmp_to_key
 import math
 
 from .posture import active, timestamp, window_bounds
+from .finding_stats import finding_stats
 
 FILTERS = ("severity", "status", "category", "campaign_id", "project_id", "target_id", "mitre_attack_id")
 FIELDS = {"severity", "cvss", "title", "status", "campaign", "target"}
@@ -57,4 +58,5 @@ def finding_page(items, query, campaigns=None):
     if offset < 0 or (limit is not None and not 1 <= limit <= 500):
         raise ValueError("Finding offset must be nonnegative and limit must be 1 to 500")
     return {"data": selected[offset:offset + limit if limit is not None else None],
-            "total": len(selected), "offset": offset, "limit": limit, "sort": sort}
+            "total": len(selected), "offset": offset, "limit": limit, "sort": sort,
+            "stats": finding_stats(selected)}

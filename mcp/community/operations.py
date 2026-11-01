@@ -60,15 +60,46 @@ def evidence_meta(finding):
 
 
 def overview(campaigns=None):
+    from .finding_stats import finding_stats
+    from .posture import SEVERITIES, counts, timestamp
+    workspace = campaigns is None
     campaigns = data.load_campaigns() if campaigns is None else campaigns
     ids = {c["id"] for c in campaigns}
     findings = [v for v in data.load_all_vulnerabilities() if v.get("campaign_id") in ids]
-    severity = Counter(str(v.get("severity", "info")).lower() for v in findings)
-    status = Counter(str(v.get("status", "unconfirmed")).lower() for v in findings)
-    return {"projects_count": len({c.get("project_id") for c in campaigns}),
-            "targets_count": len({c.get("target_id") for c in campaigns}), "campaigns_count": len(campaigns),
-            "total_vulnerabilities": len(findings), "severity_distribution": dict(severity),
-            "status_distribution": dict(status), "category_distribution": dict(Counter(v.get("category", "unknown") for v in findings))}
+    stats = finding_stats(findings)
+    by_campaign, by_target = defaultdict(list), defaultdict(list)
+    for finding in findings:
+        by_campaign[finding.get("campaign_id")].append(finding)
+        if finding.get("target_id"):
+            by_target[finding["target_id"]].append(finding)
+    def recent_key(campaign):
+        value = campaign.get("date")
+        start = timestamp(value)
+        # Normal producers also write calendar dates. Use UTC midnight only
+        # as a deterministic display-order key, leaving the stored date intact.
+        if start is None and isinstance(value, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+            try:
+                start = datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
+            except ValueError:
+                pass
+        return (start is None, -start if start is not None else 0, campaign["id"])
+    recent = [{"campaign_id": c["id"], "target_id": c.get("target_id"), "date": c.get("date"),
+               "risk": counts(by_campaign[c["id"]])["risk"], "findings": len(by_campaign[c["id"]])}
+              for c in sorted(campaigns, key=recent_key)[:5]]
+    risks = []
+    for target_id, group in by_target.items():
+        posture = counts(group)
+        if posture["active"]:
+            risks.append({"target_id": target_id, "risk_level": posture["risk"],
+                          "open_vulns": posture["active"]})
+    order = {severity: index for index, severity in enumerate(SEVERITIES)}
+    risks.sort(key=lambda row: (order.get(row["risk_level"], len(order)), -row["open_vulns"], row["target_id"]))
+    return {"projects_count": len(data.load_projects()) if workspace else len({c["project_id"] for c in campaigns if c.get("project_id")}),
+            "targets_count": len(data.load_targets()) if workspace else len({c["target_id"] for c in campaigns if c.get("target_id")}),
+            "campaigns_count": len(campaigns), "total_vulnerabilities": len(findings),
+            "severity_distribution": {**dict.fromkeys(SEVERITIES, 0), **stats["by_severity"]},
+            "status_distribution": {**dict.fromkeys(("exploited", "confirmed", "unconfirmed", "remediated"), 0), **stats["by_status"]},
+            "category_distribution": stats["by_category"], "recent_campaigns": recent, "targets_at_risk": risks}
 
 
 def timeseries(query):

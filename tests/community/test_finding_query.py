@@ -22,6 +22,7 @@ class FindingQueryTests(unittest.TestCase):
         page = finding_page(ROWS, {"severity":"high","status":"confirmed","category":"sqli","campaign_id":"camp_a","target_id":"t1","q":"SQL","limit":"1","offset":"1"})
         self.assertEqual(page["total"],2)
         self.assertEqual([f["id"] for f in page["data"]],["b"])
+        self.assertEqual(page["stats"], {"by_severity": {"high": 2}, "by_category": {"sqli": 2}, "by_status": {"confirmed": 2}})
         self.assertEqual(ROWS[0]["id"],"b")
 
     def test_ties_have_stable_order_independent_of_storage_order(self):
@@ -40,6 +41,9 @@ class FindingQueryTests(unittest.TestCase):
         self.assertEqual(finding_page(ROWS,{"q":"missing"})["total"],0)
         page=finding_page(ROWS,{"offset":"50","limit":"10"})
         self.assertEqual(page["data"],[]);self.assertEqual(page["total"],4)
+        self.assertEqual(sum(page["stats"]["by_severity"].values()), 4)
+        self.assertEqual(finding_page(ROWS,{"q":"missing"})["stats"],
+                         {"by_severity": {}, "by_category": {}, "by_status": {}})
 
     def test_invalid_controls_are_rejected(self):
         for query in ({"sort":"unknown"},{"limit":"0"},{"limit":"501"},{"limit":"ten"},{"offset":"-1"},{"q":"x"*501}):
@@ -70,8 +74,23 @@ class FindingQueryHTTPTests(fixtures.Fixture):
         self.assertEqual(status,200);page=json.loads(body)
         self.assertEqual(page['total'],2);self.assertEqual(len(page['data']),1)
         self.assertEqual(page['data'][0]['id'],'b')
+        self.assertEqual(page['stats'], {'by_severity': {'high': 2}, 'by_category': {'sqli': 2}, 'by_status': {'confirmed': 2}})
         self.assertNotIn(b'PRIVATE-QUERY-EVIDENCE',body)
         self.assertEqual(len(json.loads(self.request('/api/v1/vulnerabilities')[1])['data']),4)
+
+    def test_arbitrary_histogram_keys_cannot_disclose_protected_text(self):
+        findings = data.load_vulnerabilities(self.cid)
+        findings[0].update(category="PRIVATE-CATEGORY-CANARY", severity="PRIVATE-SEVERITY-CANARY", status="PRIVATE-STATUS-CANARY")
+        data.save_vulnerabilities(self.cid, findings)
+        for path in ('/api/v1/vulnerabilities?limit=1', '/api/v1/dashboard/overview'):
+            status, body, _ = self.request(path)
+            self.assertEqual(status, 200, body)
+            for secret in (b'PRIVATE-CATEGORY-CANARY', b'PRIVATE-SEVERITY-CANARY', b'PRIVATE-STATUS-CANARY', b'PRIVATE-QUERY-EVIDENCE'):
+                self.assertNotIn(secret, body)
+            result = json.loads(body)
+            categories = result['stats']['by_category'] if 'stats' in result else result['category_distribution']
+            self.assertEqual(categories['unknown'], 1)
+            self.assertEqual(categories['sqli'], 2)
 
     def test_invalid_and_unauthenticated_queries_fail_explicitly(self):
         self.assertEqual(self.request('/api/v1/vulnerabilities?limit=1',auth=False)[0],401)
