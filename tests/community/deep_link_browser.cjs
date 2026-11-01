@@ -68,11 +68,32 @@ const assert = require('node:assert/strict');
       if (resource.startsWith('/report/')) await page.getByText('Authorize report preview', { exact: true }).waitFor();
       assert.equal(await page.locator('[data-revealed-content]').count(), 0);
     }
+    await page.evaluate(() => { location.hash = 'credentials'; });
+    await page.locator('[data-workspace=credential]').click();
+    await page.locator('#workspace-form [name=name]').fill('Owned SCM browser');
+    await page.locator('#workspace-form [name=secret]').fill('must-clear-on-provider-change');
+    await page.locator('#workspace-form [name=provider]').selectOption('gitea');
+    assert.equal(await page.locator('#workspace-form [name=token]').inputValue(), '');
+    assert.equal(await page.locator('#workspace-form [name=endpoint_url]').getAttribute('required'), '');
+    await page.locator('#workspace-form [name=endpoint_url]').fill('https://owned-scm.invalid');
+    await page.locator('#workspace-form [name=username]').fill('owned-git-user');
+    await page.locator('#workspace-form [name=token]').fill('owned-browser-token-never-for-output');
+    await page.locator('#workspace-form button[type=submit]').click();
+    await page.locator('#workspace-dialog').waitFor({state:'hidden'});
+    await page.locator('#content .list-item').filter({hasText:'Owned SCM browser'}).waitFor();
+    assert.equal(await page.locator('body').innerText().then(text => text.includes('owned-browser-token-never-for-output')), false);
     const loginResponse = await fetch(base + '/api/v1/auth/login', { method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: 'fixture-admin', password: 'offline-fixture-password' }) });
     assert.equal(loginResponse.status, 200);
     const admin = await loginResponse.json();
+    const stored = await fetch(base + '/api/v1/credentials', {headers:{Authorization:'Bearer '+admin.token}}).then(response=>response.json());
+    const scm = stored.data.find(row=>row.name==='Owned SCM browser');
+    assert.equal(scm.scope, 'private');
+    assert.equal(scm.owner_id, 'fixture-admin');
+    assert.deepEqual(scm.capabilities, ['source_checkout']);
+    assert.equal(scm.fields.username, 'owned-git-user');
+    assert.equal(scm.fields.token, '********');
     const created = await fetch(base + '/api/v1/auth/users', { method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + admin.token },
       body: JSON.stringify({ username: 'deep-link-viewer', password: 'owned-deep-link-password', role: 'viewer' }) });
@@ -84,7 +105,7 @@ const assert = require('node:assert/strict');
     assert.deepEqual(launches, []);
     assert.deepEqual(grants, []);
     assert.deepEqual(errors, []);
-    console.log('PASS eight authenticated path links, protected content defaults, exact resource scope and viewer launch denial');
+    console.log('PASS eight authenticated path links, private SCM credential form, protected content defaults, exact resource scope and viewer launch denial');
   } finally {
     if (browser) await browser.close();
     if (child.exitCode === null) {

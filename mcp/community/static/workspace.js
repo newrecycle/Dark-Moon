@@ -296,7 +296,10 @@
     if (f?.id === "launch-form" && event.target.name === "known_target")
       fillTarget();
     if (f?.id !== "workspace-form") return;
-    if (event.target.name === "provider") providerModels();
+    if (event.target.name === "provider") {
+      if (formState?.kind === "credential") credentialInputs();
+      else providerModels();
+    }
     if (event.target.name === "model" || event.target.name === "auth_method")
       customFields();
     if (event.target.name === "campaign_id") retestFindings();
@@ -319,6 +322,21 @@
     $("#workspace-form button[type=submit]").disabled = false;
     if ($("#detail").open) $("#detail").close();
     $("#workspace-dialog").showModal();
+  }
+  function credentialInputs() {
+    const form = $("#workspace-form");
+    const selected = formState.credentialProviders.find(p => p.id === form.elements.provider.value);
+    const labels = {username:"Username", token:"Token", endpoint_url:"API base URL", project:"Project"};
+    const scm = selected?.adapter === "scm_token";
+    const specs = scm ? selected.fields.filter(field => Object.hasOwn(labels, field.name)) : [
+      {name:"username", required:false}, {name:"secret", required:true},
+    ];
+    // Replacing these inputs clears secrets when the provider changes.
+    $("#credential-inputs").innerHTML = specs.map(field => {
+      const label = labels[field.name] || (field.name === "secret" ? "Secret" : field.name);
+      const type = ["token", "secret"].includes(field.name) ? "password" : "text";
+      return `<label>${esc(label)}${field.required ? "" : " (optional)"}<input name="${esc(field.name)}" type="${type}" ${field.required ? "required" : ""} value="${esc(field.default || "")}" autocomplete="off"></label>`;
+    }).join("") + (scm ? '<p class="instructions">Private credential for reading source repositories. The repository URL on each run chooses where the credential is used.</p>' : "");
   }
   function details(title, html) {
     clearDetail();
@@ -706,9 +724,9 @@
           ["name", "Name"],
           ["provider", "Credential use (descriptive label)", "select",
             catalog.data.map((p) => ({ value: p.id, label: p.name }))],
-          ["username", "Username (optional; required for target login)"],
-          ["secret", "Secret", "password"],
-        ]);
+        ], {credentialProviders:catalog.data});
+        $("#workspace-fields").insertAdjacentHTML("beforeend", '<div id="credential-inputs"></div>');
+        credentialInputs();
       }
       if (action === "webhook")
         openForm("webhook", "Register webhook", [
@@ -977,11 +995,18 @@
         lock();
         return;
       }
-      if (kind === "credential")
+      if (kind === "credential") {
+        const provider = formState.credentialProviders.find(p => p.id === raw.provider);
+        const values = provider?.adapter === "scm_token" ? {
+          name:raw.name, provider:raw.provider,
+          fields:Object.fromEntries(provider.fields.filter(field => ["token", "username", "endpoint_url", "project"].includes(field.name))
+            .map(field => [field.name, raw[field.name] || ""])),
+        } : raw;
         result = await api("/api/v1/credentials", {
           method: "POST",
-          body: JSON.stringify(raw),
+          body: JSON.stringify(values),
         });
+      }
       if (kind === "provider_delete")
         result = await api(
           `/api/v1/system/providers/${encodeURIComponent(formState.profileId)}`,
