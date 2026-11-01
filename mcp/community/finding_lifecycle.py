@@ -193,7 +193,9 @@ def for_finding(proposals, finding_id, campaign_id=None):
     matches = {(f.get("campaign_id"), f.get("id")) for f in data.load_all_vulnerabilities()
                if f.get("id") == finding_id and (campaign_id is None or f.get("campaign_id") == campaign_id)}
     if not matches:
-        raise KeyError(finding_id)
+        if campaign_id is not None:
+            raise KeyError(finding_id)
+        return {"finding_id": finding_id, "campaign_ids": [], "data": [], "total": 0}
     records = [r for r in remediation_records(proposals)
                if (r.get("campaign_id"), finding_id) in matches and finding_id in r["finding_ids"]]
     return {"finding_id": finding_id, "campaign_ids": sorted({c for c, _ in matches if isinstance(c, str)}),

@@ -270,11 +270,25 @@ class FindingLifecycleTests(fixtures.Fixture):
                          ["rem_one", "rem_three", "rem_two"])
         self.assertEqual(self.get("/api/v1/pull-requests/finding/other?campaign_id=c2")[1]["data"], [])
         self.assertEqual(self.get("/api/v1/pull-requests/finding/shared?campaign_id=c2")[1]["total"], 1)
-        self.assertEqual(self.get("/api/v1/pull-requests/finding/missing")[0], 404)
+        status, missing = self.get("/api/v1/pull-requests/finding/missing")
+        self.assertEqual(status, 200)
+        self.assertEqual(missing, {"finding_id": "missing", "campaign_ids": [], "data": [], "total": 0})
+        self.assertEqual(self.get("/api/v1/pull-requests/finding/missing?campaign_id=c1")[0], 404)
         self.assertEqual(self.get("/api/v1/pull-requests/finding/shared?campaign_id=missing")[0], 404)
         self.assertEqual(self.get("/api/v1/pull-requests/finding/shared?campaign_id=c1&campaign_id=c2")[0], 400)
         self.assertEqual(self.get("/api/v1/pull-requests/finding/shared?unexpected=1")[0], 400)
         self.assertEqual(self.get("/api/v1/pull-requests/finding/%2e%2e")[0], 400)
+
+    def test_empty_pr_lookup_still_requires_authentication_and_valid_scope(self):
+        path = "/api/v1/pull-requests/finding/unknown"
+        self.assertEqual(self.get(path, auth=False)[0], 401)
+        self.service.accounts.create("lookup_viewer", "synthetic-viewer-password", "viewer")
+        token = self.service.accounts.issue(self.service.store.get("users", "lookup_viewer"))["token"]
+        status, body = self.get(path, headers={"Authorization": "Bearer " + token})
+        self.assertEqual(status, 200)
+        self.assertEqual(body["data"], [])
+        self.assertEqual(body["total"], 0)
+        self.assertEqual(self.get(path + "?campaign_id=missing")[0], 404)
 
     def test_published_and_local_proposal_projection_is_shared_and_redacted(self):
         cid = self.campaign()
