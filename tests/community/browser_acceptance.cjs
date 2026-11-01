@@ -842,6 +842,10 @@ const assert = require("node:assert/strict");
     await page.locator('#findings-clear').click();
     await page.locator('#severity-filter').selectOption('high');
     await page.locator("#finding-search").fill(fixture.finding_id);
+    await page.waitForFunction(findingID => {
+      const query = new URLSearchParams(location.hash.split('?')[1] || '');
+      return query.get('q') === findingID && query.get('severity') === 'high';
+    }, fixture.finding_id);
     const reloadedFindingURL = page.url();
     await page.reload();
     await page.locator('#token').fill(fixture.token);
