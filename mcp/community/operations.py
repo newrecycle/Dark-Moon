@@ -109,7 +109,7 @@ def timeseries(query):
     if set(query) - {"metric", "group", "project_id", "target_id", "from", "to"}:
         raise ValueError("Unsupported metrics query parameter")
     metric, group = query.get("metric", "severity"), query.get("group", "day")
-    if metric not in {"severity", "status", "category", "findings", "campaigns"} or group not in {"hour", "day", "week", "month"}:
+    if metric not in {"severity", "status", "category", "findings", "campaigns"} or group not in {"campaign", "hour", "day", "week", "month"}:
         raise ValueError("Invalid metric/group")
     bounds = {}
     for name in ("from", "to"):
@@ -126,6 +126,7 @@ def timeseries(query):
             identifier(query[key])
     campaigns = [c for c in data.load_campaigns() if all(not query.get(key) or c.get(key) == query[key] for key in ("project_id", "target_id"))]
     series = defaultdict(lambda: defaultdict(int))
+    buckets = {}
     for campaign in campaigns:
         value = campaign.get("date")
         instant = parse_timestamp(value)
@@ -134,14 +135,19 @@ def timeseries(query):
                 instant = datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
             except ValueError:
                 pass
-        if instant is None:
+        if instant is None and (group != "campaign" or bounds):
             continue
-        timestamp = datetime.fromtimestamp(instant, timezone.utc)
         if "from" in bounds and instant < bounds["from"]:
             continue
         if "to" in bounds and instant > bounds["to"]:
             continue
-        key = timestamp.strftime({"hour": "%Y-%m-%dT%H:00:00Z", "day": "%Y-%m-%dT00:00:00Z", "week": "%G-W%V", "month": "%Y-%m-01T00:00:00Z"}[group])
+        if group == "campaign":
+            key = campaign["id"]
+            buckets[key] = (instant is None, instant or 0, key)
+        else:
+            timestamp = datetime.fromtimestamp(instant, timezone.utc)
+            key = timestamp.strftime({"hour": "%Y-%m-%dT%H:00:00Z", "day": "%Y-%m-%d", "week": "%G-W%V", "month": "%Y-%m-01T00:00:00Z"}[group])
+            buckets[key] = key
         if metric == "campaigns":
             series["campaigns"][key] += 1
         else:
@@ -151,7 +157,8 @@ def timeseries(query):
                 if metric == "severity": label = label.lower()
                 label = "findings" if metric == "findings" else label if label in allowed else "unknown"
                 series[label][key] += 1
-    return {"metric": metric, "group": group, "series": [{"key": key, "points": [{"t": t, "value": n} for t, n in sorted(points.items())]}
+    ordered = sorted(buckets, key=buckets.get)
+    return {"metric": metric, "group": group, "series": [{"key": key, "points": [{"t": t, "value": points.get(t, 0)} for t in ordered]}
                                                              for key, points in sorted(series.items())]}
 
 

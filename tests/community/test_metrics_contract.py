@@ -35,7 +35,28 @@ class MetricsContractTests(fixtures.Fixture):
             self.save(cid, date)
         status, body = self.get()
         self.assertEqual(status, 200)
-        self.assertEqual(body["series"], [{"key": "high", "points": [{"t": "2026-10-31T00:00:00Z", "value": 2}]}])
+        self.assertEqual(body["series"], [{"key": "high", "points": [{"t": "2026-10-31", "value": 2}]}])
+
+    def test_campaign_group_and_day_buckets_align_zero_counts_without_evidence(self):
+        self.save("first", "2026-10-30T12:00:00Z", evidence={"output": "PRIVATE-METRIC"})
+        self.save("second", "2026-10-31T12:00:00Z", severity="low")
+        data.save_campaign({"id": "empty", "date": "2026-11-01T12:00:00Z"})
+        status, body = self.get("?group=campaign")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["series"], [
+            {"key": "high", "points": [{"t": "first", "value": 1}, {"t": "second", "value": 0}, {"t": "empty", "value": 0}]},
+            {"key": "low", "points": [{"t": "first", "value": 0}, {"t": "second", "value": 1}, {"t": "empty", "value": 0}]}])
+        self.assertNotIn("PRIVATE-METRIC", json.dumps(body))
+        day = self.get()[1]
+        self.assertEqual([p["t"] for p in day["series"][0]["points"]], ["2026-10-30", "2026-10-31", "2026-11-01"])
+        self.assertEqual([p["value"] for p in day["series"][0]["points"]], [1, 0, 0])
+        campaigns = self.get("?group=campaign&metric=campaigns")[1]
+        self.assertEqual([p["value"] for p in campaigns["series"][0]["points"]], [1, 1, 1])
+
+    def test_undated_campaign_group_does_not_invent_a_timestamp(self):
+        self.save("undated", None)
+        self.assertEqual(self.get("?group=campaign")[1]["series"][0]["points"], [{"t": "undated", "value": 1}])
+        self.assertEqual(self.get("?group=campaign&from=2026-01-01T00:00:00Z")[1]["series"], [])
 
     def test_timestamp_bounds_keep_existing_inclusive_end_and_exact_target_filter(self):
         self.save("before", "2026-10-30T23:59:59Z")
