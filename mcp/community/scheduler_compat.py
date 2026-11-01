@@ -1,7 +1,7 @@
 """Conservative flat scheduler request adapter; canonical rules remain authoritative.
 
-Only the original typed field declarations and readable recurrence labels are
-used here. This module does not implement vendor scheduling semantics.
+The omitted/none recurrence form maps to the canonical one-shot rule. Calendar
+execution, explicit enablement and version checks retain the fork's semantics.
 """
 from datetime import datetime, timezone
 
@@ -108,9 +108,11 @@ def _rule(raw, existing=None):
     base = normalize_rule(raw["rule"]) if "rule" in raw else existing
     if not TIMING_FIELDS.intersection(raw):
         return None
-    kind = raw.get("recurrence", base["kind"] if base else None)
+    kind = raw.get("recurrence", base["kind"] if base else "once")
+    if kind == "none":
+        kind = "once"
     if not isinstance(kind, str) or kind not in _RECURRENCES:
-        raise ValueError("recurrence must explicitly be once, daily, weekly or monthly; interval is fork-only")
+        raise ValueError("recurrence must be none, once, daily, weekly or monthly; interval is fork-only")
     if "recurrence_interval" in raw:
         every = raw["recurrence_interval"]
         if type(every) is not int or not 1 <= every <= 366:

@@ -34,6 +34,52 @@ def flat(kind="once", **values):
 
 
 class FlatAdapterTests(fixtures.Fixture):
+    def test_omitted_and_none_recurrence_create_the_same_one_shot_as_once(self):
+        expected = self.service.scheduler.preview(flat())["definition"]
+        for recurrence in ("omitted", "none"):
+            raw = flat()
+            if recurrence == "omitted":
+                raw.pop("recurrence")
+            else:
+                raw["recurrence"] = recurrence
+            with self.subTest(recurrence=recurrence):
+                preview = self.service.scheduler.preview(raw)
+                self.assertEqual(preview["definition"], expected)
+                self.assertEqual(len(preview["occurrences"]), 1)
+                created = self.service.scheduler.create(raw)
+                self.assertEqual(created["rule"], expected["rule"])
+                self.assertTrue(created["one_shot"])
+                self.assertFalse(created["enabled"])
+        self.assertFalse(self.service.store.items("jobs"))
+
+    def test_default_once_is_claimed_only_once_and_only_when_enabled(self):
+        calls = []
+        scheduler = Scheduler(self.service.store, lambda spec, **kw: (
+            calls.append(spec) or {"id": "job_fixture"}))
+        raw = flat(scheduled_at="2020-01-01T00:00:00Z")
+        raw.pop("recurrence")
+        item = scheduler.create(raw)
+        clock = utc("2026-10-28T12:00:00Z")
+        scheduler.tick(clock)
+        self.assertEqual(calls, [])
+        scheduler.update(item["id"], {"version": 1, "enabled": True})
+        scheduler.tick(clock)
+        scheduler.tick(clock)
+        self.assertEqual(len(calls), 1)
+        self.assertFalse(self.service.store.get("schedules", item["id"])["enabled"])
+
+    def test_none_update_changes_recurrence_without_bypassing_version(self):
+        original = self.service.scheduler.create(flat("weekly", recurrence_interval=2))
+        renamed = self.service.scheduler.update(original["id"], {"version": 1, "name": "Kept weekly"})
+        self.assertEqual(renamed["rule"], original["rule"])
+        edited = self.service.scheduler.update(original["id"], {"version": 2, "recurrence": "none"})
+        self.assertEqual(edited["rule"]["kind"], "once")
+        self.assertEqual(edited["rule"]["every"], 1)
+        self.assertEqual(edited["next_run"], original["next_run"])
+        with self.assertRaisesRegex(ValueError, "Schedule changed"):
+            self.service.scheduler.update(original["id"], {"version": 2, "recurrence": "daily", "recurrence_interval": 1})
+        self.assertEqual(self.service.store.get("schedules", original["id"]), edited)
+
     def test_flat_once_preserves_distinct_display_program_and_absolute_instant(self):
         item = self.service.scheduler.create(flat(name="Display title", program="Engagement program",
                           scheduled_at="2099-01-31T09:00:00-07:00",
@@ -198,9 +244,9 @@ class FlatAdapterTests(fixtures.Fixture):
             with self.subTest(raw=raw), self.assertRaises(ValueError):
                 self.service.scheduler.create(raw)
 
-    def test_unsupported_recurrence_defaults_and_nulls_do_not_create(self):
+    def test_unsupported_recurrence_and_nulls_do_not_create(self):
         invalid = (
-            {"target": "owned.invalid", "scheduled_at": FUTURE, "enabled": False},
+            flat(None), flat(""), flat("none", recurrence_interval=2),
             flat("hourly"), flat("interval"), flat("DAILY"),
             flat("daily", recurrence_interval=None), flat("daily", recurrence_interval=True),
             flat("daily", recurrence_interval=0), flat("daily", recurrence_interval=367),
@@ -223,7 +269,6 @@ class FlatAdapterTests(fixtures.Fixture):
     def test_unknown_defaults_require_explicit_flat_fields(self):
         for raw in (
             {"target": "owned.invalid", "scheduled_at": FUTURE, "recurrence": "once"},
-            {"target": "owned.invalid", "scheduled_at": FUTURE, "enabled": False},
             flat("daily", recurrence_interval=0),
             flat("daily", recurrence_interval=1, scheduled_at=None),
             flat("once", unexpected="flag"),
@@ -299,6 +344,23 @@ class FlatAdapterHTTPTests(fixtures.Fixture):
             item = content["data"] if prefix.endswith("scheduler") else content
             self.assertEqual(item["rule"]["kind"], "monthly")
             self.assertEqual(item["rule"]["every"], 2)
+
+    def test_default_recurrence_and_none_are_accepted_on_both_http_collections(self):
+        for prefix in ("/api/v1/scheduler/", "/api/v1/schedules"):
+            for recurrence in ("omitted", "none"):
+                request = flat()
+                if recurrence == "omitted":
+                    request.pop("recurrence")
+                else:
+                    request["recurrence"] = recurrence
+                with self.subTest(prefix=prefix, recurrence=recurrence):
+                    status, body, _ = self.request(prefix, "POST", request)
+                    self.assertEqual(status, 201, body)
+                    result = json.loads(body)
+                    item = result["data"] if "scheduler" in prefix else result
+                    self.assertEqual(item["rule"]["kind"], "once")
+                    self.assertTrue(item["one_shot"])
+                    self.assertFalse(item["enabled"])
 
     def test_put_requires_version_and_protects_current_scope(self):
         status, body, _ = self.request("/api/v1/scheduler", "POST",
