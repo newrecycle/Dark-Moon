@@ -103,26 +103,54 @@ def overview(campaigns=None):
 
 
 def timeseries(query):
+    from .evidence_access import STATUS_VALUES
+    from .finding_stats import PUBLIC_CATEGORIES
+    from .posture import SEVERITIES, timestamp as parse_timestamp
+    if set(query) - {"metric", "group", "project_id", "target_id", "from", "to"}:
+        raise ValueError("Unsupported metrics query parameter")
     metric, group = query.get("metric", "severity"), query.get("group", "day")
     if metric not in {"severity", "status", "category", "findings", "campaigns"} or group not in {"hour", "day", "week", "month"}:
         raise ValueError("Invalid metric/group")
+    bounds = {}
+    for name in ("from", "to"):
+        if name in query:
+            value = query[name]
+            instant = parse_timestamp(value)
+            if not isinstance(value, str) or "T" not in value or instant is None:
+                raise ValueError("Metrics bounds must be timezone-aware timestamps")
+            bounds[name] = instant
+    if "from" in bounds and "to" in bounds and bounds["from"] > bounds["to"]:
+        raise ValueError("Metrics start must not follow its end")
+    for key in ("project_id", "target_id"):
+        if key in query:
+            identifier(query[key])
     campaigns = [c for c in data.load_campaigns() if all(not query.get(key) or c.get(key) == query[key] for key in ("project_id", "target_id"))]
     series = defaultdict(lambda: defaultdict(int))
     for campaign in campaigns:
-        try:
-            timestamp = datetime.fromisoformat(campaign.get("date", "").replace("Z", "+00:00")).astimezone(timezone.utc)
-        except ValueError:
+        value = campaign.get("date")
+        instant = parse_timestamp(value)
+        if instant is None and isinstance(value, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+            try:
+                instant = datetime.fromisoformat(value).replace(tzinfo=timezone.utc).timestamp()
+            except ValueError:
+                pass
+        if instant is None:
             continue
-        if query.get("from") and timestamp < datetime.fromisoformat(query["from"].replace("Z", "+00:00")):
+        timestamp = datetime.fromtimestamp(instant, timezone.utc)
+        if "from" in bounds and instant < bounds["from"]:
             continue
-        if query.get("to") and timestamp > datetime.fromisoformat(query["to"].replace("Z", "+00:00")):
+        if "to" in bounds and instant > bounds["to"]:
             continue
         key = timestamp.strftime({"hour": "%Y-%m-%dT%H:00:00Z", "day": "%Y-%m-%dT00:00:00Z", "week": "%G-W%V", "month": "%Y-%m-01T00:00:00Z"}[group])
         if metric == "campaigns":
             series["campaigns"][key] += 1
         else:
             for finding in data.load_vulnerabilities(campaign["id"]):
-                series[str(finding.get(metric, "unknown")) if metric != "findings" else "findings"][key] += 1
+                label = str(finding.get(metric) or "unknown")
+                allowed = PUBLIC_CATEGORIES if metric == "category" else STATUS_VALUES if metric == "status" else set(SEVERITIES)
+                if metric == "severity": label = label.lower()
+                label = "findings" if metric == "findings" else label if label in allowed else "unknown"
+                series[label][key] += 1
     return {"metric": metric, "group": group, "series": [{"key": key, "points": [{"t": t, "value": n} for t, n in sorted(points.items())]}
                                                              for key, points in sorted(series.items())]}
 

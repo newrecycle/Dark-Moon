@@ -567,6 +567,9 @@ class API:
                 return False
             return True
         if resource == "metrics" and parts[1:] == ["timeseries"] and method == "GET":
-            handler.send(timeseries(query))
+            parameters = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+            if any(len(values) != 1 or not values[0] for values in parameters.values()):
+                raise ValueError("Metrics parameters must be single nonblank values")
+            handler.send(timeseries({key: values[0] for key, values in parameters.items()}))
             return True
         return False
