@@ -9,7 +9,10 @@ import math
 import os
 import re
 import signal
+import shutil
+import stat
 import subprocess
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -159,6 +162,23 @@ class Sandbox:
     def probe(self, repo, probe):
         argv, timeout = probe_command(probe)
         name = "darkmoon-retest-" + uuid.uuid4().hex[:12]
+        # Worktrees can be mode 0700 under an operator's private umask. Make
+        # only a disposable copy readable to the sandbox UID; its host parent
+        # stays private and the original repository is never chmodded.
+        with tempfile.TemporaryDirectory(prefix="darkmoon-sandbox-source-") as temporary:
+            source = Path(temporary) / "source"
+            shutil.copytree(Path(repo).resolve(), source, symlinks=True,
+                            ignore=shutil.ignore_patterns(".git"))
+            for directory, names, files in os.walk(source, followlinks=False):
+                for filename in files:
+                    path = Path(directory) / filename
+                    if not path.is_symlink():
+                        executable = bool(path.stat().st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH))
+                        path.chmod(0o755 if executable else 0o644)
+                Path(directory).chmod(0o755)
+            return self._probe(source, argv, timeout, name)
+
+    def _probe(self, source, argv, timeout, name):
         # Both volume sources and image are separate argv elements. No shell
         # expansion is applied to operator strings. The fixed sh script only
         # copies input and executes "$@" verbatim inside the container.
@@ -166,9 +186,10 @@ class Sandbox:
                 "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges",
                 "--pids-limit=128", "--memory=1g", "--cpus=1", "--user=65534:65534",
                 "--tmpfs=/tmp:rw,nosuid,nodev,size=256m,mode=1777", "--tmpfs=/work:rw,nosuid,nodev,size=256m,mode=1777",
-                "--mount", f"type=bind,src={Path(repo).resolve()},dst=/source,readonly",
+                "--mount", f"type=bind,src={source},dst=/source,readonly",
                 "--env=PYTHONDONTWRITEBYTECODE=1", "--env=HOME=/tmp", "--entrypoint=sh", self.image,
-                "-c", 'cp -R /source/. /work/; rm -rf /work/.git; cd /work; exec "$@"', "sh", *argv]
+                "-c", 'cp -R /source/. /work/ || exit 125; '
+                      'rm -rf /work/.git || exit 125; cd /work || exit 125; exec "$@"', "sh", *argv]
         try:
             result = self.run(args, timeout=timeout)
             # Never interpret a docker engine/image failure as a blocked exploit.
