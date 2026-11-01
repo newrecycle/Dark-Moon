@@ -9,6 +9,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 from api import json_storage as data
 from .posture import counts, timestamp
+from .finding_stats import finding_stats, public_histogram
+from .posture import SEVERITIES
 from .store import identifier
 
 
@@ -19,17 +21,22 @@ def target_evolution(target_id):
     campaigns = [c for c in data.load_campaigns() if c.get("target_id") == target_id]
     campaigns.sort(key=lambda c: (timestamp(c.get("date")) is None,
                                   timestamp(c.get("date")) or 0, str(c.get("id") or "")))
-    records = []
+    records, series = [], []
     for c in campaigns:
         findings = [f for f in data.load_vulnerabilities(c["id"])
                     if f.get("campaign_id") == c["id"] and f.get("target_id") in (None, target_id)]
-        records.append({"campaign_id": c["id"], "target_id": target_id, "project_id": c.get("project_id"),
+        record = {"campaign_id": c["id"], "target_id": target_id, "project_id": c.get("project_id"),
                         "started_at": c.get("date") if timestamp(c.get("date")) is not None else None,
-                        "status": c.get("status"), **counts(findings)})
+                        "status": c.get("status"), **counts(findings)}
+        records.append(record)
+        series.append({"campaign_id": record["campaign_id"], "date": record["started_at"],
+                       "stats": {**dict.fromkeys(SEVERITIES, 0),
+                                 **public_histogram(finding_stats(findings)["by_severity"], set(SEVERITIES))},
+                       "total_vulns": record["findings"], "overall_risk": record["risk"]})
     return {"target_id": target_id, "projection": "retained_campaign_current_snapshots_v1",
             "historical_transitions_available": False,
             "note": "Campaign start dates are recorded; finding counts and statuses are current retained snapshots, not as-of-start history.",
-            "data": records, "total": len(records)}
+            "data": records, "campaigns": series, "total": len(records)}
 
 
 def history_page(params):

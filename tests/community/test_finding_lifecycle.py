@@ -66,6 +66,12 @@ class FindingLifecycleTests(fixtures.Fixture):
                          ["c_early", "c_early_b", "c_late", "c_undated"])
         self.assertEqual(body["data"][0]["findings"], 1)
         self.assertEqual(body["data"][0]["risk"], "high")
+        self.assertEqual([r["campaign_id"] for r in body["campaigns"]], [r["campaign_id"] for r in body["data"]])
+        self.assertEqual(body["campaigns"][0], {
+            "campaign_id": "c_early", "date": "2026-10-01T10:00:00Z",
+            "stats": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0},
+            "total_vulns": 1, "overall_risk": "high"})
+        self.assertIsNone(body["campaigns"][-1]["date"])
         self.assertIsNone(body["data"][-1]["started_at"])
         self.assertNotIn("SECRET", json.dumps(body))
         self.assertEqual(self.get("/api/v1/vulnerabilities/history")[1]["total"], 0)
@@ -75,10 +81,31 @@ class FindingLifecycleTests(fixtures.Fixture):
         status, body = self.get("/api/v1/targets/idle/evolution")
         self.assertEqual(status, 200)
         self.assertEqual(body["data"], [])
+        self.assertEqual(body["campaigns"], [])
         self.assertEqual(body["total"], 0)
         self.assertEqual(self.get("/api/v1/targets/missing/evolution")[0], 404)
         self.assertEqual(self.get("/api/v1/targets/%2e%2e/evolution")[0], 400)
         self.assertEqual(self.get("/api/v1/projects/idle/evolution")[0], 404)
+
+    def test_evolution_series_preserves_current_snapshot_semantics_and_redaction(self):
+        cid = self.campaign()
+        campaign = data.load_campaign(cid)
+        findings = data.load_vulnerabilities(cid)
+        findings[0].update(status="resolved", severity="critical")
+        findings.append({"id": "unclassified", "campaign_id": cid,
+                         "target_id": campaign["target_id"], "severity": "PRIVATE-SEVERITY-SENTINEL",
+                         "status": "confirmed", "evidence": {"output": "PRIVATE-EVIDENCE"}})
+        data.save_vulnerabilities(cid, findings)
+        status, body = self.get("/api/v1/targets/" + campaign["target_id"] + "/evolution")
+        self.assertEqual(status, 200)
+        row = body["campaigns"][0]
+        self.assertEqual(row["stats"], {"critical": 1, "high": 0, "medium": 0, "low": 0, "info": 0, "unknown": 1})
+        self.assertEqual(row["total_vulns"], 2)
+        self.assertEqual(row["overall_risk"], "unknown")
+        self.assertFalse(body["historical_transitions_available"])
+        self.assertNotIn("PRIVATE-SEVERITY-SENTINEL", json.dumps(body))
+        self.assertNotIn("PRIVATE-EVIDENCE", json.dumps(body))
+        self.assertNotIn("host", body)
 
     def test_journal_activation_live_push_and_operator_triage_are_real_events(self):
         journal = data.load_finding_history()
