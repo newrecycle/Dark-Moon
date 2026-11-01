@@ -1,7 +1,7 @@
 {
   "base_commit": "95f3c472a8c9b452dfd71793dbcf10eed7eecad8",
-  "code_head": "faf5f4897d795ce89bb3b5c856a012039b3da950",
-  "local_only": true,
+  "code_head": "359850b9a8ebfdbb1fa301bcc66a603d3654e784",
+  "local_only": false,
   "closure_rule": "A successful implementation increment is distinct from full reference workflow acceptance.",
   "commits": [
     {
@@ -67,18 +67,45 @@
     {
       "commit": "faf5f4897d795ce89bb3b5c856a012039b3da950",
       "title": "API07: create private SCM credentials from the workspace form"
+    },
+    {
+      "commit": "f43f33a10c111ca36d12ac4eec3e6df7cb3fdd63",
+      "title": "API03: default recurring intervals and preserve them across type changes"
+    },
+    {
+      "commit": "4179de140fd77e6a55777f4413ed8b08ce9cafa7",
+      "title": "API04: report target trends from the latest two retained campaign totals"
+    },
+    {
+      "commit": "2f1879381e8821019613aa690168d36c3d8c5dd4",
+      "title": "REM02: stage private source safely for non-root offline probes"
+    },
+    {
+      "commit": "9f67b270c5047e7093eec101034739ed265dbeaa",
+      "title": "API01: return authentication denial for an incorrect current password"
+    },
+    {
+      "commit": "359850b9a8ebfdbb1fa301bcc66a603d3654e784",
+      "title": "API08: preserve observed publication provider, state and probe kinds"
     }
   ],
   "tasks": [
     {
       "task": "API01",
-      "implementation_status": "existing_implementation; no change in this increment",
-      "local_commits": [],
+      "implementation_status": "tested_increment_committed_and_pushed",
+      "local_commits": [
+        "9f67b270c5047e7093eec101034739ed265dbeaa"
+      ],
       "full_reference_acceptance": "open",
-      "remaining": "Remaining complete input/refresh/deployment matrix; reference retains older claims after role/deletion transitions.",
+      "remaining": "Close the finite four-route matrix with explicit fork revocation/throttle differences. No refresh route is declared.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
         "observed": "Live password, logout, correctly signed expiry, role downgrade and account deletion observed; fork revocation and current-role enforcement preserved."
+      },
+      "followup_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Incorrect current password returns401; live role/password/logout/natural-expiry/origin/throttle matrix observed.",
+        "evidence_basis": "Prior session report; original capture files unavailable in restored workspace. Fresh runner verification is recorded separately."
       }
     },
     {
@@ -94,28 +121,40 @@
     },
     {
       "task": "API03",
-      "implementation_status": "tested_increment_committed",
+      "implementation_status": "tested_increment_committed_and_pushed",
       "local_commits": [
-        "c802b50c4ebad6656b792b4faf2c881cafae9fae"
+        "c802b50c4ebad6656b792b4faf2c881cafae9fae",
+        "f43f33a10c111ca36d12ac4eec3e6df7cb3fdd63"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Reference schedule remained due without dispatch during bounded observation; recurrence/DST execution remains open. Subsecond input remains intentionally rejected.",
+      "remaining": "Fresh postfix capture provided by scheduler scenario. Actual reference dispatch and native30-day vs fork calendar-month policy remain open.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
         "observed": "Disabled schedule CRUD and due whole-second one-shot observed; fork dispatched once and disabled its schedule."
+      },
+      "followup_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Omitted recurring intervals default1 and survive type changes; offline49tests/51subtests.",
+        "evidence_basis": "Prior session report; original capture files unavailable in restored workspace. Fresh runner verification is recorded separately."
       }
     },
     {
       "task": "API04",
-      "implementation_status": "tested_increment_committed",
+      "implementation_status": "tested_increment_committed_and_pushed",
       "local_commits": [
-        "014dff019c2632ec524baf449b9a4ae9e7c8b150"
+        "014dff019c2632ec524baf449b9a4ae9e7c8b150",
+        "4179de140fd77e6a55777f4413ed8b08ce9cafa7"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Trend, ordering/cohort and mutation semantics remain incomplete; preserve host redaction.",
+      "remaining": "Remaining roles/cohort/date/filter boundaries; do not repeat successful eight-trend capture by default.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
         "observed": "Populated target evolution plus missing/null/invalid/calendar/offset-date reads observed."
+      },
+      "followup_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Eight normal producer trend comparisons agreed after latest-two-total fix;27tests/12subtests.",
+        "evidence_basis": "Prior session report; original capture files unavailable in restored workspace. Fresh runner verification is recorded separately."
       }
     },
     {
@@ -163,15 +202,21 @@
     },
     {
       "task": "API08",
-      "implementation_status": "tested_increment_committed",
+      "implementation_status": "tested_increment_committed_and_pushed",
       "local_commits": [
-        "8280b026e21609c2699ebf82d886d7f39813199b"
+        "8280b026e21609c2699ebf82d886d7f39813199b",
+        "359850b9a8ebfdbb1fa301bcc66a603d3654e784"
       ],
       "full_reference_acceptance": "open",
-      "remaining": "Populated reference publication/linkage matrix remains unverified.",
+      "remaining": "Reference post-fix lookup and genuine multi-finding producer/gates remain open. Direct success-state seeding is prohibited.",
       "workflow_checkpoint_2026_11_01": {
         "status": "partial",
         "observed": "Missing/unqualified finding PR collections observed."
+      },
+      "followup_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Genuine Docker/Gitea metadata fix and native assertions passed;76tests/35subtests. New capture observer reads actual collection/detail/finding/probe kinds.",
+        "evidence_basis": "Prior session report; original capture files unavailable in restored workspace. Fresh runner verification is recorded separately."
       }
     },
     {
@@ -338,13 +383,20 @@
     },
     {
       "task": "REM02",
-      "implementation_status": "existing_implementation; no change in this increment",
-      "local_commits": [],
+      "implementation_status": "tested_increment_committed_and_pushed",
+      "local_commits": [
+        "2f1879381e8821019613aa690168d36c3d8c5dd4"
+      ],
       "full_reference_acceptance": "open",
-      "remaining": "No approval thresholds or gates changed; actual reference/model gate acceptance remains open.",
+      "remaining": "Positive configured-model acceptance is opt-in; prior operator edits do not establish model inference.",
       "workflow_checkpoint_2026_11_01": {
         "status": "unavailable",
         "observed": "Production model preflight exited 3 because endpoint/model configuration is absent."
+      },
+      "followup_checkpoint_2026_11_01": {
+        "status": "partial",
+        "observed": "Private source staging fixed non-root probe permission failures; actual good/bad/missing-image and Gitea workflows passed.",
+        "evidence_basis": "Prior session report; original capture files unavailable in restored workspace. Fresh runner verification is recorded separately."
       }
     },
     {
@@ -487,5 +539,61 @@
     "native_git": "Owned loopback Git HTTP backend, real Git/TLS; not vendor-host equivalence",
     "browser": "Actual reference and fork for 18 observations; standalone/broad fork browser fixtures are separate",
     "model": "Endpoint/model configuration remains unavailable; no substitute verdict or lowered gate"
+  },
+  "bounded_refactor_tasks": [
+    {
+      "id": "REF01",
+      "status": "planned",
+      "scope": "Extract publication projection observation from native test orchestration into a reusable owned-fixture helper only if a second caller needs it.",
+      "limits": "No changes to remediation verdicts, thresholds, sandbox or publisher semantics.",
+      "validation": "Native good/bad/missing-image cases plus actual HTTP collection/detail/finding projection."
+    },
+    {
+      "id": "REF02",
+      "status": "planned",
+      "scope": "Unify repeated endpoint-envelope parsing in capture tools after documenting actual reference variants.",
+      "limits": "Capture tooling only; retain raw bodies and per-scenario assertions. Do not normalize away semantic differences.",
+      "validation": "Malformed/empty/wrapped/unwrapped responses and exact raw hashes."
+    },
+    {
+      "id": "REF03",
+      "status": "planned",
+      "scope": "Consolidate current-status pointers across remaining dated handoffs into links to the task map.",
+      "limits": "Preserve dated evidence, original revision and claims. Do not rewrite historical failures as passes.",
+      "validation": "Local links resolve, task IDs remain stable, no conflicting current authority."
+    }
+  ],
+  "capture_regeneration": {
+    "guide": "tools/acceptance/README.md",
+    "runner": "tools/acceptance/capture.py",
+    "default_scenarios": [
+      "scheduler",
+      "history",
+      "events",
+      "logs",
+      "publication"
+    ],
+    "explicit_native_scenarios": [
+      "native-publication",
+      "configured-model"
+    ],
+    "model_calls_in_default_run": 0,
+    "historical_capture_recovery": false,
+    "full_reference_acceptance": false
+  },
+  "tooling_verification": {
+    "status": "completed_with_model_network_blocker",
+    "paired_runtime_scenarios": [
+      "scheduler",
+      "history",
+      "events"
+    ],
+    "paired_results": "Six side/scenario observations completed against actual restricted reference and actual fork. No global parity claim.",
+    "native_publication": "Actual Docker/Gitea plus fork HTTP collection/detail/finding/provider/state/probe-kind assertions passed.",
+    "capture_tool_regressions": "17 passed after final reporting/deduplication changes",
+    "model_policy": "Run once when tooling ready, then relevant changes/failures only; NEVER every commit. Provider model-list preflight blocked by outbound proxy403; zero inference requests. Credentials are private and outside Git.",
+    "backend_regressions": "570 tests and382 subtests passed; final capture-only reporting changes also covered by17 focused tests",
+    "browser_logic": "Seven pure-browser Node checks and all production static JavaScript syntax checks passed",
+    "audit": "Tracked hygiene/JSON/task-reference audit passed.24 exact duplicate groups retained for license, package-path or independent fixture contracts."
   }
 }

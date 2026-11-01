@@ -1,0 +1,10 @@
+{
+  "reference": {
+    "url": "http://127.0.0.1:8000",
+    "token_env": "REFERENCE_CAPTURE_TOKEN"
+  },
+  "fork": {
+    "url": "http://127.0.0.1:8780",
+    "token_env": "FORK_CAPTURE_TOKEN"
+  }
+}

@@ -3,6 +3,8 @@ data/
 sessions/
 reports/
 workflows/
+# Keep checked-in CI discoverable despite the runtime workflows directory rule.
+!.github/workflows/
 .opencode.env
 *.env
 # OS metadata. A drive-by PR (#37) once added two of these because nothing

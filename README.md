@@ -20,6 +20,8 @@
 
 </div>
 
+**Developing this fork?** Start with [the development and acceptance guide](docs/development.md) and [current task map](docs/handoff/api-task-progress.json).
+
 **DarkMoon is autonomous AI penetration testing for your own infrastructure.** Point it at an authorized target and it runs the whole assessment on its own, then documents every finding with the exact command and raw output.
 
 - 🟢 **Truly open source.** GPLv3 and self-hosted, every agent's methodology is plain Markdown you can read, diff and fork.

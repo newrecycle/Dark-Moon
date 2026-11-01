@@ -1,6 +1,8 @@
-# Current Pro reintegration status — 30 October 2026
+# Pro reintegration checkpoint — 30 October 2026
 
-Authoritative current queue for [pro](https://github.com/newrecycle/Dark-Moon/tree/pro).
+Historical checkpoint for [pro](https://github.com/newrecycle/Dark-Moon/tree/pro).
+The current queue is [api-task-progress.json](api-task-progress.json); new agents
+should start with [the development guide](../development.md).
 The [31 October API compatibility continuation](api-compatibility-continuation.md)
 records subsequent request/metadata changes against the existing parity task IDs;
 it does not close the reference acceptance matrix or the native/model gates.

@@ -1,0 +1,4 @@
+-r mcp/requirements.txt
+-r mcp/community/requirements.txt
+pytest>=8,<10
+PyYAML>=6,<7

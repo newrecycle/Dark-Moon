@@ -9,13 +9,13 @@ import subprocess
 import sys
 
 import test_community as fixtures
-from api import json_storage as data
+from api import live_push
 from community.remediation import git, remediate
 from native_forge import exercise
 from remediation_model_native import SOURCE
 
 
-def main():
+def main(observer=None):
     image = 'darkmoon-ui-lab'
     if not shutil.which('docker') or not shutil.which('openssl'):
         print('NATIVE UNAVAILABLE: Docker and OpenSSL required')
@@ -27,9 +27,10 @@ def main():
     fixture = fixtures.Fixture()
     fixture.setUp()
     try:
-        cid = fixture.campaign()
-        data.save_vulnerabilities(cid, [{'id': 'vuln_fixture', 'status': 'confirmed',
-            'title': 'SQL injection in owned fixture', 'category': 'sqli', 'severity': 'high'}])
+        cid = live_push.init_live_campaign('native-publication', 'owned.invalid',
+            '192.0.2.10', project_name='Owned native acceptance')['campaign_id']
+        live_push.push_finding(cid, {'id': 'vuln_fixture', 'status': 'confirmed',
+            'title': 'SQL injection in owned fixture', 'category': 'sqli', 'severity': 'high'})
         repo = fixture.root / 'owned-source'
         repo.mkdir()
         (repo / 'app.py').write_text(SOURCE)
@@ -66,6 +67,8 @@ def main():
             assert (repo / 'app.py').read_text() == SOURCE and not git(repo, 'status', '--porcelain')
             if expected == 'validated':
                 forge = exercise(fixture.service.store, result, repo, fixture.root)
+                if observer is not None:
+                    observer(fixture, result, forge)
             outcomes.append({'status': result['status'], 'before': len(result['validation']['before']),
                              'after': len(result['validation']['after']), 'published': expected == 'validated'})
         plan['vuln_fixture']['image'] = 'darkmoon-native-fixture-intentionally-absent:never-pull'
